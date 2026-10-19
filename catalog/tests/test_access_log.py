@@ -34,4 +34,5 @@ def test_the_filter_is_attached_when_the_app_is_built() -> None:
 
     create_app()
 
-    assert any(isinstance(f, QuietHealthChecks) for f in logging.getLogger("uvicorn.access").filters)
+    access = logging.getLogger("uvicorn.access")
+    assert any(isinstance(f, QuietHealthChecks) for f in access.filters)
