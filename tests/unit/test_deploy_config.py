@@ -493,7 +493,11 @@ _SHELLS = [
     "bash",
     # The deploy user's login shell, which appleboy runs the script in. It does
     # not split unquoted variables, and the first prune removed nothing.
-    pytest.param("zsh", marks=pytest.mark.skipif(shutil.which("zsh") is None, reason="zsh not installed")),
+    # Skipped only off CI: in CI a missing zsh must fail, not pass quietly.
+    pytest.param(
+        "zsh",
+        marks=pytest.mark.skipif(shutil.which("zsh") is None and not os.environ.get("CI"), reason="zsh not installed"),
+    ),
 ]
 
 

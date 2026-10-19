@@ -237,7 +237,7 @@ jobs:
             # on it stops before ours can start: its old stack by name, then
             # anything left, whoever started it. A no-op once they are gone.
             docker compose -p students-cz stop -t 60
-            ours=$(docker ps -q --filter name=^supervisor-telegram-catalog-postgres$)
+            ours=$(docker ps -q --filter 'name=^supervisor-telegram-catalog-postgres$')
             others=$(docker ps -q --filter volume=konnekt_postgres-data | grep -vx "${ours:-none}" || true)
             [ -z "$others" ] || printf '%s\n' "$others" | xargs docker stop -t 60
 
