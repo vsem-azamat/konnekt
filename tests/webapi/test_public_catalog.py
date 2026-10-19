@@ -183,6 +183,25 @@ class TestWhatComesBack:
         by_title = {row["title"]: row for row in rows}
         assert by_title["ČVUT FIT"]["group"] == "ČVUT | ЧВУТ"
 
+    @pytest.mark.parametrize(
+        ("status", "link"),
+        [(Chat.STATUS_DISCOVERED, None), (Chat.STATUS_DISCOVERED, "https://t.me/secret"), (Chat.STATUS_DISABLED, None)],
+    )
+    async def test_a_parent_nobody_published_does_not_name_the_section(
+        self, client_factory, db_session_maker, status, link
+    ) -> None:
+        """Its Telegram title is not for a public page until its owner agreed: approval is that agreement."""
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "Secret University", resource_status=status, public_link=link),
+            _chat(FIT, "Its faculty", public_link="https://t.me/faculty", parent_chat_id=CVUT),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert all("Secret" not in str(row["group"]) for row in rows)
+
     async def test_a_university_is_filed_under_itself(self, client_factory, db_session_maker) -> None:
         """The chat with faculties beneath it is the section, not a loose row.
 

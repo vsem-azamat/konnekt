@@ -72,7 +72,10 @@ def _section(parent: type[Chat]):
     child = aliased(Chat)
     leads_a_section = select(1).where(child.parent_chat_id == Chat.id).exists()
 
-    return case((parent.title.is_not(None), parent.title), (leads_a_section, Chat.title)).label("group_title")
+    # A parent names the section only once its owner agreed: an unapproved
+    # chat's Telegram title is not for a public page, whatever sits under it.
+    named_parent = parent.title.is_not(None) & (parent.resource_status == Chat.STATUS_APPROVED)
+    return case((named_parent, parent.title), (leads_a_section, Chat.title)).label("group_title")
 
 
 def _activity(messages: int, *, grounded: bool) -> Literal["unknown", "quiet", "active", "busy"]:
