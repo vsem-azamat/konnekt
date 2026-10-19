@@ -113,8 +113,7 @@ def _not_checked(err: TelegramAPIError, *, refused: str, skipped: str = "not che
     if isinstance(err, TelegramRetryAfter):
         return f"{skipped}: flood control"
     if isinstance(err, TelegramNetworkError):
-        # A request that went out may still have landed.
-        return f"{skipped}: network, outcome unknown"
+        return f"{skipped}: network"
     return f"{refused}: {err.message}"
 
 
@@ -218,6 +217,9 @@ async def apply_template(bot: Bot, state: ChatState) -> list[str]:
         return ["description: no right to change it"]
     try:
         await ask(lambda: bot.set_chat_description(chat_id=state.chat_id, description=expected))
+    except TelegramNetworkError:
+        # The request may have landed; the next audit will tell.
+        return ["description outcome unknown: network"]
     except TelegramAPIError as err:
         return [_not_checked(err, refused="description refused", skipped="description not set")]
     return ["description set"]

@@ -364,3 +364,33 @@ async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
     assert [s.chat_id for s in states] == [-3]
     assert [c.kwargs["chat_id"] for c in bot.set_chat_description.await_args_list] == [-3]
     assert states[0].applied == ("description set",)
+
+
+async def test_the_template_uses_the_title_telegram_shows() -> None:
+    stale = Chat(id=CHAT_ID, title="Old name", resource_status=Chat.STATUS_APPROVED, parent_chat_id=PARENT.id)
+
+    state = await _inspect(_bot(info=_chat_info(title="ČVUT FIT")), stale)
+
+    assert state.expected_description == _expected()
+
+
+async def test_apply_with_unknown_rights_does_not_try() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    bot.get_chat_member.side_effect = TelegramBadRequest(method=MagicMock(), message="member not found")
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description: rights unknown"]
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_after_a_network_error_does_not_claim_either_way() -> None:
+    from aiogram.exceptions import TelegramNetworkError
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    bot.set_chat_description.side_effect = TelegramNetworkError(method=MagicMock(), message="timeout")
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description outcome unknown: network"]
