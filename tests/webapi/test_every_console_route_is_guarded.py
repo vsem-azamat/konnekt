@@ -18,7 +18,8 @@ pytestmark = pytest.mark.asyncio
 # Open on purpose: the public half answers strangers, health answers the
 # container's check, and sign-in issues the session.
 _OPEN_PREFIXES = ("/api/public", "/api/health")
-_OPEN_ROUTES = {("POST", "/api/auth/webapp")}
+# Signing out without a session is a no-op, not something to refuse.
+_OPEN_ROUTES = {("POST", "/api/auth/webapp"), ("POST", "/api/auth/logout")}
 
 
 def _console_routes() -> list[tuple[str, str]]:

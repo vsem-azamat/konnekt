@@ -613,3 +613,44 @@ def test_nothing_else_in_the_stack_can_reach_the_control_plane() -> None:
             assert "bot" not in (service.get("networks") or []), name
     # The host still reaches it, on loopback only.
     assert "127.0.0.1:8788:8788" in services["bot"]["ports"]
+
+
+def test_every_long_running_service_rotates_its_logs() -> None:
+    """bot, webapi and webui used json-file with no limits, on a disk shared with other projects."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+
+    for name in ("bot", "webapi", "webui"):
+        options = services[name]["logging"]["options"]
+        assert options["max-size"], name
+        assert options["max-file"], name
+
+
+def test_every_action_is_pinned_to_a_commit() -> None:
+    """A tag can be moved; the ssh and scp actions receive the production SSH key and every secret."""
+    workflows = (ROOT / ".github" / "workflows").glob("*.yml")
+    loose = [
+        f"{path.name}: {ref}"
+        for path in workflows
+        for ref in re.findall(r"uses:\s*([^\s#]+)", path.read_text())
+        if not ref.startswith("./") and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", ref)
+    ]
+
+    assert loose == []
+
+
+def test_the_deploy_job_cannot_write_to_the_repository() -> None:
+    deploy = yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]
+
+    assert deploy["permissions"] == {"contents": "read"}
+
+
+def test_ci_runs_the_databases_production_runs() -> None:
+    """A different image and the default locale tested a collation production does not use."""
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    production = services["catalog-postgres"]
+
+    for job in ("test", "catalog"):
+        assert workflow["jobs"][job]["services"]["postgres"]["image"] == production["image"], job
+    ci_catalog = workflow["jobs"]["catalog"]["services"]["postgres"]["env"]
+    assert ci_catalog["POSTGRES_INITDB_ARGS"] == production["environment"]["POSTGRES_INITDB_ARGS"]

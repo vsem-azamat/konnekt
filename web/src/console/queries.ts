@@ -83,6 +83,18 @@ export const consoleChanges = {
       body: JSON.stringify({ revoke_messages: revokeMessages }),
     }),
 
+  /**
+   * Signs this browser out. Past the requester on purpose: it would answer a
+   * missing session by opening a new one.
+   */
+  signOut: async () => {
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+    if (!response.ok) throw new Error(`sign-out failed: ${response.status}`);
+  },
+
   /** Signs that session out; webapi refuses the one making the request. */
   closeSession: (id: string) =>
     consoleGet<void>(`/api/admin/sessions/${encodeURIComponent(id)}`, {

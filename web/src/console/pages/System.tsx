@@ -66,8 +66,14 @@ function System() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  const signOut = useMutation({
+    mutationFn: consoleChanges.signOut,
+    // Out of the console: it would sign straight back in from Telegram.
+    onSuccess: () => window.location.assign('/'),
+  });
   const dismiss = () => {
     closeSession.reset();
+    signOut.reset();
     setPicked(null);
   };
 
@@ -150,14 +156,38 @@ function System() {
                   был {when(session.last_seen_at)} · {session.ip ?? '—'}
                 </Trans>
               }
-              // The one this request came through cannot close itself.
-              onClick={session.is_current ? undefined : () => setPicked(session)}
+              onClick={() => setPicked(session)}
             />
           ))}
         </Rows>
       )}
 
-      {picked ? (
+      {picked?.is_current ? (
+        // This device's own session is ended by signing out, not by closing it
+        // from the list, which webapi refuses.
+        <Sheet
+          title={t`Выйти на этом устройстве?`}
+          closeLabel={t`Отмена`}
+          onClose={dismiss}
+        >
+          <Sub>
+            <Trans>Консоль снова откроется из Telegram.</Trans>
+          </Sub>
+          {signOut.isError ? (
+            <Hint>
+              <Trans>Не получилось. Попробуйте ещё раз.</Trans>
+            </Hint>
+          ) : null}
+          <div className={ui.actionsStacked}>
+            <Action disabled={signOut.isPending} onClick={() => signOut.mutate()}>
+              <Trans>Выйти</Trans>
+            </Action>
+            <Action quiet onClick={dismiss}>
+              <Trans>Отмена</Trans>
+            </Action>
+          </div>
+        </Sheet>
+      ) : picked ? (
         <Sheet title={t`Закрыть этот вход?`} closeLabel={t`Отмена`} onClose={dismiss}>
           <Sub>
             {device(picked.user_agent)} · {picked.ip ?? '—'}

@@ -21,7 +21,10 @@ case "${1:-bot}" in
     ;;
   webapi)
     echo "Starting webapi..."
-    exec uvicorn app.webapi.main:app --host 0.0.0.0 --port 8787
+    # Behind the web UI's Caddy, and reachable only on the stack's network, so
+    # the forwarded client address is believed from any peer there; without it
+    # every console session recorded the proxy's Docker address.
+    exec uvicorn app.webapi.main:app --host 0.0.0.0 --port 8787 --proxy-headers --forwarded-allow-ips '*'
     ;;
   *)
     exec "$@"

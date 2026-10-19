@@ -41,6 +41,21 @@ def _remember_event_name(_logger: Any, _method_name: str, event_dict: EventDict)
     return event_dict
 
 
+class QuietHealthChecks(logging.Filter):
+    """Drop the container healthcheck's requests from uvicorn's access log.
+
+    It asks every 30 s for as long as the container runs, and the lines it
+    leaves push real requests out of the rotated log within days.
+    """
+
+    PATHS = ("/api/health",)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args if isinstance(record.args, tuple) else ()
+        path = str(args[2]).split("?", 1)[0] if len(args) > 2 else ""
+        return path not in self.PATHS
+
+
 def setup_logging() -> None:
     """Setup structured logging with both console and file output."""
 
@@ -89,6 +104,8 @@ def setup_logging() -> None:
         # No colour codes when a log file shares the rendered line.
         colors = not settings.logging.file_path
         processors.append(_keep_event_name(structlog.dev.ConsoleRenderer(colors=colors)))
+
+    logging.getLogger("uvicorn.access").addFilter(QuietHealthChecks())
 
     # Configure structlog
     structlog.configure(

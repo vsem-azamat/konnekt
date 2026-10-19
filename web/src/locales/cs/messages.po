@@ -26,6 +26,10 @@ msgstr "{0, plural, one {# člověk} few {# lidé} many {# člověka} other {# l
 #~ msgid "курсовая по экономике"
 #~ msgstr "seminárka z ekonomie"
 
+#: src/console/pages/System.tsx
+msgid "Консоль снова откроется из Telegram."
+msgstr "Konzole se znovu otevře z Telegramu."
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Zapnout"
@@ -788,6 +792,10 @@ msgstr "Zobrazit podobné"
 #: src/pages/MyHelper.tsx
 #~ msgid "Пока ни одного. Найди предмет ниже — без них тебя не найдут по поиску."
 #~ msgstr "Zatím žádný. Najdi předmět níž — bez nich tě vyhledávání nenajde."
+
+#: src/console/pages/System.tsx
+msgid "Выйти на этом устройстве?"
+msgstr "Odhlásit se na tomto zařízení?"
 
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
@@ -2013,6 +2021,10 @@ msgstr "Nepovinné. Prázdné pole znamená „domluvíme se“."
 #: src/pages/Request.tsx
 msgid "Написать"
 msgstr "Napsat"
+
+#: src/console/pages/System.tsx
+msgid "Выйти"
+msgstr "Odhlásit se"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx

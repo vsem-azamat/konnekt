@@ -16,7 +16,8 @@ inside a Telegram client. Telegram Desktop counts, so a laptop still works.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, cast
+import ipaddress
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,20 +53,20 @@ async def webapp_login(
         logger.warning("webapp_login_not_authorized", user_id=caller.user_id)
         raise HTTPException(status_code=403, detail="not authorized")
 
-    row = await session_store.create_session(
+    _row, token = await session_store.create_session(
         session,
         user_id=caller.user_id,
         ttl_days=settings.webapi.session_ttl_days,
         user_agent=request.headers.get("user-agent"),
-        ip=request.client.host if request.client else None,
+        ip=_address(request),
     )
     response.set_cookie(
         key=settings.webapi.session_cookie_name,
-        value=row.session_id,
+        value=token,
         max_age=settings.webapi.session_ttl_days * 86400,
         secure=settings.webapi.session_cookie_secure,
         httponly=True,
-        samesite=cast("Literal['lax', 'strict', 'none']", settings.webapi.session_cookie_samesite),
+        samesite=settings.webapi.session_cookie_samesite,
         path="/",
     )
     return AuthMeResponse(user_id=caller.user_id)
@@ -74,3 +75,37 @@ async def webapp_login(
 @router.get("/me")
 async def me(user_id: Annotated[int, Depends(require_super_admin)]) -> AuthMeResponse:
     return AuthMeResponse(user_id=user_id)
+
+
+def _address(request: Request) -> str | None:
+    """The caller's address if it is one: it arrives through forwarded headers."""
+    host = request.client.host if request.client else None
+    if host and "%" in host:
+        return None  # an IPv6 zone, of any length, says nothing about who
+    try:
+        return str(ipaddress.ip_address(host)) if host else None
+    except ValueError:
+        return None
+
+
+@router.post("/logout", status_code=204)
+async def logout(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> None:
+    """End the session this browser holds, and its cookie.
+
+    Open to anybody: signing out without a session is a no-op, and a cookie
+    that could not be ended from the device holding it lasted its 30 days.
+    """
+    token = request.cookies.get(settings.webapi.session_cookie_name)
+    if token:
+        await session_store.end_session(session, token)
+    response.delete_cookie(
+        key=settings.webapi.session_cookie_name,
+        path="/",
+        secure=settings.webapi.session_cookie_secure,
+        httponly=True,
+        samesite=settings.webapi.session_cookie_samesite,
+    )

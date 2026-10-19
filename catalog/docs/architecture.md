@@ -99,7 +99,7 @@ beside the bot, the webapi and the Mini App.
 
 ## One origin, two APIs
 
-The Mini App is `web/`, served at `APP_URL` (konnekt.azamat.io) beside the
+The Mini App is `web/`, served at `PUBLIC_BASE_URL` (konnekt.azamat.io) beside the
 moderator console. It reads from two APIs. `/api/v1/*` is the catalog's;
 `/api/public/*` is the webapi's: the chat directory (`catalog`), the
 advertising reach (`reach`) and the join check (`join-check`). Telegram lets a
@@ -108,8 +108,8 @@ Mini App call only its own origin, so the router in front of the app
 the stack. For the browser it is one host.
 
 The catalog has no host of its own. Its old one, `tutors.azamat.io`, answers
-301 to the same path under `APP_URL`, so a link shared before the move lands
-on the app. The bot's buttons open `APP_URL` too.
+301 to the same path under `PUBLIC_BASE_URL`, so a link shared before the move lands
+on the app. The bot's buttons open `PUBLIC_BASE_URL` too.
 
 The rules below about the app's screens, and «The web shell scrolls in exactly
 one place», govern that `web/` directory. They stay here because the product
@@ -333,7 +333,7 @@ appearing. It is not product copy — nobody reading it chose a language, and it
 is addressed to whoever runs this — so it lives in `bot/texts.py` as a plain
 string rather than a table per language, and it is off unless that setting
 names somebody. It carries one button, «Открыть в консоли», which opens the
-console's catalog screen (`APP_URL/console/catalog`), where recent profiles
+console's catalog screen (`PUBLIC_BASE_URL/console/catalog`), where recent profiles
 and unanswered requests are listed: the ping is the reason to look, the
 console is where to look. The owner should be one of `ADMIN_TG_IDS`, or the
 button opens a refusal. No button when the app's address is not https, as for the others. A

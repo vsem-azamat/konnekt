@@ -19,6 +19,12 @@ def create_engine() -> AsyncEngine:
         echo=settings.debug,
         pool_pre_ping=True,
         pool_recycle=3600,  # Recycle connections after 1 hour
+        # The database is on another host. Without these a network blip held
+        # every update on a connect or a query that never answered; with them
+        # it fails in seconds, the error reaches the report chat, and the next
+        # update tries again.
+        pool_timeout=15,
+        connect_args={"timeout": 10, "command_timeout": 30},
     )
 
 
