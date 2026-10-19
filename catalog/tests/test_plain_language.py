@@ -15,6 +15,7 @@ one turns up.
 import ast
 import json
 import re
+import unicodedata
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -30,20 +31,35 @@ SEEDS = Path(__file__).resolve().parents[1] / "seeds"
 # work on Cyrillic and on Czech with diacritics.
 SLANG = re.compile(
     r"\b("
-    r"матан|матеш|линал|англ\b|шари(шь|т|те)\b|теорвер|дискретк|сопромат|общаг"
-    r"|приемк|приёмк|приймачк|přijímačk|matan|matik[aouy]\b|sopromat|vejšk"
+    r"матан|матеш|линал|англ\b|шари(шь|т|те|ть)\b|теорвер|дискрет(к|ок)|сопромат|общаг"
+    r"|при[её]м(к|ок)|приймач(к|ок)|přijímač(k|ek)|matan|matik(a|o|u|y|ou)\b|sopromat|vejš(k|c)"
     r")",
     re.IGNORECASE,
 )
 
 
 def _slang(text: str) -> list[str]:
-    return [match.group(0) for match in SLANG.finditer(text)]
+    return [
+        match.group(0) for match in SLANG.finditer(unicodedata.normalize("NFC", text))
+    ]
 
 
 @pytest.mark.parametrize(
     "text",
-    ["матан", "Матану", "матанализ", "Přijímačky", "приемка", "англ", "шаришь", "vejšku"],
+    [
+        "матан",
+        "Матану",
+        "матанализ",
+        "Přijímačky",
+        "bez přijímaček",
+        "приемка",
+        "англ",
+        "шаришь",
+        "vejšku",
+        "na vejšce",
+        "matikou",
+        "pr\u030cijímac\u030cky",
+    ],
 )
 def test_the_list_catches_what_it_names(text: str) -> None:
     assert _slang(text), text

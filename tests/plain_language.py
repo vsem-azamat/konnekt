@@ -8,17 +8,18 @@ shipped and their obvious neighbours, not a dictionary of slang.
 """
 
 import re
+import unicodedata
 
 # Matched at the start of a word, so every case ending is caught. Python's `\b`
 # is Unicode-aware, which is what lets it work on Cyrillic and on Czech.
 SLANG = re.compile(
     r"\b("
-    r"матан|матеш|линал|англ\b|шари(шь|т|те)\b|теорвер|дискретк|сопромат|общаг"
-    r"|приемк|приёмк|приймачк|přijímačk|matan|matik[aouy]\b|sopromat|vejšk"
+    r"матан|матеш|линал|англ\b|шари(шь|т|те|ть)\b|теорвер|дискрет(к|ок)|сопромат|общаг"
+    r"|при[её]м(к|ок)|приймач(к|ок)|přijímač(k|ek)|matan|matik(a|o|u|y|ou)\b|sopromat|vejš(k|c)"
     r")",
     re.IGNORECASE,
 )
 
 
 def slang(text: str) -> list[str]:
-    return [match.group(0) for match in SLANG.finditer(text)]
+    return [match.group(0) for match in SLANG.finditer(unicodedata.normalize("NFC", text))]

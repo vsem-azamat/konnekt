@@ -45,22 +45,18 @@ def _seeded_rows() -> dict[str, dict[str, Any]]:
     }
 
 
-def _migrated_rows() -> dict[str, dict[str, Any]]:
-    """The same, for the rows the migrations actually create or rename.
+def _migrated_rows() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """The same, for what the migrations write: rows created, then renames.
 
-    A rename is declared under `SERVICE_TYPE_RENAMES`, code to the languages it
-    rewrites, and says nothing about the shelf or the unit. A type no migration
-    created comes out of here with its names alone — the only part of it a
-    migration has ever written.
+    A row a migration creates says everything about the type, so it is compared
+    whole — every language, the shelf, the unit. A rename is declared under
+    `SERVICE_TYPE_RENAMES`, code to the languages it rewrites; on a created row
+    it replaces those languages, and on a type no migration created it is the
+    only thing a migration ever wrote, so only those languages are compared.
     """
-    rows: dict[str, dict[str, Any]] = {}
+    created: dict[str, dict[str, Any]] = {}
+    renamed: dict[str, dict[str, Any]] = {}
     for path in sorted(VERSIONS.glob("*.py")):
-        for code, names in _constant(path, "SERVICE_TYPE_RENAMES", {}).items():
-            row = rows.setdefault(code, {})
-            row["names"] = {
-                **row.get("names", {}),
-                **{lang: tuple(value) for lang, value in names.items()},
-            }
         for row in _load(path):
             # A row that creates a service type says everything about it. One
             # with names and no group would be a migration inserting a type onto
@@ -70,12 +66,15 @@ def _migrated_rows() -> dict[str, dict[str, Any]]:
             assert "group" in row, (
                 f"{path.name}: {row['code']} creates a service type with no group"
             )
-            rows[row["code"]] = {
+            created[row["code"]] = {
                 "group": row["group"],
                 "unit": row["default_price_unit"],
                 "names": {lang: tuple(value) for lang, value in row["names"].items()},
             }
-    return rows
+        for code, names in _constant(path, "SERVICE_TYPE_RENAMES", {}).items():
+            target = created.get(code) or renamed.setdefault(code, {"names": {}})
+            target["names"].update({lang: tuple(value) for lang, value in names.items()})
+    return created, renamed
 
 
 def _constant(path: Path, name: str, default: Any = None) -> Any:
@@ -209,18 +208,12 @@ def test_seed_and_migrations_agree_on_what_those_types_say() -> None:
     be declared in a migration before this can hold the two together, and
     docs/data-model.md is where that is written down.
     """
-    migrated = _migrated_rows()
+    created, renamed = _migrated_rows()
     seeded = _seeded_rows()
-    assert migrated == {
-        code: {
-            key: (
-                {lang: seeded[code]["names"][lang] for lang in row["names"]}
-                if key == "names"
-                else seeded[code][key]
-            )
-            for key in row
-        }
-        for code, row in migrated.items()
+    assert created == {code: seeded[code] for code in created}
+    assert renamed == {
+        code: {"names": {lang: seeded[code]["names"].get(lang) for lang in row["names"]}}
+        for code, row in renamed.items()
     }
 
 
