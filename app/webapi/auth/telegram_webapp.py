@@ -36,6 +36,11 @@ from urllib.parse import parse_qsl
 from app.core.exceptions import DomainError
 from app.core.time import utc_now
 
+# An hour, where the catalog allows a day (catalog/.../core/security.py), and
+# on purpose: here initData is exchanged once for a console session or answers
+# a join check on the spot, so a fresh one is always to hand; the catalog uses
+# it as its session for as long as the Mini App stays open. The two checks are
+# held to the same signatures by tests/webapi/test_init_data_agrees_with_aiogram.py.
 _DEFAULT_MAX_AGE_SECONDS = 3600
 _CLOCK_SKEW_SECONDS = 300
 
