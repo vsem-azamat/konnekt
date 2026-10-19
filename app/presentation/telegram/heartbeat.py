@@ -63,8 +63,10 @@ async def watch(
     """Raise once the heartbeat is older than any poll could explain.
 
     Before the first answered poll there is no file; startup gets the grace
-    period to produce one.
+    period to produce one. A file left by the previous process, after an
+    in-place restart, is removed first: its age would end this one at once.
     """
+    path.unlink(missing_ok=True)
     started = time.monotonic()
     while True:
         await asyncio.sleep(interval_seconds)

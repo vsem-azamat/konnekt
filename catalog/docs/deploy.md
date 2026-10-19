@@ -71,9 +71,13 @@ does not use it.
 
 ## Rolling back
 
-A release of the catalog: revert on `main`. Its image is still in the registry
-under `catalog-<sha>`. Migrations do not run backwards; reversing a schema
-change is its own, deliberate decision.
+A release of the catalog: revert on `main`, or run the Deploy workflow by hand
+with the older sha and *migrate* off; its image is still in the registry under
+`catalog-<sha>`. That runs the older catalog, `catalog-embed` included, against
+the newer schema, so the catalog's migrations follow the app's rule: each one
+leaves a schema the previous release still runs on (docs/invariants.md).
+Migrations do not run backwards; reversing a schema change is its own,
+deliberate decision.
 
 The pre-move stack is gone: its containers were removed on 30 September 2026,
 once the catalog had been checked end to end from here. Undoing the move means

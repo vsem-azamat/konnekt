@@ -98,6 +98,21 @@ jobs:
       - uses: actions/checkout@v6.0.2
         with:
           ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 0
+
+      # Before anything reaches the host, whose compose file the next step
+      # overwrites: a dispatched sha must be a release main built.
+      - name: The release to deploy is one of main's, with its images published
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          echo "$SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "sha must be a full 40-character commit id" >&2; exit 1; }
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "$SHA is not on main" >&2; exit 1; }
+          for image in supervisor-telegram:"$SHA" supervisor-telegram-webui:"$SHA" supervisor-telegram:catalog-"$SHA"; do
+            docker buildx imagetools inspect "ghcr.io/vsem-azamat/$image" > /dev/null \
+              || { echo "no published image $image" >&2; exit 1; }
+          done
 
       # Fails before anything reaches the VPS. The settings below have no
       # defaults, so a deploy missing one starts containers that crash on

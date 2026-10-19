@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -11,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.alerts import AlertHandler
 from app.core.config import settings
-from app.core.logging import get_logger
+from app.core.logging import get_logger, setup_logging
 from app.webapi.routes import (
     admin,
     auth,
@@ -27,6 +26,9 @@ from app.webapi.routes import (
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+# Without it structlog prints to stdout and nothing reaches the root logger:
+# no JSON in production, no LOG_FILE_PATH, and no error alerts.
+setup_logging()
 logger = get_logger("webapi.main")
 
 
@@ -46,14 +48,12 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("publish_bot_started")
     bot = _app.state.publish_bot
     report_chat = settings.admin.default_report_chat_id
-    alerts = asyncio.create_task(
-        AlertHandler(process="webapi").run(lambda text: bot.send_message(report_chat, text, parse_mode=None))
-    )
+    alerts = AlertHandler(process="webapi")
+    alerts.start(lambda text: bot.send_message(report_chat, text, parse_mode=None))
     try:
         yield
     finally:
-        alerts.cancel()
-        await asyncio.gather(alerts, return_exceptions=True)
+        await alerts.stop()
         await close_publish_bot(_app.state.publish_bot)
 
 

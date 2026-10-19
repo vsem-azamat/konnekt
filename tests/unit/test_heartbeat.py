@@ -49,13 +49,27 @@ async def test_a_failed_get_updates_does_not_count(tmp_path: Path) -> None:
 
 async def test_the_watchdog_ends_the_process_when_polling_stalls(tmp_path: Path) -> None:
     """Stalled for minutes means deaf: exiting lets the container restart."""
+    import asyncio
+
     beat = tmp_path / "beat"
-    beat.write_text("")
+    watching = asyncio.create_task(heartbeat.watch(beat, max_age_seconds=300, interval_seconds=0.01, grace_seconds=60))
+    await asyncio.sleep(0.02)
+    beat.write_text("")  # polled once, long ago
     stale = time.time() - 600
     os.utime(beat, (stale, stale))
 
     with pytest.raises(heartbeat.PollingStalledError):
-        await heartbeat.watch(beat, max_age_seconds=300, interval_seconds=0.01, grace_seconds=0)
+        await asyncio.wait_for(watching, timeout=1)
+
+
+async def test_a_bot_that_never_polls_is_ended_after_the_grace(tmp_path: Path) -> None:
+    import asyncio
+
+    with pytest.raises(heartbeat.PollingStalledError):
+        await asyncio.wait_for(
+            heartbeat.watch(tmp_path / "beat", max_age_seconds=0.05, interval_seconds=0.01, grace_seconds=0),
+            timeout=1,
+        )
 
 
 async def test_the_watchdog_waits_for_the_first_poll(tmp_path: Path) -> None:
@@ -65,5 +79,21 @@ async def test_the_watchdog_waits_for_the_first_poll(tmp_path: Path) -> None:
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(
             heartbeat.watch(tmp_path / "beat", max_age_seconds=300, interval_seconds=0.01, grace_seconds=60),
+            timeout=0.1,
+        )
+
+
+async def test_a_heartbeat_left_by_the_previous_process_does_not_count(tmp_path: Path) -> None:
+    """After an in-place restart its age would end the new process before it polled."""
+    import asyncio
+
+    beat = tmp_path / "beat"
+    beat.write_text("")
+    stale = time.time() - 600
+    os.utime(beat, (stale, stale))
+
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(
+            heartbeat.watch(beat, max_age_seconds=300, interval_seconds=0.01, grace_seconds=60),
             timeout=0.1,
         )
