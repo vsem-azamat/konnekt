@@ -12,6 +12,7 @@ from tests.telegram_helpers import (
     create_admin_user,
     create_normal_user,
     create_test_chat,
+    no_moderators,
 )
 
 
@@ -62,7 +63,7 @@ class TestModerationHandlers:
             mock_mention.return_value = "@spammer"
 
             # Act
-            await mute_user(command_message, mock_bot.mock, audit_db)
+            await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert
         mock_bot.mock.restrict_chat_member.assert_called_once()
@@ -111,7 +112,7 @@ class TestModerationHandlers:
             mock_mention.return_value = "@user"
 
             # Act
-            await mute_user(command_message, mock_bot.mock, audit_db)
+            await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert
         mock_bot.mock.restrict_chat_member.assert_called_once()
@@ -144,7 +145,7 @@ class TestModerationHandlers:
             mock_sleep.return_value = None
 
             # Act
-            await mute_user(command_message, mock_bot.mock, audit_db)
+            await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert - should handle error gracefully
         command_message.answer.assert_called_once()
@@ -173,7 +174,7 @@ class TestModerationHandlers:
             mock_calc.return_value = mock_duration
 
             # Act
-            await mute_user(command_message, mock_bot.mock, audit_db)
+            await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert - should handle error gracefully
         command_message.answer.assert_called_once()
@@ -217,7 +218,7 @@ class TestModerationHandlers:
             command="mute", user=admin_user, chat=chat, reply_to_message=reply_message
         )
 
-        await mute_user(command_message, mock_bot.mock, audit_db)
+        await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         sent = mock_bot.mock.restrict_chat_member.call_args.kwargs["permissions"]
         assert sent == MUTED
@@ -243,7 +244,7 @@ class TestModerationHandlers:
             mock_mention.return_value = "@user"
 
             # Act
-            await ban_user(command_message, mock_bot.mock, audit_db)
+            await ban_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert
         mock_bot.mock.ban_chat_member.assert_called_once_with(chat.id, target_user.id)
@@ -273,7 +274,7 @@ class TestModerationHandlers:
             await unban_user(command_message, mock_bot.mock, audit_db)
 
         # Assert
-        mock_bot.mock.unban_chat_member.assert_called_once_with(chat.id, target_user.id)
+        mock_bot.mock.unban_chat_member.assert_called_once_with(chat.id, target_user.id, only_if_banned=True)
         command_message.answer.assert_called_once()
         command_message.delete.assert_called_once()
 
@@ -297,7 +298,7 @@ class TestModerationHandlerEdgeCases:
         )
 
         # Act
-        await mute_user(command_message, mock_bot.mock, audit_db)
+        await mute_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert
         command_message.answer.assert_called_once()
@@ -327,7 +328,7 @@ class TestModerationHandlerEdgeCases:
             mock_sleep.return_value = None
 
             # Act
-            await ban_user(command_message, mock_bot.mock, audit_db)
+            await ban_user(command_message, mock_bot.mock, audit_db, no_moderators())
 
         # Assert
         command_message.answer.assert_called_once()

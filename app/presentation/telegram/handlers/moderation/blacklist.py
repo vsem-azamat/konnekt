@@ -19,7 +19,9 @@ from app.moderation import audit, spam_service
 from app.moderation import blacklist as moderation_services
 from app.moderation.user_service import UserService
 from app.presentation.telegram.handlers.moderation._common import (
-    is_user_check_error,
+    author_of,
+    not_a_person_error,
+    replied_message,
     reply_required_error,
 )
 from app.presentation.telegram.utils import BlacklistConfirm, BlacklistPagination, UnblockUser, other
@@ -45,17 +47,20 @@ async def ban_everywhere(message: types.Message, message_repo: MessageRepository
     written, and what the spam filter makes of the message being replied to.
     A filter that stayed quiet is as much information as one that fired.
     """
-    if not message.reply_to_message:
+    target = replied_message(message)
+    if target is None:
         await message.answer(reply_required_error("забанить во всех одобренных чатах"))
         return
 
-    target = message.reply_to_message
-    if not target.from_user:
-        await message.answer(is_user_check_error())
-        logger.warning("blacklist_target_not_user", chat_id=message.chat.id)
+    person = author_of(target)
+    if person is None:
+        # Blacklisting a stand-in would silence every channel post, or every
+        # anonymous admin, in every approved chat.
+        await message.answer(not_a_person_error())
+        logger.warning("blacklist_target_not_person", chat_id=message.chat.id)
         return
 
-    id_user = target.from_user.id
+    id_user = person.id
     if moderation_services.is_protected(id_user):
         await message.answer("Главного администратора забанить нельзя.")
         await message.delete()
@@ -66,7 +71,7 @@ async def ban_everywhere(message: types.Message, message_repo: MessageRepository
 
     info_text = (
         "<b>Забанить во всех одобренных чатах?</b>\n"
-        f"{other.get_user_mention(target.from_user)} · <code>{id_user}</code>\n\n"
+        f"{other.get_user_mention(person)} · <code>{id_user}</code>\n\n"
         f"Замечен в {chats_count} чатах, {messages_count} сообщений.\n"
         f"Спам-фильтр: <b>{'сработал' if spam_flag else 'не сработал'}</b>.\n\n"
         "Бан снимается только вручную, через /blacklist. "

@@ -198,13 +198,14 @@ class TestExpiry:
 
 
 class TestSuperAdmins:
-    async def test_blacklisting_a_super_admin_is_refused_at_the_press(self, session, bot, monkeypatch) -> None:
+    @pytest.mark.parametrize("action", ["blacklist", "ban"])
+    async def test_removing_a_super_admin_is_refused_at_the_press(self, session, bot, monkeypatch, action) -> None:
         """A proposal older than the admin list: refused, recorded as not done."""
         from app.core.config import settings
         from app.core.exceptions import ProtectedUserError
 
         executor = AsyncMock()
-        pending = await _propose(session, bot, action="blacklist")
+        pending = await _propose(session, bot, action=action)
         monkeypatch.setattr(settings.admin, "super_admins", [ADMIN_ID, TARGET_ID])
         service = PendingActionService(bot=bot, db=session, executor=executor)
 

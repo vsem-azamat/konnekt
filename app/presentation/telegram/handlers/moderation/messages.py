@@ -15,10 +15,14 @@ from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
 from app.core.text import escape_html
 from app.db.models import User
+from app.db.repositories import AdminRepository
 from app.presentation.telegram.handlers.moderation._common import (
-    is_user_check_error,
+    author_of,
+    not_a_person_error,
     record_reply_target,
+    replied_message,
     reply_required_error,
+    untouchable,
 )
 from app.presentation.telegram.utils import other
 
@@ -31,7 +35,7 @@ MAX_PURGE = 100
 
 
 @router.message(Command("kick", prefix="!/"))
-async def kick_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
+async def kick_user(message: types.Message, bot: Bot, db: AsyncSession, admin_repo: AdminRepository) -> None:
     """Remove a member without a lasting ban.
 
     Telegram has no kick: banning and immediately unbanning removes the person
@@ -39,14 +43,19 @@ async def kick_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     else. ``only_if_banned`` keeps the second call from lifting an older ban
     that was placed deliberately.
     """
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("удалить из чата"))
         return
-    if not message.reply_to_message.from_user:
-        await message.answer(is_user_check_error())
+    target = author_of(reply)
+    if target is None:
+        await message.answer(not_a_person_error())
+        return
+    actor = message.from_user.id if message.from_user else None
+    if reason := await untouchable(bot, admin_repo, chat_id=message.chat.id, actor_id=actor, target_id=target.id):
+        await message.answer(reason)
         return
 
-    target = message.reply_to_message.from_user
     try:
         await bot.ban_chat_member(message.chat.id, target.id)
         await bot.unban_chat_member(message.chat.id, target.id, only_if_banned=True)
@@ -62,12 +71,13 @@ async def kick_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
 @router.message(Command("del", prefix="!/"))
 async def delete_message(message: types.Message, bot: Bot) -> None:
     """Delete the message this command replies to."""
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("удалить"))
         return
 
     try:
-        await bot.delete_message(message.chat.id, message.reply_to_message.message_id)
+        await bot.delete_message(message.chat.id, reply.message_id)
     except Exception as err:
         logger.error("delete_failed", error=str(err), chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось удалить сообщение."), 10)
@@ -78,11 +88,12 @@ async def delete_message(message: types.Message, bot: Bot) -> None:
 @router.message(Command("purge", prefix="!/"))
 async def purge_messages(message: types.Message, bot: Bot) -> None:
     """Delete everything from the replied-to message up to this command."""
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("удалить пачкой (ответом на первое сообщение)"))
         return
 
-    first = message.reply_to_message.message_id
+    first = reply.message_id
     span = message.message_id - first + 1
     if span > MAX_PURGE:
         await message.answer(f"Слишком большой диапазон: {span} сообщений, максимум {MAX_PURGE}.")
@@ -101,14 +112,15 @@ async def purge_messages(message: types.Message, bot: Bot) -> None:
 @router.message(Command("pin", prefix="!/"))
 async def pin_message(message: types.Message, bot: Bot) -> None:
     """Pin the replied-to message without notifying everyone."""
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("закрепить"))
         return
 
     try:
         await bot.pin_chat_message(
             chat_id=message.chat.id,
-            message_id=message.reply_to_message.message_id,
+            message_id=reply.message_id,
             # Pinning notifies every member by default, which is rarely what a
             # moderator wants from a housekeeping action.
             disable_notification=True,
@@ -123,12 +135,13 @@ async def pin_message(message: types.Message, bot: Bot) -> None:
 @router.message(Command("unpin", prefix="!/"))
 async def unpin_message(message: types.Message, bot: Bot) -> None:
     """Unpin the replied-to message."""
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("открепить"))
         return
 
     try:
-        await bot.unpin_chat_message(chat_id=message.chat.id, message_id=message.reply_to_message.message_id)
+        await bot.unpin_chat_message(chat_id=message.chat.id, message_id=reply.message_id)
     except Exception as err:
         logger.error("unpin_failed", error=str(err), chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось открепить сообщение."), 10)
@@ -139,14 +152,15 @@ async def unpin_message(message: types.Message, bot: Bot) -> None:
 @router.message(Command("info", prefix="!/"))
 async def user_info(message: types.Message, db: AsyncSession) -> None:
     """Show what is on file for the replied-to user."""
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("посмотреть"))
         return
-    if not message.reply_to_message.from_user:
-        await message.answer(is_user_check_error())
+    target = author_of(reply)
+    if target is None:
+        await message.answer(not_a_person_error())
         return
 
-    target = message.reply_to_message.from_user
     stored = await db.scalar(select(User).where(User.id == target.id))
 
     lines = [

@@ -137,7 +137,8 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
             async with session_maker()() as session:
                 await approved_chat_id(session, chat_id)
 
-            await bot.unban_chat_member(chat_id=chat_id, user_id=user_id)
+            # Without only_if_banned Telegram's unban removes a current member.
+            await bot.unban_chat_member(chat_id=chat_id, user_id=user_id, only_if_banned=True)
         except ToolError as err:
             return err.payload()
 

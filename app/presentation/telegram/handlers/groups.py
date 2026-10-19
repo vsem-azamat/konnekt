@@ -4,6 +4,7 @@ from aiogram import Bot, Router, types
 from aiogram.filters import Command
 
 from app.moderation import report as report_services
+from app.presentation.telegram.handlers.moderation._common import replied_message
 from app.presentation.telegram.utils import other
 
 groups_router = Router()
@@ -19,13 +20,14 @@ async def report_user(message: types.Message, bot: Bot) -> None:
     was a third name for it, one character away from the command that bans
     somebody out of every chat.
     """
-    if not message.reply_to_message:
+    reported = replied_message(message)
+    if reported is None:
         answer = await message.answer("Ответьте этой командой на сообщение, которое нужно показать модераторам.")
         await message.delete()
         other.sleep_and_delete(answer, 10)
         return
 
-    if not message.reply_to_message.from_user:
+    if not reported.from_user:
         answer = await message.answer("Это не сообщение пользователя.")
         await message.delete()
         other.sleep_and_delete(answer, 10)
@@ -37,8 +39,8 @@ async def report_user(message: types.Message, bot: Bot) -> None:
     await report_services.report_to_moderators(
         bot,
         message.from_user,
-        message.reply_to_message.from_user,
-        message.reply_to_message,
+        reported.from_user,
+        reported,
     )
     answer = await message.answer("Спасибо! Жалоба отправлена модераторам.👮")
     await message.delete()

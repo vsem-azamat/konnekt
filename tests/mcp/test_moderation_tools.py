@@ -136,6 +136,14 @@ class TestBoundedWrites:
         assert result["status"] == "unbanned"
         bot.unban_chat_member.assert_awaited_once()
 
+    async def test_unban_never_removes_someone_still_in_the_chat(self, wired, bot) -> None:
+        """Without only_if_banned, Telegram's unban kicks a current member."""
+        await _seed_chat(wired)
+
+        await _call("unban_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        assert bot.unban_chat_member.await_args.kwargs["only_if_banned"] is True
+
 
 class TestRemovalsWait:
     async def test_propose_ban_bans_nobody(self, wired, bot) -> None:

@@ -108,6 +108,9 @@ class TelegramObjectFactory:
             "reply_to_message": reply_to_message,
             "entities": entities or [],
             "sender_chat": None,
+            "forum_topic_created": None,
+            "is_topic_message": None,
+            "message_thread_id": None,
             **kwargs,
         }
 
@@ -312,7 +315,9 @@ def create_admin_user(id: int = 888888888) -> User:
 
 
 def create_normal_user(
-    id: int = 123456789,
+    # Not 123456789: that is the test environment's super admin, whom
+    # moderation commands refuse to act on.
+    id: int = 222333444,
     username: str = "normal_user",
     first_name: str = "Normal",
     last_name: str = "User",
@@ -331,6 +336,15 @@ def create_normal_user(
 def create_test_chat(id: int = -1001234567890) -> Chat:
     """Create a test supergroup chat."""
     return TelegramObjectFactory.create_chat(id=id, title="Test Supergroup", type="supergroup")
+
+
+def no_moderators() -> Any:
+    """An admin repository in which nobody moderates any chat."""
+    from unittest.mock import AsyncMock
+
+    repo = AsyncMock()
+    repo.is_admin_in.return_value = False
+    return repo
 
 
 class RecordingSession:

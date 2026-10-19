@@ -7,10 +7,16 @@ from typing import TYPE_CHECKING
 from app.core.enums import ModerationEventSource
 
 if TYPE_CHECKING:
-    from aiogram import types
+    from aiogram import Bot, types
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.core.enums import ModerationEventAction
+    from app.db.repositories import AdminRepository
+
+# Telegram's stand-ins on messages no person signed: posts sent as a channel,
+# anonymous admins, and posts forwarded from a linked channel. Each is shared by
+# every such message, so acting on one acts on all of them, everywhere.
+STAND_IN_SENDERS = frozenset({136817688, 1087968824, 777000})
 
 
 def reply_required_error(action: str) -> str:
@@ -23,11 +29,67 @@ def is_user_check_error() -> str:
     return "🚫 Это не пользователь или что-то пошло не так."
 
 
+def not_a_person_error() -> str:
+    """The replied-to message was sent as a channel or by an anonymous admin."""
+    return "🚫 Сообщение отправлено от имени канала или анонимного администратора: автора бот не видит."
+
+
+def replied_message(message: types.Message) -> types.Message | None:
+    """The message a command replies to, if it replies to one.
+
+    In a forum topic a message that replies to nothing still carries the
+    topic's first message as its reply, so a command typed there without a
+    reply would act on whoever opened the topic.
+    """
+    reply = message.reply_to_message
+    if reply is None or reply.forum_topic_created is not None:
+        return None
+    if message.is_topic_message and reply.message_id == message.message_thread_id:
+        return None
+    return reply
+
+
+def author_of(reply: types.Message) -> types.User | None:
+    """The person who wrote a message, or None when Telegram does not say."""
+    if reply.sender_chat is not None:
+        return None
+    user = reply.from_user
+    if user is None or user.id in STAND_IN_SENDERS:
+        return None
+    return user
+
+
+async def untouchable(
+    bot: Bot,
+    admin_repo: AdminRepository,
+    *,
+    chat_id: int,
+    actor_id: int | None,
+    target_id: int,
+) -> str | None:
+    """Why this target may not be acted on in this chat, or None if it may.
+
+    A super admin, the bot itself, and, unless a super admin is asking, a
+    moderator of the same chat: one moderator removing another is a dispute
+    for the people who appointed them.
+    """
+    from app.moderation.blacklist import is_protected
+
+    if is_protected(target_id):
+        return "🚫 Это главный администратор."
+    if target_id == bot.id:
+        return "🚫 Это я."
+    if not is_protected(actor_id or 0) and await admin_repo.is_admin_in(target_id, chat_id):
+        return "🚫 Это модератор этого чата. Снять права может главный администратор."
+    return None
+
+
 async def record_reply_target(
     message: types.Message,
     db: AsyncSession,
     action: ModerationEventAction,
     *,
+    target_id: int | None = None,
     detail: str | None = None,
 ) -> None:
     """Record an action taken against the author of the replied-to message.
@@ -36,11 +98,16 @@ async def record_reply_target(
     names an action — so both the actor and the target are already on the
     message. Callers reach this only after the guards above have passed, and a
     missing user at that point means the command did nothing worth recording.
+    ``target_id`` names the target when it is not the reply's author, as for a
+    channel banned as itself.
     """
     from app.moderation import audit
 
-    target = message.reply_to_message.from_user if message.reply_to_message else None
-    if target is None or message.from_user is None:
+    if target_id is None:
+        reply = replied_message(message)
+        author = author_of(reply) if reply is not None else None
+        target_id = author.id if author is not None else None
+    if target_id is None or message.from_user is None:
         return
 
     await audit.record(
@@ -48,7 +115,7 @@ async def record_reply_target(
         action=action,
         source=ModerationEventSource.COMMAND,
         actor_id=message.from_user.id,
-        target_user_id=target.id,
+        target_user_id=target_id,
         chat_id=message.chat.id,
         detail=detail,
     )
