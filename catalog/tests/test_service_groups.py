@@ -46,9 +46,21 @@ def _seeded_rows() -> dict[str, dict[str, Any]]:
 
 
 def _migrated_rows() -> dict[str, dict[str, Any]]:
-    """The same, for the rows the migrations actually create."""
+    """The same, for the rows the migrations actually create or rename.
+
+    A rename is declared under `SERVICE_TYPE_RENAMES`, code to the languages it
+    rewrites, and says nothing about the shelf or the unit. A type no migration
+    created comes out of here with its names alone — the only part of it a
+    migration has ever written.
+    """
     rows: dict[str, dict[str, Any]] = {}
     for path in sorted(VERSIONS.glob("*.py")):
+        for code, names in _constant(path, "SERVICE_TYPE_RENAMES", {}).items():
+            row = rows.setdefault(code, {})
+            row["names"] = {
+                **row.get("names", {}),
+                **{lang: tuple(value) for lang, value in names.items()},
+            }
         for row in _load(path):
             # A row that creates a service type says everything about it. One
             # with names and no group would be a migration inserting a type onto
@@ -189,16 +201,27 @@ def test_seed_and_migrations_agree_on_what_those_types_say() -> None:
     not run on the deployed database: a rename needs a migration, and this is
     what says so.
 
-    Only the rows a migration creates are compared, which is five of the twelve.
-    No migration creates the other seven — the initial schema builds the table
-    and inserts nothing, and they reached production because somebody ran the
-    seed against it by hand. Renaming one of those still needs a migration, and
-    nothing here will tell you so; docs/data-model.md is where that is written
-    down.
+    Only what a migration writes is compared: the rows it creates, and the
+    languages a `SERVICE_TYPE_RENAMES` rewrites. No migration creates seven of
+    the twelve — the initial schema builds the table and inserts nothing, and
+    they reached production because somebody ran the seed against it by hand.
+    Renaming one of those in the seed alone still passes here; the rename has to
+    be declared in a migration before this can hold the two together, and
+    docs/data-model.md is where that is written down.
     """
     migrated = _migrated_rows()
     seeded = _seeded_rows()
-    assert migrated == {code: seeded[code] for code in migrated}
+    assert migrated == {
+        code: {
+            key: (
+                {lang: seeded[code]["names"][lang] for lang in row["names"]}
+                if key == "names"
+                else seeded[code][key]
+            )
+            for key in row
+        }
+        for code, row in migrated.items()
+    }
 
 
 def test_subjectless_is_exactly_the_life_group():
@@ -427,3 +450,43 @@ def test_seed_and_migrations_agree_about_synonyms() -> None:
             assert left == [], f"{path.name} removes synonyms the seed still has: {left}"
             checked += 1
     assert checked, "no migration declares a synonym change"
+
+
+def _seeded_subject_names() -> dict[str, dict[str, str]]:
+    """Every subject's names, out of the file the seed reads."""
+    import json
+
+    data = json.loads(
+        (Path(__file__).resolve().parents[1] / "seeds/subjects.json").read_text()
+    )
+
+    out: dict[str, dict[str, str]] = {}
+
+    def walk(nodes: Any) -> None:
+        for node in nodes:
+            out[node["slug"]] = dict(node["names"])
+            walk(node.get("children", []))
+
+    walk(data["groups"])
+    return out
+
+
+def test_seed_and_migrations_agree_about_subject_names() -> None:
+    """The same rule again, for what a subject is called.
+
+    Subject names reach production from a migration only, like their synonyms,
+    so a migration that renames one declares it under `SUBJECT_RENAMES` — slug
+    to the languages it rewrites — and the seed file has to say the same. The
+    later migration wins where two rename the same name.
+    """
+    seeded = _seeded_subject_names()
+    renamed: dict[str, dict[str, str]] = {}
+    for path in sorted(VERSIONS.glob("*.py")):
+        for slug, names in _constant(path, "SUBJECT_RENAMES", {}).items():
+            assert slug in seeded, f"{path.name} names a subject the seed has not: {slug}"
+            renamed.setdefault(slug, {}).update(names)
+    assert renamed, "no migration declares a subject rename"
+    assert renamed == {
+        slug: {lang: seeded[slug].get(lang) for lang in names}
+        for slug, names in renamed.items()
+    }

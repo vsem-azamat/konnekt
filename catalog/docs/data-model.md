@@ -85,8 +85,11 @@ migration too.
 The seven types that predate the grouping are the gap, and the reason the rule
 exists at all. No migration creates them — the initial schema builds the table
 and inserts nothing — so they are in production only because somebody ran
-`seed.py` against it by hand. Nothing compares their names, and renaming one in
-the seed still needs a migration; nothing but this paragraph will tell you so.
+`seed.py` against it by hand. Renaming one in the seed alone passes every test;
+nothing but this paragraph will tell you it needs a migration. Once a migration
+declares the rename under `SERVICE_TYPE_RENAMES` — code to the languages it
+rewrites — the test holds the seed to it, and `SUBJECT_RENAMES` does the same
+for subject names in `seeds/subjects.json`.
 
 ## A group is not a form
 
