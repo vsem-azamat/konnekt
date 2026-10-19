@@ -228,7 +228,7 @@ async def test_an_invite_link_in_the_catalogue_is_not_a_username() -> None:
 
 # --- The template (#155) --------------------------------------------------
 
-BOT_USERNAME = "konnekt_moder_bot"
+BOT_USERNAME = "konnekt_cz_bot"
 PARENT = Chat(id=CHAT_ID - 100, title="ČVUT | ЧВУТ", institution_code="cvut", public_link="https://t.me/cvut_chat")
 
 

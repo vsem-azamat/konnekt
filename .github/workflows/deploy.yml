@@ -182,6 +182,7 @@ jobs:
           ADMIN_REPORT_CHAT_ID: ${{ secrets.ADMIN_REPORT_CHAT_ID }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
           MCP_TOKEN: ${{ secrets.MCP_TOKEN }}
+          # The retired bots' tokens, comma-separated (app/presentation/telegram/moved.py).
           MODERATOR_BOT_RETIRED_TOKEN: ${{ secrets.MODERATOR_BOT_RETIRED_TOKEN }}
           CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
           CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}

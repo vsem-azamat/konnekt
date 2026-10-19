@@ -132,10 +132,6 @@ msgstr "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Добавь предмет — по одному сроку искать нечего."
 
-#: src/pages/Landing.tsx
-msgid "Přijímačky"
-msgstr "Přijímačky"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
 msgstr "например: подходит для продления визы"
@@ -155,6 +151,10 @@ msgstr "Видимость"
 #: src/console/pages/System.tsx
 msgid "Главные администраторы"
 msgstr "Главные администраторы"
+
+#: src/pages/Ask.tsx
+msgid "математический анализ ČVUT"
+msgstr "математический анализ ČVUT"
 
 #: src/pages/ChatSection.tsx
 msgid "Вернись к списку чатов."
@@ -275,6 +275,10 @@ msgstr "Показываем тому, кому она нужна сейчас, 
 msgid "Снять бан во всех чатах?"
 msgstr "Снять бан во всех чатах?"
 
+#: src/pages/Ask.tsx
+msgid "математический анализ на ČVUT к 14 февраля, до 600 Kč"
+msgstr "математический анализ на ČVUT к 14 февраля, до 600 Kč"
+
 #: src/pages/MyHelper.tsx
 msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 msgstr "Всё можно менять когда угодно. Пустые поля просто не показываем."
@@ -318,6 +322,10 @@ msgstr "где выполнен вход, настройки"
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
 msgstr "Оставь заявку — ответят сами"
+
+#: src/pages/Ask.tsx
+msgid "помощь на экзамене по математическому анализу"
+msgstr "помощь на экзамене по математическому анализу"
 
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
@@ -528,10 +536,6 @@ msgstr "ни во что: стоит отдельно"
 msgid "Их видно на твоей странице."
 msgstr "Их видно на твоей странице."
 
-#: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
-msgstr "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
-
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
 msgstr "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
@@ -642,6 +646,10 @@ msgstr "Всё, что искали, нашлось."
 #: src/console/pages/Summary.tsx
 msgid "Чаты"
 msgstr "Чаты"
+
+#: src/pages/Landing.tsx
+msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
+msgstr "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 
 #: src/console/FailureText.tsx
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
@@ -771,10 +779,6 @@ msgstr "за час"
 #: src/console/pages/Partners.tsx
 msgid "рядом с языками"
 msgstr "рядом с языками"
-
-#: src/pages/Ask.tsx
-msgid "матан на ČVUT к 14 февраля, до 600 Kč"
-msgstr "матан на ČVUT к 14 февраля, до 600 Kč"
 
 #: src/pages/Profile.tsx
 msgid "Предлагать услуги"
@@ -1077,10 +1081,6 @@ msgstr "без срока"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 
-#: src/pages/Home.tsx
-msgid "матан, čeština B2, přijímačky…"
-msgstr "матан, čeština B2, přijímačky…"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Не больше четырёх букв."
@@ -1183,6 +1183,10 @@ msgstr "Не удалось загрузить каталог"
 msgid "Также"
 msgstr "Также"
 
+#: src/components/SubjectSearch.tsx
+msgid "Добавить предмет — математика, čeština, физика"
+msgstr "Добавить предмет — математика, čeština, физика"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Снять"
@@ -1244,10 +1248,6 @@ msgstr "Подзаголовок"
 msgid "Вс"
 msgstr "Вс"
 
-#: src/pages/Join.tsx
-msgid "репетиторы, přijímačky, нострификация"
-msgstr "репетиторы, přijímačky, нострификация"
-
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Чт"
@@ -1255,6 +1255,10 @@ msgstr "Чт"
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Отметь всё, что умеешь. Цены спросим на следующем экране."
+
+#: src/components/Phrase.tsx
+msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -1285,10 +1289,6 @@ msgstr "Такая заявка уже открыта — она в раздел
 msgid "Загружаем"
 msgstr "Загружаем"
 
-#: src/pages/Ask.tsx
-msgid "матан ČVUT"
-msgstr "матан ČVUT"
-
 #. placeholder {0}: data.total
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
@@ -1312,10 +1312,6 @@ msgstr "нострификация аттестата"
 #: src/components/Phrase.tsx
 msgid "Вуз, с которым ты работаешь"
 msgstr "Вуз, с которым ты работаешь"
-
-#: src/pages/Ask.tsx
-msgid "помощь на экзамене по матану"
-msgstr "помощь на экзамене по матану"
 
 #: src/pages/Join.tsx
 msgid "Возможно, первая попытка всё-таки прошла. Проверь чат в Telegram, прежде чем подавать заявку заново."
@@ -1433,14 +1429,6 @@ msgstr "Жизнь в Чехии"
 #: src/console/pages/Blacklist.tsx
 msgid "Забанены во всех чатах. Банят командой /banall или с экрана чата."
 msgstr "Забанены во всех чатах. Банят командой /banall или с экрана чата."
-
-#: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — матан, čeština, физика"
-msgstr "Добавить предмет — матан, čeština, физика"
-
-#: src/pages/Landing.tsx
-msgid "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
-msgstr "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1810,6 +1798,10 @@ msgstr "Не про учёбу"
 msgid "курсовая работа"
 msgstr "курсовая работа"
 
+#: src/pages/Landing.tsx
+msgid "Вступительные экзамены"
+msgstr "Вступительные экзамены"
+
 #: src/components/Phrase.tsx
 msgid "Дешевле остальных, но этот экзамен не вёл"
 msgstr "Дешевле остальных, но этот экзамен не вёл"
@@ -1868,6 +1860,10 @@ msgstr "Лично"
 #: src/console/pages/Partners.tsx
 msgid "Включить карточку?"
 msgstr "Включить карточку?"
+
+#: src/pages/Home.tsx
+msgid "математический анализ, čeština B2…"
+msgstr "математический анализ, čeština B2…"
 
 #: src/pages/OfferPrices.tsx
 msgid "Необязательно. Пустое поле значит «договоримся»."
@@ -2017,6 +2013,10 @@ msgstr "Никто не подошёл?"
 #: src/components/TabBar.tsx
 msgid "Предлагаю услугу"
 msgstr "Предлагаю услугу"
+
+#: src/pages/Join.tsx
+msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
+msgstr "репетиторы, подготовка к вступительным экзаменам, нострификация"
 
 #. placeholder {0}: figures.chats
 #: src/pages/Ads.tsx

@@ -132,10 +132,6 @@ msgstr "{days, plural, one {# d.} few {# d.} many {# d.} other {# d.}}"
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Přidej předmět — podle samotného termínu není co hledat."
 
-#: src/pages/Landing.tsx
-msgid "Přijímačky"
-msgstr "Přijímačky"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
 msgstr "např. vhodné pro prodloužení víza"
@@ -155,6 +151,10 @@ msgstr "Viditelnost"
 #: src/console/pages/System.tsx
 msgid "Главные администраторы"
 msgstr "Hlavní administrátoři"
+
+#: src/pages/Ask.tsx
+msgid "математический анализ ČVUT"
+msgstr "matematická analýza ČVUT"
 
 #: src/pages/ChatSection.tsx
 msgid "Вернись к списку чатов."
@@ -209,11 +209,11 @@ msgstr "O sobě"
 
 #: src/components/Phrase.tsx
 msgid "Экзамены и поступление"
-msgstr "Přijímačky a zkoušky"
+msgstr "Zkoušky a přijímací řízení"
 
 #: src/pages/Profile.tsx
 msgid "Чешский для вуза"
-msgstr "Čeština na vejšku"
+msgstr "Čeština pro vysokou školu"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsApp.tsx
@@ -275,6 +275,10 @@ msgstr "Ukazujeme ji tomu, kdo ji právě potřebuje, ne všem."
 msgid "Снять бан во всех чатах?"
 msgstr "Zrušit ban ve všech chatech?"
 
+#: src/pages/Ask.tsx
+msgid "математический анализ на ČVUT к 14 февраля, до 600 Kč"
+msgstr "matematická analýza na ČVUT do 14. února, do 600 Kč"
+
 #: src/pages/MyHelper.tsx
 msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 msgstr "Vše můžeš kdykoli změnit. Prázdná pole prostě neukazujeme."
@@ -318,6 +322,10 @@ msgstr "kde jste přihlášeni, nastavení"
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
 msgstr "Zadej poptávku — ozvou se sami"
+
+#: src/pages/Ask.tsx
+msgid "помощь на экзамене по математическому анализу"
+msgstr "pomoc u zkoušky z matematické analýzy"
 
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
@@ -528,10 +536,6 @@ msgstr "nikam: stojí samostatně"
 msgid "Их видно на твоей странице."
 msgstr "Jsou vidět na tvé stránce."
 
-#: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
-msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matana“, „čeština B2“, „sopromat“."
-
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
 msgstr "Napiš to tak, jak to máš v hlavě. Poznáme předmět, školu, termín i rozpočet."
@@ -642,6 +646,10 @@ msgstr "Všechno, co se hledalo, se našlo."
 #: src/console/pages/Summary.tsx
 msgid "Чаты"
 msgstr "Chaty"
+
+#: src/pages/Landing.tsx
+msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
+msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a nostrifikace — od studentů, kteří si tím prošli."
 
 #: src/console/FailureText.tsx
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
@@ -771,10 +779,6 @@ msgstr "za hodinu"
 #: src/console/pages/Partners.tsx
 msgid "рядом с языками"
 msgstr "u jazyků"
-
-#: src/pages/Ask.tsx
-msgid "матан на ČVUT к 14 февраля, до 600 Kč"
-msgstr "matan na ČVUT do 14. února, do 600 Kč"
 
 #: src/pages/Profile.tsx
 msgid "Предлагать услуги"
@@ -1077,10 +1081,6 @@ msgstr "bez termínu"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}}"
 
-#: src/pages/Home.tsx
-msgid "матан, čeština B2, přijímačky…"
-msgstr "matana, čeština B2, přijímačky…"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Nejvýše čtyři písmena."
@@ -1183,6 +1183,10 @@ msgstr "Nepodařilo se načíst katalog"
 msgid "Также"
 msgstr "Také"
 
+#: src/components/SubjectSearch.tsx
+msgid "Добавить предмет — математика, čeština, физика"
+msgstr "Přidat předmět — matematika, čeština, fyzika"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Stáhnout"
@@ -1244,10 +1248,6 @@ msgstr "Podnadpis"
 msgid "Вс"
 msgstr "Ne"
 
-#: src/pages/Join.tsx
-msgid "репетиторы, přijímačky, нострификация"
-msgstr "doučování, přijímačky, nostrifikace"
-
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Čt"
@@ -1255,6 +1255,10 @@ msgstr "Čt"
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Označ všechno, co umíš. Na ceny se zeptáme na dalším kroku."
+
+#: src/components/Phrase.tsx
+msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -1285,10 +1289,6 @@ msgstr "Takovou poptávku už máš otevřenou — je v sekci Poptávky"
 msgid "Загружаем"
 msgstr "Načítáme"
 
-#: src/pages/Ask.tsx
-msgid "матан ČVUT"
-msgstr "matan ČVUT"
-
 #. placeholder {0}: data.total
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
@@ -1312,10 +1312,6 @@ msgstr "nostrifikace vysvědčení"
 #: src/components/Phrase.tsx
 msgid "Вуз, с которым ты работаешь"
 msgstr "Škola, se kterou pracuješ"
-
-#: src/pages/Ask.tsx
-msgid "помощь на экзамене по матану"
-msgstr "pomoc u zkoušky z matanu"
 
 #: src/pages/Join.tsx
 msgid "Возможно, первая попытка всё-таки прошла. Проверь чат в Telegram, прежде чем подавать заявку заново."
@@ -1433,14 +1429,6 @@ msgstr "Život v Česku"
 #: src/console/pages/Blacklist.tsx
 msgid "Забанены во всех чатах. Банят командой /banall или с экрана чата."
 msgstr "Zabanovaní ve všech chatech. Banuje se příkazem /banall nebo z obrazovky chatu."
-
-#: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — матан, čeština, физика"
-msgstr "Přidat předmět — matan, čeština, fyzika"
-
-#: src/pages/Landing.tsx
-msgid "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
-msgstr "Doučování, příprava na přijímačky, pomoc u zkoušky a nostrifikace — od studentů, kteří si tím prošli."
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1810,6 +1798,10 @@ msgstr "Není o škole"
 msgid "курсовая работа"
 msgstr "seminární práce"
 
+#: src/pages/Landing.tsx
+msgid "Вступительные экзамены"
+msgstr "Přijímací zkoušky"
+
 #: src/components/Phrase.tsx
 msgid "Дешевле остальных, но этот экзамен не вёл"
 msgstr "Levnější než ostatní, ale tuhle zkoušku nevedl"
@@ -1868,6 +1860,10 @@ msgstr "Osobně"
 #: src/console/pages/Partners.tsx
 msgid "Включить карточку?"
 msgstr "Zapnout kartu?"
+
+#: src/pages/Home.tsx
+msgid "математический анализ, čeština B2…"
+msgstr "matematická analýza, čeština B2…"
 
 #: src/pages/OfferPrices.tsx
 msgid "Необязательно. Пустое поле значит «договоримся»."
@@ -2017,6 +2013,10 @@ msgstr "Nikdo se nehodil?"
 #: src/components/TabBar.tsx
 msgid "Предлагаю услугу"
 msgstr "Nabízím službu"
+
+#: src/pages/Join.tsx
+msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
+msgstr "doučování, příprava na přijímací zkoušky, nostrifikace"
 
 #. placeholder {0}: figures.chats
 #: src/pages/Ads.tsx

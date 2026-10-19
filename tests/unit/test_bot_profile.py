@@ -16,6 +16,8 @@ from aiogram.types import BotCommandScopeAllGroupChats, BotCommandScopeDefault
 from app.presentation.telegram import profile
 from app.presentation.telegram.handlers import router as handlers_router
 
+from tests.plain_language import slang
+
 pytestmark = pytest.mark.unit
 
 
@@ -92,6 +94,13 @@ class TestText:
         assert len(profile.NAME) <= 64
         assert len(profile.DESCRIPTION) <= 512
         assert len(profile.SHORT_DESCRIPTION) <= 120
+
+    def test_text_is_plain_language(self) -> None:
+        """«Přijímačky» is what students call it; the bot names it properly."""
+        for text in (profile.NAME, profile.DESCRIPTION, profile.SHORT_DESCRIPTION):
+            assert slang(text) == [], text
+        for command in profile.PRIVATE_COMMANDS + profile.GROUP_COMMANDS:
+            assert slang(command.description) == [], command.command
 
 
 class TestDefaultAdministratorRights:

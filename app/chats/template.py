@@ -5,7 +5,8 @@ description below: a university's main chat or a chat under one. A dormitory
 chat carries its university's institution too, so when several top chats share
 one, the main chat is the one with chats under it (see `main_chats`). Any other project
 chat keeps its own words and only loses the links that no longer lead anywhere
-useful: the network channel is not run, and contacts go through the bot.
+useful: the network channel is not run, contacts go through the bot, and the
+bots Konnekt moved away from only point onwards (#245).
 
 Titles and the bot's rules pin come later (#202). Until the rules are pinned,
 the description does not promise them.
@@ -26,7 +27,10 @@ DEFAULT_EMOJI = "🎓"
 # or a flag is several), and never the old network channel's megaphone.
 _EMOJI_MAX_CODEPOINTS = 8
 _NOT_KEPT = frozenset({"📢", "📩"})
-_RETIRED = re.compile(r"(?:@|t\.me/)(?:konnekt_cz|konnekt_net|czech_media|czechopen|work_azamat)\b", re.IGNORECASE)
+_RETIRED = re.compile(
+    r"(?:@|t\.me/)(?:konnekt_cz|konnekt_net|czech_media|czechopen|work_azamat|konnekt_moder_bot|student_cz_bot)\b",
+    re.IGNORECASE,
+)
 _LEADING_SYMBOLS = re.compile(r"^[^\w@\s]+")
 
 

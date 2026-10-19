@@ -26,8 +26,8 @@ export default function LandingPage() {
 
       <p className={css.sub}>
         <Trans>
-          Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от
-          студентов, которые это уже прошли.
+          Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и
+          нострификация — от студентов, которые это уже прошли.
         </Trans>
       </p>
 
@@ -42,7 +42,7 @@ export default function LandingPage() {
           className={css.chip}
           style={{ background: 'var(--tone-3-bg)', color: 'var(--tone-3-fg)' }}
         >
-          <Trans>Přijímačky</Trans>
+          <Trans>Вступительные экзамены</Trans>
         </span>
         <span
           className={css.chip}

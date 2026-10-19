@@ -183,27 +183,30 @@ async def _serve() -> None:
 
     tasks: list[Coroutine[Any, Any, None]] = []
 
-    from app.presentation.telegram.moved import build_moved_bot
+    from app.presentation.telegram.moved import build_moved_bots
 
-    if moved := build_moved_bot():
-        moved_bot, moved_dp = moved
+    if moved := build_moved_bots():
         konnekt_username = (await main_bot.me()).username
-        tasks.append(
-            # Contained: a revoked retired token must not crash-loop moderation.
-            _contained(
-                # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
-                # and taking it here would leave the main bot without a shutdown path.
-                _run_polling(
-                    moved_bot,
-                    moved_dp,
-                    name="moved",
-                    handle_signals=False,
-                    allowed_updates=["message"],
-                    konnekt_username=konnekt_username,
-                ),
-                name="moved",
+        for moved_bot, moved_dp in moved:
+            # The bot id is the token's public half: enough to tell them apart in the logs.
+            name = f"moved:{moved_bot.id}"
+            tasks.append(
+                # Contained, each on its own: a revoked retired token must not
+                # crash-loop moderation or silence the other retired bots.
+                _contained(
+                    # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
+                    # and taking it here would leave the main bot without a shutdown path.
+                    _run_polling(
+                        moved_bot,
+                        moved_dp,
+                        name=name,
+                        handle_signals=False,
+                        allowed_updates=["message"],
+                        konnekt_username=konnekt_username,
+                    ),
+                    name=name,
+                )
             )
-        )
 
     # The MCP control plane runs here, not in the web API: its proposals send
     # confirmation buttons, and Telegram answers a press to the identity that
