@@ -237,7 +237,9 @@ any path, removes a super admin.
 anonymous admin, or forwarded from a linked channel with one shared user each.
 Blacklisting, muting or trusting that user acts on every such message in every
 chat at once, so no path accepts one as a person, and a command's target is
-resolved through `author_of`, never `reply_to_message.from_user`.
+resolved through `author_of`, never `reply_to_message.from_user`. The one
+exception is `!unadmin`, which may take a grant back from a stand-in, because
+taking back is always safe.
 
 **The answer is read fresh on every command.** Scoped rights were cached for
 five minutes when they were the same everywhere; per-chat they must not be, or a

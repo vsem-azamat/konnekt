@@ -28,14 +28,15 @@ def not_a_person_error() -> str:
 def replied_message(message: types.Message) -> types.Message | None:
     """The message a command replies to, if it replies to one.
 
-    In a forum topic a message that replies to nothing still carries the
-    topic's first message as its reply, so a command typed there without a
-    reply would act on whoever opened the topic.
+    A message that replies to nothing can still carry a reply: in a forum
+    topic it is the topic's first message, and in a linked channel's comments
+    it is the channel's post. Either way the command was not aimed at it.
     """
     reply = message.reply_to_message
     if reply is None or reply.forum_topic_created is not None:
         return None
-    if message.is_topic_message and reply.message_id == message.message_thread_id:
+    thread_root = reply.message_id == message.message_thread_id
+    if thread_root and (message.is_topic_message or reply.is_automatic_forward):
         return None
     return reply
 

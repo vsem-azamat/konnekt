@@ -188,8 +188,9 @@ def _channel_post_in_discussion() -> Message:
     )
 
 
+@pytest.mark.parametrize("text", ["!ban", "!del", "!pin", "!purge", "/report"])
 async def test_a_command_in_a_comment_thread_does_not_act_on_the_post(
-    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, text: str
 ) -> None:
     """A comment that replies to nothing still carries the channel's post as its reply."""
     post = _channel_post_in_discussion()
@@ -198,16 +199,18 @@ async def test_a_command_in_a_comment_thread_does_not_act_on_the_post(
         date=datetime.now(UTC),
         chat=DISCUSSION,
         from_user=_person(SUPER_ADMIN_ID),
-        text="!ban",
-        entities=[MessageEntity(type="bot_command", offset=0, length=4)],
+        text=text,
+        entities=[MessageEntity(type="bot_command", offset=0, length=len(text))],
         reply_to_message=post,
         message_thread_id=post.message_id,
     )
 
     await production_dispatcher.feed_update(bot, Update(update_id=next(_ids), message=command))
 
-    assert _calls(fake_tg, "banChatSenderChat") == []
-    assert _calls(fake_tg, "banChatMember") == []
+    for method in ("banChatSenderChat", "banChatMember", "pinChatMessage", "deleteMessages"):
+        assert _calls(fake_tg, method) == [], method
+    assert [c["message_id"] for c in _calls(fake_tg, "deleteMessage")] in ([], [str(command.message_id)])
+    assert "ответ" in _answers(fake_tg).lower()
 
 
 async def test_the_groups_own_linked_channel_is_never_banned(
