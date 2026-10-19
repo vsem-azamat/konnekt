@@ -149,8 +149,8 @@ msgid "Добавь предмет — по одному сроку искать
 msgstr "Name a subject — a date on its own is nothing to search for."
 
 #: src/pages/Landing.tsx
-msgid "Přijímačky"
-msgstr "Entrance exams"
+#~ msgid "Přijímačky"
+#~ msgstr "Entrance exams"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
@@ -171,6 +171,10 @@ msgstr "Visibility"
 #: src/console/pages/System.tsx
 msgid "Главные администраторы"
 msgstr "Main administrators"
+
+#: src/pages/Ask.tsx
+msgid "математический анализ ČVUT"
+msgstr "calculus ČVUT"
 
 #: src/pages/ChatSection.tsx
 msgid "Вернись к списку чатов."
@@ -311,6 +315,10 @@ msgstr "Shown to whoever needs it right now, not to everyone."
 msgid "Снять бан во всех чатах?"
 msgstr "Lift the ban in every chat?"
 
+#: src/pages/Ask.tsx
+msgid "математический анализ на ČVUT к 14 февраля, до 600 Kč"
+msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
+
 #: src/pages/MyHelper.tsx
 msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 msgstr "Change anything whenever you like. Empty fields simply are not shown."
@@ -362,6 +370,10 @@ msgstr "where you are signed in, settings"
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
 msgstr "Post a request — they answer you"
+
+#: src/pages/Ask.tsx
+msgid "помощь на экзамене по математическому анализу"
+msgstr "calculus tutor"
 
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
@@ -581,8 +593,8 @@ msgid "Их видно на твоей странице."
 msgstr "They show on your page."
 
 #: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
-msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"structural mechanics\"."
+#~ msgid "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
+#~ msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"structural mechanics\"."
 
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
@@ -694,6 +706,10 @@ msgstr "Everything searched for was found."
 #: src/console/pages/Summary.tsx
 msgid "Чаты"
 msgstr "Chats"
+
+#: src/pages/Landing.tsx
+msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
+msgstr "Tutors, entrance exam prep, help at the exam and nostrification — from students who have been through it."
 
 #: src/pages/MyHelper.tsx
 #~ msgid "Без предмета"
@@ -853,8 +869,8 @@ msgid "рядом с языками"
 msgstr "next to languages"
 
 #: src/pages/Ask.tsx
-msgid "матан на ČVUT к 14 февраля, до 600 Kč"
-msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
+#~ msgid "матан на ČVUT к 14 февраля, до 600 Kč"
+#~ msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
 
 #: src/pages/Profile.tsx
 msgid "Предлагать услуги"
@@ -930,6 +946,10 @@ msgstr "In the catalog"
 #: src/console/pages/Partners.tsx
 msgid "Активные"
 msgstr "Active"
+
+#: src/pages/Home.tsx
+msgid "математика, čeština B2, вступительные экзамены…"
+msgstr "maths, čeština B2, entrance exams…"
 
 #. placeholder {0}: chats.data.length
 #: src/console/pages/Summary.tsx
@@ -1061,6 +1081,10 @@ msgstr "in place: bans and refreshes from Telegram work"
 msgid "Показы и клики за 30 дней."
 msgstr "Impressions and clicks over 30 days."
 
+#: src/components/Phrase.tsx
+msgid "Не понял запрос. Попробуй назвать предмет — «математика», «čeština B2», «физика»."
+msgstr "Didn't get that. Try naming a subject — \"maths\", \"čeština B2\", \"physics\"."
+
 #: src/pages/Ask.tsx
 msgid "Кого тут можно найти"
 msgstr "Who you can find here"
@@ -1100,6 +1124,10 @@ msgstr "Open the chat"
 #: src/pages/AdsChats.tsx
 msgid "Как это работает"
 msgstr "How it works"
+
+#: src/pages/Join.tsx
+msgid "репетиторы, вступительные экзамены, нострификация"
+msgstr "tutors, entrance exams, nostrification"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
@@ -1178,8 +1206,8 @@ msgid "{0, plural, one {# сообщение} few {# сообщения} many {#
 msgstr "{0, plural, one {# message} other {# messages}}"
 
 #: src/pages/Home.tsx
-msgid "матан, čeština B2, přijímačky…"
-msgstr "calculus, čeština B2, přijímačky…"
+#~ msgid "матан, čeština B2, přijímačky…"
+#~ msgstr "calculus, čeština B2, přijímačky…"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
@@ -1291,6 +1319,10 @@ msgstr "Couldn't load the catalog"
 msgid "Также"
 msgstr "Also"
 
+#: src/components/SubjectSearch.tsx
+msgid "Добавить предмет — математика, čeština, физика"
+msgstr "Add a subject — maths, čeština, physics"
+
 #: src/pages/Chats.tsx
 #~ msgid "Мы сводим людей и запоминаем, что контакт состоялся — по этому считается время ответа. Сама переписка остаётся в Telegram."
 #~ msgstr "We connect people and note that contact happened — that's how response time is measured. The conversation itself stays in Telegram."
@@ -1369,8 +1401,8 @@ msgid "Вс"
 msgstr "Sun"
 
 #: src/pages/Join.tsx
-msgid "репетиторы, přijímačky, нострификация"
-msgstr "tutors, přijímačky, nostrification"
+#~ msgid "репетиторы, přijímačky, нострификация"
+#~ msgstr "tutors, přijímačky, nostrification"
 
 #: src/console/Charts.tsx
 msgid "Чт"
@@ -1410,8 +1442,8 @@ msgid "Загружаем"
 msgstr "Loading"
 
 #: src/pages/Ask.tsx
-msgid "матан ČVUT"
-msgstr "calculus ČVUT"
+#~ msgid "матан ČVUT"
+#~ msgstr "calculus ČVUT"
 
 #. placeholder {0}: data.total
 #. placeholder {0}: i18n.number(total)
@@ -1438,8 +1470,8 @@ msgid "Вуз, с которым ты работаешь"
 msgstr "A school you work with"
 
 #: src/pages/Ask.tsx
-msgid "помощь на экзамене по матану"
-msgstr "calculus tutor"
+#~ msgid "помощь на экзамене по матану"
+#~ msgstr "calculus tutor"
 
 #: src/pages/Join.tsx
 msgid "Возможно, первая попытка всё-таки прошла. Проверь чат в Telegram, прежде чем подавать заявку заново."
@@ -1567,12 +1599,12 @@ msgid "Забанены во всех чатах. Банят командой /b
 msgstr "Banned in every chat. Bans are made with /banall or from a chat's screen."
 
 #: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — матан, čeština, физика"
-msgstr "Add a subject — matan, čeština, physics"
+#~ msgid "Добавить предмет — матан, čeština, физика"
+#~ msgstr "Add a subject — matan, čeština, physics"
 
 #: src/pages/Landing.tsx
-msgid "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
-msgstr "Tutors, přijímačky prep, help at the exam and nostrification — from students who have been through it."
+#~ msgid "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
+#~ msgstr "Tutors, přijímačky prep, help at the exam and nostrification — from students who have been through it."
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1949,6 +1981,10 @@ msgstr "Not about school"
 #: src/pages/Ask.tsx
 msgid "курсовая работа"
 msgstr "bachelor thesis"
+
+#: src/pages/Landing.tsx
+msgid "Вступительные экзамены"
+msgstr "Entrance exams"
 
 #: src/components/Phrase.tsx
 msgid "Дешевле остальных, но этот экзамен не вёл"

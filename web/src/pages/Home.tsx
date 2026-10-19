@@ -48,7 +48,7 @@ export default function HomePage() {
           onClick={() => navigate('/ask')}
         >
           <SearchIcon size={18} className={ui.fieldIcon} />
-          <span>{t`матан, čeština B2, přijímačky…`}</span>
+          <span>{t`математика, čeština B2, вступительные экзамены…`}</span>
         </button>
 
         {isPending ? (
@@ -76,7 +76,7 @@ export default function HomePage() {
               //
               // Two of them in a narrow tile rather than three: they share
               // the line with the hint, and each face costs it about a word.
-              // On the narrowest phone that is most of the hint — "матан,
+              // On the narrowest phone that is most of the hint — "математика,
               // физика, экономика, программирование" keeps its first word.
               // Taken: a hint that lists examples of a category the name
               // already gives is worth less than the faces of people offering

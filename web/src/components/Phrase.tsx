@@ -91,7 +91,8 @@ export function PhraseView({
     case 'parse.nothing_recognised':
       return (
         <Trans>
-          Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат».
+          Не понял запрос. Попробуй назвать предмет — «математика», «čeština B2»,
+          «физика».
         </Trans>
       );
     case 'clarify.when':

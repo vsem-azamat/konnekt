@@ -65,7 +65,7 @@ export function SubjectSearch({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={placeholder ?? t`Добавить предмет — матан, čeština, физика`}
+          placeholder={placeholder ?? t`Добавить предмет — математика, čeština, физика`}
           disabled={disabled}
           maxLength={200}
           style={{ all: 'unset', flex: 1, minWidth: 0 }}

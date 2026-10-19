@@ -205,7 +205,7 @@ function WayOn() {
             </Tile>
           }
           title={<Trans>Помощь с учёбой</Trans>}
-          hint={<Trans>репетиторы, přijímačky, нострификация</Trans>}
+          hint={<Trans>репетиторы, вступительные экзамены, нострификация</Trans>}
           trailing={<Chevron />}
           onClick={() => navigate('/')}
         />
