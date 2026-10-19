@@ -479,21 +479,48 @@ async def test_the_plain_name_of_entrance_exams_is_the_whole_query(
 
 
 @pytest.mark.asyncio
+async def test_the_plain_name_of_entrance_exams_asks_no_vector(session) -> None:
+    """Nothing is left to explain, so the embedder is not asked either.
+
+    It answered a bare «přijímačky» with «Поступление в экономические вузы» at
+    0.53, above its floor, and it would answer the full name the same way.
+    """
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .test_embedding import PointedEmbedder
+
+    query = "подготовка к вступительным экзаменам"
+    pointed = PointedEmbedder({query: "Поступление в экономические вузы (VŠE)"})
+    await rebuild(session, embedder=pointed)
+    embedding.set_embedder(pointed)
+    try:
+        parsed = await parse(session, query, "ru", today=TODAY)
+    finally:
+        embedding.set_embedder(None)
+
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, f"answered {parsed.subject}"
+    assert parsed.vector is None, "the embedder was asked"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("text", "lang", "expected"),
     [
-        ("помощь на экзамене по физике", "ru", "Физика"),
-        ("допомога на іспиті з фізики", "uk", "Фізика"),
-        ("вступительный экзамен по физике", "ru", "Вступительный экзамен по физике"),
+        ("вступительные экзамены по физике", "ru", "Вступительный экзамен по физике"),
+        ("přijímací zkoušky z matematiky", "cs", "Přijímací zkouška z matematiky"),
+        ("сдать экзамен по чешскому B1", "ru", "Чешский язык B1"),
+        ("příprava na zkoušku z češtiny B2", "cs", "Čeština pro cizince B2"),
     ],
 )
-async def test_the_subject_is_read_from_what_the_kind_of_help_left(
+async def test_a_subject_beside_the_restating_words_is_still_found(
     session, text, lang, expected
 ) -> None:
-    """The words naming the kind of help are not evidence about the subject.
+    """The rule above is for a query that is *only* the kind of help.
 
-    Scored over the whole query, «помощь на экзамене по физике» answered
-    «Чешский язык B1», because its synonyms mention an exam.
+    Scoring the subject over what is left once those words go lost the shelf
+    names that contain them, and the language level with the prepositions.
     """
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None

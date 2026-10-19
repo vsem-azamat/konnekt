@@ -283,7 +283,10 @@ something else:
   back as `Probability and Statistics` at 0.61, which would then filter the
   search by a subject nobody named. A synonym hit is kept, because a curated
   synonym is not a guess — "курсовая" and "нострификация" are written down
-  against real subjects.
+  against real subjects. "The whole query" allows prepositions and the words
+  that only restate the kind of help (`RESTATING`: exam, preparation): the
+  catalog's own name «вступительные экзамены» answered «Чешский язык B1», whose
+  synonyms mention an exam. Such a query does not ask the embedder either.
 - **A synonym names one row, so a word that names a whole shelf does not belong
   in one.** `prijimacky` and `приймачки` sat on «Поступление в технические вузы»,
   and a synonym scores 1.00 — so every «přijímačky …» query came back filtered by

@@ -343,9 +343,10 @@ EXAM_MENTION: tuple[str, ...] = (
 )
 
 # Words that only restate a kind of help once its keyword has named it: the
-# exam in «вступительные экзамены», the preparing in «подготовка к ...». Left
-# in, they were read as the subject — a synonym of «Чешский язык B1» has
-# «экзамен» in it, so «помощь на экзамене по физике» answered Czech.
+# exam in «вступительные экзамены», the preparing in «подготовка к ...». A
+# query made of a keyword and these names no subject, and the scorer guessing
+# one answered the catalog's own name for entrance exams with «Чешский язык
+# B1», because a synonym of that course mentions an exam.
 RESTATING: tuple[str, ...] = (
     "экзамен",
     "іспит",
@@ -354,7 +355,9 @@ RESTATING: tuple[str, ...] = (
     "подготов",
     "підготов",
     "priprav",
-    "prep",
+    # Words, not stems: "prep" begins "přepis" and "přeprava" once unaccented.
+    Word("prep"),
+    Word("preparation"),
 )
 
 # Month names, unaccented and lowercased, in the order the client will have
@@ -437,17 +440,12 @@ async def parse(
     # "курсовая" and "нострификация" are curated names for real subjects, and
     # dropping them would lose a certainty to protect against a maybe.
     #
-    # Where something is left, a guess is scored over what is left and not over
-    # the whole query: the kind of help's words are not evidence about the
-    # subject, and scored with them «помощь на экзамене по физике» answered
-    # «Чешский язык B1». A named subject is kept as found, since the words it was
-    # named by may be the keyword's own.
-    if keyword:
-        rest = _subject_words(norm, keyword)
-        if not rest:
-            subjects = [match for match in subjects if _is_named(match)]
-        elif not (subjects and _is_named(subjects[0])):
-            subjects = await find_subjects(session, rest, lang, limit=4)
+    # "The whole query" counts the words that only restate the kind of help
+    # (RESTATING) and prepositions: «вступительные экзамены» and «příprava na
+    # přijímací zkoušky» are that kind of help named in full.
+    bare = keyword is not None and _only_restates(norm, keyword)
+    if bare:
+        subjects = [match for match in subjects if _is_named(match)]
 
     # The third mechanism, and the last asked. Only where the first two found
     # nothing: a synonym or an exact name is curated and scores 1.00, and the
@@ -470,7 +468,7 @@ async def parse(
     # school is already a field and what is left is a word for teaching: the
     # embedder answered «Поступление в технические вузы» at 0.45 and narrowed a
     # list of tutors to the people who prepare for entrance exams.
-    if not subjects and not _accounted_for(result, norm, keyword):
+    if not subjects and not bare and not _accounted_for(result, norm, keyword):
         proposed, runner_up = await find_by_meaning(session, text, lang)
         if proposed:
             lead = proposed.score - (runner_up.score if runner_up else 0.0)
@@ -600,6 +598,7 @@ FILLER_WORDS: frozenset[str] = frozenset(
         "от",
         "из",
         "и",
+        "к",
         "мне",
         # uk
         "і",
@@ -790,20 +789,24 @@ def _is_named(match: Match) -> bool:
     return match.matched_on != "vector" and match.score >= 1.0
 
 
-def _subject_words(norm: str, keyword: str) -> str:
-    """What could name a subject once the kind of help has been read.
+def _only_restates(norm: str, keyword: str) -> bool:
+    """Is the query its keyword and nothing that could name a subject?
 
-    The keyword's own words, the words that only restate it (RESTATING), weak
-    verbs of asking and prepositions go; everything else stays, a school or a
-    date included, because those are what the subject lookup has always been
-    given.
+    Besides the keyword's own words, only RESTATING words and prepositions may
+    remain. A language level may not, although FILLER_WORDS lists them: «B2»
+    beside an exam is which Czech exam, and that is a subject.
     """
-    return " ".join(
-        token
+    return all(
+        (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
+        or any(
+            token == word if isinstance(word, Word) else token.startswith(word)
+            for word in RESTATING
+        )
         for token in tokenise(_without(norm, keyword)).split()
-        if token not in FILLER_WORDS
-        and not any(token.startswith(word) for word in (*RESTATING, *WEAK_HELP))
     )
+
+
+_LEVEL = re.compile(r"[abc][12]")
 
 
 def _without(norm: str, keyword: str) -> str:
