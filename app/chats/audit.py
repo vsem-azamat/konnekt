@@ -1,6 +1,6 @@
 """What Telegram says about each chat, against what the project expects.
 
-Read-only. Project chats drifted apart because nothing compared them: the bot
+Read-only unless asked to `--apply`. Project chats drifted apart because nothing compared them: the bot
 held different rights in different groups, and whether a group had a link or a
 pinned rules message was known only by opening it. This pass asks Telegram
 about every chat in the `chats` table and lists what is off, so the comparison
@@ -109,11 +109,12 @@ def _missing_rights(member: Any, *, is_forum: bool) -> tuple[str, ...]:
     return tuple(name for name in _EXPECTED_RIGHTS if not held(name) and (is_forum or name not in _FORUM_ONLY_RIGHTS))
 
 
-def _not_checked(err: TelegramAPIError, *, refused: str) -> str:
+def _not_checked(err: TelegramAPIError, *, refused: str, skipped: str = "not checked") -> str:
     if isinstance(err, TelegramRetryAfter):
-        return "not checked: flood control"
+        return f"{skipped}: flood control"
     if isinstance(err, TelegramNetworkError):
-        return "not checked: network"
+        # A request that went out may still have landed.
+        return f"{skipped}: network, outcome unknown"
     return f"{refused}: {err.message}"
 
 
@@ -133,7 +134,7 @@ async def inspect_chat(
     *,
     bot_username: str | None = None,
     parent: Chat | None = None,
-    is_main: bool = False,
+    university: bool = False,
 ) -> ChatState:
     """One chat as Telegram sees it. Never raises for a chat Telegram refuses.
 
@@ -182,7 +183,11 @@ async def inspect_chat(
     expected = None
     if bot_username and chat.is_approved:
         expected = expected_description(
-            chat, current=info.description or "", bot=bot_username, parent=parent, is_main=is_main
+            title=info.title or chat.title or "",
+            current=info.description or "",
+            bot=bot_username,
+            university=university,
+            parent=parent,
         )
         if (info.description or "") != expected:
             findings.append("description differs from the template")
@@ -205,14 +210,16 @@ async def inspect_chat(
 async def apply_template(bot: Bot, state: ChatState) -> list[str]:
     """Bring one inspected chat to the template, as far as the bot may. Returns what was done."""
     expected = state.expected_description
-    if expected is None or not state.reachable or state.description == expected:
+    if expected is None or not state.reachable or (state.description or "") == expected:
         return []
+    if state.bot_status is None:
+        return ["description: rights unknown"]
     if state.bot_status not in {"administrator", "creator"} or "can_change_info" in state.missing_rights:
         return ["description: no right to change it"]
     try:
         await ask(lambda: bot.set_chat_description(chat_id=state.chat_id, description=expected))
     except TelegramAPIError as err:
-        return [f"description failed: {err.message}"]
+        return [_not_checked(err, refused="description refused", skipped="description not set")]
     return ["description set"]
 
 
@@ -225,10 +232,12 @@ async def audit_chats(
     chat_ids: set[int] | None = None,
 ) -> list[ChatState]:
     """Every chat in the table (or those asked for), one after another, paced like the snapshot loop."""
-    bot_username = (await bot.me()).username
+    bot_username = (await ask(bot.me)).username
     async with session_maker() as session:
         chats = (await session.execute(select(Chat).order_by(Chat.id))).scalars().all()
     by_id = {chat.id: chat for chat in chats}
+    # From the whole table, before --chat narrows it: whether a chat is a
+    # university's depends on the others.
     mains = main_chats(list(chats))
     if chat_ids is not None:
         chats = [chat for chat in chats if chat.id in chat_ids]
@@ -242,7 +251,7 @@ async def audit_chats(
             chat,
             bot_username=bot_username,
             parent=by_id.get(chat.parent_chat_id) if chat.parent_chat_id else None,
-            is_main=chat.id in mains,
+            university=chat.id in mains or chat.parent_chat_id in mains,
         )
         if apply:
             state = dataclasses.replace(state, applied=tuple(await apply_template(bot, state)))
@@ -289,6 +298,10 @@ async def _main(*, as_json: bool, apply: bool, chat_ids: set[int] | None) -> Non
             await bot.session.close()
             await db.close_db()
 
+    if chat_ids:
+        unknown = sorted(chat_ids - {s.chat_id for s in states})
+        if unknown:
+            print("not in the chats table: " + ", ".join(map(str, unknown)), file=sys.stderr)
     if as_json:
         json.dump([dataclasses.asdict(s) for s in states], sys.stdout, ensure_ascii=False, indent=2, default=str)
     else:
