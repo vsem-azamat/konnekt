@@ -1009,10 +1009,6 @@ msgstr "Open the chat"
 msgid "Как это работает"
 msgstr "How it works"
 
-#: src/pages/Join.tsx
-msgid "репетиторы, вступительные экзамены, нострификация"
-msgstr "tutors, entrance exams, nostrification"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
 msgstr "e.g. Student insurance"
@@ -2017,6 +2013,10 @@ msgstr "Nobody suited you?"
 #: src/components/TabBar.tsx
 msgid "Предлагаю услугу"
 msgstr "I am offering a service"
+
+#: src/pages/Join.tsx
+msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
+msgstr "tutors, entrance exam preparation, nostrification"
 
 #. placeholder {0}: figures.chats
 #: src/pages/Ads.tsx

@@ -130,7 +130,7 @@ msgstr "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
 
 #: src/pages/Ask.tsx
 msgid "Добавь предмет — по одному сроку искать нечего."
-msgstr "Додай предмет — за одним строком шукати нічого."
+msgstr "Додай предмет — за одним терміном шукати нічого."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
@@ -538,7 +538,7 @@ msgstr "Їх видно на твоїй сторінці."
 
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
-msgstr "Напиши як думаєш. Зрозуміємо предмет, університет, строк і бюджет."
+msgstr "Напиши як думаєш. Зрозуміємо предмет, університет, термін і бюджет."
 
 #: src/pages/Ads.tsx
 msgid "в разделе «Не про учёбу»"
@@ -1009,10 +1009,6 @@ msgstr "Відкрити чат"
 msgid "Как это работает"
 msgstr "Як це працює"
 
-#: src/pages/Join.tsx
-msgid "репетиторы, вступительные экзамены, нострификация"
-msgstr "репетитори, вступні іспити, нострифікація"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
 msgstr "наприклад: Страховка для студентів"
@@ -1078,7 +1074,7 @@ msgstr "Що робимо?"
 
 #: src/pages/Mine.tsx
 msgid "без срока"
-msgstr "без строку"
+msgstr "без терміну"
 
 #. placeholder {0}: sender.message_count
 #: src/console/pages/Chat.tsx
@@ -2017,6 +2013,10 @@ msgstr "Ніхто не підійшов?"
 #: src/components/TabBar.tsx
 msgid "Предлагаю услугу"
 msgstr "Пропоную послугу"
+
+#: src/pages/Join.tsx
+msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
+msgstr "репетитори, підготовка до вступних іспитів, нострифікація"
 
 #. placeholder {0}: figures.chats
 #: src/pages/Ads.tsx
