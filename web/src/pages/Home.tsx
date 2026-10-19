@@ -48,7 +48,7 @@ export default function HomePage() {
           onClick={() => navigate('/ask')}
         >
           <SearchIcon size={18} className={ui.fieldIcon} />
-          <span>{t`математика, čeština B2, вступительные экзамены…`}</span>
+          <span>{t`математический анализ, čeština B2…`}</span>
         </button>
 
         {isPending ? (

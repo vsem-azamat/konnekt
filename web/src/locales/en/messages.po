@@ -22,10 +22,6 @@ msgstr "New card"
 msgid "{0, plural, one {# человек} few {# человека} many {# человек} other {# человека}}"
 msgstr "{0, plural, one {# person} other {# people}}"
 
-#: src/pages/Ask.tsx
-#~ msgid "курсовая по экономике"
-#~ msgstr "term paper in economics"
-
 #: src/console/pages/System.tsx
 msgid "Консоль снова откроется из Telegram."
 msgstr "The console will open again from Telegram."
@@ -49,10 +45,6 @@ msgstr "welcome"
 #: src/console/pages/PartnerNew.tsx
 msgid "например: VZP"
 msgstr "e.g. VZP"
-
-#: src/components/Incoming.tsx
-#~ msgid "Здесь появятся заявки по твоим предметам. Чем больше предметов в профиле, тем чаще."
-#~ msgstr "Requests about your subjects will show up here. The more subjects in your profile, the more often."
 
 #: src/console/pages/Summary.tsx
 msgid "показы и клики"
@@ -94,10 +86,6 @@ msgstr "Name, @username or id"
 msgid "Пока ни одной. Добавь ниже — без них тебя не найдут по поиску."
 msgstr "None yet. Add one below — without them search cannot find you."
 
-#: src/components/RequestSheet.tsx
-#~ msgid "Заявку увидят все, кто предлагает помощь."
-#~ msgstr "Everyone who offers help will see it."
-
 #: src/console/pages/Spam.tsx
 msgid "Детектор ничего не находил."
 msgstr "The detector has found nothing."
@@ -124,10 +112,6 @@ msgstr "Check your connection and try again."
 msgid "Онлайн"
 msgstr "Online"
 
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Напиши хотя бы пару предложений — предметы, цену и как удобно заниматься."
-#~ msgstr "Write at least a couple sentences — subjects, price, and how you like to meet."
-
 #: src/pages/Request.tsx
 msgid "Такой заявки нет"
 msgstr "No such request"
@@ -147,10 +131,6 @@ msgstr "{days, plural, one {# d} other {# d}}"
 #: src/pages/Ask.tsx
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Name a subject — a date on its own is nothing to search for."
-
-#: src/pages/Landing.tsx
-#~ msgid "Přijímačky"
-#~ msgstr "Entrance exams"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
@@ -184,17 +164,9 @@ msgstr "Go back to the list of chats."
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "The answer did not arrive. Before trying again, check the list: the card may have been saved."
 
-#: src/components/TabBar.tsx
-#~ msgid "Поиск"
-#~ msgstr "Search"
-
 #: src/console/pages/Chat.tsx
 msgid "Капча при входе"
 msgstr "Captcha on joining"
-
-#: src/pages/MyHelper.tsx
-#~ msgid "Предметы и цены"
-#~ msgstr "Subjects and prices"
 
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
@@ -278,10 +250,6 @@ msgstr "Respond"
 msgid "Обновлено"
 msgstr "Updated"
 
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Когда ты свободен"
-#~ msgstr "When you're free"
-
 #: src/pages/MyHelper.tsx
 msgid "Где"
 msgstr "Where"
@@ -302,14 +270,6 @@ msgstr "These aren't our services. We take a commission from the partner, nothin
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Shown to whoever needs it right now, not to everyone."
 
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Какие предметы"
-#~ msgstr "Which subjects"
-
-#: src/pages/Home.tsx
-#~ msgid "Вещи"
-#~ msgstr "Things"
-
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -322,10 +282,6 @@ msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
 #: src/pages/MyHelper.tsx
 msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 msgstr "Change anything whenever you like. Empty fields simply are not shown."
-
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Одним куском, как другу. Анкету соберём сами."
-#~ msgstr "All in one go, like to a friend. We'll put the profile together."
 
 #: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
@@ -362,10 +318,6 @@ msgstr "This check opens from the button in a request to join a chat."
 #: src/console/pages/Summary.tsx
 msgid "где выполнен вход, настройки"
 msgstr "where you are signed in, settings"
-
-#: src/pages/Results.tsx
-#~ msgid "По этому запросу ещё нет никого. Создай заявку — тогда найдут тебя."
-#~ msgstr "No one matches this search yet. Post a request — then people will find you."
 
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
@@ -420,10 +372,6 @@ msgstr "Try other words — or post a request and let them find you."
 #: src/components/RequestSheet.tsx
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "It did not go through — try again."
-
-#: src/pages/Profile.tsx
-#~ msgid "Хочу помогать"
-#~ msgstr "I want to help"
 
 #: src/lib/turnaround.tsx
 msgid "Две недели"
@@ -493,10 +441,6 @@ msgstr "banned"
 #: src/console/pages/PartnerNew.tsx
 msgid "Нужно название."
 msgstr "A name is needed."
-
-#: src/pages/Profile.tsx
-#~ msgid "Тёмное"
-#~ msgstr "Dark"
 
 #. placeholder {0}: picked.size
 #: src/pages/Offer.tsx
@@ -591,10 +535,6 @@ msgstr "nothing: stands on its own"
 #: src/pages/Profile.tsx
 msgid "Их видно на твоей странице."
 msgstr "They show on your page."
-
-#: src/components/Phrase.tsx
-#~ msgid "Не понял запрос. Попробуй назвать предмет — «матан», «čeština B2», «сопромат»."
-#~ msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"structural mechanics\"."
 
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
@@ -711,25 +651,9 @@ msgstr "Chats"
 msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 msgstr "Tutors, entrance exam prep, help at the exam and nostrification — from students who have been through it."
 
-#: src/pages/MyHelper.tsx
-#~ msgid "Без предмета"
-#~ msgstr "No subject"
-
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Сколько берёшь"
-#~ msgstr "What you charge"
-
 #: src/console/FailureText.tsx
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
 msgstr "The sign-in was not kept: open the console in the Telegram app."
-
-#: src/pages/Landing.tsx
-#~ msgid "Работы и материалы"
-#~ msgstr "Papers and materials"
-
-#: src/pages/Profile.tsx
-#~ msgid "опубликована"
-#~ msgstr "published"
 
 #: src/pages/Ask.tsx
 msgid "Убери что-нибудь из уточнений выше или напиши иначе."
@@ -782,10 +706,6 @@ msgstr "System"
 msgid "после заявки"
 msgstr "after a request"
 
-#: src/pages/Chats.tsx
-#~ msgid "Разговоры мы не храним"
-#~ msgstr "We don't store conversations"
-
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "За что цена"
@@ -804,10 +724,6 @@ msgstr "per assignment"
 #: src/pages/Ask.tsx
 msgid "Посмотреть похожее"
 msgstr "See what is close"
-
-#: src/pages/MyHelper.tsx
-#~ msgid "Пока ни одного. Найди предмет ниже — без них тебя не найдут по поиску."
-#~ msgstr "None yet. Find a subject below — without them search cannot reach you."
 
 #: src/console/pages/System.tsx
 msgid "Выйти на этом устройстве?"
@@ -854,10 +770,6 @@ msgstr "Both"
 msgid "Забанить и стереть все его сообщения"
 msgstr "Ban and delete all their messages"
 
-#: src/pages/Ask.tsx
-#~ msgid "нужен матан на ČVUT, экзамен 14 февраля"
-#~ msgstr "need calculus at ČVUT, exam on Feb 14"
-
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -867,10 +779,6 @@ msgstr "per hour"
 #: src/console/pages/Partners.tsx
 msgid "рядом с языками"
 msgstr "next to languages"
-
-#: src/pages/Ask.tsx
-#~ msgid "матан на ČVUT к 14 февраля, до 600 Kč"
-#~ msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
 
 #: src/pages/Profile.tsx
 msgid "Предлагать услуги"
@@ -935,10 +843,6 @@ msgstr "Publish your profile first"
 msgid "за штуку"
 msgstr "per item"
 
-#: src/pages/Ask.tsx
-#~ msgid "přijímačky на медицину"
-#~ msgstr "přijímačky for medicine"
-
 #: src/pages/MyHelper.tsx
 msgid "В каталоге"
 msgstr "In the catalog"
@@ -946,10 +850,6 @@ msgstr "In the catalog"
 #: src/console/pages/Partners.tsx
 msgid "Активные"
 msgstr "Active"
-
-#: src/pages/Home.tsx
-msgid "математика, čeština B2, вступительные экзамены…"
-msgstr "maths, čeština B2, entrance exams…"
 
 #. placeholder {0}: chats.data.length
 #: src/console/pages/Summary.tsx
@@ -976,10 +876,6 @@ msgstr "tutoring, written work, exam help"
 #: src/pages/Ask.tsx
 msgid "Дальше вопросов не будет."
 msgstr "No more questions after this."
-
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Получилось так"
-#~ msgstr "Here's how it turned out"
 
 #: src/console/pages/Chats.tsx
 msgid "не на сайте"
@@ -1051,10 +947,6 @@ msgstr "How you teach"
 msgid "Мои услуги"
 msgstr "My services"
 
-#: src/pages/Ask.tsx
-#~ msgid "Искать всё равно"
-#~ msgstr "Search anyway"
-
 #: src/components/TabBar.tsx
 msgid "опиши задачу — придут отклики"
 msgstr "describe the task and replies will come"
@@ -1069,10 +961,6 @@ msgstr "That did not work. Try again."
 msgid "в профиле"
 msgstr "in the profile"
 
-#: src/pages/Request.tsx
-#~ msgid "Заявку видят те, кто ведёт этот предмет. Обычно отвечают в течение дня."
-#~ msgstr "People who teach this subject can see your request. They usually answer within a day."
-
 #: src/console/pages/System.tsx
 msgid "на месте: баны и обновления из Telegram работают"
 msgstr "in place: bans and refreshes from Telegram work"
@@ -1080,10 +968,6 @@ msgstr "in place: bans and refreshes from Telegram work"
 #: src/console/pages/Partners.tsx
 msgid "Показы и клики за 30 дней."
 msgstr "Impressions and clicks over 30 days."
-
-#: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «математика», «čeština B2», «физика»."
-msgstr "Didn't get that. Try naming a subject — \"maths\", \"čeština B2\", \"physics\"."
 
 #: src/pages/Ask.tsx
 msgid "Кого тут можно найти"
@@ -1158,10 +1042,6 @@ msgstr "Ads in the last day"
 msgid "Возможно, человек скрыл его."
 msgstr "Maybe they hid it."
 
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Без расписания анкету покажем, но реже — люди чаще пишут тем, у кого видно свободные дни."
-#~ msgstr "Without a schedule we'll still show your profile, just less often — people tend to message those whose free days are visible."
-
 #: src/pages/MyHelper.tsx
 msgid "Строчка под именем"
 msgstr "The line under your name"
@@ -1205,10 +1085,6 @@ msgstr "no deadline"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# message} other {# messages}}"
 
-#: src/pages/Home.tsx
-#~ msgid "матан, čeština B2, přijímačky…"
-#~ msgstr "calculus, čeština B2, přijímačky…"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Four letters at most."
@@ -1237,10 +1113,6 @@ msgstr "The chat leaves the public tab."
 msgid "Таких чатов нет."
 msgstr "No such chats."
 
-#: src/pages/Profile.tsx
-#~ msgid "По этому мы отсеиваем тех, с кем вы друг друга не поймёте."
-#~ msgstr "That's how we filter out people you wouldn't understand each other with."
-
 #: src/components/RequestSheet.tsx
 msgid "Заявку увидят все, кто предлагает помощь. Дату из текста поймём сами."
 msgstr "Everyone who offers help will see it. We read the date out of your words."
@@ -1268,10 +1140,6 @@ msgstr "Remotely"
 #: src/pages/Results.tsx
 msgid "изменить"
 msgstr "change"
-
-#: src/pages/Profile.tsx
-#~ msgid "Светлое"
-#~ msgstr "Light"
 
 #: src/console/pages/Chat.tsx
 msgid "Ссылка для публичной вкладки"
@@ -1321,23 +1189,11 @@ msgstr "Also"
 
 #: src/components/SubjectSearch.tsx
 msgid "Добавить предмет — математика, čeština, физика"
-msgstr "Add a subject — maths, čeština, physics"
-
-#: src/pages/Chats.tsx
-#~ msgid "Мы сводим людей и запоминаем, что контакт состоялся — по этому считается время ответа. Сама переписка остаётся в Telegram."
-#~ msgstr "We connect people and note that contact happened — that's how response time is measured. The conversation itself stays in Telegram."
+msgstr "Add a subject — calculus, čeština, physics"
 
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Take down"
-
-#: src/pages/Home.tsx
-#~ msgid "Люди"
-#~ msgstr "People"
-
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Онлайн или очно"
-#~ msgstr "Online or in person"
 
 #: src/console/pages/Chat.tsx
 msgid "Не виден: чат не одобрен"
@@ -1359,10 +1215,6 @@ msgstr "Open time slots"
 #: src/console/pages/PartnerNew.tsx
 msgid "Вход устарел: откройте приложение заново."
 msgstr "The sign-in has expired: reopen the app."
-
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Не хватает"
-#~ msgstr "Missing"
 
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
@@ -1400,10 +1252,6 @@ msgstr "Subtitle"
 msgid "Вс"
 msgstr "Sun"
 
-#: src/pages/Join.tsx
-#~ msgid "репетиторы, přijímačky, нострификация"
-#~ msgstr "tutors, přijímačky, nostrification"
-
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Thu"
@@ -1411,6 +1259,10 @@ msgstr "Thu"
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Tick everything you can do. Prices come on the next screen."
+
+#: src/components/Phrase.tsx
+msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -1441,10 +1293,6 @@ msgstr "You already have this request open — it is under Requests"
 msgid "Загружаем"
 msgstr "Loading"
 
-#: src/pages/Ask.tsx
-#~ msgid "матан ČVUT"
-#~ msgstr "calculus ČVUT"
-
 #. placeholder {0}: data.total
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
@@ -1469,10 +1317,6 @@ msgstr "nostrification of a school certificate"
 msgid "Вуз, с которым ты работаешь"
 msgstr "A school you work with"
 
-#: src/pages/Ask.tsx
-#~ msgid "помощь на экзамене по матану"
-#~ msgstr "calculus tutor"
-
 #: src/pages/Join.tsx
 msgid "Возможно, первая попытка всё-таки прошла. Проверь чат в Telegram, прежде чем подавать заявку заново."
 msgstr "The first try may have gone through after all. Check the chat in Telegram before sending the request again."
@@ -1484,10 +1328,6 @@ msgstr "Pick what you can help with"
 #: src/pages/Offer.tsx
 msgid "Чем ты можешь помочь?"
 msgstr "What can you help with?"
-
-#: src/pages/Chats.tsx
-#~ msgid "Открыть переписку в Telegram"
-#~ msgstr "Open the chat in Telegram"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -1534,10 +1374,6 @@ msgstr "Close"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "Sat"
-
-#: src/pages/Profile.tsx
-#~ msgid "Оформление"
-#~ msgstr "Appearance"
 
 #: src/console/Charts.tsx
 msgid "Вт"
@@ -1597,14 +1433,6 @@ msgstr "Life in Czechia"
 #: src/console/pages/Blacklist.tsx
 msgid "Забанены во всех чатах. Банят командой /banall или с экрана чата."
 msgstr "Banned in every chat. Bans are made with /banall or from a chat's screen."
-
-#: src/components/SubjectSearch.tsx
-#~ msgid "Добавить предмет — матан, čeština, физика"
-#~ msgstr "Add a subject — matan, čeština, physics"
-
-#: src/pages/Landing.tsx
-#~ msgid "Репетиторы, подготовка к přijímačky, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
-#~ msgstr "Tutors, přijímačky prep, help at the exam and nostrification — from students who have been through it."
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1730,10 +1558,6 @@ msgstr "here this week {0, plural, one {# message} other {# messages}}. «Delete
 #: src/components/Phrase.tsx
 msgid "{0, plural, one {Готовил к этому же экзамену # человека} few {Готовил к этому же экзамену # человек} many {Готовил к этому же экзамену # человек} other {Готовил к этому же экзамену # человека}}"
 msgstr "{0, plural, one {Prepared # person for this exam} other {Prepared # people for this exam}}"
-
-#: src/pages/Chats.tsx
-#~ msgid "там же, где и все остальные разговоры"
-#~ msgstr "same place as your other chats"
 
 #: src/console/pages/Chat.tsx
 msgid "Такого чата нет."
@@ -1962,10 +1786,6 @@ msgstr "No one yet"
 msgid "что поймал детектор"
 msgstr "what the detector caught"
 
-#: src/pages/Offer.tsx
-#~ msgid "Сейчас бесплатно. Когда людей станет больше, размещение таких услуг станет платным."
-#~ msgstr "Free for now. Once there are more people, listing these services will cost."
-
 #: src/lib/workFormat.tsx
 msgid "Как работаешь"
 msgstr "How you work"
@@ -2029,10 +1849,6 @@ msgstr "Could not count that"
 msgid "нужна ссылка t.me"
 msgstr "needs a t.me link"
 
-#: src/pages/Profile.tsx
-#~ msgid "Как в системе"
-#~ msgstr "Match the system"
-
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"
 msgstr "Documents and life"
@@ -2048,6 +1864,10 @@ msgstr "In person"
 #: src/console/pages/Partners.tsx
 msgid "Включить карточку?"
 msgstr "Switch the card on?"
+
+#: src/pages/Home.tsx
+msgid "математический анализ, čeština B2…"
+msgstr "calculus, čeština B2…"
 
 #: src/pages/OfferPrices.tsx
 msgid "Необязательно. Пустое поле значит «договоримся»."
@@ -2071,10 +1891,6 @@ msgstr "awaiting review"
 msgid "Не показан"
 msgstr "Not shown"
 
-#: src/pages/BecomeHelper.tsx
-#~ msgid "Расскажи своими словами"
-#~ msgstr "Tell it in your own words"
-
 #: src/console/pages/Chat.tsx
 msgid "Не указан"
 msgstr "Not set"
@@ -2082,11 +1898,6 @@ msgstr "Not set"
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "profiles in 7 days"
-
-#. placeholder {0}: parsed.matches
-#: src/pages/Ask.tsx
-#~ msgid "Показать {0}"
-#~ msgstr "Show {0}"
 
 #: src/pages/MyHelper.tsx
 msgid "Моя анкета"
@@ -2148,11 +1959,6 @@ msgstr "Post the request"
 msgid "Заблокированы"
 msgstr "Banned"
 
-#: src/components/TabBar.tsx
-#: src/pages/Mine.tsx
-#~ msgid "Мои"
-#~ msgstr "Mine"
-
 #: src/pages/Join.tsx
 msgid "Вступление в чат"
 msgstr "Joining the chat"
@@ -2181,10 +1987,6 @@ msgstr "Searching…"
 #: src/pages/Results.tsx
 msgid "Пусть найдут тебя"
 msgstr "Let them find you"
-
-#: src/pages/Results.tsx
-#~ msgid "По этому запросу ещё нет никого. Оставь заявку — ответят сами."
-#~ msgstr "Nobody for this query yet. Post a request — they answer you."
 
 #: src/pages/Life.tsx
 msgid "Но без этого не доучишься. Сроки и требования — наши, предложения — партнёрские."
@@ -2237,10 +2039,6 @@ msgstr "Could not load"
 #: src/components/Phrase.tsx
 msgid "лет на площадке"
 msgstr "years on the platform"
-
-#: src/pages/Ask.tsx
-#~ msgid "Дальше вопросов не будет — остальное отфильтруешь прямо в списке."
-#~ msgstr "No more questions after this — filter the rest right in the list."
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx

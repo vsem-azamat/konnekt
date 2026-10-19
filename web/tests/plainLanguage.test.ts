@@ -10,8 +10,8 @@
  *
  * Read from the .po files rather than the sources, because the translations are
  * where most of the text is, and both the source string (`msgid`, Russian) and
- * every translation (`msgstr`) are checked. Obsolete entries (`#~`) are no
- * longer shown and are skipped.
+ * every translation (`msgstr`) are checked, obsolete entries (`#~`) among
+ * them: Lingui compiles those into the bundle as well.
  */
 
 import assert from 'node:assert/strict';
@@ -23,14 +23,14 @@ const LOCALES = ['ru', 'cs', 'en', 'uk'];
 // `\b` is ASCII-only in JavaScript, so a word start is "no letter before".
 const SLANG = new RegExp(
   '(?<![\\p{L}\\p{N}_])(' +
-    'матан|матеш|линал|англ(?![\\p{L}])|шари(шь|т|те)(?![\\p{L}])|теорвер|дискретк|сопромат|общаг' +
-    '|приемк|приёмк|приймачк|přijímačk|matan|matik[aouy](?![\\p{L}])|sopromat|vejšk' +
+    'матан|матеш|линал|англ(?![\\p{L}])|шари(шь|т|те|ть)(?![\\p{L}])|теорвер|дискрет(к|ок)|сопромат|общаг' +
+    '|при[её]м(к|ок)|приймач(к|ок)|přijímač(k|ek)|matan|matik(a|o|u|y|ou)(?![\\p{L}])|sopromat|vejš(k|c)' +
     ')',
   'giu',
 );
 
 function slang(text: string): string[] {
-  return [...text.matchAll(SLANG)].map((match) => match[0]);
+  return [...text.normalize('NFC').matchAll(SLANG)].map((match) => match[0]);
 }
 
 test('the list catches what it names and leaves plain words alone', () => {
@@ -38,6 +38,12 @@ test('the list catches what it names and leaves plain words alone', () => {
   assert.deepEqual(slang('Přijímačky'), ['Přijímačk']);
   assert.deepEqual(slang('matika'), ['matika']);
   assert.deepEqual(slang('Čeština na vejšku'), ['vejšk']);
+  assert.deepEqual(slang('na vejšce, bez přijímaček, matikou'), [
+    'vejšc',
+    'přijímaček',
+    'matikou',
+  ]);
+  assert.deepEqual(slang('pr\u030cijímac\u030cky'), ['přijímačk']);
   assert.deepEqual(
     slang('Математический анализ, английский, Informatika, přijímací'),
     [],
@@ -50,8 +56,15 @@ for (const locale of LOCALES) {
     const found = readFileSync(path, 'utf8')
       .split('\n')
       .map((line, index) => ({ line: index + 1, text: line }))
-      .filter(({ text }) => !text.startsWith('#'))
+      // Obsolete entries (`#~`) included: they are compiled into the bundle too.
+      .filter(({ text }) => !text.startsWith('#:'))
       .flatMap(({ line, text }) => slang(text).map((word) => `${line}: ${word}`));
     assert.deepEqual(found, []);
   });
 }
+
+test('the page description has no slang', () => {
+  // Outside the catalogs: search engines and link previews read it.
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.deepEqual(slang(html), []);
+});
