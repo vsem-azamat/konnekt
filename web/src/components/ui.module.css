@@ -893,9 +893,18 @@
 }
 
 .chipGhost {
+  /* The border's pixel comes out of the padding: a chip turning ghost in
+     place keeps its height and the row does not jump. */
+  padding: 5px 9px;
   background: transparent;
   border: 1px dashed var(--hairline);
   color: var(--muted);
+}
+
+.chipText {
+  /* One long word without spaces breaks rather than push × off screen. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .chipNote {

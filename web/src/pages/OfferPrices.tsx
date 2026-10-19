@@ -637,7 +637,7 @@ function AxisChips({
 function ChipText({ label }: { label: string }) {
   const { name, note } = splitNote(label);
   return (
-    <span>
+    <span className={ui.chipText}>
       {name}
       {note ? <span className={ui.chipNote}> ({note})</span> : null}
     </span>
