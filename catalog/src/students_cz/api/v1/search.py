@@ -6,11 +6,16 @@ question — the rule for that, and the two rows it records, live in
 nothing.
 """
 
-from fastapi import APIRouter, Query
+import time
+from collections import deque
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from students_cz.api.deps import LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdQuery, LangDep, SessionDep, UserDep
 from students_cz.db.models import (
     Institution,
     ServiceType,
@@ -28,8 +33,64 @@ from students_cz.services.naming import short_form, translated
 
 router = APIRouter()
 
+# Per person, per minute. Parsing writes two rows and may run the model, so it
+# is the tight one; a search writes nothing and the app runs a few per screen
+# (a preview per typing pause, two per sort), so it gets room. One worker
+# serves the API, so a window kept in memory is the whole picture; a restart
+# forgets it, which costs a flooder one minute.
+PARSES_PER_MINUTE = 30
+SEARCHES_PER_MINUTE = 120
 
-@router.post("/search/parse", response_model=ParseOut, tags=["search"])
+
+class _Pace:
+    def __init__(self, per_minute: int) -> None:
+        self.per_minute = per_minute
+        self._recent: dict[int, deque[float]] = {}
+
+    def _window(self, user_id: int, now: float) -> deque[float]:
+        if len(self._recent) > 10_000:
+            for stale in [
+                u for u, t in self._recent.items() if not t or now - t[-1] >= 60
+            ]:
+                del self._recent[stale]
+        times = self._recent.setdefault(user_id, deque())
+        while times and now - times[0] >= 60:
+            times.popleft()
+        return times
+
+    async def check(self, user: UserDep) -> None:
+        """Turn away a caller already at the limit; any Telegram user can call."""
+        now = time.monotonic()
+        times = self._window(user.id, now)
+        if len(times) >= self.per_minute:
+            wait = int(60 - (now - times[0])) + 1
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "slow down",
+                headers={"Retry-After": str(wait)},
+            )
+
+    def note(self, user_id: int) -> None:
+        """Counted from the handler, so a request refused as invalid costs nothing."""
+        now = time.monotonic()
+        self._window(user_id, now).append(now)
+
+
+_parses = _Pace(PARSES_PER_MINUTE)
+_searches = _Pace(SEARCHES_PER_MINUTE)
+
+
+def forget_pace() -> None:
+    _parses._recent.clear()
+    _searches._recent.clear()
+
+
+@router.post(
+    "/search/parse",
+    response_model=ParseOut,
+    tags=["search"],
+    dependencies=[Depends(_parses.check)],
+)
 async def parse_query(
     payload: ParseRequest, session: SessionDep, lang: LangDep, user: UserDep
 ) -> ParseOut:
@@ -42,19 +103,30 @@ async def parse_query(
     # Unchanged for the reason `browse.start_contact` gives: the docstring is
     # the operation's description in the OpenAPI document. The rule itself is
     # `services/search.describe`.
+    _parses.note(user.id)
     return await search.describe(session, lang, viewer=user, text=payload.text)
 
 
-@router.get("/search", response_model=SearchOut, tags=["search"])
+@router.get(
+    "/search",
+    response_model=SearchOut,
+    tags=["search"],
+    dependencies=[Depends(_searches.check)],
+)
 async def search_offers(
     session: SessionDep,
     lang: LangDep,
     user: UserDep,
-    subject_id: int | None = None,
-    institution_id: int | None = None,
-    service_type_id: int | None = None,
-    max_price: float | None = None,
-    langs: list[str] = Query(default_factory=list),
+    subject_id: IdQuery = None,
+    institution_id: IdQuery = None,
+    service_type_id: IdQuery = None,
+    # Finite and in range: `inf` and `nan` reached int() in the filter chips.
+    max_price: Annotated[
+        float | None, Query(ge=0, le=1_000_000, allow_inf_nan=False)
+    ] = None,
+    langs: Annotated[
+        list[Annotated[str, StringConstraints(max_length=8)]], Query(max_length=20)
+    ] = [],  # noqa: B006
     # The literal rather than a string with a pattern: it is the same
     # constraint, it reaches OpenAPI as an enum, and it is the type the
     # catalog's own signature already asks for.
@@ -62,6 +134,7 @@ async def search_offers(
     limit: int = Query(default=20, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
 ) -> SearchOut:
+    _searches.note(user.id)
     total, results = await catalog.search(
         session,
         lang,

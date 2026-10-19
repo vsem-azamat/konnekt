@@ -9,7 +9,10 @@ what the catalog is missing, and the raw text beside the parse is what a better
 parser would be trained on.
 """
 
-from sqlalchemy import select
+import datetime
+import time
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -33,6 +36,7 @@ async def describe(
     session: AsyncSession, lang: UiLang, *, viewer: User, text: str
 ) -> ParseOut:
     """Read a sentence and say back what was made of it."""
+    started = time.monotonic()
     parsed = await parser.parse(session, text, lang.value)
 
     chips: list[Chip] = []
@@ -104,37 +108,22 @@ async def describe(
         limit=1,
     )
 
-    await log_event(session, viewer.id, UserEventKind.SEARCH, text=text, results=total)
-    session.add(
-        SearchQuery(
-            user_id=viewer.id,
-            raw_text=text,
-            parsed={
-                "subject_id": parsed.subject.id if parsed.subject else None,
-                "institution_id": (parsed.institution.id if parsed.institution else None),
-                "service_type": parsed.service_type,
-                "deadline": parsed.deadline.isoformat() if parsed.deadline else None,
-                "budget_max": parsed.budget_max,
-                # What the embedder proposed, and whether it was believed.
-                # Logged even when refused: the two thresholds it is judged by
-                # were set by eye, and this is the only place the numbers to
-                # replace them can come from.
-                "vector": (
-                    {
-                        "subject_id": parsed.vector[0].id,
-                        "score": round(parsed.vector[0].score, 3),
-                        "lead": round(parsed.vector[1], 3),
-                        "used": parsed.subject is not None
-                        and parsed.subject.matched_on == "vector",
-                    }
-                    if parsed.vector
-                    else None
-                ),
-            },
-            results_count=total,
-            parser="rules.v1",
+    # The same question again within half a minute (a double tap, a retry)
+    # is one search, not another pair of rows.
+    asked_just_now = await session.scalar(
+        select(SearchQuery.id)
+        .where(
+            SearchQuery.user_id == viewer.id,
+            SearchQuery.raw_text == text,
+            SearchQuery.created_at
+            > func.now() - datetime.timedelta(seconds=_SAME_QUESTION_SECONDS),
         )
+        .limit(1)
     )
+    if asked_just_now is None:
+        await _record(
+            session, viewer, text, parsed, total, took=time.monotonic() - started
+        )
 
     return ParseOut(
         chips=chips,
@@ -184,3 +173,50 @@ def _clarify_for(parsed: parser.ParsedQuery) -> Clarify | None:
 
 
 __all__ = ["describe"]
+
+
+_SAME_QUESTION_SECONDS = 30
+
+
+async def _record(
+    session: AsyncSession,
+    viewer: User,
+    text: str,
+    parsed: parser.ParsedQuery,
+    total: int,
+    *,
+    took: float,
+) -> None:
+    """The two rows a search leaves: the person's event and the query itself."""
+    await log_event(session, viewer.id, UserEventKind.SEARCH, text=text, results=total)
+    session.add(
+        SearchQuery(
+            user_id=viewer.id,
+            raw_text=text,
+            parsed={
+                "subject_id": parsed.subject.id if parsed.subject else None,
+                "institution_id": (parsed.institution.id if parsed.institution else None),
+                "service_type": parsed.service_type,
+                "deadline": parsed.deadline.isoformat() if parsed.deadline else None,
+                "budget_max": parsed.budget_max,
+                # What the embedder proposed, and whether it was believed.
+                # Logged even when refused: the two thresholds it is judged by
+                # were set by eye, and this is the only place the numbers to
+                # replace them can come from.
+                "vector": (
+                    {
+                        "subject_id": parsed.vector[0].id,
+                        "score": round(parsed.vector[0].score, 3),
+                        "lead": round(parsed.vector[1], 3),
+                        "used": parsed.subject is not None
+                        and parsed.subject.matched_on == "vector",
+                    }
+                    if parsed.vector
+                    else None
+                ),
+            },
+            results_count=total,
+            parser="rules.v1",
+            took=datetime.timedelta(seconds=took),
+        )
+    )

@@ -127,9 +127,12 @@ title or a `t.me` link is dropped, and an activity it does not know counts as
 `unknown`.
 
 Every `/api/v1/*` request reaches the catalog from the router, not from the
-user's address. Nothing here limits per client today. A per-IP rate limit, or
-a Cloudflare rate rule in front of this host, would throttle every Mini App
-user as one client.
+user's address, so the limit is per person, not per IP: a per-IP limit, or a
+Cloudflare rate rule in front of this host, would throttle every Mini App user
+as one client. `/search/parse` takes 30 calls a minute per person (it writes
+two rows and may run the model) and `/search` 120; past that, 429 with
+`Retry-After`. The window is kept in memory, which holds while the API runs
+one worker (`--workers 1` in the Dockerfile).
 
 **The chat directory reads the order it is given.** `/chats` is one of three
 tabs: Помощь, Чаты and Заявки. The directory keeps supervisor's order, save
