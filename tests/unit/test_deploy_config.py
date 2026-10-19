@@ -642,3 +642,15 @@ def test_the_deploy_job_cannot_write_to_the_repository() -> None:
     deploy = yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]
 
     assert deploy["permissions"] == {"contents": "read"}
+
+
+def test_ci_runs_the_databases_production_runs() -> None:
+    """A different image and the default locale tested a collation production does not use."""
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    production = services["catalog-postgres"]
+
+    for job in ("test", "catalog"):
+        assert workflow["jobs"][job]["services"]["postgres"]["image"] == production["image"], job
+    ci_catalog = workflow["jobs"]["catalog"]["services"]["postgres"]["env"]
+    assert ci_catalog["POSTGRES_INITDB_ARGS"] == production["environment"]["POSTGRES_INITDB_ARGS"]

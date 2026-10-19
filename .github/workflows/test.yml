@@ -18,7 +18,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:0.8.2-pg18-trixie
+        image: pgvector/pgvector:0.8.6-pg18-bookworm
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -194,11 +194,14 @@ jobs:
       postgres:
         # The schema needs pg_trgm, unaccent, btree_gist and vector, and the
         # tests exercise them all. Pinned like the bot's.
-        image: pgvector/pgvector:0.8.2-pg18-trixie
+        image: pgvector/pgvector:0.8.6-pg18-bookworm
         env:
           POSTGRES_USER: students_cz
           POSTGRES_PASSWORD: students_cz
           POSTGRES_DB: students_cz
+          # As production's data directory was created: Czech names sort by ICU
+          # cs-CZ there, and a test of sorting is only worth what it collates.
+          POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=cs-CZ --encoding=UTF8"
         ports:
           - 5433:5432
         options: >-
