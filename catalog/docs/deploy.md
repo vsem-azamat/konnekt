@@ -107,9 +107,13 @@ written to a `.part` file and renamed only on success, so a partial file is
 never taken for a usable one. The dumps from before the move are in
 `~/deploy/teachers-catalog/data/backups/`.
 
-They sit on the same disk as the database, which protects against a bad
-migration and not against losing the machine. Copying them off the host is not
-set up yet.
+On azamat they sit on the same disk as the database, which protects against a
+bad migration and not against losing the machine; so every day at 04:20 UTC
+poryadok pulls them to its own disk (`~/backups/supervisor-telegram-catalog`,
+30 days) over a key that can only read that one directory. The pull, the key's
+restrictions and how to check them are in the knowledge base,
+`devices/poryadok/backups.md`. A pulled copy was restored with
+`scripts/restore_drill.sh` on 2026-10-19 (34 tables, at the migration head).
 
 Old dumps are pruned only after a successful one, and the container turns unhealthy
 once its newest dump is two days old; see `docs/deployment/database.md`.
