@@ -53,8 +53,7 @@ function System() {
   const sessions = useQuery(sessionsQuery);
   const [picked, setPicked] = useState<AdminSession | null>(null);
   const closeSession = useMutation({
-    mutationFn: (session: AdminSession) =>
-      consoleChanges.closeSession(session.session_id),
+    mutationFn: (session: AdminSession) => consoleChanges.closeSession(session.id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey });
       setPicked(null);
@@ -134,7 +133,7 @@ function System() {
         <Rows>
           {sessions.data.map((session) => (
             <Row
-              key={session.session_id}
+              key={session.id}
               title={
                 <>
                   {device(session.user_agent)}

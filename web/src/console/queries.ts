@@ -84,8 +84,8 @@ export const consoleChanges = {
     }),
 
   /** Signs that session out; webapi refuses the one making the request. */
-  closeSession: (sessionId: string) =>
-    consoleGet<void>(`/api/admin/sessions/${encodeURIComponent(sessionId)}`, {
+  closeSession: (id: string) =>
+    consoleGet<void>(`/api/admin/sessions/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     }),
 

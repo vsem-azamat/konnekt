@@ -23,6 +23,11 @@ from app.webapi.schemas import AdminSessionRead, FeatureFlagRead, SystemStatus
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+async def _own_sessions(session: AsyncSession, admin_id: int) -> list[AdminSession]:
+    query = select(AdminSession).where(AdminSession.user_id == admin_id).order_by(AdminSession.last_seen_at.desc())
+    return list((await session.execute(query)).scalars().all())
+
+
 @router.get("/sessions", response_model=list[AdminSessionRead])
 async def list_sessions(
     request: Request,
@@ -30,42 +35,42 @@ async def list_sessions(
     admin_id: Annotated[int, Depends(require_super_admin)],
 ) -> list[AdminSessionRead]:
     """List the calling admin's active sessions, current one flagged."""
-    rows = (
-        (
-            await session.execute(
-                select(AdminSession).where(AdminSession.user_id == admin_id).order_by(AdminSession.last_seen_at.desc())
-            )
-        )
-        .scalars()
-        .all()
-    )
     current_token = request.cookies.get(settings.webapi.session_cookie_name)
     return [
-        AdminSessionRead.model_validate(r).model_copy(update={"is_current": r.session_id == current_token})
-        for r in rows
+        AdminSessionRead(
+            id=session_store.public_id(r.session_id),
+            user_id=r.user_id,
+            created_at=r.created_at,
+            last_seen_at=r.last_seen_at,
+            expires_at=r.expires_at,
+            user_agent=r.user_agent,
+            ip=r.ip,
+            is_current=r.session_id == current_token,
+        )
+        for r in await _own_sessions(session, admin_id)
     ]
 
 
-@router.delete("/sessions/{session_id}", status_code=204)
+@router.delete("/sessions/{public_id}", status_code=204)
 async def revoke_session(
-    session_id: str,
+    public_id: str,
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
     admin_id: Annotated[int, Depends(require_super_admin)],
 ) -> None:
-    """Revoke one of the calling admin's sessions. Refuse to revoke the current one."""
-    current_token = request.cookies.get(settings.webapi.session_cookie_name)
-    if session_id == current_token:
-        raise HTTPException(status_code=400, detail="The current session cannot close itself")
-    row = (
-        await session.execute(select(AdminSession).where(AdminSession.session_id == session_id))
-    ).scalar_one_or_none()
+    """Revoke one of the calling admin's sessions. Refuse to revoke the current one.
+
+    Only the caller's own sessions are searched, so another admin's is simply
+    not found.
+    """
+    row = next(
+        (r for r in await _own_sessions(session, admin_id) if session_store.public_id(r.session_id) == public_id), None
+    )
     if row is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    if row.user_id != admin_id:
-        # Single-tenant — same admin set — but defensive guard if it ever expands.
-        raise HTTPException(status_code=403, detail="Cannot revoke another user's session")
-    await session_store.revoke_session(session, session_id)
+    if row.session_id == request.cookies.get(settings.webapi.session_cookie_name):
+        raise HTTPException(status_code=400, detail="The current session cannot close itself")
+    await session_store.revoke_session(session, row.session_id)
 
 
 @router.get("/system", response_model=SystemStatus)

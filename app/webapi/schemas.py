@@ -243,9 +243,7 @@ class UserBlockResponse(BaseModel):
 class AdminSessionRead(BaseModel):
     """Active admin session row — used by /settings to list logins."""
 
-    model_config = ConfigDict(from_attributes=True)
-
-    session_id: str
+    id: str
     user_id: int
     created_at: datetime.datetime
     last_seen_at: datetime.datetime

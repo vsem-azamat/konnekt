@@ -8,6 +8,7 @@ itself is the secret and never leaves HTTPS+HttpOnly.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import secrets
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,15 @@ if TYPE_CHECKING:
 
 def new_session_id() -> str:
     return secrets.token_urlsafe(32)
+
+
+def public_id(session_id: str) -> str:
+    """The handle the console lists and revokes a session by.
+
+    Never the session id itself: that is the cookie, and returning it as JSON
+    or taking it in a URL hands it to page script and to the access log.
+    """
+    return hashlib.sha256(session_id.encode()).hexdigest()[:32]
 
 
 async def create_session(
