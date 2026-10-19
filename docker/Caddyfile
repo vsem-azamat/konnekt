@@ -1,6 +1,17 @@
 :80 {
 	encode zstd gzip
 
+	# On every response. The Mini App must stay framable by Telegram's web
+	# clients, so framing is limited with frame-ancestors, never refused with
+	# X-Frame-Options; anybody else framing the console is the clickjacking
+	# this stops. HSTS reaches browsers through the TLS edge in front.
+	header {
+		Content-Security-Policy "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+	}
+
 	# The catalog's API (catalog/), for the Mini App's help screens: tutors,
 	# profiles, requests. First, so the /api/* block below never sees it.
 	#
