@@ -8,10 +8,12 @@ tools exist".
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from aiogram.types import ChatPermissions
 from app.core.config import settings
 from app.core.enums import PendingActionStatus
 from app.db.models import Chat, PendingAction, User
 from app.mcp.server import build_mcp_server
+from app.moderation.mute_permissions import MUTED
 from sqlalchemy import select
 
 pytestmark = pytest.mark.asyncio
@@ -20,12 +22,14 @@ CHAT_ID = -1001234
 UNMANAGED_CHAT_ID = -1009999
 USER_ID = 4242
 ADMIN_ID = 555
+CHAT_DEFAULTS = ChatPermissions(can_send_messages=True, can_send_photos=True, can_send_polls=False)
 
 
 @pytest.fixture
 def bot() -> MagicMock:
     tg_bot = MagicMock()
     tg_bot.restrict_chat_member = AsyncMock()
+    tg_bot.get_chat = AsyncMock(return_value=MagicMock(permissions=CHAT_DEFAULTS))
     tg_bot.unban_chat_member = AsyncMock()
     tg_bot.ban_chat_member = AsyncMock()
     tg_bot.send_message = AsyncMock(return_value=MagicMock(message_id=7))
@@ -110,6 +114,24 @@ class TestBoundedWrites:
         permissions = bot.restrict_chat_member.await_args.kwargs["permissions"]
         assert permissions.can_react_to_messages is False
 
+    async def test_mute_is_the_same_mute_as_the_command(self, wired, bot) -> None:
+        await _seed_chat(wired)
+
+        await _call("mute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        assert bot.restrict_chat_member.await_args.kwargs["permissions"] == MUTED
+
+    async def test_unmute_restores_the_chat_defaults(self, wired, bot) -> None:
+        """Not a blanket "everything allowed": the chat may forbid polls to all."""
+        await _seed_chat(wired)
+
+        result = await _call("unmute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        assert result["status"] == "unmuted"
+        kwargs = bot.restrict_chat_member.await_args.kwargs
+        assert kwargs["permissions"] == CHAT_DEFAULTS
+        assert kwargs["use_independent_chat_permissions"] is True
+
     async def test_unban_restores_access(self, wired, bot) -> None:
         await _seed_chat(wired)
 
@@ -186,16 +208,6 @@ class TestRemovalsWait:
 
 
 class TestRemainingWrites:
-    async def test_unmute_restores_posting(self, wired, bot) -> None:
-        await _seed_chat(wired)
-
-        result = await _call("unmute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
-
-        assert result["status"] == "unmuted"
-        permissions = bot.restrict_chat_member.await_args.kwargs["permissions"]
-        assert permissions.can_send_messages is True
-        assert permissions.can_react_to_messages is True
-
     async def test_unmute_refuses_an_unapproved_chat(self, wired, bot) -> None:
         async with wired() as session:
             session.add(Chat(id=CHAT_ID, title="Pending", resource_status=Chat.STATUS_DISCOVERED))

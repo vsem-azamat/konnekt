@@ -1,9 +1,11 @@
 """Tests for moderation handlers."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from app.presentation.telegram.handlers.moderation import ban_user, mute_user, unban_user
+from aiogram.types import ChatPermissions
+from app.moderation.mute_permissions import MUTED
+from app.presentation.telegram.handlers.moderation import ban_user, mute_user, unban_user, unmute_user
 
 from tests.telegram_helpers import (
     MockBot,
@@ -179,11 +181,51 @@ class TestModerationHandlers:
         error_msg = command_message.answer.call_args[0][0]
         assert "Произошла ошибка" in error_msg
 
-    @pytest.mark.skip(reason="Chat object is frozen and cannot be mocked easily")
-    async def test_unmute_user_success(self, telegram_factory: TelegramObjectFactory, mock_bot: MockBot):
-        """Test successful user unmute."""
-        # This test is skipped due to pydantic frozen model restrictions
-        pass
+    async def test_unmute_restores_the_chat_defaults(
+        self, telegram_factory: TelegramObjectFactory, mock_bot: MockBot, audit_db
+    ):
+        """The defaults come from getChat: a message's chat never carries them.
+
+        Reading `message.chat.permissions` found nothing on every update since
+        Bot API 7.3, so `!unmute` always answered that the bot was not an admin.
+        """
+        admin_user = create_admin_user()
+        target_user = create_normal_user(id=777777777)
+        chat = create_test_chat()
+        reply_message = telegram_factory.create_message(user=target_user, chat=chat)
+        command_message = telegram_factory.create_command_message(
+            command="unmute", user=admin_user, chat=chat, reply_to_message=reply_message
+        )
+        defaults = ChatPermissions(can_send_messages=True, can_send_photos=True, can_send_polls=False)
+        mock_bot.mock.get_chat = AsyncMock(return_value=MagicMock(permissions=defaults))
+
+        await unmute_user(command_message, mock_bot.mock, audit_db)
+
+        mock_bot.mock.get_chat.assert_awaited_once_with(chat.id)
+        kwargs = mock_bot.mock.restrict_chat_member.call_args.kwargs
+        assert kwargs["chat_id"] == chat.id
+        assert kwargs["user_id"] == target_user.id
+        assert kwargs["permissions"] == defaults
+        assert kwargs["use_independent_chat_permissions"] is True
+        assert "размучен" in command_message.answer.call_args[0][0]
+
+    async def test_mute_takes_every_kind_of_message_and_reactions(
+        self, telegram_factory: TelegramObjectFactory, mock_bot: MockBot, audit_db
+    ):
+        """Muting names today's fields; `can_send_media_messages` is gone from the API."""
+        admin_user = create_admin_user()
+        target_user = create_normal_user(id=777777777)
+        chat = create_test_chat()
+        reply_message = telegram_factory.create_message(user=target_user, chat=chat)
+        command_message = telegram_factory.create_command_message(
+            command="mute", user=admin_user, chat=chat, reply_to_message=reply_message
+        )
+
+        await mute_user(command_message, mock_bot.mock, audit_db)
+
+        sent = mock_bot.mock.restrict_chat_member.call_args.kwargs["permissions"]
+        assert sent == MUTED
+        assert mock_bot.mock.restrict_chat_member.call_args.kwargs["use_independent_chat_permissions"] is True
 
     async def test_ban_user_success(self, telegram_factory: TelegramObjectFactory, mock_bot: MockBot, audit_db):
         """Test successful user ban."""

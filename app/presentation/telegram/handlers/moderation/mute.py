@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
+from app.moderation.mute_permissions import MUTED, chat_defaults
 from app.presentation.telegram.handlers.moderation._common import (
     is_user_check_error,
     record_reply_target,
@@ -48,18 +49,12 @@ async def mute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
         other.sleep_and_delete(answer, 10)
         return
 
-    read_only_permissions = types.ChatPermissions(
-        can_send_messages=False,
-        can_send_media_messages=False,
-        can_send_polls=False,
-        can_send_other_messages=False,
-    )
-
     try:
         await bot.restrict_chat_member(
             message.chat.id,
             message.reply_to_message.from_user.id,
-            permissions=read_only_permissions,
+            permissions=MUTED,
+            use_independent_chat_permissions=True,
             until_date=mute_duration.until_date,
         )
         await record_reply_target(
@@ -86,7 +81,7 @@ async def mute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
 
 
 @router.message(Command("unmute", prefix="!/"))
-async def unmute_user(message: types.Message, db: AsyncSession) -> None:
+async def unmute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     if not message.reply_to_message:
         await message.answer(reply_required_error("размутить"))
         await message.delete()
@@ -96,16 +91,12 @@ async def unmute_user(message: types.Message, db: AsyncSession) -> None:
         await message.answer(is_user_check_error())
         return
 
-    default_permissions = message.chat.permissions
-    if not default_permissions:
-        await message.answer("Похоже, что я нахожусь не в чате или у меня нет прав администратора.")
-        return
-
     try:
-        await message.chat.restrict(
+        await bot.restrict_chat_member(
+            chat_id=message.chat.id,
             user_id=message.reply_to_message.from_user.id,
-            permissions=default_permissions,
-            until_date=0,
+            permissions=await chat_defaults(bot, message.chat.id),
+            use_independent_chat_permissions=True,
         )
         await record_reply_target(message, db, ModerationEventAction.UNMUTE)
         mention = other.get_user_mention(message.reply_to_message.from_user)
