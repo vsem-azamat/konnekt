@@ -2,7 +2,9 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import UserNotFoundException
+from app.core.time import utc_now
 from app.db.models import User
+from app.db.upsert import insert_for
 
 
 class UserRepository:
@@ -16,6 +18,21 @@ class UserRepository:
     async def exists(self, user_id: int) -> bool:
         result = await self.db.execute(select(User.id).filter(User.id == user_id))
         return result.scalars().first() is not None
+
+    async def upsert_profile(
+        self, user_id: int, *, username: str | None, first_name: str | None, last_name: str | None
+    ) -> None:
+        """Record what Telegram says about a person, creating them if new.
+
+        Never touches `blocked` or `verify`. One statement, so two updates
+        from a new user at once cannot both try to create them.
+        """
+        profile = {"username": username, "first_name": first_name, "last_name": last_name}
+        statement = insert_for(self.db, User).values(id=user_id, **profile, created_at=utc_now(), modified_at=utc_now())
+        await self.db.execute(
+            statement.on_conflict_do_update(index_elements=[User.id], set_={**profile, "modified_at": utc_now()})
+        )
+        await self.db.commit()
 
     async def save(self, user: User) -> User:
         user_model = await self._get_user_model(user.id)

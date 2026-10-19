@@ -509,3 +509,67 @@ class TestHistoryCapture:
             pings = (await session.scalars(select(SpamPing).where(SpamPing.chat_id == REPORTER_ID))).all()
         assert stored is None
         assert pings == []
+
+
+@pytest.mark.e2e
+class TestHistoryUnderContention:
+    """A new member's first messages often arrive together: an album, a burst."""
+
+    async def test_a_user_another_update_just_created_is_merged_not_inserted_twice(
+        self, db_session_maker: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Read-then-insert lost the race: both updates saw no row and both inserted."""
+        from app.db.models import User as DbUser
+        from app.db.repositories.user import UserRepository
+        from app.moderation import history_service
+
+        async with db_session_maker() as session:
+            session.add(DbUser(id=TARGET_USER_ID, first_name="Old"))
+            await session.commit()
+
+        async def not_there_yet(self, user_id):
+            return None  # what the other update saw a moment ago
+
+        monkeypatch.setattr(UserRepository, "get_by_id", not_there_yet)
+        monkeypatch.setattr(UserRepository, "_get_user_model", not_there_yet)
+
+        async with db_session_maker() as session:
+            await history_service.merge_user(session, User(id=TARGET_USER_ID, is_bot=False, first_name="New"))
+
+        async with db_session_maker() as session:
+            stored = await session.get(DbUser, TARGET_USER_ID)
+        assert stored is not None
+        assert stored.first_name == "New"
+
+    async def test_a_failed_write_does_not_lose_the_rest_of_the_update(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A swallowed database error left the session failed, and the update died at the next query."""
+        from app.db.models import User as DbUser
+        from app.moderation import history_service
+
+        async with db_session_maker() as session:
+            session.add(DbUser(id=TARGET_USER_ID, first_name="Existing"))
+            await session.commit()
+
+        async def failing_merge(db, user):
+            db.add(DbUser(id=TARGET_USER_ID, first_name="Duplicate"))
+            await db.flush()  # IntegrityError, and the session now needs a rollback
+
+        monkeypatch.setattr(history_service, "merge_user", failing_merge)
+        update = Update(
+            update_id=40,
+            message=Message(
+                message_id=70,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+                text="hello",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        async with db_session_maker() as session:
+            stored = await session.scalar(select(DbMessage).where(DbMessage.message_id == 70))
+        assert stored is not None
