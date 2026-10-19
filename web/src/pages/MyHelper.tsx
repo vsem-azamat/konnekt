@@ -21,6 +21,7 @@ import {
 } from '@/components/Ui';
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { afterHelperSaved } from '@/lib/helperSaved';
 import type { MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
 import { askedFormat, formatOptions, formatQuestion } from '@/lib/workFormat';
 
@@ -43,7 +44,7 @@ export default function MyHelperPage() {
   const queryClient = useQueryClient();
   const { t } = useLingui();
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['my-helper'],
     queryFn: ({ signal }) => api.getMyHelper(signal),
   });
@@ -114,9 +115,7 @@ export default function MyHelperPage() {
       }),
     onSuccess: (me) => {
       hapticSuccess();
-      queryClient.setQueryData(['me'], me);
-      void queryClient.invalidateQueries({ queryKey: ['my-helper'] });
-      void queryClient.invalidateQueries({ queryKey: ['home'] });
+      afterHelperSaved(queryClient, me);
     },
   });
 
@@ -134,7 +133,10 @@ export default function MyHelperPage() {
       : null,
   );
 
-  if (isError) {
+  // Keyed on the form, not on the query: a save drops the cached profile
+  // (afterHelperSaved), and the refetch after it must neither swap the form
+  // for a skeleton mid-edit nor replace a loaded form with an error.
+  if (isError && !loaded) {
     return (
       <Screen>
         <AppHeader />
@@ -153,7 +155,7 @@ export default function MyHelperPage() {
         <Trans>Всё можно менять когда угодно. Пустые поля просто не показываем.</Trans>
       </Sub>
 
-      {isPending ? (
+      {!loaded ? (
         <div style={{ marginTop: 16 }}>
           <SkeletonRows count={5} />
         </div>
