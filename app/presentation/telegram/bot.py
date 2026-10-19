@@ -166,8 +166,15 @@ async def main() -> None:
         moved_bot, moved_dp = moved
         konnekt_username = (await main_bot.me()).username
         tasks.append(
+            # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
+            # and taking it here would leave the main bot without a shutdown path.
             _run_polling(
-                moved_bot, moved_dp, name="moved", allowed_updates=["message"], konnekt_username=konnekt_username
+                moved_bot,
+                moved_dp,
+                name="moved",
+                handle_signals=False,
+                allowed_updates=["message"],
+                konnekt_username=konnekt_username,
             )
         )
 
