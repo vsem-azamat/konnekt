@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import LEFT, MEMBER, ChatMemberUpdatedFilter
+from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
 from aiogram.types import ChatJoinRequest, ChatMemberUpdated, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +28,9 @@ router = Router()
 JOIN_CHECK_MINUTES = 15
 
 
-@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=MEMBER))
+# A join is a transition from outside to inside: restricted -> member is a mute
+# being lifted, and greeting it greeted somebody who had been here all along.
+@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(JOIN_TRANSITION))
 async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
     """Greet a new member if the chat is configured to.
 

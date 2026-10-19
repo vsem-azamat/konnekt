@@ -178,3 +178,17 @@ async def test_a_failure_before_polling_starts_still_reaches_the_alerts(monkeypa
         await bot_module.main()
 
     assert stopped == ["alerts"]
+
+
+async def test_polling_asks_for_edits(monkeypatch, services) -> None:
+    """Without edited_message, a message edited into an ad was never seen."""
+    polled: dict = {}
+
+    async def polling(_bot, _dp, *, name, **kwargs):
+        polled.update(kwargs)
+
+    monkeypatch.setattr(bot_module, "_run_polling", polling)
+
+    await asyncio.wait_for(bot_module.main(), timeout=5)
+
+    assert "edited_message" in polled["allowed_updates"]

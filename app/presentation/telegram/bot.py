@@ -228,7 +228,8 @@ async def _serve() -> None:
         main_bot,
         main_dp,
         name="main",
-        allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
+        # Edits too: a message posted clean and edited into an ad went unseen.
+        allowed_updates=["message", "edited_message", "callback_query", "chat_member", "chat_join_request"],
     )
     try:
         await _supervise(polling, tasks)

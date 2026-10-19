@@ -8,7 +8,7 @@ from app.db.repositories import (
 )
 
 
-async def save_message(db: AsyncSession, message: types.Message) -> None:
+async def save_message(db: AsyncSession, message: types.Message, *, edited: bool = False) -> None:
     if not message.from_user:
         return
     chat_id = message.chat.id
@@ -22,7 +22,7 @@ async def save_message(db: AsyncSession, message: types.Message) -> None:
     )
 
     message_repo = get_message_repository(db)
-    await message_repo.add_message(chat_id, user_id, message_id, message_text, message_info)
+    await message_repo.add_message(chat_id, user_id, message_id, message_text, message_info, replace=edited)
 
 
 async def merge_user(db: AsyncSession, user: types.User) -> None:

@@ -54,19 +54,25 @@ class MessageRepository:
         message_id: int,
         message: str | None,
         message_info: dict[str, Any],
+        *,
+        replace: bool = False,
     ) -> None:
-        # Telegram redelivers what it was not sure arrived; one row per message.
-        await self.db.execute(
-            insert_for(self.db, Message)
-            .values(
-                chat_id=chat_id,
-                user_id=user_id,
-                message_id=message_id,
-                message=message,
-                message_info=message_info,
-            )
-            .on_conflict_do_nothing(index_elements=[Message.chat_id, Message.message_id])
+        """One row per message: a redelivery changes nothing, an edit (`replace`) its text."""
+        statement = insert_for(self.db, Message).values(
+            chat_id=chat_id,
+            user_id=user_id,
+            message_id=message_id,
+            message=message,
+            message_info=message_info,
         )
+        key = [Message.chat_id, Message.message_id]
+        if replace:
+            statement = statement.on_conflict_do_update(
+                index_elements=key, set_={"message": message, "message_info": message_info}
+            )
+        else:
+            statement = statement.on_conflict_do_nothing(index_elements=key)
+        await self.db.execute(statement)
         await self.db.commit()
 
     async def label_spam(self, chat_id: int, message_id: int) -> None:
