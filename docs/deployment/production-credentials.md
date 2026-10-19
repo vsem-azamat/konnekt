@@ -15,6 +15,7 @@ recover.
 
 | Secret | What it is |
 | --- | --- |
+| `DB_HOST` | The shared PostgreSQL server. Not a credential, but a variable is printed unmasked in this public repository's workflow logs, and the server listens publicly. |
 | `DB_PASSWORD` | PostgreSQL password. The database runs beside this stack rather than in it, so this is the password that database already has — see [The Database](database.md). |
 | `MODERATOR_BOT_TOKEN` | Bot token from BotFather |
 | `MCP_TOKEN` | Bearer token for the control plane |
@@ -75,7 +76,7 @@ code, and changing them should be a reviewed change rather than a click.
 
 Before anything reaches the VPS the workflow fails on:
 
-- any of `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `MODERATOR_BOT_TOKEN`,
+- any of `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `MODERATOR_BOT_TOKEN`,
   `ADMIN_SUPER_ADMINS` being empty — these have no defaults, and containers
   crash on boot without them.
 

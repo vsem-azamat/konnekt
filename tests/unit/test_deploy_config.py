@@ -166,6 +166,9 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
     """A token in `vars` is readable by anyone with repository access."""
     step = _deploy_step()
     sensitive = {
+        # Not a credential, but the address of a shared database server that
+        # listens publicly; a variable is printed unmasked in a public log.
+        "DB_HOST",
         "DB_PASSWORD",
         "CATALOG_DB_PASSWORD",
         "MODERATOR_BOT_TOKEN",
@@ -182,6 +185,46 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
             assert "secrets." in expression, f"{name} must come from secrets"
         elif name != "IMAGE_TAG":
             assert "vars." in expression, f"{name} should come from variables, not {expression}"
+
+
+def test_the_deploy_log_shows_status_not_what_the_services_said() -> None:
+    """The repository is public, so its workflow logs are published documents.
+
+    Application logs name users and chats; a deploy needs only to say whether
+    the containers came up.
+    """
+    script = _deploy_step()["with"]["script"]
+
+    assert "docker compose logs" not in script
+    assert "docker compose ps" in script
+
+
+def _host_task(name: str) -> str:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "host.yml").read_text())
+    script = workflow["jobs"]["run"]["steps"][0]["with"]["script"]
+    body = re.search(rf"^\s*{name}\)\n(.*?)^\s*;;", script, re.M | re.S)
+    assert body, f"host task {name} is gone"
+    return body.group(1)
+
+
+def test_the_host_diagnosis_shows_only_this_project() -> None:
+    """The host is shared: its other containers and open ports are not ours to publish."""
+    diagnose = _host_task("diagnose")
+
+    for line in diagnose.splitlines():
+        if "docker ps" in line:
+            assert "--filter name=supervisor-telegram" in line or "--filter name=caddy" in line, line
+    assert "ss -" not in diagnose
+
+
+def test_the_edge_log_is_reduced_to_status_fields() -> None:
+    """Raw edge lines carry visitors' addresses, user agents and URIs."""
+    edge = _host_task("edge-tls")
+    logs = next(line for line in edge.splitlines() if "docker logs" in line)
+
+    assert "grep -F" in logs
+    assert "client_ip" not in edge
+    assert re.search(r"\| *python3 -c", edge), "edge log lines must be reduced before printing"
 
 
 def test_nothing_writes_configuration_to_the_host() -> None:

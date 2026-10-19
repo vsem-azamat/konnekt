@@ -3,8 +3,10 @@
 It is not part of this stack. It is a database on the shared PostgreSQL
 server, another machine than the one this stack runs on, and it holds the
 production data, so `docker-compose.yaml` starts no `db` service and
-where the database lives is deployment configuration: `DB_HOST`, `DB_PORT`,
-`DB_USER`, `DB_NAME` come from GitHub variables and `DB_PASSWORD` from a secret.
+where the database lives is deployment configuration: `DB_PORT`, `DB_USER`,
+`DB_NAME` come from GitHub variables, and `DB_HOST` and `DB_PASSWORD` from
+secrets. The host is a secret for a public repository's sake: a variable is
+printed unmasked in every workflow log, and the server listens publicly.
 
 That was a choice, made to keep one PostgreSQL server for several projects,
 and it costs one thing worth knowing about — see *Exposure*.

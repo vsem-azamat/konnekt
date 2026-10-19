@@ -81,7 +81,7 @@ jobs:
       # boot; the rest would come up quietly wrong instead, which is worse.
       - name: Check required configuration is present
         env:
-          DB_HOST: ${{ vars.DB_HOST }}
+          DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ vars.DB_USER }}
           DB_NAME: ${{ vars.DB_NAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -129,7 +129,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.5
         env:
           IMAGE_TAG: ${{ github.sha }}
-          DB_HOST: ${{ vars.DB_HOST }}
+          DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ vars.DB_PORT }}
           DB_USER: ${{ vars.DB_USER }}
           DB_NAME: ${{ vars.DB_NAME }}
@@ -206,7 +206,7 @@ jobs:
             docker compose run --rm -T catalog-embed < /dev/null
 
             docker compose up -d --remove-orphans --wait --wait-timeout 180
+            # Status only: this log is public, and what the services say names
+            # users and chats. Read logs on the host.
             echo "--- Container status ---"
             docker compose ps
-            echo "--- Recent logs ---"
-            docker compose logs --tail=20

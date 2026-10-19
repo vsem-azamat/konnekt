@@ -58,11 +58,10 @@ jobs:
                 section "who and where"
                 whoami; hostname; uptime
 
+                # This project's containers only, and no socket list: the
+                # neighbours' names, images and ports are not ours to publish.
                 section "containers"
-                docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' || true
-
-                section "listening sockets"
-                ss -tln || true
+                docker ps --filter name=supervisor-telegram --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' || true
 
                 section "what answers on 443"
                 host=$(echo "$PUBLIC_URL" | sed -e 's#^https\?://##' -e 's#/.*##')
@@ -98,8 +97,11 @@ jobs:
                 docker exec edge-caddy find /data/caddy/certificates -name "*${host}*" 2>/dev/null \
                   || echo "no certificate file names match $host"
 
+                # Reduced to time, level, message and status before printing:
+                # a raw line carries the visitor's address, user agent and URI.
                 section "what the edge said about this name"
                 docker logs --tail 4000 edge-caddy 2>&1 | grep -F -- "$host" | tail -30 \
+                  | python3 -c 'import json, sys; [print(e.get("ts"), e.get("level"), e.get("msg"), e.get("status", "")) for e in (json.loads(line) if line.startswith("{") else {} for line in sys.stdin)]' \
                   || echo "the edge log does not mention $host at all"
                 ;;
             esac
