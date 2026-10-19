@@ -11,7 +11,10 @@ So the two are pinned against each other.
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -249,3 +252,97 @@ def test_backup_retention_touches_only_its_own_dumps() -> None:
     (find,) = re.findall(r"^\s*find /backups.*$", raw, re.M)
 
     assert "-maxdepth 1" in find
+
+
+def _backup_loop(tmp_path: Path, *, dump_succeeds: bool) -> Path:
+    """Run one pass of the compose backup loop against a scratch directory.
+
+    The script is the one compose hands to bash, with `/backups` pointed at
+    tmp_path. `sleep` is faked: the first call returns, the second ends the
+    loop, so exactly one dump is attempted.
+    """
+    script = yaml.safe_load(COMPOSE.read_text())["services"]["db-backup"]["command"][0]
+    script = script.replace("$$", "$").replace("/backups", str(tmp_path / "backups"))
+    (tmp_path / "backups").mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "sleep").write_text(
+        '#!/bin/bash\nf="$(dirname "$0")/slept"\n[ -e "$f" ] && kill -TERM "$PPID"\ntouch "$f"\n'
+    )
+    pg_dump = '#!/bin/bash\nfor a; do case $a in --file=*) echo dump > "${a#--file=}";; esac; done\n'
+    (bin_dir / "pg_dump").write_text(pg_dump if dump_succeeds else "#!/bin/bash\nexit 1\n")
+    for tool in bin_dir.iterdir():
+        tool.chmod(0o755)
+
+    old = tmp_path / "backups" / "moderator-20200101T020000Z.dump"
+    old.write_text("old")
+    month_ago = time.time() - 40 * 86400
+    os.utime(old, (month_ago, month_ago))
+
+    env = {
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "BACKUP_PREFIX": "moderator",
+        "BACKUP_HOUR_UTC": "2",
+        "BACKUP_RETENTION_DAYS": "30",
+    }
+    subprocess.run(["bash", "-c", script], env=env, timeout=30, check=False)  # noqa: S603, S607 — our own compose script
+    return tmp_path / "backups"
+
+
+def test_a_failed_dump_deletes_nothing(tmp_path: Path) -> None:
+    """Pruning after a failure would eat one good dump a day until none were left."""
+    backups = _backup_loop(tmp_path, dump_succeeds=False)
+
+    assert sorted(p.name for p in backups.glob("*.dump")) == ["moderator-20200101T020000Z.dump"]
+
+
+def test_a_good_dump_prunes_what_is_past_retention(tmp_path: Path) -> None:
+    backups = _backup_loop(tmp_path, dump_succeeds=True)
+
+    names = [p.name for p in backups.glob("*.dump")]
+    assert len(names) == 1
+    assert names[0] != "moderator-20200101T020000Z.dump"
+
+
+def _healthy(tmp_path: Path, *, newest_dump_hours: float | None, loop_started_hours: float) -> bool:
+    check = yaml.safe_load(COMPOSE.read_text())["services"]["db-backup"]["healthcheck"]["test"][1]
+    backups = tmp_path / "backups"
+    backups.mkdir()
+    marker = tmp_path / "started"
+    check = check.replace("$$", "$").replace("/backups", str(backups))
+    check = check.replace("/tmp/backup-loop-started", str(marker))  # noqa: S108 — the path inside the container
+
+    def _aged(path: Path, hours: float) -> None:
+        path.write_text("")
+        then = time.time() - hours * 3600
+        os.utime(path, (then, then))
+
+    _aged(marker, loop_started_hours)
+    if newest_dump_hours is not None:
+        _aged(backups / "moderator-x.dump", newest_dump_hours)
+    return subprocess.run(["sh", "-c", check], check=False).returncode == 0  # noqa: S603, S607 — our own healthcheck
+
+
+@pytest.mark.parametrize(
+    ("newest_dump_hours", "loop_started_hours", "healthy"),
+    [
+        (20, 500, True),
+        # One missed night is a warning in the logs; two is a broken backup.
+        (50, 500, False),
+        (None, 500, False),
+        # A fresh container has two days to write its first dump.
+        (None, 1, True),
+        (50, 1, True),
+    ],
+)
+def test_a_stale_backup_shows_as_unhealthy(
+    tmp_path: Path, newest_dump_hours: float | None, loop_started_hours: float, healthy: bool
+) -> None:
+    """Nothing else watches the dumps, so the container's health has to."""
+    assert _healthy(tmp_path, newest_dump_hours=newest_dump_hours, loop_started_hours=loop_started_hours) is healthy
+
+
+def test_both_backups_share_the_healthcheck() -> None:
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+
+    assert services["db-backup"]["healthcheck"] == services["catalog-backup"]["healthcheck"]
