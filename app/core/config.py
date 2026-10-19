@@ -81,6 +81,10 @@ class TelegramSettings(Settings):
     """Moderator bot configuration."""
 
     token: str = Field(..., description="Moderator bot token from BotFather")
+    retired_token: str = Field(
+        default="",
+        description="Token of the retired catalog bot (@student_cz_bot); set, it answers with the new address",
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="MODERATOR_BOT_",

@@ -160,6 +160,24 @@ async def main() -> None:
         ),
     ]
 
+    from app.presentation.telegram.moved import build_moved_bot
+
+    if moved := build_moved_bot():
+        moved_bot, moved_dp = moved
+        konnekt_username = (await main_bot.me()).username
+        tasks.append(
+            # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
+            # and taking it here would leave the main bot without a shutdown path.
+            _run_polling(
+                moved_bot,
+                moved_dp,
+                name="moved",
+                handle_signals=False,
+                allowed_updates=["message"],
+                konnekt_username=konnekt_username,
+            )
+        )
+
     # The MCP control plane runs here, not in the web API: its tools need the
     # Telethon session and the confirmation handlers, and both belong to this
     # process. Returns immediately when MCP is inactive.

@@ -75,6 +75,8 @@ services:
     environment:
       <<: *runtime-env
       LOG_FILE_PATH: logs/bot.log
+      # Only the bot process: the retired catalog bot answers from here.
+      MODERATOR_BOT_RETIRED_TOKEN: ${MODERATOR_BOT_RETIRED_TOKEN:-}
     # The MCP control plane is served here rather than by webapi: Telegram
     # answers a confirmation button to the identity that sent it, and that
     # identity is this process. Loopback only — not published to the internet.
