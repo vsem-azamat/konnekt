@@ -44,10 +44,15 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     if chat is None or not chat.is_welcome_enabled or not chat.welcome_message:
         return
 
-    message = await bot.send_message(
-        chat_id=event.chat.id,
-        text=f"{joined.mention_html()}, {chat.welcome_message}",
-    )
+    try:
+        message = await bot.send_message(
+            chat_id=event.chat.id,
+            text=f"{joined.mention_html()}, {chat.welcome_message}",
+        )
+    except Exception as err:
+        # A greeting Telegram refuses is the chat's problem, not the join's.
+        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err))
+        return
 
     if chat.time_delete:
         sleep_and_delete(message, chat.time_delete)

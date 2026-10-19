@@ -88,8 +88,10 @@ class ChatRepository:
         await self.db.commit()
 
     async def update_welcome_message(self, id_tg_chat: int, message: str) -> None:
-        """Update welcome message."""
-        await self.db.execute(update(Chat).filter(Chat.id == id_tg_chat).values(welcome_message=message))
+        """Set the greeting and switch it on: a moderator who wrote one means it to be sent."""
+        await self.db.execute(
+            update(Chat).filter(Chat.id == id_tg_chat).values(welcome_message=message, is_welcome_enabled=True)
+        )
         await self.db.commit()
 
 
