@@ -1,7 +1,8 @@
-"""The blacklist's buttons, pressed through the production dispatcher.
+"""The blacklist's buttons, and the handlers no test reached, through the production dispatcher.
 
 `/banall` only asks; the press is where a person is banned from every chat
-and, optionally, wiped. None of these presses ran in a test before.
+and, optionally, wiped. None of these presses ran in a test before, nor did
+!json, /contacts or a member leaving (#175).
 """
 
 from __future__ import annotations
@@ -56,7 +57,9 @@ def _press(data: str, *, by: int = SUPER_ADMIN_ID) -> Update:
 async def spammer(db_session_maker: async_sessionmaker[AsyncSession]) -> None:
     async with db_session_maker() as session:
         session.add(DbUser(id=SPAMMER_ID, first_name="Spammer"))
-        session.add(DbMessage(chat_id=APPROVED_CHAT_ID, user_id=SPAMMER_ID, message_id=30, message="buy now", message_info={}))
+        session.add(
+            DbMessage(chat_id=APPROVED_CHAT_ID, user_id=SPAMMER_ID, message_id=30, message="buy now", message_info={})
+        )
         await session.commit()
 
 
@@ -157,3 +160,83 @@ async def test_cancel_does_nothing_but_say_so(
 
     assert fake_tg.get_calls("banChatMember") == []
     assert "отменено" in _edited(fake_tg)
+
+
+async def test_the_list_turns_its_pages(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+) -> None:
+    from app.presentation.telegram.utils import BlacklistPagination
+
+    async with db_session_maker() as session:
+        for i in range(12):
+            session.add(DbUser(id=700000000 + i, first_name=f"Spammer{i}", blocked=True))
+        await session.commit()
+
+    await production_dispatcher.feed_update(bot, _press(BlacklistPagination(page=1).pack()))
+
+    assert "12 человек" in _edited(fake_tg)
+    assert "Показаны 11–12 из 12" in _edited(fake_tg)
+
+
+def _command(text: str, *, by: int = SUPER_ADMIN_ID, chat: Chat = GROUP) -> Update:
+    from aiogram.types import MessageEntity
+
+    name = text.split()[0]
+    return Update(
+        update_id=2,
+        message=Message(
+            message_id=600,
+            date=datetime.now(UTC),
+            chat=chat,
+            from_user=User(id=by, is_bot=False, first_name="Sender"),
+            text=text,
+            entities=[MessageEntity(type="bot_command", offset=0, length=len(name))],
+        ),
+    )
+
+
+async def test_json_shows_a_super_admin_the_message_and_tidies_up(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    await production_dispatcher.feed_update(bot, _command("!json"))
+
+    sent = [str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage")]
+    assert any(text.startswith("<pre>") and "message_id" in text for text in sent)
+    assert any(str(c.params.get("message_id")) == "600" for c in fake_tg.get_calls("deleteMessage"))
+
+
+async def test_json_is_not_for_moderators(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    await production_dispatcher.feed_update(bot, _command("!json", by=MODERATOR_ID))
+
+    assert not any(str(c.params.get("text")).startswith("<pre>") for c in fake_tg.get_calls("sendMessage"))
+
+
+async def test_contacts_answer_anyone(production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer) -> None:
+    await production_dispatcher.feed_update(bot, _command("/contacts", by=SPAMMER_ID))
+
+    assert any("Контакты" in str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage"))
+
+
+async def test_a_member_leaving_is_only_noted(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    from aiogram.types import ChatMemberLeft, ChatMemberMember, ChatMemberUpdated
+
+    person = User(id=SPAMMER_ID, is_bot=False, first_name="Leaver")
+    leave = Update(
+        update_id=3,
+        chat_member=ChatMemberUpdated(
+            chat=GROUP,
+            from_user=person,
+            date=datetime.now(UTC),
+            old_chat_member=ChatMemberMember(user=person),
+            new_chat_member=ChatMemberLeft(user=person),
+        ),
+    )
+
+    await production_dispatcher.feed_update(bot, leave)
+
+    assert fake_tg.get_calls("sendMessage") == []
+    assert fake_tg.get_calls("banChatMember") == []
