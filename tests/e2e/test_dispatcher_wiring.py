@@ -12,10 +12,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
-from aiogram import Bot
-from aiogram.client.default import DefaultBotProperties
-from aiogram.client.session.aiohttp import AiohttpSession
-from aiogram.client.telegram import TelegramAPIServer
 from aiogram.types import (
     Chat,
     ChatMemberLeft,
@@ -26,56 +22,30 @@ from aiogram.types import (
     Update,
     User,
 )
-from app.db.models import Chat as DbChat
 from app.db.models import User as DbUser
-from app.presentation.telegram.bot import build_dispatcher
-from app.presentation.telegram.handlers import router
 from app.presentation.telegram.middlewares.black_list import invalidate_blacklist_cache
 
+from tests.e2e.conftest import APPROVED_CHAT_ID
+
 if TYPE_CHECKING:
-    from aiogram import Dispatcher
+    from aiogram import Bot, Dispatcher
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     from tests.fake_telegram import FakeTelegramServer
 
 pytestmark = pytest.mark.e2e
 
-CHAT_ID = -1001234567890
+CHAT_ID = APPROVED_CHAT_ID
 BLOCKED_ID = 555000555
 GROUP = Chat(id=CHAT_ID, type="supergroup", title="Approved")
 
 
 @pytest_asyncio.fixture()
-async def bot(fake_tg: FakeTelegramServer):
-    api = TelegramAPIServer(
-        base=f"{fake_tg.base_url}/bot{{token}}/{{method}}",
-        file=f"{fake_tg.base_url}/file/bot{{token}}/{{path}}",
-        is_local=True,
-    )
-    b = Bot(
-        token="123456:ABC-DEF1234567890",
-        default=DefaultBotProperties(parse_mode="HTML"),
-        session=AiohttpSession(api=api),
-    )
-    yield b
-    await b.session.close()
-
-
-@pytest_asyncio.fixture()
-async def dispatcher(bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]):
-    # The handler routers are module singletons, and another test re-parents
-    # them under a router of its own; put them back under ours.
-    router._parent_router = None
-    for sub in router.sub_routers:
-        sub._parent_router = router
-    invalidate_blacklist_cache()
+async def dispatcher(production_dispatcher: Dispatcher, db_session_maker: async_sessionmaker[AsyncSession]):
     async with db_session_maker() as session:
-        session.add(DbChat(id=CHAT_ID, title="Approved", resource_status=DbChat.STATUS_APPROVED))
         session.add(DbUser(id=BLOCKED_ID, first_name="Spammer", blocked=True))
         await session.commit()
-    yield build_dispatcher(bot, db_session_maker)
-    router._parent_router = None
-    invalidate_blacklist_cache()
+    return production_dispatcher
 
 
 def _bans(fake_tg: FakeTelegramServer) -> list[int]:

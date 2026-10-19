@@ -23,6 +23,7 @@ from tests.telegram_helpers import (
     create_admin_user,
     create_normal_user,
     create_test_chat,
+    no_moderators,
 )
 
 pytestmark = pytest.mark.handlers
@@ -60,7 +61,7 @@ class TestKick:
         """Ban then immediately lift it: gone, but free to come back."""
         cmd, _replied, chat, target = _pair(telegram_factory, "kick")
 
-        await kick_user(cmd, mock_bot.mock, audit_db)
+        await kick_user(cmd, mock_bot.mock, audit_db, no_moderators())
 
         mock_bot.mock.ban_chat_member.assert_awaited_once_with(chat.id, target.id)
         mock_bot.mock.unban_chat_member.assert_awaited_once_with(chat.id, target.id, only_if_banned=True)
@@ -68,7 +69,7 @@ class TestKick:
     async def test_kick_is_recorded_against_the_admin_who_asked(self, telegram_factory, mock_bot, audit_db) -> None:
         cmd, _replied, chat, target = _pair(telegram_factory, "kick")
 
-        await kick_user(cmd, mock_bot.mock, audit_db)
+        await kick_user(cmd, mock_bot.mock, audit_db, no_moderators())
 
         (event,) = audit_db.added
         assert (event.action, event.source) == ("kick", "command")
@@ -78,7 +79,7 @@ class TestKick:
     async def test_kick_without_a_reply_explains_itself(self, telegram_factory, mock_bot, audit_db) -> None:
         cmd, *_ = _pair(telegram_factory, "kick", reply=False)
 
-        await kick_user(cmd, mock_bot.mock, audit_db)
+        await kick_user(cmd, mock_bot.mock, audit_db, no_moderators())
 
         cmd.answer.assert_awaited_once()
         mock_bot.mock.ban_chat_member.assert_not_awaited()

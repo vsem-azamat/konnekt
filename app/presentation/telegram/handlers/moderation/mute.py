@@ -6,11 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
+from app.db.repositories import AdminRepository
 from app.moderation.mute_permissions import MUTED, UNMUTED
 from app.presentation.telegram.handlers.moderation._common import (
-    is_user_check_error,
+    author_of,
+    not_a_person_error,
     record_reply_target,
+    replied_message,
     reply_required_error,
+    untouchable,
 )
 from app.presentation.telegram.utils import other
 
@@ -19,14 +23,20 @@ router = Router()
 
 
 @router.message(Command("mute", prefix="!/"))
-async def mute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
-    if not message.reply_to_message:
+async def mute_user(message: types.Message, bot: Bot, db: AsyncSession, admin_repo: AdminRepository) -> None:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("замутить"))
         await message.delete()
         return
 
-    if not message.reply_to_message.from_user:
-        await message.answer(is_user_check_error())
+    target = author_of(reply)
+    if target is None:
+        await message.answer(not_a_person_error())
+        return
+    actor = message.from_user.id if message.from_user else None
+    if reason := await untouchable(bot, admin_repo, chat_id=message.chat.id, actor_id=actor, target_id=target.id):
+        await message.answer(reason)
         return
 
     mute_guide = (
@@ -52,7 +62,7 @@ async def mute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     try:
         await bot.restrict_chat_member(
             message.chat.id,
-            message.reply_to_message.from_user.id,
+            target.id,
             permissions=MUTED,
             use_independent_chat_permissions=True,
             until_date=mute_duration.until_date,
@@ -63,49 +73,51 @@ async def mute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
             ModerationEventAction.MUTE,
             detail=f"{mute_duration.time} {mute_duration.unit}",
         )
-        mention = other.get_user_mention(message.reply_to_message.from_user)
+        mention = other.get_user_mention(target)
         text_mute = (
             f"{mention} в муте на {mute_duration.time} {mute_duration.unit}!\n\n"
             f"Дата размута: {mute_duration.formatted_until_date()}"
         )
-        await message.reply_to_message.reply(text_mute)
+        await reply.reply(text_mute)
         await message.delete()
     except Exception as err:
         await message.answer("Произошла ошибка. Попробуйте позже.")
         logger.error(
             "mute_failed",
             error=str(err),
-            user_id=message.reply_to_message.from_user.id,
+            user_id=target.id,
             chat_id=message.chat.id,
         )
 
 
 @router.message(Command("unmute", prefix="!/"))
 async def unmute_user(message: types.Message, bot: Bot, db: AsyncSession) -> None:
-    if not message.reply_to_message:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(reply_required_error("размутить"))
         await message.delete()
         return
 
-    if not message.reply_to_message.from_user:
-        await message.answer(is_user_check_error())
+    target = author_of(reply)
+    if target is None:
+        await message.answer(not_a_person_error())
         return
 
     try:
         await bot.restrict_chat_member(
             chat_id=message.chat.id,
-            user_id=message.reply_to_message.from_user.id,
+            user_id=target.id,
             permissions=UNMUTED,
             use_independent_chat_permissions=True,
         )
         await record_reply_target(message, db, ModerationEventAction.UNMUTE)
-        mention = other.get_user_mention(message.reply_to_message.from_user)
+        mention = other.get_user_mention(target)
         await message.answer(f"Пользователь {mention} размучен!")
     except Exception as err:
         await message.answer("Произошла ошибка. Попробуйте позже.")
         logger.error(
             "unmute_failed",
             error=str(err),
-            user_id=message.reply_to_message.from_user.id,
+            user_id=target.id,
             chat_id=message.chat.id,
         )

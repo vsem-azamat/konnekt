@@ -4,7 +4,7 @@ from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import ProtectedUserError
+from app.core.exceptions import NotAPersonError, ProtectedUserError
 from app.core.logging import get_logger
 from app.db.repositories import (
     ChatRepository,
@@ -13,6 +13,16 @@ from app.db.repositories import (
 )
 
 logger = get_logger("moderation")
+
+
+# Telegram's stand-ins on messages no person signed: posts sent as a channel,
+# anonymous admins, and posts forwarded from a linked channel. Each is shared by
+# every such message, so acting on one acts on all of them, everywhere.
+STAND_IN_SENDERS = frozenset({136817688, 1087968824, 777000})
+
+
+def is_stand_in(user_id: int) -> bool:
+    return user_id in STAND_IN_SENDERS
 
 
 def is_protected(user_id: int) -> bool:
@@ -41,6 +51,8 @@ async def add_to_blacklist(
 ) -> None:
     if is_protected(id_tg):
         raise ProtectedUserError(id_tg)
+    if is_stand_in(id_tg):
+        raise NotAPersonError(id_tg)
     user_repo = UserRepository(db)
     message_repo = MessageRepository(db)
     await user_repo.add_to_blacklist(id_tg)

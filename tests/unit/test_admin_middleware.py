@@ -37,6 +37,7 @@ def _message(user_id: int, chat_id: int | None = HOME) -> MagicMock:
     msg.answer = AsyncMock(return_value=MagicMock(spec=types.Message))
     msg.answer.return_value.delete = AsyncMock()
     msg.delete = AsyncMock()
+    msg.sender_chat = None
     return msg
 
 

@@ -136,6 +136,31 @@ class TestBoundedWrites:
         assert result["status"] == "unbanned"
         bot.unban_chat_member.assert_awaited_once()
 
+    async def test_unban_never_removes_someone_still_in_the_chat(self, wired, bot) -> None:
+        """Without only_if_banned, Telegram's unban kicks a current member."""
+        await _seed_chat(wired)
+
+        await _call("unban_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        assert bot.unban_chat_member.await_args.kwargs["only_if_banned"] is True
+
+
+class TestStandIns:
+    async def test_the_channel_stand_in_cannot_be_proposed_for_the_blacklist(self, wired, bot) -> None:
+        """It is every channel post at once; a report shows its id as if it were a person."""
+        result = await _call("propose_blacklist", {"user_id": 136817688})
+
+        assert result["error"] == "not_a_person"
+        bot.send_message.assert_not_awaited()
+
+    async def test_a_ban_of_a_super_admin_is_refused_at_once(self, wired, bot) -> None:
+        await _seed_chat(wired)
+
+        result = await _call("propose_ban", {"chat_id": CHAT_ID, "user_id": ADMIN_ID})
+
+        assert result["error"] == "protected_user"
+        bot.send_message.assert_not_awaited()
+
 
 class TestRemovalsWait:
     async def test_propose_ban_bans_nobody(self, wired, bot) -> None:

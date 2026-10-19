@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import ModerationEventAction, ModerationEventSource
-from app.core.exceptions import ProtectedUserError, UserNotFoundException
+from app.core.exceptions import NotAPersonError, ProtectedUserError, UserNotFoundException
 from app.db.models import User
 from app.moderation import audit
 from app.moderation.blacklist import add_to_blacklist, remove_from_blacklist
@@ -60,6 +60,10 @@ async def block_user(
         await add_to_blacklist(session, bot, user_id, revoke_messages=payload.revoke_messages or None)
     except ProtectedUserError as err:
         raise HTTPException(status_code=400, detail="A super admin cannot be banned") from err
+    except NotAPersonError as err:
+        raise HTTPException(
+            status_code=400, detail="This id stands for channel or anonymous posts, not a person"
+        ) from err
     await audit.record(
         session,
         action=ModerationEventAction.BLACKLIST,

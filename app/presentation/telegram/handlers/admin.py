@@ -11,6 +11,7 @@ from aiogram.filters import Command
 
 from app.core.logging import get_logger
 from app.db.repositories import AdminRepository
+from app.presentation.telegram.handlers.moderation._common import author_of, not_a_person_error, replied_message
 from app.presentation.telegram.utils import other
 
 logger = get_logger("handlers.admin")
@@ -21,11 +22,15 @@ _REPLY_REQUIRED = "Используйте эту команду в ответ н
 
 @admin_router.message(Command("admin", prefix="!/"))
 async def new_admin(message: types.Message, admin_repo: AdminRepository) -> None:
-    if not message.reply_to_message or not message.reply_to_message.from_user:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(_REPLY_REQUIRED)
         return
-
-    target_user = message.reply_to_message.from_user
+    target_user = author_of(reply)
+    if target_user is None:
+        # Granting the anonymous admins' stand-in would trust every one of them.
+        await message.answer(not_a_person_error())
+        return
     granted_by = message.from_user.id if message.from_user else None
     mention = other.get_user_mention(target_user)
 
@@ -42,11 +47,16 @@ async def new_admin(message: types.Message, admin_repo: AdminRepository) -> None
 
 @admin_router.message(Command("unadmin", prefix="!/"))
 async def delete_admin(message: types.Message, admin_repo: AdminRepository) -> None:
-    if not message.reply_to_message or not message.reply_to_message.from_user:
+    reply = replied_message(message)
+    if reply is None:
         await message.answer(_REPLY_REQUIRED)
         return
-
-    target_user = message.reply_to_message.from_user
+    # Revoking is always safe, the anonymous admins' stand-in included: older
+    # grants to it trusted every anonymous admin of the chat.
+    target_user = author_of(reply) or reply.from_user
+    if target_user is None:
+        await message.answer(not_a_person_error())
+        return
     mention = other.get_user_mention(target_user)
 
     if await admin_repo.revoke(target_user.id, message.chat.id):

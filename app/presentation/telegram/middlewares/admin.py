@@ -22,6 +22,7 @@ from aiogram.types import TelegramObject
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.moderation.blacklist import is_stand_in
 
 if TYPE_CHECKING:
     from app.db.repositories import AdminRepository
@@ -93,7 +94,9 @@ class AdminMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         actor = _actor(event)
-        if actor is None:
+        if actor is None or is_stand_in(actor.id) or (isinstance(event, types.Message) and event.sender_chat):
+            # Sent as a channel or anonymously: whoever it is, the bot cannot
+            # tell, and a grant to the stand-in would cover all of them.
             await you_are_not_admin(event)
             return None
 
