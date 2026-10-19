@@ -143,3 +143,16 @@ async def test_a_refused_ban_is_shown_to_the_admin(session: AsyncSession) -> Non
     assert "Не выполнено" in callback.answer.await_args.args[0]
     await session.refresh(pending)
     assert pending.status == PendingActionStatus.FAILED
+
+
+async def test_the_reason_stays_text_after_the_press(session: AsyncSession) -> None:
+    """Re-sent from message.text, an escaped reason became live HTML, or broke the edit."""
+    pending = await _seed(session)
+    callback = _callback()
+    callback.message.text = "Причина: spam <3 <a href='https://evil'>x</a>"
+    callback.message.html_text = "Причина: spam &lt;3 &lt;a href='https://evil'&gt;x&lt;/a&gt;"
+
+    await handle_pending_action(callback, PendingActionDecision(pending_id=pending.id, confirm=0), AsyncMock(), session)
+
+    sent = callback.message.edit_text.await_args.args[0]
+    assert sent.startswith("Причина: spam &lt;3 &lt;a href=")
