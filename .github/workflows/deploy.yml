@@ -3,6 +3,22 @@ name: Deploy
 on:
   push:
     branches: [main]
+  # Deploy a release that was already built, to go back without waiting for a
+  # revert to pass the pipeline. Its images exist because main built them.
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit on main whose images to deploy
+        required: true
+        type: string
+      migrate:
+        # Off to go back past a migration: the older alembic does not know the
+        # newer revision. Migrations are expand-only for a release, so the
+        # older code reads the newer schema (docs/invariants.md).
+        description: Run the app's and the catalog's migrations
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
   group: deploy-main
@@ -12,10 +28,12 @@ concurrency:
 
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     uses: ./.github/workflows/test.yml
 
   build-and-push:
     needs: test
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,10 +89,15 @@ jobs:
 
   deploy:
     needs: build-and-push
+    # A dispatch skips the build, and a skipped need would skip this too.
+    if: ${{ !cancelled() && (needs.build-and-push.result == 'success' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
 
     steps:
+      # The compose file of the release being deployed, not of main's head.
       - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ inputs.sha || github.sha }}
 
       # Fails before anything reaches the VPS. The settings below have no
       # defaults, so a deploy missing one starts containers that crash on
@@ -128,7 +151,8 @@ jobs:
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.2.5
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ inputs.sha || github.sha }}
+          MIGRATE: ${{ github.event_name != 'workflow_dispatch' || inputs.migrate }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ vars.DB_PORT }}
           DB_USER: ${{ secrets.DB_USER }}
@@ -152,7 +176,7 @@ jobs:
           # Pull, migrate, embed and wait: more than the default ten minutes
           # on a slow day, and a session cut off midway leaves no catalog.
           command_timeout: 30m
-          envs: IMAGE_TAG,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
+          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
           script: |
             set -e
             cd ~/deploy/supervisor-telegram
@@ -202,7 +226,14 @@ jobs:
             # The catalog migrates, then derives its embeddings, before its new
             # API serves: a failed migration stops the deploy here.
             docker compose up -d --wait catalog-postgres
-            docker compose run --rm -T catalog-migrate < /dev/null
+            if [ "$MIGRATE" = "true" ]; then
+              docker compose run --rm -T catalog-migrate < /dev/null
+              # The app's own, before bot or webapi is recreated: a failed
+              # migration stops here with the old release still serving.
+              docker compose run --rm -T migrate < /dev/null
+            else
+              echo "Migrations skipped by request."
+            fi
             docker compose run --rm -T catalog-embed < /dev/null
 
             docker compose up -d --remove-orphans --wait --wait-timeout 180

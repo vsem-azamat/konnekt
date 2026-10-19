@@ -72,6 +72,18 @@ jobs:
     - name: Type check (ty)
       run: uv run ty check app tests
 
+    # The tests build their schema with create_all, so only this proves the
+    # migration history: production applies it on every deploy. A database of
+    # its own, so the tests' schema and this one never meet.
+    - name: Migrations apply, and agree with the models
+      env:
+        DB_NAME: migrations_check
+        PGPASSWORD: ${{ env.DB_PASSWORD }}
+      run: |
+        psql -h localhost -U postgres -d postgres -c 'create database migrations_check'
+        uv run alembic upgrade head
+        uv run alembic check
+
     # Single pytest invocation covering all suites with coverage. Pytest
     # auto-discovers from testpaths=["tests"] (unit + integration + e2e +
     # handlers + middleware + performance). Previously each suite ran

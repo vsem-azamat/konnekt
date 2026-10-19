@@ -62,8 +62,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 USER appuser
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD pgrep -f "python -m app.presentation.telegram|uvicorn app.webapi.main:app" > /dev/null || exit 1
+# Health is checked per service in docker-compose.yaml: the bot by its polling
+# heartbeat, webapi over HTTP. The process match that stood here matched its
+# own shell, so both were always healthy.
 
 ENTRYPOINT ["scripts/entrypoint.sh"]
 CMD ["bot"]

@@ -29,7 +29,7 @@ DEPLOY = ROOT / ".github" / "workflows" / "deploy.yml"
 
 # Set by the workflow itself rather than passed to the app, so they appear in
 # the deploy step but have no place in a service's environment.
-_DEPLOY_ONLY = {"IMAGE_TAG"}
+_DEPLOY_ONLY = {"IMAGE_TAG", "MIGRATE"}
 
 
 def _compose_passthrough() -> set[str]:
@@ -192,7 +192,7 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
     for name, expression in step["env"].items():
         if name in sensitive:
             assert "secrets." in expression, f"{name} must come from secrets"
-        elif name != "IMAGE_TAG":
+        elif name not in _DEPLOY_ONLY:
             assert "vars." in expression, f"{name} should come from variables, not {expression}"
 
 
@@ -427,3 +427,61 @@ def test_both_backups_share_the_healthcheck() -> None:
     services = yaml.safe_load(COMPOSE.read_text())["services"]
 
     assert services["db-backup"]["healthcheck"] == services["catalog-backup"]["healthcheck"]
+
+
+def test_app_migrations_run_before_anything_new_serves() -> None:
+    """Migrating inside the bot let the new webapi serve against the old schema.
+
+    A one-shot job, like the catalog's, finishes before either service is
+    recreated, and a failed migration stops the deploy with the old release up.
+    """
+    compose = yaml.safe_load(COMPOSE.read_text())
+    migrate = compose["services"]["migrate"]
+    assert migrate["command"] == ["migrate"]
+    assert migrate["profiles"] == ["tools"]
+    assert set(migrate["environment"]) >= {"DB_HOST", "DB_USER", "DB_NAME", "DB_PASSWORD"}
+
+    script = _deploy_step()["with"]["script"]
+    assert script.index("docker compose run --rm -T migrate") < script.index("docker compose up -d --remove-orphans")
+
+    entrypoint = (ROOT / "scripts" / "entrypoint.sh").read_text()
+    bot_case = re.search(r"^  bot\)\n(.*?);;", entrypoint, re.M | re.S)
+    assert bot_case
+    assert "alembic" not in bot_case.group(1)
+    assert re.search(r"^  migrate\)\n\s*exec alembic upgrade head", entrypoint, re.M)
+
+
+def test_a_release_can_be_deployed_again_by_its_sha() -> None:
+    """Going back must not wait for a revert to pass the whole pipeline."""
+    workflow = yaml.safe_load(DEPLOY.read_text())
+    dispatch = workflow[True]["workflow_dispatch"]["inputs"]
+    assert dispatch["sha"]["required"] is True
+    # Rolling back past a migration: the older alembic does not know the newer
+    # revision, and expand-only migrations leave a schema the old code reads.
+    assert dispatch["migrate"]["type"] == "boolean"
+
+    step = _deploy_step()
+    assert "inputs.sha" in step["env"]["IMAGE_TAG"]
+    assert "MIGRATE" in step["with"]["envs"]
+    jobs = workflow["jobs"]
+    assert "workflow_dispatch" in jobs["test"]["if"] and "workflow_dispatch" in jobs["build-and-push"]["if"]
+
+
+def test_ci_runs_the_app_migrations() -> None:
+    """Tests build the schema with create_all; only alembic proves the history."""
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["test"]["steps"]
+    runs = "\n".join(str(s.get("run", "")) for s in steps)
+
+    assert "alembic upgrade head" in runs
+    assert "alembic check" in runs
+
+
+def test_the_bot_and_webapi_report_their_own_health() -> None:
+    """`pgrep -f` matched its own shell, so both were always healthy."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+
+    bot_check = " ".join(services["bot"]["healthcheck"]["test"])
+    assert "heartbeat" in bot_check
+    webapi_check = " ".join(services["webapi"]["healthcheck"]["test"])
+    assert "/api/health" in webapi_check
+    assert "pgrep" not in (ROOT / "Dockerfile").read_text()
