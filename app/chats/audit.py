@@ -91,18 +91,19 @@ def _missing_rights(member: Any, *, is_forum: bool) -> tuple[str, ...]:
 
 async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
     """One chat as Telegram sees it. Never raises for a chat Telegram refuses."""
-    base = {
-        "chat_id": chat.id,
-        "title": chat.title,
-        "resource_status": chat.resource_status,
-        "parent_chat_id": chat.parent_chat_id,
-        "public_link": chat.public_link,
-    }
+    state = ChatState(
+        chat_id=chat.id,
+        title=chat.title,
+        resource_status=chat.resource_status,
+        parent_chat_id=chat.parent_chat_id,
+        public_link=chat.public_link,
+        reachable=False,
+    )
     try:
         info = await ask(lambda: bot.get_chat(chat.id))
         member = await ask(lambda: bot.get_chat_member(chat.id, bot.id))
     except TelegramAPIError:
-        return ChatState(**base, reachable=False, findings=("bot cannot see the chat",))
+        return dataclasses.replace(state, findings=("bot cannot see the chat",))
 
     status = getattr(member, "status", None)
     is_forum = bool(info.is_forum)
@@ -119,8 +120,9 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
     if chat.public_link and info.username and not chat.public_link.rstrip("/").endswith(f"/{info.username}"):
         findings.append("catalogue link differs from the chat's username")
 
-    return ChatState(
-        **{**base, "title": info.title or chat.title},
+    return dataclasses.replace(
+        state,
+        title=info.title or chat.title,
         reachable=True,
         bot_status=status,
         missing_rights=missing,
