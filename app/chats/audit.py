@@ -24,6 +24,7 @@ import asyncio
 import contextlib
 import dataclasses
 import json
+import logging
 import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -216,7 +217,11 @@ async def _main(as_json: bool) -> None:
     from app.core.config import settings
     from app.db import session as db
 
-    # The report owns stdout; anything else printed on the way (logs, SQL echo) goes to stderr.
+    # The report owns stdout. Logging was pointed at stdout when the app was
+    # imported, so its handlers are moved; anything printed directly follows.
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream is sys.stdout:
+            handler.setStream(sys.stderr)
     with contextlib.redirect_stdout(sys.stderr):
         bot = Bot(token=settings.telegram.token)
         try:
