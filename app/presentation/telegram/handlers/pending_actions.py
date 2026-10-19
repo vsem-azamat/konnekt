@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.exceptions import ProtectedUserError
 from app.core.logging import get_logger
-from app.presentation.telegram.utils.callback_data import PendingActionDecision
+from app.moderation.pending_actions import PendingActionDecision
 
 logger = get_logger("handler.pending_actions")
 

@@ -15,8 +15,8 @@ import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, ChatMemberRestricted, User
 from app.chats.audit import ChatState, audit_chats, inspect_chat
+from app.chats.rights import DEFAULT_ADMIN_RIGHTS
 from app.db.models import Chat
-from app.presentation.telegram.profile import DEFAULT_ADMIN_RIGHTS
 
 pytestmark = pytest.mark.asyncio
 

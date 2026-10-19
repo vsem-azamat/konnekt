@@ -14,8 +14,8 @@ from app.core.config import settings
 from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
 from app.db.models import PendingAction
+from app.moderation.pending_actions import PendingActionDecision
 from app.presentation.telegram.handlers.pending_actions import handle_pending_action
-from app.presentation.telegram.utils.callback_data import PendingActionDecision
 from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.unit
