@@ -5,7 +5,7 @@ See services/admin.py.
 
 from fastapi import APIRouter, status
 
-from students_cz.api.deps import AdminDep, LangDep, SessionDep
+from students_cz.api.deps import AdminDep, IdPath, LangDep, SessionDep
 from students_cz.schemas import (
     AdminCatalog,
     AdminPlacement,
@@ -40,7 +40,7 @@ async def create_placement(
 
 @router.patch("/placements/{placement_id}", response_model=AdminPlacement)
 async def switch_placement(
-    placement_id: int,
+    placement_id: IdPath,
     change: AdminPlacementSwitch,
     _: AdminDep,
     session: SessionDep,

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from students_cz.api.deps import LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdQuery, LangDep, SessionDep, UserDep
 from students_cz.db.models import (
     HelperProfile,
     Institution,
@@ -110,7 +110,7 @@ async def subjects(
     session: SessionDep,
     lang: LangDep,
     user: UserDep,
-    parent_id: int | None = None,
+    parent_id: IdQuery = None,
     q: str | None = Query(default=None, max_length=200),
     limit: int = Query(default=100, ge=1, le=300),
 ) -> list[SubjectOut]:

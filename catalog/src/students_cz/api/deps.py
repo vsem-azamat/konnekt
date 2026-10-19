@@ -1,6 +1,7 @@
+import logging
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Path, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.core.config import Settings, get_settings
@@ -12,8 +13,17 @@ from students_cz.services.notify import Notifier
 from students_cz.services.people import remember
 from students_cz.services.telegram import BotHandle
 
+log = logging.getLogger("students_cz.auth")
+
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 SessionDep = Annotated[AsyncSession, Depends(session_scope, scope="function")]
+
+# A database id as a request may carry one: positive and inside bigint. Past
+# that range a value reached asyncpg and came back as a 500, which any session
+# could provoke at will.
+_BIGINT_MAX = 2**63 - 1
+IdPath = Annotated[int, Path(ge=1, le=_BIGINT_MAX)]
+IdQuery = Annotated[int | None, Query(ge=1, le=_BIGINT_MAX)]
 
 
 def _extract_init_data(authorization: str | None) -> str:
@@ -39,7 +49,10 @@ async def current_identity(
     try:
         return parse_init_data(_extract_init_data(authorization), settings)
     except InitDataError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(exc)) from exc
+        # The reason goes to the log: told to the caller, it says which check
+        # a forged or replayed payload has to beat next.
+        log.info("init_data_rejected: %s", exc)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "init data rejected") from exc
 
 
 IdentityDep = Annotated[TelegramIdentity, Depends(current_identity)]

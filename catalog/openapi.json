@@ -203,7 +203,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
                 },
                 {
                   "type": "null"
@@ -468,7 +470,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
                 },
                 {
                   "type": "null"
@@ -484,7 +488,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
                 },
                 {
                   "type": "null"
@@ -500,7 +506,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
                 },
                 {
                   "type": "null"
@@ -516,7 +524,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "number"
+                  "type": "number",
+                  "maximum": 1000000,
+                  "minimum": 0
                 },
                 {
                   "type": "null"
@@ -532,8 +542,11 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 8
               },
+              "maxItems": 20,
+              "default": [],
               "title": "Langs"
             }
           },
@@ -679,6 +692,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "User Id"
             }
           },
@@ -738,6 +753,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "User Id"
             }
           },
@@ -1083,6 +1100,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Request Id"
             }
           },
@@ -1152,6 +1171,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Request Id"
             }
           },
@@ -1215,6 +1236,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Response Id"
             }
           },
@@ -1274,6 +1297,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Response Id"
             }
           },
@@ -1333,6 +1358,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Request Id"
             }
           },
@@ -1417,7 +1444,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
                 },
                 {
                   "type": "null"
@@ -1496,6 +1525,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Placement Id"
             }
           },
@@ -1708,6 +1739,8 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Placement Id"
             }
           },

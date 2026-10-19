@@ -6,11 +6,16 @@ question — the rule for that, and the two rows it records, live in
 nothing.
 """
 
-from fastapi import APIRouter, Query
+import time
+from collections import deque
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from students_cz.api.deps import LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdQuery, LangDep, SessionDep, UserDep
 from students_cz.db.models import (
     Institution,
     ServiceType,
@@ -28,8 +33,44 @@ from students_cz.services.naming import short_form, translated
 
 router = APIRouter()
 
+# A person searches a few times a minute at most. One worker serves the API, so
+# a window kept in memory is the whole picture; a restart forgets it, which
+# costs a flooder one minute.
+SEARCHES_PER_MINUTE = 30
+_recent: dict[int, deque[float]] = {}
 
-@router.post("/search/parse", response_model=ParseOut, tags=["search"])
+
+def forget_pace() -> None:
+    _recent.clear()
+
+
+async def _paced(user: UserDep) -> None:
+    """Turn away a caller past SEARCHES_PER_MINUTE; any Telegram user can call."""
+    now = time.monotonic()
+    if len(_recent) > 10_000:
+        for user_id in [
+            u for u, times in _recent.items() if not times or now - times[-1] >= 60
+        ]:
+            del _recent[user_id]
+    times = _recent.setdefault(user.id, deque())
+    while times and now - times[0] >= 60:
+        times.popleft()
+    if len(times) >= SEARCHES_PER_MINUTE:
+        wait = int(60 - (now - times[0])) + 1
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "slow down",
+            headers={"Retry-After": str(wait)},
+        )
+    times.append(now)
+
+
+@router.post(
+    "/search/parse",
+    response_model=ParseOut,
+    tags=["search"],
+    dependencies=[Depends(_paced)],
+)
 async def parse_query(
     payload: ParseRequest, session: SessionDep, lang: LangDep, user: UserDep
 ) -> ParseOut:
@@ -45,16 +86,23 @@ async def parse_query(
     return await search.describe(session, lang, viewer=user, text=payload.text)
 
 
-@router.get("/search", response_model=SearchOut, tags=["search"])
+@router.get(
+    "/search", response_model=SearchOut, tags=["search"], dependencies=[Depends(_paced)]
+)
 async def search_offers(
     session: SessionDep,
     lang: LangDep,
     user: UserDep,
-    subject_id: int | None = None,
-    institution_id: int | None = None,
-    service_type_id: int | None = None,
-    max_price: float | None = None,
-    langs: list[str] = Query(default_factory=list),
+    subject_id: IdQuery = None,
+    institution_id: IdQuery = None,
+    service_type_id: IdQuery = None,
+    # Finite and in range: `inf` and `nan` reached int() in the filter chips.
+    max_price: Annotated[
+        float | None, Query(ge=0, le=1_000_000, allow_inf_nan=False)
+    ] = None,
+    langs: Annotated[
+        list[Annotated[str, StringConstraints(max_length=8)]], Query(max_length=20)
+    ] = [],  # noqa: B006
     # The literal rather than a string with a pattern: it is the same
     # constraint, it reaches OpenAPI as an enum, and it is the type the
     # catalog's own signature already asks for.
