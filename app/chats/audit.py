@@ -12,22 +12,27 @@ can be repeated whenever drift is suspected:
 The expected rights are the ones the bot asks for when it is added
 (`DEFAULT_ADMIN_RIGHTS`). Titles, descriptions and pins are reported, not
 judged: the template for them is the owner's to agree.
+
+For a private group the link shown is the bot's own invite link, which lets
+anyone in: keep the output out of public issues.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import dataclasses
 import json
 import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import TelegramAPIError, TelegramNetworkError, TelegramRetryAfter
 from sqlalchemy import select
 
 from app.chats.metadata import ask
+from app.chats.snapshots import PAUSE_BETWEEN_CHATS_SECONDS
 from app.db.models import Chat
 from app.presentation.telegram.profile import DEFAULT_ADMIN_RIGHTS
 
@@ -52,7 +57,10 @@ _SETTINGS = (
     "has_aggressive_anti_spam_enabled",
     "message_auto_delete_time",
     "linked_chat_id",
+    "permissions",
 )
+# Telegram omits this right when it equals can_pin_messages.
+_DEFAULTS_TO = {"can_manage_tags": "can_pin_messages"}
 
 
 @dataclass(frozen=True)
@@ -82,11 +90,32 @@ def _preview(message: Any) -> str | None:
 def _missing_rights(member: Any, *, is_forum: bool) -> tuple[str, ...]:
     if getattr(member, "status", None) == "creator":
         return ()
-    return tuple(
-        name
-        for name in _EXPECTED_RIGHTS
-        if not getattr(member, name, False) and (is_forum or name not in _FORUM_ONLY_RIGHTS)
-    )
+
+    def held(name: str) -> bool:
+        value = getattr(member, name, None)
+        if value is None and name in _DEFAULTS_TO:
+            value = getattr(member, _DEFAULTS_TO[name], None)
+        return bool(value)
+
+    return tuple(name for name in _EXPECTED_RIGHTS if not held(name) and (is_forum or name not in _FORUM_ONLY_RIGHTS))
+
+
+def _not_checked(err: TelegramAPIError, *, refused: str) -> str:
+    if isinstance(err, TelegramRetryAfter):
+        return "not checked: flood control"
+    if isinstance(err, TelegramNetworkError):
+        return "not checked: network"
+    return f"{refused}: {err.message}"
+
+
+def _setting(info: Any, name: str) -> Any:
+    value = getattr(info, name, None)
+    return value.model_dump(exclude_none=True) if hasattr(value, "model_dump") else value
+
+
+def _is_username_link(link: str) -> bool:
+    tail = link.rstrip("/").rsplit("/", 1)[-1]
+    return not tail.startswith("+") and "joinchat" not in link
 
 
 async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
@@ -101,9 +130,14 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
     )
     try:
         info = await ask(lambda: bot.get_chat(chat.id))
+    except TelegramAPIError as err:
+        return dataclasses.replace(state, findings=(_not_checked(err, refused="bot cannot see the chat"),))
+    try:
         member = await ask(lambda: bot.get_chat_member(chat.id, bot.id))
-    except TelegramAPIError:
-        return dataclasses.replace(state, findings=("bot cannot see the chat",))
+    except TelegramAPIError as err:
+        member, member_error = None, _not_checked(err, refused="bot's membership unknown")
+    else:
+        member_error = None
 
     status = getattr(member, "status", None)
     is_forum = bool(info.is_forum)
@@ -111,14 +145,19 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
     link = f"https://t.me/{info.username}" if info.username else info.invite_link
 
     findings: list[str] = []
-    if status not in {"administrator", "creator"}:
+    if member_error:
+        findings.append(member_error)
+    elif status not in {"administrator", "creator"}:
         findings.append("bot is not an administrator")
     if missing:
         findings.append("missing rights: " + ", ".join(missing))
     if link is None:
         findings.append("no link")
-    if chat.public_link and info.username and not chat.public_link.rstrip("/").endswith(f"/{info.username}"):
-        findings.append("catalogue link differs from the chat's username")
+    if chat.public_link and _is_username_link(chat.public_link):
+        if not info.username:
+            findings.append("catalogue links a username the chat no longer has")
+        elif not chat.public_link.rstrip("/").casefold().endswith(f"/{info.username.casefold()}"):
+            findings.append("catalogue link differs from the chat's username")
 
     return dataclasses.replace(
         state,
@@ -129,7 +168,7 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
         link=link,
         description=info.description,
         pinned=_preview(info.pinned_message),
-        settings={name: getattr(info, name, None) for name in _SETTINGS},
+        settings={name: _setting(info, name) for name in _SETTINGS},
         findings=tuple(findings),
     )
 
@@ -138,7 +177,7 @@ async def audit_chats(
     *,
     session_maker: async_sessionmaker[AsyncSession],
     bot: Bot,
-    pause_seconds: float = 1.0,
+    pause_seconds: float = PAUSE_BETWEEN_CHATS_SECONDS,
 ) -> list[ChatState]:
     """Every chat in the table, one after another, paced like the snapshot loop."""
     async with session_maker() as session:
@@ -177,14 +216,14 @@ async def _main(as_json: bool) -> None:
     from app.core.config import settings
     from app.db import session as db
 
-    bot = Bot(token=settings.telegram.token)
-    try:
-        states = await audit_chats(session_maker=db.get_session_maker(), bot=bot)
-    finally:
-        await bot.session.close()
-        # Disposed directly: close_db() logs to stdout, which is where the report goes.
-        if db.engine is not None:
-            await db.engine.dispose()
+    # The report owns stdout; anything else printed on the way (logs, SQL echo) goes to stderr.
+    with contextlib.redirect_stdout(sys.stderr):
+        bot = Bot(token=settings.telegram.token)
+        try:
+            states = await audit_chats(session_maker=db.get_session_maker(), bot=bot)
+        finally:
+            await bot.session.close()
+            await db.close_db()
 
     if as_json:
         json.dump([dataclasses.asdict(s) for s in states], sys.stdout, ensure_ascii=False, indent=2, default=str)

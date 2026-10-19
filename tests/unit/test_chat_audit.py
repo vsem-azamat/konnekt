@@ -12,7 +12,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, ChatMemberRestricted, User
 from app.chats.audit import audit_chats, inspect_chat
 from app.db.models import Chat
 from app.presentation.telegram.profile import DEFAULT_ADMIN_RIGHTS
@@ -52,7 +53,7 @@ def _chat_info(**overrides) -> SimpleNamespace:
     return SimpleNamespace(**info)
 
 
-def _bot(*, info: SimpleNamespace | None = None, member: SimpleNamespace | None = None) -> AsyncMock:
+def _bot(*, info: SimpleNamespace | None = None, member: object | None = None) -> AsyncMock:
     bot = AsyncMock()
     bot.id = BOT_ID
     bot.get_chat.return_value = info or _chat_info()
@@ -103,7 +104,7 @@ async def test_a_chat_the_bot_cannot_see_is_reported_not_raised() -> None:
     state = await inspect_chat(bot, _row())
 
     assert state.reachable is False
-    assert state.findings == ("bot cannot see the chat",)
+    assert state.findings == ("bot cannot see the chat: chat not found",)
 
 
 async def test_a_chat_without_any_link_is_reported() -> None:
@@ -154,3 +155,72 @@ async def test_audit_walks_every_chat_and_survives_a_refusal(session_maker) -> N
     states = await audit_chats(session_maker=session_maker, bot=bot, pause_seconds=0)
 
     assert {s.chat_id: s.reachable for s in states} == {CHAT_ID: True, CHAT_ID - 1: False}
+
+
+def _user() -> User:
+    return User(id=BOT_ID, is_bot=True, first_name="Konnekt")
+
+
+async def test_tags_omitted_by_telegram_follow_the_pin_right() -> None:
+    rights = {k: v for k, v in _full_rights().items() if k != "can_manage_tags"}
+    member = ChatMemberAdministrator.model_validate({"user": _user(), "can_be_edited": False, **rights})
+
+    assert (await inspect_chat(_bot(member=member), _row())).missing_rights == ()
+
+
+async def test_a_creator_lacks_nothing_even_in_a_forum() -> None:
+    bot = _bot(info=_chat_info(is_forum=True), member=ChatMemberOwner(user=_user(), is_anonymous=False))
+
+    state = await inspect_chat(bot, _row())
+
+    assert state.missing_rights == ()
+    assert state.findings == ()
+
+
+async def test_a_restricted_bot_is_not_an_administrator() -> None:
+    # Built without validation: only the status matters, and the type has a field per permission.
+    member = ChatMemberRestricted.model_construct(user=_user(), status="restricted")
+
+    state = await inspect_chat(_bot(member=member), _row())
+
+    assert state.findings == ("bot is not an administrator",)
+
+
+async def test_flood_control_is_not_reported_as_an_unreachable_chat() -> None:
+    bot = _bot()
+    bot.get_chat.side_effect = TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=0)
+
+    state = await inspect_chat(bot, _row())
+
+    assert state.findings == ("not checked: flood control",)
+
+
+async def test_a_failed_membership_lookup_keeps_the_chat_info() -> None:
+    bot = _bot()
+    bot.get_chat_member.side_effect = TelegramBadRequest(method=MagicMock(), message="member not found")
+
+    state = await inspect_chat(bot, _row())
+
+    assert state.reachable is True
+    assert state.description == "Чат студентов FIT"
+    assert state.findings == ("bot's membership unknown: member not found",)
+
+
+async def test_usernames_compare_without_case() -> None:
+    bot = _bot(info=_chat_info(username="cvut_fit"))
+
+    state = await inspect_chat(bot, _row(public_link="https://t.me/CVUT_FIT"))
+
+    assert state.findings == ()
+
+
+async def test_a_catalogue_username_the_chat_no_longer_has_is_reported() -> None:
+    state = await inspect_chat(_bot(), _row(public_link="https://t.me/old_name"))
+
+    assert state.findings == ("catalogue links a username the chat no longer has",)
+
+
+async def test_an_invite_link_in_the_catalogue_is_not_a_username() -> None:
+    state = await inspect_chat(_bot(), _row(public_link="https://t.me/+abc"))
+
+    assert state.findings == ()
