@@ -27,6 +27,7 @@ import { api } from '@/lib/api';
 import { groupRuns } from '@/lib/groups';
 import { afterHelperSaved } from '@/lib/helperSaved';
 import { type Axis, addAxis, type Draft, dropRow, keyOf } from '@/lib/offerRows';
+import { splitNote } from '@/lib/subjectNote';
 import { TURNAROUNDS, TurnaroundLabel } from '@/lib/turnaround';
 import type {
   Institution,
@@ -625,10 +626,21 @@ function AxisChips({
           removeLabel={removeLabel}
           onRemove={() => onDrop(row)}
         >
-          {label(row)}
+          <ChipText label={label(row) ?? ''} />
         </ChipView>
       ))}
     </Chips>
+  );
+}
+
+/** A long name wraps inside its chip; the note in brackets reads lighter. */
+function ChipText({ label }: { label: string }) {
+  const { name, note } = splitNote(label);
+  return (
+    <span className={ui.chipText}>
+      {name}
+      {note ? <span className={ui.chipNote}> ({note})</span> : null}
+    </span>
   );
 }
 
