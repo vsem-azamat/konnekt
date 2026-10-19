@@ -678,3 +678,35 @@ class TestGateOnButtons:
 
         assert fake_tg.get_calls("banChatMember") == []
         assert fake_tg.get_calls("deleteMessage") == []
+
+
+@pytest.mark.e2e
+class TestReportThrottle:
+    async def test_a_member_cannot_flood_the_super_admin_with_reports(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+    ) -> None:
+        """Each /report was a DM to the super admin, and the command was deleted, so nobody saw the flood."""
+        from app.presentation.telegram.handlers import groups
+
+        groups.forget_reports()
+        target = Message(
+            message_id=31,
+            date=datetime.now(UTC),
+            chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+            from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+            text="anything",
+        )
+        for update_id in range(70, 75):
+            report = Message(
+                message_id=update_id,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=REPORTER_ID, is_bot=False, first_name="Reporter"),
+                text="/report",
+                entities=[MessageEntity(type="bot_command", offset=0, length=7)],
+                reply_to_message=target,
+            )
+            await dispatcher.feed_update(bot, Update(update_id=update_id, message=report))
+
+        to_admin = [c for c in fake_tg.get_calls("sendMessage") if str(c.params.get("chat_id")) == str(SUPER_ADMIN_ID)]
+        assert len(to_admin) == 1

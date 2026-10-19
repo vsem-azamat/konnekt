@@ -13,7 +13,6 @@ Neither guard consults Telegram's own list of chat administrators. That crown
 gets handed out so a name appears in the member list.
 """
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +22,8 @@ from aiogram.types import TelegramObject
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.moderation.blacklist import is_stand_in
+from app.presentation.telegram.utils.other import sleep_and_delete
+from app.presentation.telegram.utils.throttle import Throttle
 
 if TYPE_CHECKING:
     from app.db.repositories import AdminRepository
@@ -33,17 +34,28 @@ NOT_ADMIN = "🚫 Эта команда доступна только модер
 NOT_SUPER_ADMIN = "🚫 Эта команда доступна только главным администраторам."
 
 
+# One answered refusal per person per chat per minute; the rest are only deleted.
+_refusals = Throttle(60)
+
+
+def forget_refusals() -> None:
+    _refusals.clear()
+
+
 async def you_are_not_admin(event: TelegramObject, text: str = NOT_ADMIN) -> None:
     """Say no, then clear both messages away.
 
     A refusal that stays on screen is a second piece of noise in a chat that
     already has enough, and it invites the next person to try the same command.
+    Its removal is scheduled, not awaited: sleeping here held the update's
+    database connection, and twenty refused commands held the whole pool.
     """
     if isinstance(event, types.Message):
-        answer = await event.answer(text)
         await event.delete()
-        await asyncio.sleep(5)
-        await answer.delete()
+        sender = event.from_user.id if event.from_user else None
+        if not _refusals.allow((sender, event.chat.id)):
+            return
+        sleep_and_delete(await event.answer(text), 5)
 
 
 def _actor(event: TelegramObject) -> types.User | None:

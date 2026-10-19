@@ -126,3 +126,13 @@ def sample_chat_data() -> dict[str, Any]:
         "title": "Test Chat",
         "is_forum": False,
     }
+
+
+@pytest.fixture(autouse=True)
+def _fresh_throttles() -> None:
+    """Refusal and report throttles are per process; a test must not inherit another's window."""
+    from app.presentation.telegram.handlers.groups import forget_reports
+    from app.presentation.telegram.middlewares.admin import forget_refusals
+
+    forget_reports()
+    forget_refusals()
