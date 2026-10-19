@@ -10,8 +10,13 @@ can be repeated whenever drift is suspected:
     docker compose exec bot python -m app.chats.audit --json   # everything
 
 The expected rights are the ones the bot asks for when it is added
-(`DEFAULT_ADMIN_RIGHTS`). Titles, descriptions and pins are reported, not
-judged: the template for them is the owner's to agree.
+(`DEFAULT_ADMIN_RIGHTS`); an approved chat's description is held to
+`app/chats/template.py`. Titles and pins are reported, not judged (#202).
+
+`--apply` writes the template's description wherever the bot may change the
+chat's info, and `--chat ID` (repeatable) narrows the run:
+
+    docker compose exec bot python -m app.chats.audit --apply --chat -1001370017010
 
 For a private group the link shown is the bot's own invite link, which lets
 anyone in: keep the output out of public issues.
@@ -34,6 +39,7 @@ from sqlalchemy import select
 
 from app.chats.metadata import ask
 from app.chats.snapshots import PAUSE_BETWEEN_CHATS_SECONDS
+from app.chats.template import expected_description, main_chats
 from app.db.models import Chat
 from app.presentation.telegram.profile import DEFAULT_ADMIN_RIGHTS
 
@@ -78,7 +84,9 @@ class ChatState:
     description: str | None = None
     pinned: str | None = None
     settings: dict[str, Any] = dataclasses.field(default_factory=dict)
+    expected_description: str | None = None
     findings: tuple[str, ...] = ()
+    applied: tuple[str, ...] = ()
 
 
 def _preview(message: Any) -> str | None:
@@ -119,8 +127,19 @@ def _is_username_link(link: str) -> bool:
     return not tail.startswith("+") and "joinchat" not in link
 
 
-async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
-    """One chat as Telegram sees it. Never raises for a chat Telegram refuses."""
+async def inspect_chat(
+    bot: Bot,
+    chat: Chat,
+    *,
+    bot_username: str | None = None,
+    parent: Chat | None = None,
+    is_main: bool = False,
+) -> ChatState:
+    """One chat as Telegram sees it. Never raises for a chat Telegram refuses.
+
+    With the bot's username, an approved chat's description is also compared
+    with the template.
+    """
     state = ChatState(
         chat_id=chat.id,
         title=chat.title,
@@ -160,6 +179,14 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
         elif not chat.public_link.rstrip("/").casefold().endswith(f"/{info.username.casefold()}"):
             findings.append("catalogue link differs from the chat's username")
 
+    expected = None
+    if bot_username and chat.is_approved:
+        expected = expected_description(
+            chat, current=info.description or "", bot=bot_username, parent=parent, is_main=is_main
+        )
+        if (info.description or "") != expected:
+            findings.append("description differs from the template")
+
     return dataclasses.replace(
         state,
         title=info.title or chat.title,
@@ -170,8 +197,23 @@ async def inspect_chat(bot: Bot, chat: Chat) -> ChatState:
         description=info.description,
         pinned=_preview(info.pinned_message),
         settings={name: _setting(info, name) for name in _SETTINGS},
+        expected_description=expected,
         findings=tuple(findings),
     )
+
+
+async def apply_template(bot: Bot, state: ChatState) -> list[str]:
+    """Bring one inspected chat to the template, as far as the bot may. Returns what was done."""
+    expected = state.expected_description
+    if expected is None or not state.reachable or state.description == expected:
+        return []
+    if state.bot_status not in {"administrator", "creator"} or "can_change_info" in state.missing_rights:
+        return ["description: no right to change it"]
+    try:
+        await ask(lambda: bot.set_chat_description(chat_id=state.chat_id, description=expected))
+    except TelegramAPIError as err:
+        return [f"description failed: {err.message}"]
+    return ["description set"]
 
 
 async def audit_chats(
@@ -179,21 +221,37 @@ async def audit_chats(
     session_maker: async_sessionmaker[AsyncSession],
     bot: Bot,
     pause_seconds: float = PAUSE_BETWEEN_CHATS_SECONDS,
+    apply: bool = False,
+    chat_ids: set[int] | None = None,
 ) -> list[ChatState]:
-    """Every chat in the table, one after another, paced like the snapshot loop."""
+    """Every chat in the table (or those asked for), one after another, paced like the snapshot loop."""
+    bot_username = (await bot.me()).username
     async with session_maker() as session:
         chats = (await session.execute(select(Chat).order_by(Chat.id))).scalars().all()
+    by_id = {chat.id: chat for chat in chats}
+    mains = main_chats(list(chats))
+    if chat_ids is not None:
+        chats = [chat for chat in chats if chat.id in chat_ids]
 
     states: list[ChatState] = []
     for index, chat in enumerate(chats):
         if index and pause_seconds:
             await asyncio.sleep(pause_seconds)
-        states.append(await inspect_chat(bot, chat))
+        state = await inspect_chat(
+            bot,
+            chat,
+            bot_username=bot_username,
+            parent=by_id.get(chat.parent_chat_id) if chat.parent_chat_id else None,
+            is_main=chat.id in mains,
+        )
+        if apply:
+            state = dataclasses.replace(state, applied=tuple(await apply_template(bot, state)))
+        states.append(state)
     return states
 
 
 def _table(states: list[ChatState]) -> str:
-    lines = ["chat_id\tstatus\tbot\tlink\tpinned\ttitle\tfindings"]
+    lines = ["chat_id\tstatus\tbot\tlink\tpinned\ttitle\tfindings\tapplied"]
     for s in states:
         lines.append(
             "\t".join(
@@ -205,13 +263,14 @@ def _table(states: list[ChatState]) -> str:
                     "yes" if s.pinned else "-",
                     s.title or "-",
                     "; ".join(s.findings) or "ok",
+                    "; ".join(s.applied) or "-",
                 ]
             )
         )
     return "\n".join(lines)
 
 
-async def _main(as_json: bool) -> None:
+async def _main(*, as_json: bool, apply: bool, chat_ids: set[int] | None) -> None:
     from aiogram import Bot
 
     from app.core.config import settings
@@ -225,7 +284,7 @@ async def _main(as_json: bool) -> None:
     with contextlib.redirect_stdout(sys.stderr):
         bot = Bot(token=settings.telegram.token)
         try:
-            states = await audit_chats(session_maker=db.get_session_maker(), bot=bot)
+            states = await audit_chats(session_maker=db.get_session_maker(), bot=bot, apply=apply, chat_ids=chat_ids)
         finally:
             await bot.session.close()
             await db.close_db()
@@ -239,4 +298,7 @@ async def _main(as_json: bool) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--json", action="store_true", help="every field, as JSON")
-    asyncio.run(_main(parser.parse_args().json))
+    parser.add_argument("--apply", action="store_true", help="write the template's description where the bot may")
+    parser.add_argument("--chat", type=int, action="append", help="only this chat id; repeatable")
+    args = parser.parse_args()
+    asyncio.run(_main(as_json=args.json, apply=args.apply, chat_ids=set(args.chat) if args.chat else None))

@@ -224,3 +224,104 @@ async def test_an_invite_link_in_the_catalogue_is_not_a_username() -> None:
     state = await inspect_chat(_bot(), _row(public_link="https://t.me/+abc"))
 
     assert state.findings == ()
+
+
+# --- The template (#155) --------------------------------------------------
+
+BOT_USERNAME = "konnekt_moder_bot"
+
+
+PARENT = Chat(id=CHAT_ID - 100, title="ČVUT | ЧВУТ", institution_code="cvut", public_link="https://t.me/cvut_chat")
+
+
+def _university_row(**overrides) -> Chat:
+    return _row(resource_status=Chat.STATUS_APPROVED, parent_chat_id=PARENT.id, **overrides)
+
+
+def _expected(chat: Chat, current: str = "Чат студентов FIT") -> str:
+    from app.chats.template import expected_description
+
+    return expected_description(chat, parent=PARENT, current=current, bot=BOT_USERNAME)
+
+
+async def test_a_description_off_the_template_is_reported() -> None:
+    chat = _university_row()
+
+    state = await inspect_chat(_bot(), chat, bot_username=BOT_USERNAME, parent=PARENT)
+
+    assert state.expected_description == _expected(chat)
+    assert state.findings == ("description differs from the template",)
+
+
+async def test_a_description_on_the_template_is_not_reported() -> None:
+    chat = _university_row()
+
+    state = await inspect_chat(
+        _bot(info=_chat_info(description=_expected(chat))), chat, bot_username=BOT_USERNAME, parent=PARENT
+    )
+
+    assert state.findings == ()
+
+
+async def test_only_approved_chats_are_held_to_the_template() -> None:
+    state = await inspect_chat(_bot(), _row(), bot_username=BOT_USERNAME)
+
+    assert state.expected_description is None
+    assert state.findings == ()
+
+
+async def test_apply_sets_the_description() -> None:
+    from app.chats.audit import apply_template
+
+    chat = _university_row()
+    bot = _bot()
+    state = await inspect_chat(bot, chat, bot_username=BOT_USERNAME, parent=PARENT)
+
+    done = await apply_template(bot, state)
+
+    bot.set_chat_description.assert_awaited_once_with(chat_id=chat.id, description=_expected(chat))
+    assert done == ["description set"]
+
+
+async def test_apply_leaves_a_description_already_on_the_template() -> None:
+    from app.chats.audit import apply_template
+
+    chat = _university_row()
+    bot = _bot(info=_chat_info(description=_expected(chat)))
+    state = await inspect_chat(bot, chat, bot_username=BOT_USERNAME, parent=PARENT)
+
+    assert await apply_template(bot, state) == []
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_without_the_right_leaves_the_description() -> None:
+    from app.chats.audit import apply_template
+
+    chat = _university_row()
+    bot = _bot(member=_admin(can_change_info=False))
+    state = await inspect_chat(bot, chat, bot_username=BOT_USERNAME, parent=PARENT)
+
+    assert await apply_template(bot, state) == ["description: no right to change it"]
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
+    async with session_maker() as session:
+        root = Chat(id=CHAT_ID - 100, title="VUT", resource_status=Chat.STATUS_APPROVED, institution_code="vut")
+        session.add_all(
+            [
+                root,
+                Chat(id=CHAT_ID, title="VUT FIT", resource_status=Chat.STATUS_APPROVED, parent_chat_id=root.id),
+                Chat(id=CHAT_ID - 1, title="VUT FA", resource_status=Chat.STATUS_APPROVED, parent_chat_id=root.id),
+            ]
+        )
+        await session.commit()
+
+    bot = _bot()
+    bot.me.return_value = SimpleNamespace(username=BOT_USERNAME)
+
+    states = await audit_chats(session_maker=session_maker, bot=bot, pause_seconds=0, apply=True, chat_ids={CHAT_ID})
+
+    assert [s.chat_id for s in states] == [CHAT_ID]
+    assert [c.kwargs["chat_id"] for c in bot.set_chat_description.await_args_list] == [CHAT_ID]
+    assert states[0].applied == ("description set",)
