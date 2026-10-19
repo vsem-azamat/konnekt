@@ -13,7 +13,7 @@ from app.presentation.telegram.utils.other import calculate_mute_duration
         ("/mute 10", 10, "m"),
         ("!mute 2h", 2, "h"),
         ("!mute 3 d", 3, "d"),
-        ("/mute@konnekt_moder_bot 1w", 1, "w"),
+        ("/mute@konnekt_cz_bot 1w", 1, "w"),
         ("!mute 2H", 2, "h"),
         ("!mute 366d", 366, "d"),
     ],

@@ -13,7 +13,7 @@ from app.db.models import Chat
 
 pytestmark = pytest.mark.unit
 
-BOT = "konnekt_moder_bot"
+BOT = "konnekt_cz_bot"
 VUT = Chat(id=-10, title="VUT | ВУТ в Брно", institution_code="vut", public_link="https://t.me/vut_chat")
 
 
@@ -35,7 +35,7 @@ def test_a_faculty_points_at_its_main_chat_and_the_bot() -> None:
     assert text == (
         "👨‍💻 Чат студентов и абитуриентов VUT FIT\n"
         "Главный чат VUT: @vut_chat\n"
-        "Все чаты и помощь с учёбой: @konnekt_moder_bot"
+        "Все чаты и помощь с учёбой: @konnekt_cz_bot"
     )
 
 
@@ -91,7 +91,16 @@ def test_text_without_a_retired_link_is_left_exactly_as_it_is() -> None:
 
 @pytest.mark.parametrize(
     "line",
-    ["Ещё: @konnekt_cz", "Канал: https://t.me/Konnekt_net", "@Czech_Media", "t.me/czechopen", "📩 @WORK_AZAMAT"],
+    [
+        "Ещё: @konnekt_cz",
+        "Канал: https://t.me/Konnekt_net",
+        "@Czech_Media",
+        "t.me/czechopen",
+        "📩 @WORK_AZAMAT",
+        # The bots Konnekt moved away from (#245).
+        "Бот: @konnekt_moder_bot",
+        "Каталог: https://t.me/Student_CZ_bot",
+    ],
 )
 def test_every_retired_link_goes_in_any_form(line: str) -> None:
     assert _other(f"Чат по физике\n{line}") == "Чат по физике"

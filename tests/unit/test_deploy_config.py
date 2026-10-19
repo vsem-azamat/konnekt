@@ -654,3 +654,20 @@ def test_ci_runs_the_databases_production_runs() -> None:
         assert workflow["jobs"][job]["services"]["postgres"]["image"] == production["image"], job
     ci_catalog = workflow["jobs"]["catalog"]["services"]["postgres"]["env"]
     assert ci_catalog["POSTGRES_INITDB_ARGS"] == production["environment"]["POSTGRES_INITDB_ARGS"]
+
+
+def test_only_the_bot_process_holds_the_retired_bots_tokens() -> None:
+    """Every process given them would poll them, and two pollers on one token fight.
+
+    The variable carries several tokens, comma-separated, so it also has to stay
+    out of the shared anchor that every service inherits.
+    """
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    holders = {
+        name
+        for name, service in services.items()
+        if "MODERATOR_BOT_RETIRED_TOKEN" in (service.get("environment") or {})
+    }
+
+    assert holders == {"bot"}
+    assert "MODERATOR_BOT_RETIRED_TOKEN" not in _compose_passthrough()
