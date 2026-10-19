@@ -4,13 +4,12 @@
  * Russian speakers write Czech names in Cyrillic and by ear: «чвут», «вше»,
  * «масарик», «страгов». Both sides are folded to one key, so «ČVUT», «cvut»
  * and «чвут» are the same word, and then every word of the query has to start
- * some word of the name, so «вут» finds VUT and not ČVUT. The lists searched here are a few dozen chats and a
- * hundred-odd schools, already on the client, so this is plain string work and
- * no index.
+ * some word of the name, so «вут» finds VUT and not ČVUT. The lists are small
+ * and already on the client, so this is plain string work and no index.
  *
  * The server's catalog does the same for free text in
- * catalog/src/students_cz/services/lookup.py, in SQL; the transliteration table
- * is the same one, and has to be, so a name is spelled the same in both.
+ * catalog/src/students_cz/services/lookup.py, in SQL. The transliteration
+ * table is copied from there, so that a name is spelled alike on both sides.
  */
 
 // Czech-flavoured rather than the usual Russian romanisation: ч is «c» as in
@@ -62,7 +61,7 @@ const CYRILLIC: Record<string, string> = {
  * Czech h is Russian г (Strahov, «Страгов») and Czech ch is Russian х, so all
  * three are «h»; Czech y and i are both Russian и («Masaryk», «Масарик»). That
  * makes some words collide that should not — «вше» is «все» too, and «uk»
- * starts «Украина» — which a search over a few dozen names can afford.
+ * starts «Украина» — which a search over a short list can afford.
  *
  * Accents come off Latin letters first: blanket mark-stripping turns «й» into
  * «и», and the catalog learnt that the hard way. What is left once «й» and «ё»
@@ -78,8 +77,7 @@ export function searchKey(text: string): string {
   return Array.from(composed, (char) => CYRILLIC[char] ?? char)
     .join('')
     .replace(/ch|g/g, 'h')
-    .replace(/y/g, 'i')
-    .replace(/w/g, 'v');
+    .replace(/y/g, 'i');
 }
 
 /** The words of a text, folded. Punctuation and «|» separate words. */

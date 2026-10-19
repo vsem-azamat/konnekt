@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { type PublicChat, search } from '../src/lib/chats.ts';
+import { cities, type PublicChat, search } from '../src/lib/chats.ts';
 import { find, matches } from '../src/lib/search.ts';
 
 function chat(
@@ -32,14 +32,27 @@ const DIRECTORY: PublicChat[] = [
   chat('ČVUT FEL', CVUT, 'cvut'),
   chat('ČVUT FIT', CVUT, 'cvut'),
   chat('Fyzika v ČR', null),
+  // A group with no university behind it: found by its group alone.
+  chat('Olympiáda', 'Fyzika v ČR'),
   chat('IT Чехия | Опыт, работа, новости', null),
   chat('Kolej Hvězda', null, 'cvut'),
   chat('Strahov', null, 'cvut'),
   chat('VŠE', null, 'vse'),
 ];
 
+// The universities' cities, as the catalog's taxonomy gives them.
+const CITIES = cities([
+  { code: 'uk', city: 'Praha' },
+  { code: 'cvut', city: 'Praha' },
+  { code: 'vse', city: 'Praha' },
+  { code: 'vscht', city: 'Praha' },
+  { code: 'muni', city: 'Brno' },
+  { code: 'vut', city: 'Brno' },
+  { code: 'zcu', city: null },
+]);
+
 function titles(query: string): string[] {
-  return search(DIRECTORY, query).map((c) => c.title);
+  return search(DIRECTORY, query, CITIES).map((c) => c.title);
 }
 
 const CVUT_CHATS = [CVUT, 'ČVUT FEL', 'ČVUT FIT', 'Kolej Hvězda', 'Strahov'];
@@ -81,7 +94,31 @@ test('the colloquial Russian names reach the chats', () => {
   assert.deepEqual(titles('страгов'), ['Strahov']);
   assert.deepEqual(titles('хвезда'), ['Kolej Hvězda']);
   assert.deepEqual(titles('матфиз'), ['Matfyz | Karlova univerzita']);
-  assert.deepEqual(titles('физика'), ['Fyzika v ČR']);
+  assert.deepEqual(titles('физика'), ['Fyzika v ČR', 'Olympiáda']);
+});
+
+test('they match as spelled, not by way of a typo', () => {
+  // y and i, h and г, h and х are one letter here; without that, these would
+  // only be found by the typo allowance, and «матфис» not at all.
+  assert.ok(matches(['Masarykova univerzita'], 'масарик', false));
+  assert.ok(matches(['Matfyz'], 'матфиз', false));
+  assert.ok(matches(['Fyzika v ČR'], 'физика', false));
+  assert.ok(matches(['Strahov'], 'страгов', false));
+  assert.ok(matches(['Kolej Hvězda'], 'хвезда', false));
+  assert.deepEqual(titles('матфис'), ['Matfyz | Karlova univerzita']);
+});
+
+test('a chat in a group without a university is found by the group', () => {
+  assert.deepEqual(titles('олимпиада физика'), ['Olympiáda']);
+});
+
+test('a city finds the chats of its universities', () => {
+  assert.deepEqual(titles('брно'), ['Masarykova univerzita', 'VUT']);
+  assert.deepEqual(titles('brno vut'), ['VUT']);
+  assert.ok(titles('прага').includes('Strahov'));
+  assert.ok(!titles('прага').includes('VUT'));
+  // Without the taxonomy there are no cities, and nothing breaks.
+  assert.deepEqual(search(DIRECTORY, 'брно'), []);
 });
 
 test('a one-letter typo in a longer word is forgiven', () => {
@@ -92,6 +129,7 @@ test('a one-letter typo in a longer word is forgiven', () => {
   assert.deepEqual(titles('masarek'), ['Masarykova univerzita']); // in a prefix
   assert.deepEqual(titles('хвезды'), ['Kolej Hvězda']);
   assert.deepEqual(titles('strx'), []); // four letters get no typo
+  assert.deepEqual(titles('strxxov'), []); // two typos are a different word
   assert.deepEqual(titles('hvezf'), ['Kolej Hvězda']); // five letters get one
 });
 
@@ -146,6 +184,10 @@ test('typos are a fallback: an exact match hides the near ones', () => {
     find(['Univerzita Hradec Králové'], (name) => [name], 'карлов'),
     ['Univerzita Hradec Králové'],
   );
+});
+
+test('w is not v: Czech has no w to mistype', () => {
+  assert.ok(!matches(['VŠE'], 'wse', false));
 });
 
 test('matches folds the fields it is given the same way', () => {

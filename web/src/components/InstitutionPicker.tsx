@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { Hint, Row, Rows, ui } from '@/components/Ui';
 import { institutionsQuery } from '@/lib/api';
-import { find } from '@/lib/search';
+import { pickable } from '@/lib/institutions';
 import type { Institution } from '@/lib/types';
 
 /**
@@ -21,7 +21,7 @@ import type { Institution } from '@/lib/types';
  * after it is free. Subjects go to the server because there are hundreds of
  * them and the match has to be fuzzy across four languages; a school is matched
  * on its own name, its abbreviation and its university's, in either script
- * («чвут», «масарик»), which lib/search.ts does on the client.
+ * («чвут», «масарик»), which lib/institutions.ts does on the client.
  *
  * `taken` is not politeness: `offers` is unique on its four axes, so a second
  * row for the same school is a 422 the screen can only report as "did not
@@ -42,28 +42,8 @@ export function InstitutionPicker({
 
   const { data, isError, isPending } = useQuery(institutionsQuery);
 
-  // Faculties as well as universities: somebody prepares for ČVUT FEL, not for
-  // ČVUT in general, and the row says which is which.
-  const flat = useMemo(() => {
-    const out: { row: Institution; under: string | null }[] = [];
-    for (const university of data ?? []) {
-      out.push({ row: university, under: null });
-      for (const faculty of university.faculties) {
-        out.push({ row: faculty, under: university.short_name ?? university.name });
-      }
-    }
-    return out;
-  }, [data]);
-
   const needle = query.trim();
-  const found = useMemo(() => {
-    if (needle.length < 2) return [];
-    return find(
-      flat.filter(({ row }) => !taken.has(row.id)),
-      ({ row, under }) => [row.name, row.short_name, row.code, under],
-      needle,
-    ).slice(0, 6);
-  }, [flat, needle, taken]);
+  const found = useMemo(() => pickable(data ?? [], needle, taken), [data, needle, taken]);
 
   return (
     <>
