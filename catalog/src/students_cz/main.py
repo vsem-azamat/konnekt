@@ -23,6 +23,19 @@ from students_cz.services.embedding import get_embedder
 log = logging.getLogger("students_cz")
 
 
+class QuietHealthChecks(logging.Filter):
+    """Drop the container healthcheck's requests from uvicorn's access log.
+
+    It asks every 15 s; in one week 39,593 of 39,603 lines were it, and the
+    rotated log kept three days of anything else.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args if isinstance(record.args, tuple) else ()
+        path = str(args[2]).split("?", 1)[0] if len(args) > 2 else ""
+        return path != "/healthz"
+
+
 def configure_logging(level: str) -> None:
     """Give this application's logger somewhere to write.
 
@@ -37,6 +50,9 @@ def configure_logging(level: str) -> None:
     cut off whatever a deployment attaches there with `--log-config`.
     """
     log.setLevel(level)
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, QuietHealthChecks) for f in access.filters):
+        access.addFilter(QuietHealthChecks())
     if any(isinstance(handler, logging.StreamHandler) for handler in log.handlers):
         # `create_app()` runs once per process, and once per test.
         return

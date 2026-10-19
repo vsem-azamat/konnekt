@@ -613,3 +613,13 @@ def test_nothing_else_in_the_stack_can_reach_the_control_plane() -> None:
             assert "bot" not in (service.get("networks") or []), name
     # The host still reaches it, on loopback only.
     assert "127.0.0.1:8788:8788" in services["bot"]["ports"]
+
+
+def test_every_long_running_service_rotates_its_logs() -> None:
+    """bot, webapi and webui used json-file with no limits, on a disk shared with other projects."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+
+    for name in ("bot", "webapi", "webui"):
+        options = services[name]["logging"]["options"]
+        assert options["max-size"], name
+        assert options["max-file"], name

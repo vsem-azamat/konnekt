@@ -95,6 +95,7 @@ services:
   bot:
     image: ghcr.io/vsem-azamat/supervisor-telegram:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
     container_name: supervisor-telegram-bot
+    logging: *rotated-logs
     command: ["bot"]
     environment:
       <<: *runtime-env
@@ -127,6 +128,7 @@ services:
   webapi:
     image: ghcr.io/vsem-azamat/supervisor-telegram:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
     container_name: supervisor-telegram-webapi
+    logging: *rotated-logs
     command: ["webapi"]
     environment:
       <<: *runtime-env
@@ -157,6 +159,7 @@ services:
   webui:
     image: ghcr.io/vsem-azamat/supervisor-telegram-webui:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
     container_name: supervisor-telegram-webui
+    logging: *rotated-logs
     ports:
       - "127.0.0.1:18083:80"
     depends_on:
