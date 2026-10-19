@@ -5,12 +5,13 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
+from app.webapi.deps import require_super_admin
 from app.webapi.routes import (
     admin,
     auth,
@@ -78,11 +79,14 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api")
     app.include_router(public.router, prefix="/api")
     app.include_router(join_check.router, prefix="/api")
-    app.include_router(chats.router, prefix="/api")
-    app.include_router(spam.router, prefix="/api")
-    app.include_router(stats.router, prefix="/api")
-    app.include_router(users.router, prefix="/api")
-    app.include_router(admin.router, prefix="/api")
+    # The console, guarded at the router: a route added here cannot forget to
+    # ask, and the question comes before anything else a route depends on.
+    console = [Depends(require_super_admin)]
+    app.include_router(chats.router, prefix="/api", dependencies=console)
+    app.include_router(spam.router, prefix="/api", dependencies=console)
+    app.include_router(stats.router, prefix="/api", dependencies=console)
+    app.include_router(users.router, prefix="/api", dependencies=console)
+    app.include_router(admin.router, prefix="/api", dependencies=console)
 
     # Default no-op singleton for test environments (ASGITransport bypasses
     # lifespan). _lifespan replaces this with the real instance at startup.
