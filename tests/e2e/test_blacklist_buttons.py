@@ -231,3 +231,27 @@ async def test_contacts_answer_anyone(production_dispatcher: Dispatcher, bot: Bo
     await production_dispatcher.feed_update(bot, _command("/contacts", by=SPAMMER_ID))
 
     assert any("Контакты" in str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage"))
+
+
+async def test_a_text_edited_after_the_dialog_is_not_taught_as_spam(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker, spammer
+) -> None:
+    """A spammer who edits the ad into "Привет" before the press must not make "Привет" spam."""
+    from sqlalchemy import update
+
+    later = int(datetime.now(UTC).timestamp()) + 60
+    async with db_session_maker() as session:
+        await session.execute(
+            update(DbMessage)
+            .where(DbMessage.message_id == 30)
+            .values(message="Привет", message_info={"edit_date": later})
+        )
+        await session.commit()
+    data = BlacklistConfirm(user_id=SPAMMER_ID, chat_id=APPROVED_CHAT_ID, message_id=30, revoke=1, mark_spam=1).pack()
+
+    await production_dispatcher.feed_update(bot, _press(data))
+
+    async with db_session_maker() as session:
+        row = await session.scalar(select(DbMessage).where(DbMessage.message_id == 30))
+    assert row is not None
+    assert row.spam is False

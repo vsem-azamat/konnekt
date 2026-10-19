@@ -60,6 +60,7 @@ class HistoryMiddleware(BaseMiddleware):
                         user_id=user.id,
                         message_id=message.message_id,
                         text=message.text or message.caption,
+                        replace=edited,
                     )
                 except Exception as err:
                     logger.error("ad_detector_failed", error=str(err))

@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import and_
 
@@ -75,12 +75,24 @@ class MessageRepository:
         await self.db.execute(statement)
         await self.db.commit()
 
-    async def label_spam(self, chat_id: int, message_id: int) -> None:
-        query = (
-            update(Message).where(and_(Message.chat_id == chat_id, Message.message_id == message_id)).values(spam=True)
+    async def label_spam(self, chat_id: int, message_id: int, *, unless_edited_after: int | None = None) -> bool:
+        """Mark a message's stored text as spam; returns whether it was marked.
+
+        ``unless_edited_after`` is when the moderator saw the message: a text
+        edited after that is not what they judged, and marking it would teach
+        the filter whatever the author changed it to.
+        """
+        row = await self.db.scalar(
+            select(Message).where(and_(Message.chat_id == chat_id, Message.message_id == message_id))
         )
-        await self.db.execute(query)
+        if row is None:
+            return False
+        edited_at = (row.message_info or {}).get("edit_date")
+        if unless_edited_after is not None and isinstance(edited_at, int) and edited_at > unless_edited_after:
+            return False
+        row.spam = True
         await self.db.commit()
+        return True
 
     async def get_user_messages(self, user_id: int, chat_id: int | None = None) -> list[Message]:
         """Get messages by user, optionally filtered by chat."""

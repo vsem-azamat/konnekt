@@ -601,6 +601,8 @@ def test_the_deploy_never_passes_a_list_as_one_unquoted_variable() -> None:
 
     for name in ("holders", "others", "stale"):
         assert not re.search(rf"(docker [^\n]*|\bin) \${name}\b", script), name
+
+
 def test_nothing_else_in_the_stack_can_reach_the_control_plane() -> None:
     """The bot serves MCP; on the shared network every container, the catalog API included, could reach it."""
     services = yaml.safe_load(COMPOSE.read_text())["services"]

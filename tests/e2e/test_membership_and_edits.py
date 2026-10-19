@@ -115,3 +115,81 @@ async def test_an_edit_into_an_ad_is_seen_and_recorded(
     assert stored is not None
     assert "t.me/cheap_diplomas" in (stored.message or "")
     assert len(pings) == 1
+
+
+async def test_joining_restricted_is_still_a_join(greeting: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer) -> None:
+    """A chat that restricts newcomers still has newcomers."""
+    await greeting.feed_update(bot, _transition(ChatMemberLeft(user=PERSON), _restricted()))
+
+    assert _greeted(fake_tg)
+
+
+def _edit(original: Message, text: str, update_id: int) -> Update:
+    edited = original.model_copy(update={"text": text, "edit_date": int(datetime.now(UTC).timestamp())})
+    return Update(update_id=update_id, edited_message=edited)
+
+
+async def test_editing_a_message_again_and_again_counts_its_ad_once(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    """Every typo fix added another ping, and the console's counts grew with them."""
+    original = Message(message_id=78, date=datetime.now(UTC), chat=GROUP, from_user=PERSON, text="t.me/cheap_diplomas")
+    await production_dispatcher.feed_update(bot, Update(update_id=10, message=original))
+    for i, text in enumerate(["t.me/cheap_diplomas !", "t.me/cheap_diplomas !!", "t.me/cheap_diplomas !!!"]):
+        await production_dispatcher.feed_update(bot, _edit(original, text, 11 + i))
+
+    async with db_session_maker() as session:
+        pings = (await session.scalars(select(SpamPing).where(SpamPing.message_id == 78))).all()
+    assert len(pings) == 1
+
+
+async def test_an_edit_never_raises_the_first_message_warning(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+) -> None:
+    spam = "Дешёвые дипломы любого вуза"
+    async with db_session_maker() as session:
+        session.add(
+            DbMessage(chat_id=APPROVED_CHAT_ID, user_id=1, message_id=5, message=spam, message_info={}, spam=True)
+        )
+        await session.commit()
+    original = Message(
+        message_id=79,
+        date=datetime.now(UTC),
+        chat=GROUP,
+        from_user=User(id=999111, is_bot=False, first_name="N"),
+        text="привет",
+    )
+    await production_dispatcher.feed_update(
+        bot, Update(update_id=20, edited_message=original.model_copy(update={"text": spam}))
+    )
+
+    assert not any("Похоже на спам" in str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage"))
+
+
+async def test_an_edit_in_an_unapproved_chat_is_recorded_and_nothing_more(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+) -> None:
+    other = Chat(id=-1008888000111, type="supergroup", title="Not ours")
+    original = Message(message_id=80, date=datetime.now(UTC), chat=other, from_user=PERSON, text="hi")
+    await production_dispatcher.feed_update(
+        bot, Update(update_id=30, edited_message=original.model_copy(update={"text": "t.me/ad"}))
+    )
+
+    async with db_session_maker() as session:
+        stored = await session.scalar(select(DbMessage).where(DbMessage.chat_id == other.id))
+        pings = (await session.scalars(select(SpamPing).where(SpamPing.chat_id == other.id))).all()
+    assert stored is not None
+    assert pings == []
+    assert fake_tg.get_calls("sendMessage") == []
+
+
+async def test_an_ad_edited_out_is_no_longer_counted(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    original = Message(message_id=81, date=datetime.now(UTC), chat=GROUP, from_user=PERSON, text="t.me/cheap_diplomas")
+    await production_dispatcher.feed_update(bot, Update(update_id=40, message=original))
+    await production_dispatcher.feed_update(bot, _edit(original, "извините, ошибся чатом", 41))
+
+    async with db_session_maker() as session:
+        pings = (await session.scalars(select(SpamPing).where(SpamPing.message_id == 81))).all()
+    assert pings == []

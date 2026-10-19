@@ -1,6 +1,13 @@
-from aiogram import types
-from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
+import datetime
 
+from aiogram import types
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.core.logging import get_logger
+from app.core.time import utc_now
+from app.db.models import Message
 from app.db.repositories import (
     get_chat_repository,
     get_message_repository,
@@ -39,3 +46,49 @@ async def merge_chat(db: AsyncSession, chat: types.Chat) -> None:
         title=chat.title,
         is_forum=chat.is_forum,
     )
+
+
+logger = get_logger("moderation.history")
+
+# Agreed with the owner on 2026-10-19 (#174): what people wrote is kept half a
+# year; what a moderator marked as spam is kept for good, since the
+# first-message spam check learns from it.
+KEEP_DAYS = 180
+_PURGE_BATCH = 5_000
+
+
+async def purge_old_messages(db: AsyncSession, *, keep_days: int = KEEP_DAYS, batch: int = _PURGE_BATCH) -> int:
+    """Delete recorded messages older than the retention period, spam excepted.
+
+    In batches, committing each, so no single statement holds the table for
+    the length of a backlog. Returns how many went.
+    """
+    cutoff = utc_now() - datetime.timedelta(days=keep_days)
+    removed = 0
+    while True:
+        ids = (
+            await db.scalars(select(Message.id).where(Message.timestamp < cutoff, Message.spam.is_(False)).limit(batch))
+        ).all()
+        if not ids:
+            return removed
+        await db.execute(delete(Message).where(Message.id.in_(ids)))
+        await db.commit()
+        removed += len(ids)
+
+
+async def run_history_retention(
+    session_maker: async_sessionmaker[AsyncSession], interval_seconds: int = 24 * 3600
+) -> None:
+    """Purge once a day, the first time an hour after start."""
+    delay = 3600
+    while True:
+        try:
+            await asyncio.sleep(delay)
+            delay = interval_seconds
+            async with session_maker() as session:
+                removed = await purge_old_messages(session)
+            logger.info("history_purged", removed=removed, keep_days=KEEP_DAYS)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("history_purge_failed")

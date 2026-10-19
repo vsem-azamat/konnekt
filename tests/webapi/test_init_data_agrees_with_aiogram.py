@@ -36,7 +36,7 @@ def test_a_genuine_payload_passes_both(signature: str | None) -> None:
 @pytest.mark.parametrize(
     "tamper",
     [
-        lambda raw: raw.replace("42", "43", 1),
+        lambda raw: raw.replace("%3A42", "%3A43", 1),
         lambda raw: raw.replace("signature=Xf2pQ", "signature=other"),
         lambda raw: raw + "&extra=1",
     ],
@@ -51,3 +51,18 @@ def test_another_bots_signature_fails_both() -> None:
     raw = _init_data(user_id=42, token="999:another-bots-token")
 
     assert (_ours(raw), check_webapp_signature(TOKEN, raw)) == (False, False)
+
+
+def test_both_projects_lock_the_same_aiogram() -> None:
+    """The catalog has a lockfile of its own; this test runs the root one's aiogram."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+
+    def locked(lockfile: Path) -> str:
+        match = re.search(r'name = "aiogram"\nversion = "([^"]+)"', lockfile.read_text())
+        assert match, lockfile
+        return match.group(1)
+
+    assert locked(root / "uv.lock") == locked(root / "catalog" / "uv.lock")

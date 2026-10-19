@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy import delete
+
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models import SpamPing
@@ -33,6 +35,7 @@ async def record_ad_signals(
     user_id: int,
     message_id: int,
     text: str | None,
+    replace: bool = False,
 ) -> list[SpamPing]:
     """Detect ad signals and persist one SpamPing row per kind hit.
 
@@ -42,6 +45,11 @@ async def record_ad_signals(
     """
     if not settings.moderation.ad_detector_enabled:
         return []
+    if replace:
+        # An edit: what the message holds now replaces what it held, so a
+        # message edited three times is still one message with one ad.
+        await db.execute(delete(SpamPing).where(SpamPing.chat_id == chat_id, SpamPing.message_id == message_id))
+        await db.commit()
     if not text:
         return []
 

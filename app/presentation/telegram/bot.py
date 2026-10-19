@@ -214,6 +214,11 @@ async def _serve() -> None:
     tasks.append(run_mcp_server())
     tasks.append(run_expiry_sweep(session_maker))
 
+    # What people wrote is kept half a year (#174).
+    from app.moderation.history_service import run_history_retention
+
+    tasks.append(run_history_retention(session_maker))
+
     # Member counts are recorded here because this is the process holding a
     # long-lived bot. Nothing about it is conditional any more: the loop asks
     # Telegram over the bot token, which every deployment has by definition.

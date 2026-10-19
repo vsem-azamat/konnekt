@@ -116,7 +116,9 @@ async def process_blacklist_confirm(
     mark_spam = bool(callback_data.mark_spam)
 
     if mark_spam:
-        await message_repo.label_spam(chat_id=chat_id, message_id=message_id)
+        seen_at = int(callback.message.date.timestamp()) if isinstance(callback.message, types.Message) else None
+        if not await message_repo.label_spam(chat_id=chat_id, message_id=message_id, unless_edited_after=seen_at):
+            logger.info("spam_label_skipped", chat_id=chat_id, message_id=message_id)
 
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
