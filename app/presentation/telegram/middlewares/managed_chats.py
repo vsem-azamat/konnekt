@@ -5,6 +5,7 @@ from aiogram import BaseMiddleware, types
 from aiogram.types import TelegramObject
 from sqlalchemy import select
 
+from app.chats.migration import follow_upgrade
 from app.db.models import Chat
 from app.moderation import history_service
 
@@ -49,6 +50,11 @@ class ManagedChatsMiddleware(BaseMiddleware):
         chat = _group_chat(event)
         if chat is not None:
             await history_service.merge_chat(db, chat)
+            upgraded_from = (
+                event.message.migrate_from_chat_id if isinstance(event, types.Update) and event.message else None
+            )
+            if upgraded_from is not None:
+                await follow_upgrade(db, old_id=upgraded_from, new_id=chat.id)
             status = await db.scalar(select(Chat.resource_status).where(Chat.id == chat.id))
             data["chat_resource_status"] = status or Chat.STATUS_DISCOVERED
             data["chat_is_approved"] = status == Chat.STATUS_APPROVED

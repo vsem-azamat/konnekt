@@ -710,3 +710,74 @@ class TestReportThrottle:
 
         to_admin = [c for c in fake_tg.get_calls("sendMessage") if str(c.params.get("chat_id")) == str(SUPER_ADMIN_ID)]
         assert len(to_admin) == 1
+
+
+@pytest.mark.e2e
+class TestSupergroupUpgrade:
+    async def test_a_group_upgraded_to_a_supergroup_keeps_its_moderation(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        """Telegram gives the upgraded chat a new id; everything stayed on the dead one."""
+        from app.db.repositories import get_admin_repository
+
+        old_id, new_id, child_id, moderator = -4555123, -1004555123000, -1004555999000, 444000444
+        async with db_session_maker() as session:
+            session.add(
+                DbChat(
+                    id=old_id,
+                    title="ČVUT FIT",
+                    resource_status=DbChat.STATUS_APPROVED,
+                    public_link="https://t.me/cvut_fit",
+                    institution_code="cvut",
+                )
+            )
+            await session.flush()
+            session.add(
+                DbChat(id=child_id, title="FIT 1st year", resource_status=DbChat.STATUS_APPROVED, parent_chat_id=old_id)
+            )
+            await session.commit()
+            await get_admin_repository(session).grant(moderator, old_id)
+
+        upgraded = Chat(id=new_id, type="supergroup", title="ČVUT FIT")
+        service = Message(
+            message_id=1,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+            migrate_from_chat_id=old_id,
+        )
+        await dispatcher.feed_update(bot, Update(update_id=80, message=service))
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+            old = await session.get(DbChat, old_id)
+            child = await session.get(DbChat, child_id)
+            assert new is not None
+            assert (new.resource_status, new.public_link, new.institution_code) == (
+                DbChat.STATUS_APPROVED,
+                "https://t.me/cvut_fit",
+                "cvut",
+            )
+            assert old is not None
+            assert (old.resource_status, old.public_link) == (DbChat.STATUS_DISABLED, None)
+            assert child is not None
+            assert child.parent_chat_id == new_id
+            assert await get_admin_repository(session).is_admin_in(moderator, new_id)
+
+        ban = Message(
+            message_id=2,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=moderator, is_bot=False, first_name="Mod"),
+            text="!ban",
+            entities=[MessageEntity(type="bot_command", offset=0, length=4)],
+            reply_to_message=Message(
+                message_id=1,
+                date=datetime.now(UTC),
+                chat=upgraded,
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="T"),
+                text="x",
+            ),
+        )
+        await dispatcher.feed_update(bot, Update(update_id=81, message=ban))
+        assert [int(c.params["user_id"]) for c in fake_tg.get_calls("banChatMember")] == [TARGET_USER_ID]
