@@ -71,7 +71,7 @@ better than anything this repository could infer:
 
 ```bash
 uv run python scripts/tg_chats.py folders --account main
-uv run python scripts/tg_chats.py candidates --account main --bot @konnekt_moder_bot --out chats.csv
+uv run python scripts/tg_chats.py candidates --account main --bot @konnekt_cz_bot --out chats.csv
 ```
 
 Discovery reads a chat list, never a chat. Private conversations are dropped
