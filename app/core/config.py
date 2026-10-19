@@ -81,9 +81,13 @@ class TelegramSettings(Settings):
     """Moderator bot configuration."""
 
     token: str = Field(..., description="Moderator bot token from BotFather")
-    retired_token: str = Field(
-        default="",
-        description="Token of the retired catalog bot (@student_cz_bot); set, it answers with the new address",
+    # Comma-separated, so `NoDecode` (see `AdminSettings.super_admins`). The
+    # variable keeps its singular name: it held one token first, and renaming
+    # it would mean renaming the deployed secret in the same release.
+    retired_tokens: Annotated[list[str], NoDecode] = Field(
+        default_factory=list,
+        validation_alias="MODERATOR_BOT_RETIRED_TOKEN",
+        description="Tokens of retired bots, comma-separated; each answers private messages with the new address",
     )
 
     model_config = SettingsConfigDict(
@@ -93,6 +97,23 @@ class TelegramSettings(Settings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("retired_tokens", mode="before")
+    @classmethod
+    def _split_retired(cls, value: Any) -> Any:
+        return [token.strip() for token in value.split(",")] if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _retired_are_not_current(self) -> TelegramSettings:
+        """Each retired token once, and never the current one.
+
+        Two pollers on one token take turns receiving its updates, so a
+        duplicate here, or the main token pasted in among the retired ones
+        during a move, would quietly cost moderation half of what it sees.
+        """
+        unique = dict.fromkeys(self.retired_tokens)
+        self.retired_tokens = [token for token in unique if token and token != self.token]
+        return self
 
 
 class AdminSettings(Settings):

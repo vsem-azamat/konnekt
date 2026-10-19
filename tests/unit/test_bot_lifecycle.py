@@ -34,10 +34,10 @@ def services(monkeypatch) -> list[str]:
         return run
 
     main_bot = AsyncMock()
-    main_bot.me.return_value = SimpleNamespace(username="konnekt_moder_bot")
+    main_bot.me.return_value = SimpleNamespace(username="konnekt_cz_bot")
     monkeypatch.setattr(bot_module, "_setup_main_bot", lambda _: (main_bot, AsyncMock()))
     monkeypatch.setattr(bot_module, "setup_container", lambda *_: None)
-    monkeypatch.setattr(moved, "build_moved_bot", lambda: None)
+    monkeypatch.setattr(moved, "build_moved_bots", lambda: [])
 
     async def no_alerts():
         async def close() -> None:
@@ -61,7 +61,7 @@ async def test_a_poller_that_dies_takes_the_process_down(monkeypatch, services) 
 
     monkeypatch.setattr(bot_module.Dispatcher, "start_polling", failing_polling)
     main_bot = AsyncMock()
-    main_bot.me.return_value = SimpleNamespace(username="konnekt_moder_bot")
+    main_bot.me.return_value = SimpleNamespace(username="konnekt_cz_bot")
     dp = bot_module.Dispatcher()
     monkeypatch.setattr(bot_module, "_setup_main_bot", lambda _: (main_bot, dp))
 
@@ -142,22 +142,26 @@ async def test_the_database_closes_after_everything_that_uses_it(monkeypatch, se
     assert order == ["db after ['mcp', 'retention', 'snapshots', 'sweep']"]
 
 
-async def test_the_retired_bot_failing_does_not_take_moderation_down(monkeypatch, services) -> None:
-    """A revoked retired token must not crash-loop the moderator bot."""
-    main_ran = asyncio.Event()
+async def test_a_retired_bot_failing_takes_down_neither_moderation_nor_the_others(monkeypatch, services) -> None:
+    """A revoked retired token must not crash-loop the moderator bot or silence another retired one."""
+    ran: set[str] = set()
 
     async def polling(_bot, _dp, *, name, **_kwargs):
-        if name == "moved":
+        if name == "moved:200":
             raise ConnectionError("retired token revoked")
-        await asyncio.sleep(0.05)
-        main_ran.set()
+        if name == "main":
+            # Long enough for the other retired bot to have started.
+            await asyncio.sleep(0.05)
+        ran.add(name)
 
     monkeypatch.setattr(bot_module, "_run_polling", polling)
-    monkeypatch.setattr(moved, "build_moved_bot", lambda: (AsyncMock(), AsyncMock()))
+    retired = [(SimpleNamespace(id=200), AsyncMock()), (SimpleNamespace(id=300), AsyncMock())]
+    monkeypatch.setattr(moved, "build_moved_bots", lambda: retired)
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert main_ran.is_set()
+    assert "main" in ran
+    assert "moved:300" in ran
 
 
 async def test_a_failure_before_polling_starts_still_reaches_the_alerts(monkeypatch, services) -> None:

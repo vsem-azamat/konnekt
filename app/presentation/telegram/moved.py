@@ -1,9 +1,11 @@
-"""The retired catalog bot, kept only to say where Konnekt went.
+"""The retired bots, kept only to say where Konnekt went.
 
-@student_cz_bot was the catalog's bot before everything moved into this one,
-and people still write to it. When its token is configured it polls here, next
-to the main bot, and answers every private message with the new address. It
-does nothing else; switching it off is removing the token.
+Konnekt has moved address more than once: @student_cz_bot was the catalog's
+bot before everything moved into the moderator, and @konnekt_moder_bot was the
+moderator before it moved to a new username. People still write to the old
+ones. Each retired token that is configured polls here, next to the main bot,
+and answers every private message with the new address. It does nothing else;
+switching one off is removing its token.
 """
 
 from __future__ import annotations
@@ -33,10 +35,15 @@ def build_router() -> Router:
     return router
 
 
-def build_moved_bot() -> tuple[Bot, Dispatcher] | None:
-    """The retired bot and its one handler, or None when no token is configured."""
-    if not settings.telegram.retired_token:
-        return None
-    dp = Dispatcher()
-    dp.include_router(build_router())
-    return Bot(token=settings.telegram.retired_token), dp
+def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
+    """Each retired bot with a dispatcher of its own, none when no token is configured.
+
+    Of its own because a dispatcher polls one bot at a time, and a router
+    belongs to one dispatcher.
+    """
+    built = []
+    for token in settings.telegram.retired_tokens:
+        dp = Dispatcher()
+        dp.include_router(build_router())
+        built.append((Bot(token=token), dp))
+    return built
