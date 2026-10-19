@@ -351,6 +351,7 @@ def _healthy(
         (20, 500, True),
         # One missed night is a warning in the logs; two is a broken backup.
         (30, 500, True),
+        (47, 500, True),
         (50, 500, False),
         (None, 500, False),
         # A container with no dump yet has two days to write its first one.

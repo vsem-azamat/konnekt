@@ -70,7 +70,13 @@ The container turns unhealthy when its newest dump is two days old. Nothing
 else watches the backups, so `docker ps` showing `unhealthy` is the signal. A
 deploy's `--wait` fails on it too, but only after the new release is already
 running: a red deploy with a backup container named in it is a backup problem,
-not a reason to roll back.
+not a reason to roll back. Once the cause is fixed, a dump by hand clears it
+rather than waiting for the night's:
+
+```sh
+docker exec supervisor-telegram-db-backup sh -c \
+  'pg_dump --format=custom --file=/backups/moderator-$(date -u +%Y%m%dT%H%M%SZ).dump'
+```
 
 ### Restoring
 
