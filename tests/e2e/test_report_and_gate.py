@@ -573,3 +573,60 @@ class TestHistoryUnderContention:
         async with db_session_maker() as session:
             stored = await session.scalar(select(DbMessage).where(DbMessage.message_id == 70))
         assert stored is not None
+
+
+@pytest.mark.e2e
+class TestSpamWarning:
+    async def test_a_first_message_matching_known_spam_is_flagged(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        """The message was saved before the check counted earlier ones, so it counted itself."""
+        spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
+        async with db_session_maker() as session:
+            session.add(
+                DbMessage(chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True)
+            )
+            await session.commit()
+
+        update = Update(
+            update_id=50,
+            message=Message(
+                message_id=80,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=333000333, is_bot=False, first_name="Newcomer"),
+                text=spam_text,
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        texts = [str(c.params.get("text", "")) for c in fake_tg.get_calls("sendMessage")]
+        assert any("Похоже на спам" in t for t in texts)
+
+    async def test_a_regular_writing_the_same_text_is_not_flagged(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
+        async with db_session_maker() as session:
+            session.add(
+                DbMessage(chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True)
+            )
+            session.add(DbMessage(chat_id=CHAT_ID, user_id=333000333, message_id=6, message="привет", message_info={}))
+            await session.commit()
+
+        update = Update(
+            update_id=51,
+            message=Message(
+                message_id=81,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=333000333, is_bot=False, first_name="Regular"),
+                text=spam_text,
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        texts = [str(c.params.get("text", "")) for c in fake_tg.get_calls("sendMessage")]
+        assert not any("Похоже на спам" in t for t in texts)
