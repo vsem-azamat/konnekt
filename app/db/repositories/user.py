@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import UserNotFoundException
@@ -29,8 +29,13 @@ class UserRepository:
         """
         profile = {"username": username, "first_name": first_name, "last_name": last_name}
         statement = insert_for(self.db, User).values(id=user_id, **profile, created_at=utc_now(), modified_at=utc_now())
+        # Only when something changed: every message from a person would
+        # otherwise rewrite their row and bump modified_at.
+        changed = or_(*(getattr(User, name).is_distinct_from(statement.excluded[name]) for name in profile))
         await self.db.execute(
-            statement.on_conflict_do_update(index_elements=[User.id], set_={**profile, "modified_at": utc_now()})
+            statement.on_conflict_do_update(
+                index_elements=[User.id], set_={**profile, "modified_at": utc_now()}, where=changed
+            )
         )
         await self.db.commit()
 

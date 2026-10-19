@@ -15,6 +15,7 @@ from sqlalchemy import delete, select, update
 
 from app.core.logging import get_logger
 from app.db.models import AdminChat, Chat
+from app.db.upsert import insert_for
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,17 +53,25 @@ async def follow_upgrade(db: AsyncSession, *, old_id: int, new_id: int) -> bool:
         db.add(new)
 
     carried = {name: getattr(old, name) for name in _CARRIED}
-    # The link is unique and the old row gives it up first.
     old.public_link = None
     old.resource_status = Chat.STATUS_DISABLED
     old.relation_notes = f"Стал супергруппой {new_id}"
-    await db.flush()
+    if new.resource_status == Chat.STATUS_APPROVED:
+        # Somebody already decided about the new chat; the old one's settings
+        # must not undo that, its approval and its link least of all.
+        carried = {name: value for name, value in carried.items() if getattr(new, name) in (None, False)}
+        carried.pop("resource_status", None)
     for name, value in carried.items():
         setattr(new, name, value)
+    await db.flush()
 
     moderators = (await db.scalars(select(AdminChat).where(AdminChat.chat_id == old_id))).all()
-    for scope in moderators:
-        db.add(AdminChat(admin_id=scope.admin_id, chat_id=new_id, granted_by=scope.granted_by))
+    if moderators:
+        await db.execute(
+            insert_for(db, AdminChat)
+            .values([{"admin_id": m.admin_id, "chat_id": new_id, "granted_by": m.granted_by} for m in moderators])
+            .on_conflict_do_nothing(index_elements=[AdminChat.admin_id, AdminChat.chat_id])
+        )
     await db.execute(delete(AdminChat).where(AdminChat.chat_id == old_id))
     await db.execute(update(Chat).where(Chat.parent_chat_id == old_id).values(parent_chat_id=new_id))
     await db.commit()

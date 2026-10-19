@@ -808,3 +808,57 @@ class TestHistoryIsOneRowPerMessage:
         async with db_session_maker() as session:
             stored = await session.scalar(select(func.count()).select_from(DbMessage).where(DbMessage.message_id == 95))
         assert stored == 1
+
+
+@pytest.mark.e2e
+class TestSupergroupUpgradeEdges:
+    async def _announce(self, dispatcher, bot, old_id: int, new_id: int) -> None:
+        upgraded = Chat(id=new_id, type="supergroup", title="Upgraded")
+        service = Message(
+            message_id=1,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+            migrate_from_chat_id=old_id,
+        )
+        await dispatcher.feed_update(bot, Update(update_id=85, message=service))
+
+    async def test_an_upgrade_never_lowers_the_new_chats_approval(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        old_id, new_id = -4555124, -1004555124000
+        async with db_session_maker() as session:
+            session.add(DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_DISCOVERED))
+            session.add(
+                DbChat(id=new_id, title="New", resource_status=DbChat.STATUS_APPROVED, public_link="https://t.me/x")
+            )
+            await session.commit()
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+        assert new is not None
+        assert (new.resource_status, new.public_link) == (DbChat.STATUS_APPROVED, "https://t.me/x")
+
+    async def test_a_moderator_already_scoped_to_the_new_chat_does_not_stop_the_move(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        from app.db.repositories import get_admin_repository
+
+        old_id, new_id, moderator = -4555125, -1004555125000, 444000446
+        async with db_session_maker() as session:
+            session.add(DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_APPROVED))
+            session.add(DbChat(id=new_id, title="New"))
+            await session.commit()
+            repo = get_admin_repository(session)
+            await repo.grant(moderator, old_id)
+            await repo.grant(moderator, new_id)
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+            assert new is not None
+            assert new.resource_status == DbChat.STATUS_APPROVED
+            assert await get_admin_repository(session).is_admin_in(moderator, new_id)

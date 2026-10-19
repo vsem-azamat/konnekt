@@ -71,6 +71,7 @@ async def _fan_out(
                     return None
                 except TelegramRetryAfter as err:
                     if attempt == _FAN_OUT_ATTEMPTS:
+                        logger.warning(f"{what}_flood_control", user_id=user_id, chat_id=chat_id)
                         break
                     await asyncio.sleep(err.retry_after)
                 except Exception as err:
@@ -80,7 +81,7 @@ async def _fan_out(
 
     failed = [chat_id for chat_id in await asyncio.gather(*(in_chat(c) for c in chat_ids)) if chat_id is not None]
     if failed:
-        logger.error(f"{what}_incomplete", user_id=user_id, failed=len(failed), chats=len(chat_ids))
+        logger.error(f"{what}_incomplete", user_id=user_id, failed_chats=failed, chats=len(chat_ids))
     return failed
 
 

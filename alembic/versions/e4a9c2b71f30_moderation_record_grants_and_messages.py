@@ -30,6 +30,9 @@ def _check(actions: tuple[str, ...]) -> str:
 
 
 def upgrade() -> None:
+    # The bot keeps writing while this runs; better to fail the deploy than to
+    # queue every query on the table behind a lock that cannot be had.
+    op.execute("SET LOCAL lock_timeout = '5s'")
     op.drop_constraint("ck_moderation_events_action", "moderation_events", type_="check")
     op.create_check_constraint("ck_moderation_events_action", "moderation_events", _check(_BEFORE + _ADDED))
 

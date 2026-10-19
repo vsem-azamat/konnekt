@@ -373,3 +373,20 @@ async def test_a_profile_update_never_unblocks(pg_session) -> None:
     stored = await UserRepository(pg_session).get_by_id(515151)
     assert stored is not None
     assert (stored.blocked, stored.username) == (True, "new_name")
+
+
+async def test_an_unchanged_profile_is_not_rewritten(pg_session) -> None:
+    """Every message rewrote the row and moved a blacklisted person up the console's list."""
+    repo = UserRepository(pg_session)
+    await repo.upsert_profile(616161, username="same", first_name="Same", last_name=None)
+    pg_session.expire_all()
+    first = await repo.get_by_id(616161)
+    assert first is not None
+    before = first.modified_at
+
+    await repo.upsert_profile(616161, username="same", first_name="Same", last_name=None)
+
+    pg_session.expire_all()
+    again = await repo.get_by_id(616161)
+    assert again is not None
+    assert again.modified_at == before

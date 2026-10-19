@@ -257,3 +257,19 @@ class TestPacing:
         bot.unban_chat_member.side_effect = refuse_one
 
         assert await blacklist.remove_from_blacklist(AsyncMock(), bot, 777) == [-100_3]
+
+
+async def test_an_incomplete_fan_out_names_the_chats(wired, caplog):
+    """ "failed=2" says something is wrong and nothing about where."""
+    bot, _ = wired
+
+    async def refuse(chat_id, *_args, **_kwargs):
+        if chat_id != -100_1:
+            raise RuntimeError("Forbidden: bot was kicked")
+
+    bot.ban_chat_member.side_effect = refuse
+
+    await blacklist.add_to_blacklist(AsyncMock(), bot, 777)
+
+    assert "-1002" in caplog.text
+    assert "-1003" in caplog.text

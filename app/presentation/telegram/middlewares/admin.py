@@ -13,6 +13,7 @@ Neither guard consults Telegram's own list of chat administrators. That crown
 gets handed out so a name appears in the member list.
 """
 
+import contextlib
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
@@ -51,7 +52,9 @@ async def you_are_not_admin(event: TelegramObject, text: str = NOT_ADMIN) -> Non
     database connection, and twenty refused commands held the whole pool.
     """
     if isinstance(event, types.Message):
-        await event.delete()
+        # Without delete rights the refusal must still be said.
+        with contextlib.suppress(Exception):
+            await event.delete()
         sender = event.from_user.id if event.from_user else None
         if not _refusals.allow((sender, event.chat.id)):
             return

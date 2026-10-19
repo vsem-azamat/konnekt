@@ -5,6 +5,9 @@ whole table for a text among labelled spam. Production had no duplicates when
 this was written (checked 2026-10-19); a database that has some fails here,
 on purpose, rather than losing rows a migration decided were the same.
 
+Going back past it: the older release inserts without ON CONFLICT, so a
+redelivered update right after a restart fails once and is dropped.
+
 Revision ID: b7d3e5f9a120
 Revises: e4a9c2b71f30
 Create Date: 2026-10-19
@@ -22,6 +25,9 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # The bot keeps writing while this runs; better to fail the deploy than to
+    # queue every query on the table behind a lock that cannot be had.
+    op.execute("SET LOCAL lock_timeout = '5s'")
     op.create_index("uq_messages_chat_message", "messages", ["chat_id", "message_id"], unique=True)
     op.create_index(
         "ix_messages_spam_text",

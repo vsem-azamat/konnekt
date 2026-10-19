@@ -6,11 +6,15 @@ from aiogram.types import TelegramObject
 from sqlalchemy import select
 
 from app.chats.migration import follow_upgrade
+from app.core.logging import get_logger
 from app.db.models import Chat
 from app.moderation import history_service
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+logger = get_logger("middleware.managed_chats")
 
 
 def _group_chat(event: TelegramObject) -> types.Chat | None:
@@ -54,7 +58,13 @@ class ManagedChatsMiddleware(BaseMiddleware):
                 event.message.migrate_from_chat_id if isinstance(event, types.Update) and event.message else None
             )
             if upgraded_from is not None:
-                await follow_upgrade(db, old_id=upgraded_from, new_id=chat.id)
+                try:
+                    await follow_upgrade(db, old_id=upgraded_from, new_id=chat.id)
+                except Exception:
+                    # Announced once and never again, so this is the one chance;
+                    # an error leaves it to a person, and the update goes on.
+                    await db.rollback()
+                    logger.exception("chat_upgrade_not_followed", old_id=upgraded_from, new_id=chat.id)
             status = await db.scalar(select(Chat.resource_status).where(Chat.id == chat.id))
             data["chat_resource_status"] = status or Chat.STATUS_DISCOVERED
             data["chat_is_approved"] = status == Chat.STATUS_APPROVED

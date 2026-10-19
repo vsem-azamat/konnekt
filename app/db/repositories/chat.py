@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Chat
@@ -81,7 +81,9 @@ class ChatRepository:
         changed = {name: value for name, value in (("title", title), ("is_forum", is_forum)) if value is not None}
         statement = insert_for(self.db, Chat).values(id=id_tg_chat, title=title, is_forum=is_forum or False)
         if changed:
-            statement = statement.on_conflict_do_update(index_elements=[Chat.id], set_=changed)
+            # Only when something changed, or every message rewrites the row.
+            differs = or_(*(getattr(Chat, name).is_distinct_from(statement.excluded[name]) for name in changed))
+            statement = statement.on_conflict_do_update(index_elements=[Chat.id], set_=changed, where=differs)
         else:
             statement = statement.on_conflict_do_nothing(index_elements=[Chat.id])
         await self.db.execute(statement)

@@ -69,3 +69,23 @@ async def test_an_empty_greeting_is_refused(
     assert chat.welcome_message is None
     assert chat.is_welcome_enabled is False
     assert any("!welcome" in str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage"))
+
+
+async def test_formatting_that_covers_the_command_is_kept_on_the_greeting_only(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    """Bold over the whole message was stored as `Hi</b>`, which no join could send."""
+    text = "!welcome Привет всем"
+    whole = MessageEntity(type="bold", offset=0, length=len(text))
+
+    await production_dispatcher.feed_update(bot, _welcome(text, [whole]))
+
+    assert (await _stored(db_session_maker)).welcome_message == "<b>Привет всем</b>"
+
+
+async def test_a_greeting_on_the_next_line_keeps_its_first_word(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    await production_dispatcher.feed_update(bot, _welcome("!welcome\nДобро пожаловать"))
+
+    assert (await _stored(db_session_maker)).welcome_message == "Добро пожаловать"

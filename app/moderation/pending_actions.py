@@ -62,6 +62,20 @@ async def expire_stale(db: AsyncSession) -> int:
     carried out. The sweep can therefore run without a Telegram session at all.
     """
     now = utc_now()
+    # Claimed and then cut off: the process died between the press and the
+    # result. Nobody knows whether it ran, so it is closed as failed rather
+    # than left saying "executing" with live buttons that do nothing.
+    interrupted = await db.execute(
+        update(PendingAction)
+        .where(
+            PendingAction.status == PendingActionStatus.EXECUTING,
+            PendingAction.expires_at <= now - datetime.timedelta(minutes=10),
+        )
+        .values(status=PendingActionStatus.FAILED, resolved_at=now)
+    )
+    if interrupted.rowcount:  # ty: ignore[unresolved-attribute]
+        await db.commit()
+        logger.warning("pending_actions_interrupted", count=interrupted.rowcount)  # ty: ignore[unresolved-attribute]
     stale = (
         (
             await db.execute(

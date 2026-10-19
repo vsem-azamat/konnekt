@@ -177,6 +177,21 @@ class TestConfirmUnderFailure:
         assert [r.status for r in rows] == [PendingActionStatus.EXPIRED]
 
 
+class TestInterrupted:
+    async def test_a_proposal_cut_off_mid_action_is_closed_by_the_sweep(self, session, bot) -> None:
+        """The process died between the claim and the result; the row said executing forever."""
+        from app.moderation.pending_actions import expire_stale
+
+        pending = await _propose(session, bot, expires_in_minutes=-60)
+        pending.status = PendingActionStatus.EXECUTING
+        await session.commit()
+
+        await expire_stale(session)
+
+        await session.refresh(pending)
+        assert pending.status == PendingActionStatus.FAILED
+
+
 class TestReject:
     async def test_reject_never_executes(self, session, bot) -> None:
         executor = AsyncMock()
