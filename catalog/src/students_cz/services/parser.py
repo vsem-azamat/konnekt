@@ -841,6 +841,11 @@ SHELF_KINDS: frozenset[str | None] = frozenset(
 )
 
 
+# Which school's maths, not which maths: «высшая математика» is the whole shelf
+# taught at a university, and the leaf the scorer liked found nobody.
+LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
+
+
 def _only_names_shelf(
     result: "ParsedQuery", norm: str, keyword: str | None, stems: list[str]
 ) -> bool:
@@ -865,6 +870,7 @@ def _only_names_shelf(
     return bool(named) and all(
         token in named
         or token.isdigit()
+        or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or (school is not None and transliterate(token).startswith(school))
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)

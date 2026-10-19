@@ -300,8 +300,8 @@ something else:
   maths group has the stems `математик`, `matematik`, `math` — and the parser
   answers with the group when one of them hits, no leaf was named, and the maths
   word is all the query says about a subject: the kind of help's words, asking,
-  prepositions and what is already a field (school, date, price) may surround
-  it, nothing else. «matematiky pro ekonomy» stays the economists' leaf. Nor
+  prepositions, «высшая»/«vyšší»/"higher" and what is already a field (school,
+  date, price) may surround it, nothing else. «matematiky pro ekonomy» stays the economists' leaf. Nor
   beside a kind of help whose offers sit on another shelf — entrance exams,
   nostrification — because that pair would match nobody. Through synonyms
   only, never a group's name: «příprava na přijímací zkoušky» is the name of a

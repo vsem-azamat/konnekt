@@ -14,7 +14,7 @@ other shelves that its synonyms name.
 from datetime import date
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.db.models import HelpRequest, Subject, User
@@ -53,6 +53,11 @@ async def _id(session: AsyncSession, slug: str) -> int:
         ("экзамен по математике", "ru"),
         ("maths exam", "en"),
         ("математика 1", "ru"),
+        # «Higher» says which school level, not which corner of maths.
+        ("высшая математика", "ru"),
+        ("вища математика", "uk"),
+        ("vyšší matematika", "cs"),
+        ("higher maths", "en"),
         # What is already a field is not a word about the subject.
         ("математика на ČVUT", "ru"),
         ("matematika ČVUT do 14. února, do 600 Kč", "cs"),
@@ -189,6 +194,43 @@ async def test_a_leaf_reaches_nothing_beyond_itself(
     assert economists.id not in {item["user_id"] for item in body["results"]}
 
 
+async def test_a_retired_leaf_elsewhere_is_not_on_the_shelf(
+    client, session, helper_factory
+) -> None:
+    """Retiring financial maths takes it out of a maths search and off the
+    shelf in the request feed, the same in both directions."""
+    helper = await helper_factory(tg_id=94061, subject_slug="financni-matematika")
+    leaf = await session.get(Subject, await _id(session, "financni-matematika"))
+    assert leaf is not None
+    leaf.is_active = False
+    await session.flush()
+
+    body = (
+        await client.get(
+            "/api/v1/search",
+            params={"subject_id": await _id(session, "math"), "limit": 50},
+            headers=auth_header(94062),
+        )
+    ).json()
+    assert helper.id not in {item["user_id"] for item in body["results"]}
+
+    student = User(tg_id=94063, first_name="Eva", ui_lang=UiLang.RU)
+    session.add(student)
+    await session.flush()
+    asked = HelpRequest(
+        author_id=student.id,
+        raw_text="нужна математика",
+        status=RequestStatus.OPEN,
+        langs=["ru"],
+        subject_id=await _id(session, "math"),
+    )
+    session.add(asked)
+    await session.flush()
+    rows = await requests_service.feed_for(session, user=helper, limit=50)
+    [row] = [item for item in rows if item.request.id == asked.id]
+    assert row.on_subject is False
+
+
 async def test_a_retired_leaf_still_finds_its_own_offers(
     client, session, helper_factory
 ) -> None:
@@ -298,3 +340,51 @@ async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
             migrated[slug] = set(slugs)
     assert migrated, "no migration declares what a shelf holds"
     assert {slug: holds for slug, holds in seeded.items() if holds} == migrated
+
+
+async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) -> None:
+    """The deploy runs the migration and never the seed, so its UPDATEs are
+    what production gets. Take the seeded database back to what production
+    held, run the migration up inside the test's transaction, and compare with
+    the seed file.
+    """
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    root = Path(__file__).resolve().parents[1]
+    [path] = (root / "src/students_cz/db/migrations/versions").glob("*_65e02593516e_*.py")
+    spec = importlib.util.spec_from_file_location("_m_shelf", path)
+    assert spec is not None and spec.loader is not None
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    def run(connection) -> None:
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.downgrade()
+            # What production held before: no group had synonyms. The downgrade
+            # only removes the words it names, so a word missing from the
+            # migration would otherwise survive here from the seed.
+            connection.execute(
+                text("UPDATE subjects SET synonyms = '{}' WHERE kind = 'group'")
+            )
+            migration.upgrade()
+
+    await session.run_sync(lambda sync: run(sync.connection()))
+
+    seeded = {
+        group["slug"]: group
+        for group in json.loads((root / "seeds/subjects.json").read_text())["groups"]
+    }
+    rows = (
+        await session.execute(
+            text("SELECT slug, synonyms, holds FROM subjects WHERE kind = 'group'")
+        )
+    ).all()
+    assert rows
+    for slug, synonyms, holds in rows:
+        assert set(synonyms) == set(seeded[slug].get("synonyms", [])), slug
+        assert set(holds) == set(seeded[slug].get("holds", [])), slug

@@ -210,15 +210,16 @@ _SUBJECT_SQL = text(
 # the shelf's synonyms. Names and not synonyms: a synonym can mention maths on
 # a leaf that is not about it — «нострификация математика» is one of a dozen on
 # nostrification — and a nostrification-only helper is no answer to
-# «математика». What the names miss, like maturita, is listed by hand. A leaf
-# holds itself, whatever its synonyms.
+# «математика». What the names miss, like maturita, is listed by hand. Only
+# live leaves, in both directions. A leaf holds itself, whatever its synonyms,
+# and — as a plain filter by its id always did — active or not.
 _LEAF_NAMES = _TOKENS.format(
     expr=_NORM.format(
         expr="COALESCE((SELECT string_agg(i.name, ' ') FROM subject_i18n i"
         " WHERE i.subject_id = s.id), '')"
     )
 )
-_HOLDS = f"""(
+_HOLDS = f"""s.is_active AND (
     s.path LIKE shelf.path || '%'
     OR (shelf.kind = 'group' AND s.kind = 'leaf' AND (
         s.slug = ANY(shelf.holds)
@@ -233,7 +234,7 @@ _HOLDS = f"""(
 _HELD_BY_SQL = text(
     f"""
     SELECT s.id FROM subjects s, subjects shelf
-     WHERE shelf.id = :shelf AND (s.id = shelf.id OR (s.is_active AND {_HOLDS}))
+     WHERE shelf.id = :shelf AND (s.id = shelf.id OR ({_HOLDS}))
     """
 )
 
