@@ -32,12 +32,18 @@ class HistoryMiddleware(BaseMiddleware):
                 except Exception as err:
                     logger.error("merge_user_failed", error=str(err))
 
+            # Approval is only ever decided for groups. A private chat with the
+            # bot is not a chat it moderates, so it is neither recorded nor
+            # screened: a spam warning there would address absent moderators.
+            if message.chat.type not in ("group", "supergroup"):
+                return await handler(event, data)
+
             try:
                 await history_service.save_message(db, message)
             except Exception as err:
                 logger.error("save_message_failed", error=str(err))
 
-            if not data.get("chat_is_approved", True):
+            if not data.get("chat_is_approved", False):
                 return await handler(event, data)
 
             if isinstance(user, types.User):

@@ -37,8 +37,8 @@ async def record_ad_signals(
     """Detect ad signals and persist one SpamPing row per kind hit.
 
     Returns the persisted rows (empty list if disabled or no hits).
-    Caller controls the transaction — we do not commit; the surrounding
-    middleware does.
+    Commits: nothing after the history middleware commits a plain message, so
+    rows left for "the caller" were rolled back with the update.
     """
     if not settings.moderation.ad_detector_enabled:
         return []
@@ -66,6 +66,7 @@ async def record_ad_signals(
         )
         db.add(row)
         rows.append(row)
+    await db.commit()
 
     logger.info(
         "ad_signals_detected",

@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, ChatMemberRestricted, User
-from app.chats.audit import audit_chats, inspect_chat
+from app.chats.audit import ChatState, audit_chats, inspect_chat
 from app.db.models import Chat
 from app.presentation.telegram.profile import DEFAULT_ADMIN_RIGHTS
 
@@ -224,3 +224,173 @@ async def test_an_invite_link_in_the_catalogue_is_not_a_username() -> None:
     state = await inspect_chat(_bot(), _row(public_link="https://t.me/+abc"))
 
     assert state.findings == ()
+
+
+# --- The template (#155) --------------------------------------------------
+
+BOT_USERNAME = "konnekt_moder_bot"
+PARENT = Chat(id=CHAT_ID - 100, title="ČVUT | ЧВУТ", institution_code="cvut", public_link="https://t.me/cvut_chat")
+
+
+def _university_row() -> Chat:
+    return _row(resource_status=Chat.STATUS_APPROVED, parent_chat_id=PARENT.id)
+
+
+def _expected(current: str = "Чат студентов FIT") -> str:
+    from app.chats.template import expected_description
+
+    return expected_description(title="ČVUT FIT", current=current, bot=BOT_USERNAME, university=True, parent=PARENT)
+
+
+async def _inspect(bot, chat: Chat) -> ChatState:
+    return await inspect_chat(bot, chat, bot_username=BOT_USERNAME, parent=PARENT, university=True)
+
+
+async def test_a_description_off_the_template_is_reported() -> None:
+    state = await _inspect(_bot(), _university_row())
+
+    assert state.expected_description == _expected()
+    assert state.findings == ("description differs from the template",)
+
+
+async def test_a_description_on_the_template_is_not_reported() -> None:
+    state = await _inspect(_bot(info=_chat_info(description=_expected())), _university_row())
+
+    assert state.findings == ()
+
+
+async def test_only_approved_chats_are_held_to_the_template() -> None:
+    state = await _inspect(_bot(), _row())
+
+    assert state.expected_description is None
+    assert state.findings == ()
+
+
+async def test_apply_sets_the_description() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description set"]
+    bot.set_chat_description.assert_awaited_once_with(chat_id=CHAT_ID, description=_expected())
+
+
+async def test_apply_leaves_a_description_already_on_the_template() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot(info=_chat_info(description=_expected()))
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == []
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_does_not_write_an_empty_description_over_none() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot(info=_chat_info(description=None))
+    state = await inspect_chat(bot, _row(resource_status=Chat.STATUS_APPROVED), bot_username=BOT_USERNAME)
+
+    assert state.findings == ()
+    assert await apply_template(bot, state) == []
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_without_the_right_leaves_the_description() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot(member=_admin(can_change_info=False))
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description: no right to change it"]
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_under_flood_control_says_it_did_not_set() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    bot.set_chat_description.side_effect = TelegramRetryAfter(method=MagicMock(), message="Too Many", retry_after=0)
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description not set: flood control"]
+
+
+async def _seed_cvut(session_maker) -> None:
+    approved = Chat.STATUS_APPROVED
+    async with session_maker() as session:
+        session.add_all(
+            [
+                Chat(id=-1, title="ČVUT | ЧВУТ", institution_code="cvut", resource_status=approved),
+                Chat(id=-2, title="Strahov", institution_code="cvut", resource_status=approved),
+                Chat(id=-3, title="ČVUT FIT", parent_chat_id=-1, resource_status=approved),
+            ]
+        )
+        await session.commit()
+
+
+async def _audit(session_maker, **kwargs):
+    bot = _bot(info=_chat_info(title=None, description="Чат для живущих в ареале Strahov"))
+    bot.me.return_value = SimpleNamespace(username=BOT_USERNAME)
+    return bot, await audit_chats(session_maker=session_maker, bot=bot, pause_seconds=0, **kwargs)
+
+
+async def test_a_dormitory_keeps_its_text_even_when_audited_alone(session_maker) -> None:
+    await _seed_cvut(session_maker)
+
+    _, states = await _audit(session_maker, chat_ids={-2})
+
+    assert [s.expected_description for s in states] == ["Чат для живущих в ареале Strahov"]
+
+
+async def test_the_university_and_its_faculty_get_the_template(session_maker) -> None:
+    await _seed_cvut(session_maker)
+
+    _, states = await _audit(session_maker, chat_ids={-1, -3})
+
+    first_lines = {s.chat_id: (s.expected_description or "").splitlines()[0] for s in states}
+    assert first_lines == {
+        -1: "🎓 Чат студентов и абитуриентов ČVUT",
+        -3: "🎓 Чат студентов и абитуриентов ČVUT FIT",
+    }
+
+
+async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
+    await _seed_cvut(session_maker)
+
+    bot, states = await _audit(session_maker, apply=True, chat_ids={-3})
+
+    assert [s.chat_id for s in states] == [-3]
+    assert [c.kwargs["chat_id"] for c in bot.set_chat_description.await_args_list] == [-3]
+    assert states[0].applied == ("description set",)
+
+
+async def test_the_template_uses_the_title_telegram_shows() -> None:
+    stale = Chat(id=CHAT_ID, title="Old name", resource_status=Chat.STATUS_APPROVED, parent_chat_id=PARENT.id)
+
+    state = await _inspect(_bot(info=_chat_info(title="ČVUT FIT")), stale)
+
+    assert state.expected_description == _expected()
+
+
+async def test_apply_with_unknown_rights_does_not_try() -> None:
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    bot.get_chat_member.side_effect = TelegramBadRequest(method=MagicMock(), message="member not found")
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description: rights unknown"]
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_apply_after_a_network_error_does_not_claim_either_way() -> None:
+    from aiogram.exceptions import TelegramNetworkError
+    from app.chats.audit import apply_template
+
+    bot = _bot()
+    bot.set_chat_description.side_effect = TelegramNetworkError(method=MagicMock(), message="timeout")
+    state = await _inspect(bot, _university_row())
+
+    assert await apply_template(bot, state) == ["description outcome unknown: network"]
