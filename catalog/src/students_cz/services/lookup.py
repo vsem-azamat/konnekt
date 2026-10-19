@@ -27,6 +27,7 @@ asks how well the name matches *some part* of the query, which is the actual
 question.
 """
 
+import asyncio
 import unicodedata
 from dataclasses import dataclass
 
@@ -36,6 +37,8 @@ from sqlalchemy.orm import selectinload
 
 from students_cz.db.models.enums import UiLang
 from students_cz.services.naming import translated
+
+_ENCODING = asyncio.Semaphore(1)
 
 # Below this, matches are noise. Tuned by hand against real-looking queries:
 # 0.5 lets "mat analiza" reach "Matematická analýza" while keeping "fyzika"
@@ -347,7 +350,12 @@ async def find_by_meaning(
     model = get_embedder()
     if model is None:
         return None, None
-    vector = model.encode([as_query(query)])[0]
+    # In a thread: inference is CPU work, and on the loop it stalled every
+    # request the API's one worker had, its health check included.
+    # One at a time: each inference already uses its own threads, and a burst
+    # in parallel would take more of a shared box than the model is given.
+    async with _ENCODING:
+        vector = (await asyncio.to_thread(model.encode, [as_query(query)]))[0]
 
     # Distance rather than similarity, because that is the operator pgvector
     # indexes; cosine similarity is one minus it.

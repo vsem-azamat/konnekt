@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from students_cz.api.deps import LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdPath, LangDep, SessionDep, UserDep
 from students_cz.schemas import (
     ContactOut,
     HelperDetailOut,
@@ -21,7 +21,7 @@ async def home(session: SessionDep, lang: LangDep, user: UserDep) -> HomeOut:
 
 @router.get("/helpers/{user_id}", response_model=HelperDetailOut, tags=["catalog"])
 async def helper_detail(
-    user_id: int, session: SessionDep, lang: LangDep, user: UserDep
+    user_id: IdPath, session: SessionDep, lang: LangDep, user: UserDep
 ) -> HelperDetailOut:
     detail = await catalog.view_helper(session, user_id, lang, viewer=user)
     if detail is None:
@@ -34,7 +34,9 @@ async def helper_detail(
     response_model=ContactOut,
     tags=["catalog"],
 )
-async def start_contact(user_id: int, session: SessionDep, user: UserDep) -> ContactOut:
+async def start_contact(
+    user_id: IdPath, session: SessionDep, user: UserDep
+) -> ContactOut:
     """Record that someone is about to write, and hand back the link.
 
     The conversation itself happens in Telegram, where both people already are.

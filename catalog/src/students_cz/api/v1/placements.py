@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from students_cz.api.deps import LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdPath, IdQuery, LangDep, SessionDep, UserDep
 from students_cz.db.models import (
     Placement,
 )
@@ -27,7 +27,7 @@ async def placements_for_slot(
     user: UserDep,
     slot: PlacementSlot,
     service_type: str | None = None,
-    subject_id: int | None = None,
+    subject_id: IdQuery = None,
     preview: bool = False,
 ) -> list[PlacementOut]:
     """The partner cards for one slot, each counted as seen unless a preview.
@@ -56,7 +56,9 @@ async def placements_for_slot(
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["partners"],
 )
-async def register_click(placement_id: int, session: SessionDep, user: UserDep) -> None:
+async def register_click(
+    placement_id: IdPath, session: SessionDep, user: UserDep
+) -> None:
     """Record that a partner block was followed.
 
     The id is checked first: the partner is billed per click, so an unknown one

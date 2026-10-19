@@ -229,3 +229,11 @@ class BrokenBot:
     async def get_me(self):
         self.calls += 1
         raise RuntimeError("Telegram is having a moment")
+
+
+@pytest.fixture(autouse=True)
+def _fresh_search_pace() -> None:
+    """The search limits are per process; a test must not inherit another's window."""
+    from students_cz.api.v1 import search
+
+    search.forget_pace()

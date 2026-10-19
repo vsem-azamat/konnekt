@@ -7,7 +7,7 @@ accepted, closed — and every step of it notifies somebody.
 from fastapi import APIRouter, BackgroundTasks, Query, status
 from sqlalchemy import func, select
 
-from students_cz.api.deps import LangDep, NotifierDep, SessionDep, UserDep
+from students_cz.api.deps import IdPath, LangDep, NotifierDep, SessionDep, UserDep
 from students_cz.bot.texts import (
     FOR_PRICE,
     NEW_RESPONSE,
@@ -167,7 +167,7 @@ def _feed_reason(
     tags=["requests"],
 )
 async def respond_to_request(
-    request_id: int,
+    request_id: IdPath,
     payload: ResponseCreate,
     background: BackgroundTasks,
     notifier: NotifierDep,
@@ -216,7 +216,7 @@ async def respond_to_request(
     tags=["requests"],
 )
 async def request_responses(
-    request_id: int, session: SessionDep, lang: LangDep, user: UserDep
+    request_id: IdPath, session: SessionDep, lang: LangDep, user: UserDep
 ) -> list[ResponseOut]:
     """Who answered. The author only — this is not a public bid list."""
     rows = await requests_service.responses_for_author(
@@ -237,7 +237,7 @@ async def request_responses(
     tags=["requests"],
 )
 async def accept_response(
-    response_id: int,
+    response_id: IdPath,
     background: BackgroundTasks,
     notifier: NotifierDep,
     session: SessionDep,
@@ -275,7 +275,7 @@ async def accept_response(
     tags=["requests"],
 )
 async def decline_response(
-    response_id: int, session: SessionDep, lang: LangDep, user: UserDep
+    response_id: IdPath, session: SessionDep, lang: LangDep, user: UserDep
 ) -> ResponseOut:
     """Turn one down. Deliberately silent — nobody needs a rejection push."""
     response = await requests_service.decline(session, user=user, response_id=response_id)
@@ -393,7 +393,7 @@ async def _responses_out(
     tags=["requests"],
 )
 async def close_request(
-    request_id: int, session: SessionDep, lang: LangDep, user: UserDep
+    request_id: IdPath, session: SessionDep, lang: LangDep, user: UserDep
 ) -> RequestOut:
     """Stop taking answers."""
     request = await requests_service.close(session, user=user, request_id=request_id)
