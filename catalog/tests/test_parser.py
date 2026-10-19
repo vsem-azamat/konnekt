@@ -461,6 +461,16 @@ async def test_a_bare_prijimacky_names_the_kind_of_help(session, text) -> None:
         ("entrance exams", "en"),
         ("вступні іспити", "uk"),
         ("підготовка до вступних іспитів", "uk"),
+        ("вступительные испытания", "ru"),
+        ("вступні екзамени", "uk"),
+        ("entrance exams prep", "en"),
+        ("preparation for entrance exams", "en"),
+        # The way people actually ask: a verb of asking around the name.
+        ("помощь с вступительными экзаменами", "ru"),
+        ("нужна подготовка к вступительным", "ru"),
+        ("hledám přípravu na přijímací zkoušky", "cs"),
+        ("help with entrance exams", "en"),
+        ("потрібна допомога з вступними іспитами", "uk"),
     ],
 )
 async def test_the_plain_name_of_entrance_exams_is_the_whole_query(
@@ -512,6 +522,8 @@ async def test_the_plain_name_of_entrance_exams_asks_no_vector(session) -> None:
         ("přijímací zkoušky z matematiky", "cs", "Přijímací zkouška z matematiky"),
         ("сдать экзамен по чешскому B1", "ru", "Чешский язык B1"),
         ("příprava na zkoušku z češtiny B2", "cs", "Čeština pro cizince B2"),
+        # Nothing but the level beside the exam words: the level is the subject.
+        ("příprava na zkoušku B2", "cs", "Čeština pro cizince B2"),
     ],
 )
 async def test_a_subject_beside_the_restating_words_is_still_found(
@@ -525,6 +537,40 @@ async def test_a_subject_beside_the_restating_words_is_still_found(
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.label.startswith(expected), parsed.subject
+
+
+@pytest.mark.asyncio
+async def test_exam_help_named_in_full_carries_no_subject(session) -> None:
+    parsed = await parse(session, "помощь на экзамене", "ru", today=TODAY)
+    assert parsed.service_type == "exam_live_help"
+    assert parsed.subject is None, f"answered with {parsed.subject}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "lang", "expected"),
+    [
+        ("подготовка к нострификационным экзаменам", "ru", "Нострификационные экзамены"),
+        ("нострификационный экзамен", "ru", "Нострификационные экзамены"),
+        ("экзамены для нострификации", "ru", "Нострификационные экзамены"),
+        ("nostrifikační zkouška", "cs", "Nostrifikační zkoušky"),
+        ("příprava na nostrifikaci", "cs", "Nostrifikační zkoušky"),
+        ("підготовка до нострифікаційних іспитів", "uk", "Нострифікаційні іспити"),
+    ],
+)
+async def test_a_subject_that_is_the_kind_of_help_survives_a_bare_query(
+    session, text, lang, expected
+) -> None:
+    """Nostrification is a kind of help and a subject by the same words.
+
+    A bare query keeps only a named subject, and these inflections score below
+    1.00 — but the subject's own name is nothing but the kind of help's words,
+    so it is no guess about something the query did not say.
+    """
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "nostrification"
+    assert parsed.subject is not None
+    assert parsed.subject.label == expected, parsed.subject
 
 
 @pytest.mark.asyncio
