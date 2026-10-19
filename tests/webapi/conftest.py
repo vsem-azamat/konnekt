@@ -37,6 +37,6 @@ def authenticated_super_admin() -> Iterator[None]:
 @pytest.fixture(autouse=True)
 def _fresh_public_cache() -> None:
     """The public endpoints remember their answers; a test must start from none."""
-    from app.webapi.routes import public
+    from app.webapi.services import public_answers
 
-    public.forget_cached_answers()
+    public_answers.forget()

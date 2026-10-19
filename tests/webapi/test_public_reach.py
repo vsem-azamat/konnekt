@@ -178,7 +178,7 @@ class TestTheBreakdown:
 
         body = await _reach(client_factory)
 
-        assert all("Secret" not in group["name"] for group in body["groups"])
+        assert [(group["name"], group["chats"]) for group in body["groups"]] == [("Остальные", 1)]
 
     async def test_biggest_group_first(self, client_factory, db_session_maker) -> None:
         """Read as a table of where a post would land, largest first."""

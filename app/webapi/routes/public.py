@@ -7,7 +7,6 @@ safe projections from here instead of reusing admin DTOs by accident.
 from __future__ import annotations
 
 import datetime
-import time
 from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Depends
@@ -19,6 +18,7 @@ from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message
 from app.webapi.deps import get_session
 from app.webapi.schemas import PublicCatalogItem, PublicReach, PublicReachGroup
+from app.webapi.services import public_answers
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -102,28 +102,6 @@ async def _observed_days(session: AsyncSession, since: datetime.datetime) -> int
     return result.scalar() or 0
 
 
-# Remembered for a minute: both answers aggregate over messages and member
-# snapshots, and the endpoints answer strangers, who may ask in a loop. A
-# figure a minute old is what any visitor would have seen anyway.
-_CACHE_SECONDS = 60
-_cached: dict[str, tuple[float, object]] = {}
-
-
-def forget_cached_answers() -> None:
-    _cached.clear()
-
-
-def _remembered(key: str) -> object | None:
-    entry = _cached.get(key)
-    if entry is None or entry[0] <= time.monotonic():
-        return None
-    return entry[1]
-
-
-def _remember(key: str, value: object) -> None:
-    _cached[key] = (time.monotonic() + _CACHE_SECONDS, value)
-
-
 @router.get("/catalog", response_model=list[PublicCatalogItem])
 async def get_public_catalog(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -135,7 +113,7 @@ async def get_public_catalog(
     private faculty group without one cannot appear by accident, and taking a
     chat down means clearing one column.
     """
-    if (cached := _remembered("catalog")) is not None:
+    if (cached := public_answers.remembered("catalog")) is not None:
         return cast("list[PublicCatalogItem]", cached)
     parent = aliased(Chat)
     since = utc_now() - ACTIVITY_WINDOW
@@ -192,7 +170,7 @@ async def get_public_catalog(
             item.title.lower(),
         ),
     )
-    _remember("catalog", answer)
+    public_answers.remember("catalog", answer)
     return answer
 
 
@@ -213,7 +191,7 @@ async def get_public_reach(
     a row per poll, and summing all of them would count the same people once per
     observation.
     """
-    if (cached := _remembered("reach")) is not None:
+    if (cached := public_answers.remembered("reach")) is not None:
         return cast("PublicReach", cached)
     newest = (
         select(
@@ -270,5 +248,5 @@ async def get_public_reach(
         measured_chats=measured,
         groups=ordered,
     )
-    _remember("reach", answer)
+    public_answers.remember("reach", answer)
     return answer

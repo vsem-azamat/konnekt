@@ -40,7 +40,7 @@ from app.webapi.schemas import (
     HeatmapCell,
     MemberSnapshotPoint,
 )
-from app.webapi.services import member_counts
+from app.webapi.services import member_counts, public_answers
 from app.webapi.services.spam_pings import read_pings
 
 logger = get_logger("webapi.routes.chats")
@@ -268,6 +268,8 @@ async def update_chat(
     for key, value in fields.items():
         setattr(chat, key, value)
     await session.commit()
+    # The public page shows what was just changed, not the minute-old answer.
+    public_answers.forget()
     await session.refresh(chat)
 
     member_count = await member_counts.latest(session, chat.id)

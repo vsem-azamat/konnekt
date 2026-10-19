@@ -200,7 +200,7 @@ class TestWhatComesBack:
         async with client_factory() as client:
             rows = (await client.get("/api/public/catalog")).json()
 
-        assert all("Secret" not in str(row["group"]) for row in rows)
+        assert [(row["title"], row["group"]) for row in rows] == [("Its faculty", None)]
 
     async def test_a_university_is_filed_under_itself(self, client_factory, db_session_maker) -> None:
         """The chat with faculties beneath it is the section, not a loose row.
@@ -398,3 +398,36 @@ async def test_strangers_asking_again_do_not_reach_the_database(client_factory, 
         again = (await client.get("/api/public/catalog")).json()
 
     assert again == first
+
+
+async def test_a_remembered_answer_runs_out(client_factory, db_session_maker, monkeypatch) -> None:
+    from app.webapi.services import public_answers
+
+    await _seed(db_session_maker, _chat(CVUT, "ČVUT | ЧВУТ", public_link="https://t.me/cvut_chat"))
+    async with client_factory() as client:
+        await client.get("/api/public/catalog")
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+        later = public_answers.time.monotonic() + public_answers.SECONDS + 1
+        monkeypatch.setattr(public_answers.time, "monotonic", lambda: later)
+        rows = (await client.get("/api/public/catalog")).json()
+
+    assert {row["title"] for row in rows} == {"ČVUT | ЧВУТ", "ČVUT FIT"}
+
+
+async def test_a_console_edit_shows_on_the_public_page_at_once(client_factory, db_session_maker) -> None:
+    """The console refreshes the public directory after an edit; it must not get the old answer."""
+    from app.webapi.deps import require_super_admin
+
+    await _seed(db_session_maker, _chat(CVUT, "ČVUT | ЧВУТ", public_link="https://t.me/cvut_chat"))
+    # The edit is the console's, so it comes from a signed-in super admin.
+    app.dependency_overrides[require_super_admin] = lambda: 1
+    try:
+        async with client_factory() as client:
+            await client.get("/api/public/catalog")
+            edited = await client.patch(f"/api/chats/{CVUT}", json={"public_link": None})
+            rows = (await client.get("/api/public/catalog")).json()
+    finally:
+        app.dependency_overrides.pop(require_super_admin, None)
+
+    assert edited.status_code == 200, edited.text
+    assert rows == []
