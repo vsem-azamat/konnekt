@@ -73,6 +73,10 @@ test('a check settled earlier in this session opens settled', () => {
 test('only a 403 is a refusal; everything else may be tried again', () => {
   const status = (code: number) => Object.assign(new Error('x'), { status: code });
   assert.deepEqual(joinEventFor(status(403)), { type: 'refused' });
+  // Telegram refused the answer itself: the request is closed, retrying cannot help.
+  assert.deepEqual(joinEventFor(status(409)), { type: 'refused' });
+  // Telegram never heard: the check was released, so a retry can pass.
+  assert.deepEqual(joinEventFor(status(503)), { type: 'unreachable' });
   assert.deepEqual(joinEventFor(status(502)), { type: 'unreachable' });
   assert.deepEqual(joinEventFor(status(422)), { type: 'unreachable' });
   assert.deepEqual(joinEventFor(new TypeError('network')), { type: 'unreachable' });

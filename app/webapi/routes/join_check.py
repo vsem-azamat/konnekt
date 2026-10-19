@@ -14,9 +14,10 @@ from __future__ import annotations
 from typing import Annotated
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -66,11 +67,29 @@ async def pass_join_check(
         logger.warning("join_check_wrong_applicant", user_id=caller.user_id, expected=check.user_id)
         raise _REFUSED
 
-    # Recorded before the call, so a retry after a Telegram timeout cannot
+    # Claimed before the call, in one statement, so a double tap cannot
     # answer the same query twice.
-    check.passed_at = utc_now()
+    claimed = await session.execute(
+        update(JoinCheck)
+        .where(JoinCheck.query_id == payload.query_id, JoinCheck.passed_at.is_(None))
+        .values(passed_at=utc_now())
+    )
     await session.commit()
+    if claimed.rowcount != 1:  # ty: ignore[unresolved-attribute]
+        raise _REFUSED
 
-    await bot.answer_chat_join_request_query(chat_join_request_query_id=payload.query_id, result="approve")
+    try:
+        await bot.answer_chat_join_request_query(chat_join_request_query_id=payload.query_id, result="approve")
+    except TelegramBadRequest:
+        # Answered already, or gone: asking again cannot help, so it stays spent.
+        logger.warning("join_check_answer_refused", chat_id=check.chat_id, user_id=caller.user_id)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="query_closed") from None
+    except Exception:
+        # Telegram never heard: release the claim so the applicant can try again
+        # rather than wait on a moderator for a check they passed.
+        await session.execute(update(JoinCheck).where(JoinCheck.query_id == payload.query_id).values(passed_at=None))
+        await session.commit()
+        logger.warning("join_check_answer_failed", chat_id=check.chat_id, user_id=caller.user_id, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="try_again") from None
     logger.info("join_check_passed", chat_id=check.chat_id, user_id=caller.user_id)
     return JoinCheckResult(status="approved")
