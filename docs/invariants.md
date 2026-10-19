@@ -292,3 +292,12 @@ privileged moderation, and its safety rests on more than a bearer token.
 **The web UI port is loopback-only.** It is reached by the server-level edge
 proxy. Dropping the `127.0.0.1:` prefix exposes the UI around the edge, past TLS
 and any edge rules, and logs nothing.
+
+**A migration leaves a schema the previous release can still run on.** The
+deploy migrates while the old bot and webapi are still serving, and going back
+is a redeploy of an older sha without its migrations, because the older alembic
+does not know the newer revision. Both rely on the same thing: add first, use
+the addition in the next release, and remove what the old code read only once
+no release that reads it can come back. A migration that renames or drops in
+one step breaks the running release during every deploy and makes the previous
+one impossible to return to.

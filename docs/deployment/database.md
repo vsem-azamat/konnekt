@@ -58,6 +58,15 @@ database server's job; nothing in this repository can do it.
 If it is ever moved inside the compose network, the data has to move with it —
 `git log` has the import that does this, removed once this route was chosen.
 
+## Migrations and going back
+
+The deploy runs `alembic upgrade head` as a one-shot `migrate` job before bot
+or webapi is recreated, so a failed migration stops the deploy with the old
+release still serving. To go back, run the Deploy workflow by hand with the
+sha of the release to return to and *migrate* switched off: its images already
+exist, and the schema it finds was written to stay readable by it (see
+docs/invariants.md).
+
 ## Backups
 
 The shared database server's own backup jobs do not cover this database. The

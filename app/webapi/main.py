@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.webapi.routes import (
@@ -42,9 +44,16 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
     _app.state.publish_bot = build_publish_bot()
     logger.info("publish_bot_started")
+    bot = _app.state.publish_bot
+    report_chat = settings.admin.default_report_chat_id
+    alerts = asyncio.create_task(
+        AlertHandler(process="webapi").run(lambda text: bot.send_message(report_chat, text, parse_mode=None))
+    )
     try:
         yield
     finally:
+        alerts.cancel()
+        await asyncio.gather(alerts, return_exceptions=True)
         await close_publish_bot(_app.state.publish_bot)
 
 

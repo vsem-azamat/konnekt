@@ -464,7 +464,8 @@ def test_a_release_can_be_deployed_again_by_its_sha() -> None:
     assert "inputs.sha" in step["env"]["IMAGE_TAG"]
     assert "MIGRATE" in step["with"]["envs"]
     jobs = workflow["jobs"]
-    assert "workflow_dispatch" in jobs["test"]["if"] and "workflow_dispatch" in jobs["build-and-push"]["if"]
+    assert "workflow_dispatch" in jobs["test"]["if"]
+    assert "workflow_dispatch" in jobs["build-and-push"]["if"]
 
 
 def test_ci_runs_the_app_migrations() -> None:

@@ -149,3 +149,18 @@ async def test_the_retired_bot_failing_does_not_take_moderation_down(monkeypatch
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
     assert main_ran.is_set()
+
+
+async def test_updates_queued_during_a_restart_are_processed(monkeypatch, services) -> None:
+    """skip_updates dropped every join request and confirm press sent during a deploy."""
+    polled: dict = {}
+
+    async def polling(_bot, _dp, *, name, **kwargs):
+        polled.update(kwargs)
+
+    monkeypatch.setattr(bot_module, "_run_polling", polling)
+
+    await asyncio.wait_for(bot_module.main(), timeout=5)
+
+    assert polled
+    assert not polled.get("skip_updates")
