@@ -15,11 +15,6 @@ class ChatRepository:
         result = await self.db.execute(select(Chat).filter(Chat.id == chat_id))
         return result.scalars().first()
 
-    async def get_all(self) -> list[Chat]:
-        """Get all chats."""
-        result = await self.db.execute(select(Chat))
-        return list(result.scalars().all())
-
     async def exists(self, chat_id: int) -> bool:
         """Check if chat exists."""
         result = await self.db.execute(select(Chat.id).filter(Chat.id == chat_id))

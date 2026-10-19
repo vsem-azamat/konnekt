@@ -18,11 +18,6 @@ def add_severity_level(_logger: Any, _method_name: str, event_dict: EventDict) -
     return event_dict
 
 
-def add_timestamp(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
-    """Add timestamp to log event."""
-    return event_dict
-
-
 def _keep_event_name(renderer: Processor) -> Processor:
     """Render as before, and carry the bare event name on the stdlib record.
 
@@ -91,7 +86,9 @@ def setup_logging() -> None:
     if settings.environment == "production":
         processors.append(_keep_event_name(structlog.processors.JSONRenderer()))
     else:
-        processors.append(_keep_event_name(structlog.dev.ConsoleRenderer(colors=True)))
+        # No colour codes when a log file shares the rendered line.
+        colors = not settings.logging.file_path
+        processors.append(_keep_event_name(structlog.dev.ConsoleRenderer(colors=colors)))
 
     # Configure structlog
     structlog.configure(

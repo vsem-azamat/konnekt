@@ -294,11 +294,14 @@ conversation log; a failed database connection would carry its DSN along.
 `mask_error_details` is not a debugging convenience to toggle.
 
 **The control plane is not published to the internet, and that is a decision
-rather than an oversight.** It binds loopback in the bot container and the edge
-has no rule for it. This was not always so: the endpoint used to live on the web
-API behind the existing `/api/*` proxy, where enabling the flag was enough to
-expose it. Do not restore that convenience — the toolset now includes
-privileged moderation, and its safety rests on more than a bearer token.
+rather than an oversight.** It is served by the bot, published on the host's
+loopback only, and inside the stack the bot sits on a network no other
+container joins: the catalog API parses untrusted input and must not be one
+leaked token away from it. The edge has no rule for it. This was not always
+so: the endpoint used to live on the web API behind the existing `/api/*`
+proxy, where enabling the flag was enough to expose it. Do not restore that
+convenience — the toolset now includes privileged moderation, and its safety
+rests on more than a bearer token.
 
 ## Deployment
 

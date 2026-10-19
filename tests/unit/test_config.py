@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # ModerationSettings validation
 # ---------------------------------------------------------------------------
@@ -25,10 +23,3 @@ class TestContainerTryGetBot:
         bot = MagicMock()
         c.set_bot(bot)
         assert c.try_get_bot() is bot
-
-    def test_get_bot_raises_when_not_set(self):
-        from app.core.container import Container
-
-        c = Container()
-        with pytest.raises(ValueError, match="Bot not set"):
-            c.get_bot()

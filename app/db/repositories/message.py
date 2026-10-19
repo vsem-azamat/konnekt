@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import and_
 
@@ -54,27 +54,46 @@ class MessageRepository:
         message_id: int,
         message: str | None,
         message_info: dict[str, Any],
+        *,
+        replace: bool = False,
     ) -> None:
-        # Telegram redelivers what it was not sure arrived; one row per message.
-        await self.db.execute(
-            insert_for(self.db, Message)
-            .values(
-                chat_id=chat_id,
-                user_id=user_id,
-                message_id=message_id,
-                message=message,
-                message_info=message_info,
-            )
-            .on_conflict_do_nothing(index_elements=[Message.chat_id, Message.message_id])
+        """One row per message: a redelivery changes nothing, an edit (`replace`) its text."""
+        statement = insert_for(self.db, Message).values(
+            chat_id=chat_id,
+            user_id=user_id,
+            message_id=message_id,
+            message=message,
+            message_info=message_info,
         )
+        key = [Message.chat_id, Message.message_id]
+        if replace:
+            statement = statement.on_conflict_do_update(
+                index_elements=key, set_={"message": message, "message_info": message_info}
+            )
+        else:
+            statement = statement.on_conflict_do_nothing(index_elements=key)
+        await self.db.execute(statement)
         await self.db.commit()
 
-    async def label_spam(self, chat_id: int, message_id: int) -> None:
-        query = (
-            update(Message).where(and_(Message.chat_id == chat_id, Message.message_id == message_id)).values(spam=True)
+    async def label_spam(self, chat_id: int, message_id: int, *, unless_edited_after: int | None = None) -> bool:
+        """Mark a message's stored text as spam; returns whether it was marked.
+
+        ``unless_edited_after`` is when the moderator saw the message: a text
+        edited after that is not what they judged, and marking it would teach
+        the filter whatever the author changed it to.
+        """
+        row = await self.db.scalar(
+            select(Message).where(and_(Message.chat_id == chat_id, Message.message_id == message_id))
         )
-        await self.db.execute(query)
+        if row is None:
+            return False
+        edited_at = (row.message_info or {}).get("edit_date")
+        if edited_at is not None and (unless_edited_after is None or edited_at > unless_edited_after):
+            # Edited after the moderator saw it, or when they saw it is unknown.
+            return False
+        row.spam = True
         await self.db.commit()
+        return True
 
     async def get_user_messages(self, user_id: int, chat_id: int | None = None) -> list[Message]:
         """Get messages by user, optionally filtered by chat."""
@@ -84,25 +103,6 @@ class MessageRepository:
 
         result = await self.db.execute(query)
         return list(result.scalars().all())
-
-    async def get_spam_messages(self, limit: int | None = None) -> list[Message]:
-        """Get spam messages."""
-        query = select(Message).where(Message.spam)
-        if limit:
-            query = query.limit(limit)
-
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
-
-    async def delete_user_messages(self, user_id: int, chat_id: int | None = None) -> int:
-        """Delete user messages and return count."""
-        query = delete(Message).where(Message.user_id == user_id)
-        if chat_id is not None:
-            query = query.where(Message.chat_id == chat_id)
-
-        cursor = await self.db.execute(query)
-        await self.db.commit()
-        return cursor.rowcount or 0  # ty: ignore[unresolved-attribute]
 
     async def count_user_chats(self, user_id: int) -> int:
         query = select(func.count(func.distinct(Message.chat_id))).where(Message.user_id == user_id)
@@ -129,10 +129,6 @@ class MessageRepository:
         result = await self.db.execute(query)
         count = result.scalar()
         return count is not None and count > 0
-
-    async def is_first_message(self, chat_id: int, user_id: int) -> bool:
-        """Check if this is the user's first message in the chat."""
-        return not await self.has_previous_messages(chat_id, user_id)
 
     async def is_similar_spam_message(self, message: str) -> bool:
         query = select(func.count()).where(Message.message == message, Message.spam)

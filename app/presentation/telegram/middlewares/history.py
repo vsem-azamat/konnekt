@@ -22,8 +22,11 @@ class HistoryMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         db: AsyncSession = data["db"]
-        if isinstance(event, types.Update) and isinstance(event.message, types.Message):
-            message = event.message
+        message = (event.message or event.edited_message) if isinstance(event, types.Update) else None
+        if isinstance(event, types.Update) and isinstance(message, types.Message):
+            # An edit replaces what was recorded and is screened for ads like a
+            # new message; it is never a first message, so never a spam warning.
+            edited = event.message is None
             user = message.from_user
 
             if isinstance(user, types.User):
@@ -41,7 +44,7 @@ class HistoryMiddleware(BaseMiddleware):
                 return await handler(event, data)
 
             try:
-                await history_service.save_message(db, message)
+                await history_service.save_message(db, message, edited=edited)
             except Exception as err:
                 logger.error("save_message_failed", error=str(err))
                 await db.rollback()
@@ -57,17 +60,18 @@ class HistoryMiddleware(BaseMiddleware):
                         user_id=user.id,
                         message_id=message.message_id,
                         text=message.text or message.caption,
+                        replace=edited,
                     )
                 except Exception as err:
                     logger.error("ad_detector_failed", error=str(err))
                     # Swallowed, so the session must be usable for the rest of the update.
                     await db.rollback()
 
-            if await spam_service.detect_spam(db, message):
+            if not edited and await spam_service.detect_spam(db, message):
                 # Addressed to whoever is in the room, not to the author: the
                 # bot only suspects, and the suspicion is that a first-ever
                 # message matches something a moderator already called spam.
-                answer = await event.message.answer(
+                answer = await message.answer(
                     "⚠️ Похоже на спам: первое сообщение участника совпадает с ранее помеченным. Модераторы, проверьте."
                 )
                 other.sleep_and_delete(answer, 15)

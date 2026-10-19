@@ -19,6 +19,7 @@ import asyncio
 import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
+from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select, update
 
@@ -36,11 +37,24 @@ from app.core.time import utc_now
 from app.db.models import PendingAction
 from app.moderation import audit
 from app.moderation.blacklist import is_protected
-from app.presentation.telegram.utils.callback_data import PendingActionDecision
 
 if TYPE_CHECKING:
     from aiogram import Bot
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+
+# The press's contract, owned by the feature that sends the buttons; the
+# bot's handler reads it.
+class PendingActionDecision(CallbackData, prefix="pact"):
+    """Confirm or drop a destructive action proposed from outside.
+
+    Typed rather than hand-built from an f-string, so aiogram validates the
+    64-byte limit instead of leaving it to arithmetic.
+    """
+
+    pending_id: int
+    confirm: int
+
 
 logger = get_logger("moderation.pending_actions")
 
