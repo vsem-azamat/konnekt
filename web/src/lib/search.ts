@@ -4,7 +4,7 @@
  * Russian speakers write Czech names in Cyrillic and by ear: «чвут», «вше»,
  * «масарик», «страгов». Both sides are folded to one key, so «ČVUT», «cvut»
  * and «чвут» are the same word, and then every word of the query has to start
- * some word of the name. The lists searched here are a few dozen chats and a
+ * some word of the name, so «вут» finds VUT and not ČVUT. The lists searched here are a few dozen chats and a
  * hundred-odd schools, already on the client, so this is plain string work and
  * no index.
  *
@@ -61,11 +61,12 @@ const CYRILLIC: Record<string, string> = {
  *
  * Czech h is Russian г (Strahov, «Страгов») and Czech ch is Russian х, so all
  * three are «h»; Czech y and i are both Russian и («Masaryk», «Масарик»). That
- * makes a few Czech words collide that should not, which a search over a few
- * dozen names can afford.
+ * makes some words collide that should not — «вше» is «все» too, and «uk»
+ * starts «Украина» — which a search over a few dozen names can afford.
  *
- * Accents come off Latin letters only: blanket mark-stripping turns «й» into
- * «и», and the catalog learnt that the hard way.
+ * Accents come off Latin letters first: blanket mark-stripping turns «й» into
+ * «и», and the catalog learnt that the hard way. What is left once «й» and «ё»
+ * are put back together is a stress mark, and goes too.
  */
 export function searchKey(text: string): string {
   let out = '';
@@ -73,7 +74,8 @@ export function searchKey(text: string): string {
     if (/\p{M}/u.test(char) && /[a-z]$/.test(out)) continue;
     out += char;
   }
-  return Array.from(out.normalize('NFC'), (char) => CYRILLIC[char] ?? char)
+  const composed = out.normalize('NFC').replace(/\p{M}/gu, '');
+  return Array.from(composed, (char) => CYRILLIC[char] ?? char)
     .join('')
     .replace(/ch|g/g, 'h')
     .replace(/y/g, 'i')
@@ -91,15 +93,15 @@ function keyWords(text: string): string[] {
 const TYPO_FROM = 5;
 
 /**
- * Whether `typed` starts `word`, allowing one typo — a letter replaced,
+ * Whether `word` starts with `typed`, allowing one typo — a letter replaced,
  * dropped, added or two swapped — once the typed word is long enough.
  *
  * Edit distance against the best prefix of `word`: the row's minimum at the
- * end, rather than its last cell, is what lets «masarik» reach «masarikova».
+ * end, rather than its last cell, is what lets «masarek» reach «masarikova».
  */
-function startsWord(word: string, typed: string): boolean {
+function startsWord(word: string, typed: string, typos: boolean): boolean {
   if (word.startsWith(typed)) return true;
-  if (typed.length < TYPO_FROM) return false;
+  if (!typos || typed.length < TYPO_FROM) return false;
   // Optimal string alignment distance, typed against the prefixes of word.
   let older: number[] = [];
   let prev = Array.from({ length: word.length + 1 }, (_, j) => j);
@@ -130,11 +132,30 @@ function startsWord(word: string, typed: string): boolean {
 
 /**
  * Whether every word of the query starts a word of one of the fields, in any
- * order. An empty query matches everything; empty fields are skipped.
+ * order. An empty query matches everything; one with no words in it, «--» or
+ * «ьь», matches nothing. Empty fields are skipped.
  */
-export function matches(fields: (string | null | undefined)[], query: string): boolean {
+export function matches(
+  fields: (string | null | undefined)[],
+  query: string,
+  typos = true,
+): boolean {
   const typed = keyWords(query);
-  if (typed.length === 0) return true;
+  if (typed.length === 0) return query.trim() === '';
   const words = fields.flatMap((field) => (field ? keyWords(field) : []));
-  return typed.every((part) => words.some((word) => startsWord(word, part)));
+  return typed.every((part) => words.some((word) => startsWord(word, part, typos)));
+}
+
+/**
+ * The items the query matches, typos allowed only when nothing is spelled the
+ * way it was typed: «карлов» is one swap from «králov», and Univerzita Karlova
+ * should not share the list with Hradec Králové because of it.
+ */
+export function find<T>(
+  items: T[],
+  fields: (item: T) => (string | null | undefined)[],
+  query: string,
+): T[] {
+  const exact = items.filter((item) => matches(fields(item), query, false));
+  return exact.length > 0 ? exact : items.filter((item) => matches(fields(item), query));
 }

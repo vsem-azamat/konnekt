@@ -7,7 +7,7 @@
  * built from it is the paragraph after.
  */
 
-import { matches } from './search.ts';
+import { find } from './search.ts';
 
 /** Supervisor's own words for how much a chat talks. `unknown` is an answer. */
 export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
@@ -148,9 +148,7 @@ export function fold(text: string): string {
  * it sits in. An empty query narrows nothing.
  */
 export function search(chats: PublicChat[], query: string): PublicChat[] {
-  return chats.filter((chat) =>
-    matches([chat.title, chat.group, chat.institution], query),
-  );
+  return find(chats, (chat) => [chat.title, chat.group, chat.institution], query);
 }
 
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */

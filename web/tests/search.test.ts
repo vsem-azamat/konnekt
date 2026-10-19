@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { type PublicChat, search } from '../src/lib/chats.ts';
-import { matches } from '../src/lib/search.ts';
+import { find, matches } from '../src/lib/search.ts';
 
 function chat(
   title: string,
@@ -89,8 +89,10 @@ test('a one-letter typo in a longer word is forgiven', () => {
   assert.deepEqual(titles('srahov'), ['Strahov']); // dropped
   assert.deepEqual(titles('sttrahov'), ['Strahov']); // doubled
   assert.deepEqual(titles('srtahov'), ['Strahov']); // swapped
-  assert.deepEqual(titles('масарык'), ['Masarykova univerzita']);
+  assert.deepEqual(titles('masarek'), ['Masarykova univerzita']); // in a prefix
   assert.deepEqual(titles('хвезды'), ['Kolej Hvězda']);
+  assert.deepEqual(titles('strx'), []); // four letters get no typo
+  assert.deepEqual(titles('hvezf'), ['Kolej Hvězda']); // five letters get one
 });
 
 test('short words get no typos: three letters are a different name', () => {
@@ -108,6 +110,42 @@ test('several words match in any order', () => {
 
 test('a word that matches nothing finds nothing', () => {
   assert.deepEqual(titles('гарвард'), []);
+});
+
+test('the start of a name is enough', () => {
+  assert.deepEqual(titles('фе'), ['ČVUT FEL']);
+  assert.deepEqual(titles('stra'), ['Strahov']);
+});
+
+test('a query of punctuation alone finds nothing rather than everything', () => {
+  for (const query of ['--', '??', '«»', 'ьь']) {
+    assert.deepEqual(titles(query), [], query);
+  }
+});
+
+test('й and ё keep their letters, and stress marks do not split a word', () => {
+  assert.ok(matches(['Хостел «Мой»'], 'мой'));
+  assert.ok(!matches(['Хостел «Мои»'], 'мой'));
+  assert.ok(matches(['Ёлка'], 'елка'));
+  assert.ok(matches(['Masarykova univerzita'], 'ма́сарик'));
+});
+
+test('typos are a fallback: an exact match hides the near ones', () => {
+  const schools = ['Univerzita Karlova', 'Univerzita Hradec Králové'];
+  // «karlov» is one swap from «kralov»: that is a typo only when nothing
+  // is spelled the way it was typed.
+  assert.deepEqual(
+    find(schools, (name) => [name], 'карлов'),
+    ['Univerzita Karlova'],
+  );
+  assert.deepEqual(
+    find(schools, (name) => [name], 'kralov'),
+    ['Univerzita Hradec Králové'],
+  );
+  assert.deepEqual(
+    find(['Univerzita Hradec Králové'], (name) => [name], 'карлов'),
+    ['Univerzita Hradec Králové'],
+  );
 });
 
 test('matches folds the fields it is given the same way', () => {

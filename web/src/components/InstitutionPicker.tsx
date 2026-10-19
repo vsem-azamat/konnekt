@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { Hint, Row, Rows, ui } from '@/components/Ui';
 import { institutionsQuery } from '@/lib/api';
-import { matches } from '@/lib/search';
+import { find } from '@/lib/search';
 import type { Institution } from '@/lib/types';
 
 /**
@@ -58,12 +58,11 @@ export function InstitutionPicker({
   const needle = query.trim();
   const found = useMemo(() => {
     if (needle.length < 2) return [];
-    return flat
-      .filter(({ row }) => !taken.has(row.id))
-      .filter(({ row, under }) =>
-        matches([row.name, row.short_name, row.code, under], needle),
-      )
-      .slice(0, 6);
+    return find(
+      flat.filter(({ row }) => !taken.has(row.id)),
+      ({ row, under }) => [row.name, row.short_name, row.code, under],
+      needle,
+    ).slice(0, 6);
   }, [flat, needle, taken]);
 
   return (
