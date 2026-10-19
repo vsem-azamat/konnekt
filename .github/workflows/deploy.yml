@@ -275,6 +275,7 @@ jobs:
               case " $keep " in *" ${ref##*:} "*) continue ;; esac
               echo "$ref"
             done)
-            [ -z "$stale" ] || docker image rm $stale > /dev/null || true
-            echo "Removed $(printf '%s' "$stale" | grep -c .) old images of this project."
+            # An image a container still uses is refused and the rest go on.
+            removed=$([ -z "$stale" ] || docker image rm $stale 2>&1 | grep -c '^Untagged:' || true)
+            echo "Removed ${removed:-0} old images of this project."
             # --- /prune ---

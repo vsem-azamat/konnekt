@@ -500,12 +500,16 @@ def _prune_script(tmp_path: Path, *, images: list[str], previous: str) -> list[s
     (bin_dir / "docker").write_text(
         "#!/bin/bash\n"
         f'if [ "$1" = images ]; then printf "{listing}\\n"; exit 0; fi\n'
-        f'if [ "$1" = image ] && [ "$2" = rm ]; then shift 2; for i; do echo "$i" >> {removed}; done; exit 0; fi\n'
+        # Like docker: removes what it can, refuses an image in use, exits 1 if any was refused.
+        f'if [ "$1" = image ] && [ "$2" = rm ]; then shift 2; rc=0; for i; do\n'
+        f'  case "$i" in *in-use*) echo "Error: image is being used" >&2; rc=1;;\n'
+        f'  *) echo "$i" >> {removed}; echo "Untagged: $i";; esac; done; exit $rc; fi\n'
         "exit 0\n"
     )
     (bin_dir / "docker").chmod(0o755)
     env = {"PATH": f"{bin_dir}:{os.environ['PATH']}", "IMAGE_TAG": "new", "PREVIOUS_TAG": previous}
-    subprocess.run(["bash", "-c", block.group(1)], env=env, check=True)  # noqa: S603, S607 — our own deploy script
+    # -e, as the deploy runs it: a refused removal must not fail the deploy.
+    subprocess.run(["bash", "-ec", block.group(1)], env=env, check=True)  # noqa: S603, S607 — our own deploy script
     return sorted(removed.read_text().split()) if removed.exists() else []
 
 
@@ -522,6 +526,7 @@ def test_a_deploy_keeps_this_release_and_the_last_and_removes_the_rest(tmp_path:
         f"{repo}/supervisor-telegram:older",
         f"{repo}/supervisor-telegram:catalog-older",
         f"{repo}/supervisor-telegram-webui:older",
+        f"{repo}/supervisor-telegram:in-use",
         "ghcr.io/someone-else/app:older",
         "pgvector/pgvector:0.8.6-pg18-bookworm",
     ]
@@ -550,3 +555,27 @@ def test_pruning_happens_only_after_the_new_release_is_up() -> None:
     assert script.index("PREVIOUS_TAG=") < script.index("docker compose pull")
     assert script.index("docker compose up -d --remove-orphans") < script.index("# --- prune ---")
     assert "system prune" not in script
+
+
+def test_the_previous_release_is_read_from_the_running_bot(tmp_path: Path) -> None:
+    script = _deploy_step()["with"]["script"]
+    (line,) = [line for line in script.splitlines() if line.strip().startswith("PREVIOUS_TAG=")]
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "docker").write_text(
+        '#!/bin/bash\n[ "$1" = inspect ] && [ "${@: -1}" = supervisor-telegram-bot ] && '
+        "echo ghcr.io/vsem-azamat/supervisor-telegram:abc123\n"
+    )
+    (bin_dir / "docker").chmod(0o755)
+
+    command = ["bash", "-ec", f'{line.strip()}\necho "$PREVIOUS_TAG"']  # noqa: S607
+    result = subprocess.run(  # noqa: S603 — our own deploy script
+        command,
+        env={"PATH": f"{bin_dir}:{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.strip() == "abc123"
+    assert yaml.safe_load(COMPOSE.read_text())["services"]["bot"]["container_name"] == "supervisor-telegram-bot"
