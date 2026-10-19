@@ -166,3 +166,40 @@ async def test_passing_is_recorded(client, db_session_maker, bot_token, join_bot
         row = await session.scalar(select(JoinCheck).where(JoinCheck.query_id == QUERY_ID))
     assert row is not None
     assert row.passed_at is not None
+
+
+async def test_a_check_telegram_could_not_be_told_about_can_be_retried(
+    client, db_session_maker, bot_token, join_bot
+) -> None:
+    """Recorded before the call, a failed call used to burn the applicant's only check."""
+    from aiogram.exceptions import TelegramNetworkError
+
+    await _seed(db_session_maker)
+    join_bot.answer_chat_join_request_query.side_effect = [
+        TelegramNetworkError(method=AsyncMock(), message="timeout"),
+        None,
+    ]
+
+    first = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+    second = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+
+    assert first.status_code == 503
+    assert second.status_code == 200
+    assert join_bot.answer_chat_join_request_query.await_count == 2
+
+
+async def test_a_query_telegram_refuses_stays_spent(client, db_session_maker, bot_token, join_bot) -> None:
+    """Refused outright means answered already or gone: answering again cannot help."""
+    from aiogram.exceptions import TelegramBadRequest
+
+    await _seed(db_session_maker)
+    join_bot.answer_chat_join_request_query.side_effect = TelegramBadRequest(
+        method=AsyncMock(), message="QUERY_ID_INVALID"
+    )
+
+    first = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+    second = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+
+    assert first.status_code == 409
+    assert second.status_code == 403
+    assert join_bot.answer_chat_join_request_query.await_count == 1

@@ -509,3 +509,356 @@ class TestHistoryCapture:
             pings = (await session.scalars(select(SpamPing).where(SpamPing.chat_id == REPORTER_ID))).all()
         assert stored is None
         assert pings == []
+
+
+@pytest.mark.e2e
+class TestHistoryUnderContention:
+    """A new member's first messages often arrive together: an album, a burst."""
+
+    async def test_a_user_another_update_just_created_is_merged_not_inserted_twice(
+        self, db_session_maker: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Read-then-insert lost the race: both updates saw no row and both inserted."""
+        from app.db.models import User as DbUser
+        from app.db.repositories.user import UserRepository
+        from app.moderation import history_service
+
+        async with db_session_maker() as session:
+            session.add(DbUser(id=TARGET_USER_ID, first_name="Old"))
+            await session.commit()
+
+        async def not_there_yet(self, user_id):
+            return None  # what the other update saw a moment ago
+
+        monkeypatch.setattr(UserRepository, "get_by_id", not_there_yet)
+        monkeypatch.setattr(UserRepository, "_get_user_model", not_there_yet)
+
+        async with db_session_maker() as session:
+            await history_service.merge_user(session, User(id=TARGET_USER_ID, is_bot=False, first_name="New"))
+
+        async with db_session_maker() as session:
+            stored = await session.get(DbUser, TARGET_USER_ID)
+        assert stored is not None
+        assert stored.first_name == "New"
+
+    async def test_a_failed_write_does_not_lose_the_rest_of_the_update(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A swallowed database error left the session failed, and the update died at the next query."""
+        from app.db.models import User as DbUser
+        from app.moderation import history_service
+
+        async with db_session_maker() as session:
+            session.add(DbUser(id=TARGET_USER_ID, first_name="Existing"))
+            await session.commit()
+
+        async def failing_merge(db, user):
+            db.add(DbUser(id=TARGET_USER_ID, first_name="Duplicate"))
+            await db.flush()  # IntegrityError, and the session now needs a rollback
+
+        monkeypatch.setattr(history_service, "merge_user", failing_merge)
+        update = Update(
+            update_id=40,
+            message=Message(
+                message_id=70,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+                text="hello",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        async with db_session_maker() as session:
+            stored = await session.scalar(select(DbMessage).where(DbMessage.message_id == 70))
+        assert stored is not None
+
+
+@pytest.mark.e2e
+class TestSpamWarning:
+    async def test_a_first_message_matching_known_spam_is_flagged(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        """The message was saved before the check counted earlier ones, so it counted itself."""
+        spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
+        async with db_session_maker() as session:
+            session.add(
+                DbMessage(
+                    chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True
+                )
+            )
+            await session.commit()
+
+        update = Update(
+            update_id=50,
+            message=Message(
+                message_id=80,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=333000333, is_bot=False, first_name="Newcomer"),
+                text=spam_text,
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        texts = [str(c.params.get("text", "")) for c in fake_tg.get_calls("sendMessage")]
+        assert any("Похоже на спам" in t for t in texts)
+
+    async def test_a_regular_writing_the_same_text_is_not_flagged(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
+        async with db_session_maker() as session:
+            session.add(
+                DbMessage(
+                    chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True
+                )
+            )
+            session.add(DbMessage(chat_id=CHAT_ID, user_id=333000333, message_id=6, message="привет", message_info={}))
+            await session.commit()
+
+        update = Update(
+            update_id=51,
+            message=Message(
+                message_id=81,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=333000333, is_bot=False, first_name="Regular"),
+                text=spam_text,
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        texts = [str(c.params.get("text", "")) for c in fake_tg.get_calls("sendMessage")]
+        assert not any("Похоже на спам" in t for t in texts)
+
+
+@pytest.mark.e2e
+class TestGateOnButtons:
+    async def test_a_button_pressed_in_an_unapproved_chat_does_nothing(
+        self, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession], fake_tg: FakeTelegramServer
+    ) -> None:
+        """Approval is a property of the chat, and a press is an update like any other."""
+        from aiogram.types import CallbackQuery
+        from app.presentation.telegram.bot import build_dispatcher
+        from app.presentation.telegram.handlers import router
+        from app.presentation.telegram.utils import BlacklistConfirm
+
+        router._parent_router = None
+        for sub in router.sub_routers:
+            sub._parent_router = router
+        dp = build_dispatcher(bot, db_session_maker)
+        unapproved = Chat(id=-1008888888888, type="supergroup", title="Not ours")
+        async with db_session_maker() as session:
+            session.add(DbChat(id=unapproved.id, title="Not ours", resource_status=DbChat.STATUS_DISCOVERED))
+            await session.commit()
+
+        press = Update(
+            update_id=60,
+            callback_query=CallbackQuery(
+                id="cb-1",
+                from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+                chat_instance="1",
+                data=BlacklistConfirm(user_id=TARGET_USER_ID, chat_id=unapproved.id, message_id=30).pack(),
+                message=Message(
+                    message_id=90,
+                    date=datetime.now(UTC),
+                    chat=unapproved,
+                    from_user=User(id=123456, is_bot=True, first_name="Bot"),
+                    text="Забанить во всех одобренных чатах?",
+                ),
+            ),
+        )
+
+        await dp.feed_update(bot, press)
+        router._parent_router = None
+
+        assert fake_tg.get_calls("banChatMember") == []
+        assert fake_tg.get_calls("deleteMessage") == []
+
+
+@pytest.mark.e2e
+class TestReportThrottle:
+    async def test_a_member_cannot_flood_the_super_admin_with_reports(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+    ) -> None:
+        """Each /report was a DM to the super admin, and the command was deleted, so nobody saw the flood."""
+        from app.presentation.telegram.handlers import groups
+
+        groups.forget_reports()
+        target = Message(
+            message_id=31,
+            date=datetime.now(UTC),
+            chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+            from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+            text="anything",
+        )
+        for update_id in range(70, 75):
+            report = Message(
+                message_id=update_id,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=REPORTER_ID, is_bot=False, first_name="Reporter"),
+                text="/report",
+                entities=[MessageEntity(type="bot_command", offset=0, length=7)],
+                reply_to_message=target,
+            )
+            await dispatcher.feed_update(bot, Update(update_id=update_id, message=report))
+
+        to_admin = [c for c in fake_tg.get_calls("sendMessage") if str(c.params.get("chat_id")) == str(SUPER_ADMIN_ID)]
+        assert len(to_admin) == 1
+
+
+@pytest.mark.e2e
+class TestSupergroupUpgrade:
+    async def test_a_group_upgraded_to_a_supergroup_keeps_its_moderation(
+        self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+    ) -> None:
+        """Telegram gives the upgraded chat a new id; everything stayed on the dead one."""
+        from app.db.repositories import get_admin_repository
+
+        old_id, new_id, child_id, moderator = -4555123, -1004555123000, -1004555999000, 444000444
+        async with db_session_maker() as session:
+            session.add(
+                DbChat(
+                    id=old_id,
+                    title="ČVUT FIT",
+                    resource_status=DbChat.STATUS_APPROVED,
+                    public_link="https://t.me/cvut_fit",
+                    institution_code="cvut",
+                )
+            )
+            await session.flush()
+            session.add(
+                DbChat(id=child_id, title="FIT 1st year", resource_status=DbChat.STATUS_APPROVED, parent_chat_id=old_id)
+            )
+            await session.commit()
+            await get_admin_repository(session).grant(moderator, old_id)
+
+        upgraded = Chat(id=new_id, type="supergroup", title="ČVUT FIT")
+        service = Message(
+            message_id=1,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+            migrate_from_chat_id=old_id,
+        )
+        await dispatcher.feed_update(bot, Update(update_id=80, message=service))
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+            old = await session.get(DbChat, old_id)
+            child = await session.get(DbChat, child_id)
+            assert new is not None
+            assert (new.resource_status, new.public_link, new.institution_code) == (
+                DbChat.STATUS_APPROVED,
+                "https://t.me/cvut_fit",
+                "cvut",
+            )
+            assert old is not None
+            assert (old.resource_status, old.public_link) == (DbChat.STATUS_DISABLED, None)
+            assert child is not None
+            assert child.parent_chat_id == new_id
+            assert await get_admin_repository(session).is_admin_in(moderator, new_id)
+
+        ban = Message(
+            message_id=2,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=moderator, is_bot=False, first_name="Mod"),
+            text="!ban",
+            entities=[MessageEntity(type="bot_command", offset=0, length=4)],
+            reply_to_message=Message(
+                message_id=1,
+                date=datetime.now(UTC),
+                chat=upgraded,
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="T"),
+                text="x",
+            ),
+        )
+        await dispatcher.feed_update(bot, Update(update_id=81, message=ban))
+        assert [int(c.params["user_id"]) for c in fake_tg.get_calls("banChatMember")] == [TARGET_USER_ID]
+
+
+@pytest.mark.e2e
+class TestHistoryIsOneRowPerMessage:
+    async def test_a_redelivered_update_is_stored_once(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        """Telegram redelivers what it was not sure arrived; each copy was a new row."""
+        from sqlalchemy import func
+
+        update = Update(
+            update_id=90,
+            message=Message(
+                message_id=95,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+                text="hello",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+        await dispatcher.feed_update(bot, update)
+
+        async with db_session_maker() as session:
+            stored = await session.scalar(select(func.count()).select_from(DbMessage).where(DbMessage.message_id == 95))
+        assert stored == 1
+
+
+@pytest.mark.e2e
+class TestSupergroupUpgradeEdges:
+    async def _announce(self, dispatcher, bot, old_id: int, new_id: int) -> None:
+        upgraded = Chat(id=new_id, type="supergroup", title="Upgraded")
+        service = Message(
+            message_id=1,
+            date=datetime.now(UTC),
+            chat=upgraded,
+            from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+            migrate_from_chat_id=old_id,
+        )
+        await dispatcher.feed_update(bot, Update(update_id=85, message=service))
+
+    async def test_an_upgrade_never_lowers_the_new_chats_approval(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        old_id, new_id = -4555124, -1004555124000
+        async with db_session_maker() as session:
+            session.add(DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_DISCOVERED))
+            session.add(
+                DbChat(id=new_id, title="New", resource_status=DbChat.STATUS_APPROVED, public_link="https://t.me/x")
+            )
+            await session.commit()
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+        assert new is not None
+        assert (new.resource_status, new.public_link) == (DbChat.STATUS_APPROVED, "https://t.me/x")
+
+    async def test_a_moderator_already_scoped_to_the_new_chat_does_not_stop_the_move(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        from app.db.repositories import get_admin_repository
+
+        old_id, new_id, moderator = -4555125, -1004555125000, 444000446
+        async with db_session_maker() as session:
+            session.add(DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_APPROVED))
+            session.add(DbChat(id=new_id, title="New"))
+            await session.commit()
+            repo = get_admin_repository(session)
+            await repo.grant(moderator, old_id)
+            await repo.grant(moderator, new_id)
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+            assert new is not None
+            assert new.resource_status == DbChat.STATUS_APPROVED
+            assert await get_admin_repository(session).is_admin_in(moderator, new_id)

@@ -188,3 +188,88 @@ async def test_a_stand_in_sender_is_never_blacklisted(stand_in: int) -> None:
         await blacklist.add_to_blacklist(AsyncMock(), bot, stand_in)
 
     bot.ban_chat_member.assert_not_awaited()
+
+
+class TestPacing:
+    async def test_flood_control_is_waited_out_not_swallowed(self, wired, monkeypatch):
+        """A retry_after was logged as "maybe already banned", and the chat stayed open."""
+        from aiogram.exceptions import TelegramRetryAfter
+
+        bot, _ = wired
+        slept: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            slept.append(seconds)
+
+        monkeypatch.setattr(blacklist.asyncio, "sleep", fake_sleep)
+        bot.ban_chat_member.side_effect = [
+            TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=3),
+            None,
+            None,
+            None,
+        ]
+
+        failed = await blacklist.add_to_blacklist(AsyncMock(), bot, 777)
+
+        assert failed == []
+        assert bot.ban_chat_member.await_count == 4
+        assert 3 in slept
+
+    async def test_chats_that_still_refuse_are_named(self, wired):
+        bot, _ = wired
+
+        async def refuse_one(chat_id, *_args, **_kwargs):
+            if chat_id == -100_2:
+                raise RuntimeError("Bad Request: not enough rights")
+
+        bot.ban_chat_member.side_effect = refuse_one
+
+        assert await blacklist.add_to_blacklist(AsyncMock(), bot, 777) == [-100_2]
+
+    async def test_not_every_chat_at_once(self, wired, monkeypatch):
+        """46 calls back to back tripped flood control and lost a third of them."""
+        import asyncio
+
+        bot, _ = wired
+        running = peak = 0
+
+        async def slow_ban(*_args, **_kwargs):
+            nonlocal running, peak
+            running += 1
+            peak = max(peak, running)
+            await asyncio.sleep(0.01)
+            running -= 1
+
+        bot.ban_chat_member.side_effect = slow_ban
+        monkeypatch.setattr(blacklist, "_FAN_OUT_CONCURRENCY", 2)
+
+        await blacklist.add_to_blacklist(AsyncMock(), bot, 777)
+
+        assert peak <= 2
+
+    async def test_unbans_are_paced_and_named_too(self, wired):
+        bot, _ = wired
+
+        async def refuse_one(chat_id, *_args, **_kwargs):
+            if chat_id == -100_3:
+                raise RuntimeError("Bad Request: chat not found")
+
+        bot.unban_chat_member.side_effect = refuse_one
+
+        assert await blacklist.remove_from_blacklist(AsyncMock(), bot, 777) == [-100_3]
+
+
+async def test_an_incomplete_fan_out_names_the_chats(wired, caplog):
+    """ "failed=2" says something is wrong and nothing about where."""
+    bot, _ = wired
+
+    async def refuse(chat_id, *_args, **_kwargs):
+        if chat_id != -100_1:
+            raise RuntimeError("Forbidden: bot was kicked")
+
+    bot.ban_chat_member.side_effect = refuse
+
+    await blacklist.add_to_blacklist(AsyncMock(), bot, 777)
+
+    assert "-1002" in caplog.text
+    assert "-1003" in caplog.text

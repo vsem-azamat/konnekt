@@ -84,10 +84,10 @@ export function settledOf(state: JoinState): Settled | null {
   return null;
 }
 
-/** What a failed request means. Only supervisor's 403 is a refusal. */
+/** What a failed request means. Only supervisor's 403 and 409 are refusals. */
 export function joinEventFor(error: unknown): JoinEvent {
   const status = (error as { status?: unknown } | null)?.status;
-  return status === 403 ? { type: 'refused' } : { type: 'unreachable' };
+  return status === 403 || status === 409 ? { type: 'refused' } : { type: 'unreachable' };
 }
 
 /** Whether supervisor's answer is an approval: `{status: "approved"}` and nothing else. */

@@ -50,6 +50,14 @@ async def handle_pending_action(
         await callback.answer(note, show_alert=True)
         await _strip_keyboard(callback, note)
         return
+    except Exception:
+        # Recorded as failed by the service; the admin must see it too, or
+        # the buttons stay and the press looks like it went nowhere.
+        logger.exception("pending_action_press_failed", pending_id=callback_data.pending_id)
+        note = "Не выполнено: Telegram отказал. Запрос закрыт, ничего не изменилось."
+        await callback.answer(note, show_alert=True)
+        await _strip_keyboard(callback, note)
+        return
 
     if resolved is None:
         # Already pressed, already gone, or its deadline passed while it sat here.
