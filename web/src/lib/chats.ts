@@ -7,6 +7,8 @@
  * built from it is the paragraph after.
  */
 
+import { matches } from './search.ts';
+
 /** Supervisor's own words for how much a chat talks. `unknown` is an answer. */
 export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
 
@@ -136,18 +138,19 @@ export function fold(text: string): string {
 }
 
 /**
- * The chats every word of the query appears in, title or group, in any order.
+ * The chats every word of the query starts a word of, in title, group or the
+ * university's code, in any order and either script (see lib/search.ts).
+ *
+ * The code is there for what nobody writes in a title: «uk», «muni». It also
+ * puts a university's dormitories under its name, which is where they belong.
  *
  * Flat on purpose: somebody who typed «fit» wants the chat, not the section
  * it sits in. An empty query narrows nothing.
  */
 export function search(chats: PublicChat[], query: string): PublicChat[] {
-  const words = fold(query).split(/\s+/).filter(Boolean);
-  if (words.length === 0) return chats;
-  return chats.filter((chat) => {
-    const haystack = fold(`${chat.title} ${chat.group ?? ''}`);
-    return words.every((word) => haystack.includes(word));
-  });
+  return chats.filter((chat) =>
+    matches([chat.title, chat.group, chat.institution], query),
+  );
 }
 
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */

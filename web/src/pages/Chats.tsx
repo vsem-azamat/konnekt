@@ -93,10 +93,7 @@ export default function ChatsPage() {
           </Rows>
         ) : searching ? (
           found.length === 0 ? (
-            <Empty
-              title={<Trans>Такого чата нет</Trans>}
-              body={<Trans>Попробуй название вуза или факультета латиницей.</Trans>}
-            />
+            <Empty title={<Trans>Такого чата нет</Trans>} />
           ) : (
             <>
               <Label>

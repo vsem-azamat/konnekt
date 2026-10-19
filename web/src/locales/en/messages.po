@@ -2268,8 +2268,8 @@ msgid "Сначала заполни профиль"
 msgstr "Fill in your profile first"
 
 #: src/pages/Chats.tsx
-msgid "Попробуй название вуза или факультета латиницей."
-msgstr "Try the university or faculty name in Latin letters."
+#~ msgid "Попробуй название вуза или факультета латиницей."
+#~ msgstr "Try the university or faculty name in Latin letters."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Summary.tsx

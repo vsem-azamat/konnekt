@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { Hint, Row, Rows, ui } from '@/components/Ui';
 import { institutionsQuery } from '@/lib/api';
+import { matches } from '@/lib/search';
 import type { Institution } from '@/lib/types';
 
 /**
@@ -19,7 +20,8 @@ import type { Institution } from '@/lib/types';
  * about never — so it is one request, cached for an hour, and every keystroke
  * after it is free. Subjects go to the server because there are hundreds of
  * them and the match has to be fuzzy across four languages; a school is matched
- * on its own name and its abbreviation, which a substring test does.
+ * on its own name, its abbreviation and its university's, in either script
+ * («чвут», «масарик»), which lib/search.ts does on the client.
  *
  * `taken` is not politeness: `offers` is unique on its four axes, so a second
  * row for the same school is a 422 the screen can only report as "did not
@@ -53,15 +55,13 @@ export function InstitutionPicker({
     return out;
   }, [data]);
 
-  const needle = fold(query.trim());
+  const needle = query.trim();
   const found = useMemo(() => {
     if (needle.length < 2) return [];
     return flat
       .filter(({ row }) => !taken.has(row.id))
       .filter(({ row, under }) =>
-        [row.name, row.short_name, row.code, under]
-          .filter(Boolean)
-          .some((field) => fold(field as string).includes(needle)),
+        matches([row.name, row.short_name, row.code, under], needle),
       )
       .slice(0, 6);
   }, [flat, needle, taken]);
@@ -114,21 +114,4 @@ export function InstitutionPicker({
       ) : null}
     </>
   );
-}
-
-/**
- * Lowercase and drop Latin accents, so "ČVUT" reaches the code `cvut`.
- *
- * Without it the placeholder's own first example finds nothing: the code column
- * is ASCII, and in English the school is called CTU, so the only string a person
- * typing "ČVUT" could match is one this test never compared against.
- *
- * Latin only, which is all this list contains. A Russian speaker typing "чвут"
- * is what the server's transliteration is for, and it is not here.
- */
-function fold(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '');
 }

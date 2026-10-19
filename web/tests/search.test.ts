@@ -1,0 +1,119 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { type PublicChat, search } from '../src/lib/chats.ts';
+import { matches } from '../src/lib/search.ts';
+
+function chat(
+  title: string,
+  group: string | null,
+  institution: string | null = null,
+): PublicChat {
+  return {
+    title,
+    link: `https://t.me/${title.replace(/\W+/g, '_').toLowerCase()}`,
+    group,
+    institution,
+    activity: 'active',
+  };
+}
+
+const UK = 'Karlova univerzita | Карлов университет';
+const CVUT = 'ČVUT | ЧВУТ';
+
+// The directory as supervisor serves it, titles and groups unchanged.
+const DIRECTORY: PublicChat[] = [
+  chat(UK, UK, 'uk'),
+  chat('Matfyz | Karlova univerzita', UK, 'uk'),
+  chat('Masarykova univerzita', 'Masarykova univerzita', 'muni'),
+  chat('VUT', 'VUT', 'vut'),
+  chat('VŠCHT', 'VŠCHT', 'vscht'),
+  chat(CVUT, CVUT, 'cvut'),
+  chat('ČVUT FEL', CVUT, 'cvut'),
+  chat('ČVUT FIT', CVUT, 'cvut'),
+  chat('Fyzika v ČR', null),
+  chat('IT Чехия | Опыт, работа, новости', null),
+  chat('Kolej Hvězda', null, 'cvut'),
+  chat('Strahov', null, 'cvut'),
+  chat('VŠE', null, 'vse'),
+];
+
+function titles(query: string): string[] {
+  return search(DIRECTORY, query).map((c) => c.title);
+}
+
+const CVUT_CHATS = [CVUT, 'ČVUT FEL', 'ČVUT FIT', 'Kolej Hvězda', 'Strahov'];
+
+test('ČVUT is found in either script, any case, with or without the háček', () => {
+  for (const query of ['чвут', 'ЧВУТ', 'cvut', 'CVUT', 'ČVUT', 'čvut']) {
+    assert.deepEqual(titles(query), CVUT_CHATS, query);
+  }
+});
+
+test('VŠE is found in either script', () => {
+  for (const query of ['вше', 'ВШЕ', 'vse', 'VSE', 'VŠE']) {
+    assert.deepEqual(titles(query), ['VŠE'], query);
+  }
+});
+
+test('faculty and university abbreviations work in Cyrillic', () => {
+  assert.deepEqual(titles('фит'), ['ČVUT FIT']);
+  assert.deepEqual(titles('fit'), ['ČVUT FIT']);
+  assert.deepEqual(titles('муни'), ['Masarykova univerzita']);
+  assert.deepEqual(titles('muni'), ['Masarykova univerzita']);
+  assert.deepEqual(titles('вут'), ['VUT']);
+  assert.deepEqual(titles('vut'), ['VUT']);
+});
+
+test('one university is not another that contains its letters', () => {
+  assert.ok(!titles('чвут').includes('VŠE'));
+  assert.ok(!titles('вше').includes('VŠCHT'));
+  // «vut» sits inside «cvut»: a word has to start with what was typed.
+  assert.ok(!titles('вут').some((title) => title.includes('ČVUT')));
+  assert.ok(!titles('vut').some((title) => title.includes('ČVUT')));
+});
+
+test('the colloquial Russian names reach the chats', () => {
+  assert.deepEqual(titles('карлов'), [UK, 'Matfyz | Karlova univerzita']);
+  assert.deepEqual(titles('карлова'), [UK, 'Matfyz | Karlova univerzita']);
+  assert.deepEqual(titles('uk'), [UK, 'Matfyz | Karlova univerzita']);
+  assert.deepEqual(titles('масарик'), ['Masarykova univerzita']);
+  assert.deepEqual(titles('страгов'), ['Strahov']);
+  assert.deepEqual(titles('хвезда'), ['Kolej Hvězda']);
+  assert.deepEqual(titles('матфиз'), ['Matfyz | Karlova univerzita']);
+  assert.deepEqual(titles('физика'), ['Fyzika v ČR']);
+});
+
+test('a one-letter typo in a longer word is forgiven', () => {
+  assert.deepEqual(titles('strahof'), ['Strahov']); // replaced
+  assert.deepEqual(titles('srahov'), ['Strahov']); // dropped
+  assert.deepEqual(titles('sttrahov'), ['Strahov']); // doubled
+  assert.deepEqual(titles('srtahov'), ['Strahov']); // swapped
+  assert.deepEqual(titles('масарык'), ['Masarykova univerzita']);
+  assert.deepEqual(titles('хвезды'), ['Kolej Hvězda']);
+});
+
+test('short words get no typos: three letters are a different name', () => {
+  assert.deepEqual(titles('fet'), []);
+  assert.deepEqual(titles('вшт'), []);
+  assert.deepEqual(titles('muno'), []);
+});
+
+test('several words match in any order', () => {
+  assert.deepEqual(titles('fit чвут'), ['ČVUT FIT']);
+  assert.deepEqual(titles('ЧВУТ fit'), ['ČVUT FIT']);
+  assert.deepEqual(titles('фел, čvut'), ['ČVUT FEL']);
+  assert.deepEqual(titles('fit vse'), []);
+});
+
+test('a word that matches nothing finds nothing', () => {
+  assert.deepEqual(titles('гарвард'), []);
+});
+
+test('matches folds the fields it is given the same way', () => {
+  assert.ok(matches(['Univerzita Karlova', 'UK', 'uk'], 'карлова'));
+  assert.ok(matches(['Fakulta informačních technologií', 'FIT', null], 'фит'));
+  assert.ok(matches(['Vysoká škola ekonomická v Praze', 'VŠE'], 'вше'));
+  assert.ok(!matches(['Vysoká škola chemicko-technologická', 'VŠCHT'], 'вше'));
+  assert.ok(matches(['anything'], '  '));
+});
