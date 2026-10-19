@@ -7,6 +7,8 @@
  * built from it is the paragraph after.
  */
 
+import { find } from './search.ts';
+
 /** Supervisor's own words for how much a chat talks. `unknown` is an answer. */
 export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
 
@@ -136,18 +138,42 @@ export function fold(text: string): string {
 }
 
 /**
- * The chats every word of the query appears in, title or group, in any order.
+ * The chats every word of the query starts a word of, in title, group, the
+ * university's code or its city, in any order and either script (see
+ * lib/search.ts).
+ *
+ * The code and the city are there for what nobody writes in a title: «uk»,
+ * «muni», «брно». They also put a university's dormitories under its name,
+ * which is where they belong. A city takes no typos, since «права» is one
+ * letter from «praha». Cities come from the catalog's taxonomy.
  *
  * Flat on purpose: somebody who typed «fit» wants the chat, not the section
  * it sits in. An empty query narrows nothing.
  */
-export function search(chats: PublicChat[], query: string): PublicChat[] {
-  const words = fold(query).split(/\s+/).filter(Boolean);
-  if (words.length === 0) return chats;
-  return chats.filter((chat) => {
-    const haystack = fold(`${chat.title} ${chat.group ?? ''}`);
-    return words.every((word) => haystack.includes(word));
-  });
+export function search(
+  chats: PublicChat[],
+  query: string,
+  cityOf: ReadonlyMap<string, string> = new Map(),
+): PublicChat[] {
+  return find(
+    chats,
+    (chat) => [
+      chat.title,
+      chat.group,
+      chat.institution,
+      { exact: chat.institution === null ? null : cityOf.get(chat.institution) },
+    ],
+    query,
+  );
+}
+
+/** Each university's city by its code, for {@link search}. */
+export function cities(
+  taxonomy: { code: string; city: string | null }[],
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const { code, city } of taxonomy) if (city) out.set(code, city);
+  return out;
 }
 
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */

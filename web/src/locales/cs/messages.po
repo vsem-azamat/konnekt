@@ -2101,10 +2101,6 @@ msgstr "Vše"
 msgid "Сначала заполни профиль"
 msgstr "Nejdřív vyplň profil"
 
-#: src/pages/Chats.tsx
-msgid "Попробуй название вуза или факультета латиницей."
-msgstr "Zkus název školy nebo fakulty latinkou."
-
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"
