@@ -871,10 +871,15 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 30px;
-  padding: 0 10px;
+  /* At least, not exactly: a long subject such as «Чешский язык B2 (для вуза
+     и нострификации)» wraps, and a fixed height let it spill over the edge. */
+  min-height: 30px;
+  max-width: 100%;
+  padding: 6px 10px;
   border: 0;
   border-radius: var(--r-chip);
+  line-height: 1.3;
+  text-align: left;
   background: var(--surface);
   color: var(--ink);
   font-size: 13px;
@@ -893,8 +898,14 @@
   color: var(--muted);
 }
 
+.chipNote {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
 .chipRemove {
   display: grid;
+  flex: none;
   place-items: center;
   margin-right: -3px;
   padding: 2px;
