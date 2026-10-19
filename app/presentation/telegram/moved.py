@@ -10,6 +10,8 @@ switching one off is removing its token.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.types import (
     BotCommandScopeAllChatAdministrators,
@@ -26,9 +28,13 @@ from aiogram.utils.token import TokenValidationError
 from app.core.config import settings
 from app.core.logging import get_logger
 
+if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
 logger = get_logger("moved")
 
 MOVED_TEXT = "Konnekt переехал: каталог, чаты и помощь с учёбой теперь в @{username}. Нажмите там /start."
+MOVED_SHORT_TEXT = "Konnekt переехал: теперь @{username}"
 
 
 async def point_to_konnekt(message: Message, konnekt_username: str) -> None:
@@ -48,24 +54,36 @@ def build_router() -> Router:
     return router
 
 
-async def retire_profile(bot: Bot) -> None:
-    """Take down what Telegram keeps on the bot from when it was current.
+async def retire_profile(bot: Bot, konnekt_username: str) -> None:
+    """Replace what Telegram keeps on the bot from when it was current.
 
     Its Mini App button would sign in with this bot's token, which the API no
-    longer accepts, and its commands lead nowhere; neither reaches the message
-    saying where Konnekt went. Logged, not raised: the bot still answers without it.
+    longer accepts, its commands lead nowhere, and its description still says
+    to press that button. Each step stands alone, as in `profile.py`, and is
+    logged rather than raised: the bot still answers without it.
     """
-    try:
-        await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
-        for scope in (
-            BotCommandScopeDefault(),
-            BotCommandScopeAllPrivateChats(),
-            BotCommandScopeAllGroupChats(),
-            BotCommandScopeAllChatAdministrators(),
-        ):
-            await bot.delete_my_commands(scope=scope)
-    except Exception as e:
-        logger.warning("retired_profile_not_reset", bot=bot.id, error=str(e))
+    steps: list[tuple[str, Awaitable[object]]] = [
+        ("menu_button", bot.set_chat_menu_button(menu_button=MenuButtonCommands())),
+        *(
+            (f"commands:{scope.type}", bot.delete_my_commands(scope=scope))
+            for scope in (
+                BotCommandScopeDefault(),
+                BotCommandScopeAllPrivateChats(),
+                BotCommandScopeAllGroupChats(),
+                BotCommandScopeAllChatAdministrators(),
+            )
+        ),
+        ("description", bot.set_my_description(description=MOVED_TEXT.format(username=konnekt_username))),
+        (
+            "short_description",
+            bot.set_my_short_description(short_description=MOVED_SHORT_TEXT.format(username=konnekt_username)),
+        ),
+    ]
+    for name, step in steps:
+        try:
+            await step
+        except Exception as e:
+            logger.warning("retired_profile_step_failed", bot=bot.id, step=name, error=str(e))
 
 
 def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
@@ -76,6 +94,10 @@ def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
     """
     built = []
     for position, token in enumerate(settings.telegram.retired_tokens, start=1):
+        if token == settings.telegram.token:
+            # A second poller on the main bot would take turns with it for moderation's updates.
+            logger.warning("retired_token_is_current", position=position)
+            continue
         try:
             bot = Bot(token=token)
         except TokenValidationError:

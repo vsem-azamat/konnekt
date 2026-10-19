@@ -8,7 +8,7 @@ still write to both; without this they would hear nothing at all.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.types import InlineKeyboardMarkup
@@ -68,9 +68,6 @@ def _retired(monkeypatch, raw: str | None) -> list[str]:
         (f"{STUDENT}\n{MODER}\n", [STUDENT, MODER]),
         # Two pollers on one token fight over its updates and both lose.
         (f"{STUDENT},{STUDENT}", [STUDENT]),
-        # Pasting the current token among the retired ones would put a second
-        # poller on the main bot and steal moderation's updates.
-        (f"{MAIN},{STUDENT}", [STUDENT]),
     ],
 )
 def test_retired_tokens_are_read_however_they_were_written(monkeypatch, raw: str | None, expected: list[str]) -> None:
@@ -93,29 +90,76 @@ def test_every_retired_token_gets_a_bot_and_a_dispatcher_of_its_own(monkeypatch)
     assert built[0][1] is not built[1][1]
 
 
+def _logged(monkeypatch) -> MagicMock:
+    """The module's logger, replaced: what other tests did to logging must not decide these."""
+    logger = MagicMock()
+    monkeypatch.setattr(moved, "logger", logger)
+    return logger
+
+
 def test_a_malformed_token_is_skipped_rather_than_taking_moderation_down(monkeypatch) -> None:
     """`Bot()` checks the token as it is built, before anything is contained."""
-    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", ["not-a-token", MODER])
+    logger = _logged(monkeypatch)
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", ["123:with spaces", MODER])
 
     assert [bot.token for bot, _ in moved.build_moved_bots()] == [MODER]
+    logger.error.assert_called_once_with("retired_token_malformed", position=1)
+    assert "with spaces" not in str(logger.mock_calls)
 
 
-async def test_a_retired_bot_stops_offering_the_mini_app_and_the_commands() -> None:
-    """Telegram keeps both on the bot after it is retired.
+def test_the_current_token_among_the_retired_is_skipped_with_a_warning(monkeypatch) -> None:
+    """A second poller on the main bot would take turns with it for moderation's updates."""
+    logger = _logged(monkeypatch)
+    monkeypatch.setattr(moved.settings.telegram, "token", MAIN)
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [STUDENT, MAIN])
+
+    assert [bot.token for bot, _ in moved.build_moved_bots()] == [STUDENT]
+    logger.warning.assert_called_once_with("retired_token_is_current", position=2)
+    assert MAIN not in str(logger.mock_calls)
+
+
+ALL_SCOPES = {
+    "BotCommandScopeDefault",
+    "BotCommandScopeAllPrivateChats",
+    "BotCommandScopeAllGroupChats",
+    "BotCommandScopeAllChatAdministrators",
+}
+
+
+async def test_a_retired_bot_says_it_moved_and_drops_the_mini_app_and_the_commands() -> None:
+    """Telegram keeps all of it on the bot after it is retired.
 
     The old Mini App button signs in with the old token, which the API no
-    longer accepts, and the old commands lead nowhere: neither would ever
-    reach the message saying where Konnekt went.
+    longer accepts, the old commands lead nowhere, and the old description
+    still says to press a button that is gone.
     """
     from aiogram.types import MenuButtonCommands
 
     bot = AsyncMock()
 
-    await moved.retire_profile(bot)
+    await moved.retire_profile(bot, konnekt_username="konnekt_cz_bot")
 
     assert isinstance(bot.set_chat_menu_button.await_args.kwargs["menu_button"], MenuButtonCommands)
-    scopes = {type(call.kwargs.get("scope")).__name__ for call in bot.delete_my_commands.await_args_list}
-    assert {"BotCommandScopeDefault", "BotCommandScopeAllPrivateChats", "BotCommandScopeAllGroupChats"} <= scopes
+    scopes = {type(call.kwargs["scope"]).__name__ for call in bot.delete_my_commands.await_args_list}
+    assert scopes == ALL_SCOPES
+    description = bot.set_my_description.await_args.kwargs["description"]
+    short = bot.set_my_short_description.await_args.kwargs["short_description"]
+    assert "@konnekt_cz_bot" in description
+    assert "@konnekt_cz_bot" in short
+    # Telegram's limits.
+    assert len(description) <= 512
+    assert len(short) <= 120
+
+
+async def test_one_failed_reset_step_leaves_the_others_done() -> None:
+    bot = AsyncMock()
+    bot.set_chat_menu_button.side_effect = RuntimeError("flood control")
+
+    await moved.retire_profile(bot, konnekt_username="konnekt_cz_bot")
+
+    assert {type(call.kwargs["scope"]).__name__ for call in bot.delete_my_commands.await_args_list} == ALL_SCOPES
+    bot.set_my_description.assert_awaited()
+    bot.set_my_short_description.assert_awaited()
 
 
 async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> None:
@@ -123,6 +167,17 @@ async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> No
     ((_, dp),) = moved.build_moved_bots()
 
     assert [handler.callback for handler in dp.startup.handlers] == [moved.retire_profile]
+
+
+async def test_a_retired_bot_starts_with_the_new_address_to_hand(monkeypatch) -> None:
+    """The startup handler gets the new username from the polling call, as the message handler does."""
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [MODER])
+    ((_, dp),) = moved.build_moved_bots()
+    bot = AsyncMock()
+
+    await dp.emit_startup(bot=bot, konnekt_username="konnekt_cz_bot")
+
+    assert "@konnekt_cz_bot" in bot.set_my_description.await_args.kwargs["description"]
 
 
 async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch) -> None:

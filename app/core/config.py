@@ -106,15 +106,13 @@ class TelegramSettings(Settings):
         return re.split(r"[\s,]+", value) if isinstance(value, str) else value
 
     @model_validator(mode="after")
-    def _retired_are_not_current(self) -> TelegramSettings:
-        """Each retired token once, and never the current one.
+    def _retired_once_each(self) -> TelegramSettings:
+        """Two pollers on one token take turns receiving its updates.
 
-        Two pollers on one token take turns receiving its updates, so a
-        duplicate here, or the main token pasted in among the retired ones
-        during a move, would quietly cost moderation half of what it sees.
+        The current token pasted in among these is caught where the bots are
+        built (`moved.build_moved_bots`), which can say so in the log.
         """
-        unique = dict.fromkeys(self.retired_tokens)
-        self.retired_tokens = [token for token in unique if token and token != self.token]
+        self.retired_tokens = [token for token in dict.fromkeys(self.retired_tokens) if token]
         return self
 
 
