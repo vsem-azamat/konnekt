@@ -157,3 +157,24 @@ async def test_the_retired_bot_failing_does_not_take_moderation_down(monkeypatch
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
     assert main_ran.is_set()
+
+
+async def test_a_failure_before_polling_starts_still_reaches_the_alerts(monkeypatch, services) -> None:
+    stopped: list[str] = []
+
+    async def alerts():
+        async def close() -> None:
+            stopped.append("alerts")
+
+        return close
+
+    def broken_setup(_):
+        raise RuntimeError("bad token")
+
+    monkeypatch.setattr(bot_module, "_start_alerts", alerts)
+    monkeypatch.setattr(bot_module, "_setup_main_bot", broken_setup)
+
+    with pytest.raises(RuntimeError, match="bad token"):
+        await bot_module.main()
+
+    assert stopped == ["alerts"]

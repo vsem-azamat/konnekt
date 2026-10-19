@@ -140,3 +140,12 @@ async def test_uvicorn_route_crashes_are_seen_although_they_do_not_propagate() -
         uvicorn_error.propagate = True
 
     assert sent == ["⚠️ bot: uvicorn.error: Exception in ASGI application"]
+
+
+async def test_positional_arguments_are_not_sent() -> None:
+    """structlog formats them into the event; the name is taken before that."""
+    setup_logging()
+
+    sent = await _run(lambda: structlog.get_logger("x").error("could not load %s", "password=hunter2"))
+
+    assert sent == ["⚠️ bot: x: could not load %s"]

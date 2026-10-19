@@ -31,10 +31,19 @@ def _keep_event_name(renderer: Processor) -> Processor:
     """
 
     def render(logger: Any, method_name: str, event_dict: EventDict) -> Any:
-        event = str(event_dict.get("event", "?"))
+        event = str(event_dict.pop(_EVENT_NAME, "?"))
         return (renderer(logger, method_name, event_dict),), {"extra": {"structlog_event": event}}
 
     return render
+
+
+_EVENT_NAME = "_event_name"
+
+
+def _remember_event_name(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
+    """The event as written, before positional arguments are formatted into it."""
+    event_dict[_EVENT_NAME] = event_dict.get("event", "?")
+    return event_dict
 
 
 def setup_logging() -> None:
@@ -66,6 +75,7 @@ def setup_logging() -> None:
 
     # Configure processors based on environment
     processors: list[Processor] = [
+        _remember_event_name,
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,

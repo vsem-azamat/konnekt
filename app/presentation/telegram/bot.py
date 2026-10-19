@@ -165,6 +165,17 @@ async def main() -> None:
     """Application entry point."""
     logger.info("starting", environment=settings.environment)
 
+    # First, so that a failure anywhere in the process reaches the report chat.
+    close_alerts = await _start_alerts()
+    try:
+        await _serve()
+    finally:
+        await close_alerts()
+        logger.info("stopped")
+
+
+async def _serve() -> None:
+    """The bot, its poller and the services beside it, until the poller ends."""
     session_maker = get_session_maker()
 
     main_bot, main_dp = _setup_main_bot(session_maker)
@@ -219,7 +230,6 @@ async def main() -> None:
         name="main",
         allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
     )
-    close_alerts = await _start_alerts()
     try:
         await _supervise(polling, tasks)
     finally:
@@ -227,8 +237,6 @@ async def main() -> None:
             await close_db()
         except Exception as e:
             logger.error("close_db_failed", error=str(e), exc_info=True)
-        await close_alerts()
-        logger.info("stopped")
 
 
 async def _start_alerts() -> Callable[[], Awaitable[None]]:
