@@ -129,6 +129,54 @@ class TestConfirm:
         assert executor.await_count == 1
 
 
+class TestConfirmUnderFailure:
+    async def test_a_refused_action_is_not_recorded_as_done(self, session, bot) -> None:
+        """Marked confirmed before the ban ran, a refusal left a record of a ban that never happened."""
+        from app.db.models import ModerationEvent
+        from sqlalchemy import select
+
+        executor = AsyncMock(side_effect=RuntimeError("Bad Request: not enough rights"))
+        pending = await _propose(session, bot)
+        service = PendingActionService(bot=bot, db=session, executor=executor)
+
+        with pytest.raises(RuntimeError):
+            await service.confirm(pending.id, admin_id=ADMIN_ID)
+
+        await session.refresh(pending)
+        assert pending.status == PendingActionStatus.FAILED
+        assert (await session.execute(select(ModerationEvent))).scalars().all() == []
+
+    async def test_two_presses_at_once_execute_once(self, session, bot, session_maker) -> None:
+        """A double tap, or two super admins: the claim must be one statement, not a read then a write."""
+        import asyncio
+
+        executor = AsyncMock()
+        pending = await _propose(session, bot)
+
+        async def press() -> object:
+            async with session_maker() as own:
+                return await PendingActionService(bot=bot, db=own, executor=executor).confirm(
+                    pending.id, admin_id=ADMIN_ID
+                )
+
+        results = await asyncio.gather(press(), press())
+
+        assert executor.await_count == 1
+        assert sum(r is not None for r in results) == 1
+
+    async def test_a_proposal_nobody_was_told_about_is_not_left_waiting(self, session, bot) -> None:
+        """The admin never started the bot: no message, so no button anybody could press."""
+        bot.send_message = AsyncMock(side_effect=RuntimeError("Forbidden: bot can't initiate conversation"))
+
+        with pytest.raises(RuntimeError):
+            await _propose(session, bot)
+
+        from sqlalchemy import select
+
+        rows = (await session.execute(select(PendingAction))).scalars().all()
+        assert [r.status for r in rows] == [PendingActionStatus.EXPIRED]
+
+
 class TestReject:
     async def test_reject_never_executes(self, session, bot) -> None:
         executor = AsyncMock()

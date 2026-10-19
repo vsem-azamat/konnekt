@@ -584,7 +584,9 @@ class TestSpamWarning:
         spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
         async with db_session_maker() as session:
             session.add(
-                DbMessage(chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True)
+                DbMessage(
+                    chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True
+                )
             )
             await session.commit()
 
@@ -610,7 +612,9 @@ class TestSpamWarning:
         spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
         async with db_session_maker() as session:
             session.add(
-                DbMessage(chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True)
+                DbMessage(
+                    chat_id=CHAT_ID, user_id=999000999, message_id=5, message=spam_text, message_info={}, spam=True
+                )
             )
             session.add(DbMessage(chat_id=CHAT_ID, user_id=333000333, message_id=6, message="привет", message_info={}))
             await session.commit()

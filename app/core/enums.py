@@ -59,6 +59,10 @@ class PendingActionStatus(StrEnum):
     """
 
     PENDING = "pending"
+    # Claimed by a press and being carried out; confirmed or failed next.
+    EXECUTING = "executing"
     CONFIRMED = "confirmed"
+    # Pressed, but Telegram refused: nothing happened, and the record says so.
+    FAILED = "failed"
     REJECTED = "rejected"
     EXPIRED = "expired"
