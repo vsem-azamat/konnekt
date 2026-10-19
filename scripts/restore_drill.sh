@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Restore a dump into a throwaway Postgres and show what came back.
 #
-#   scripts/restore_drill.sh db-backups/moderator-<stamp>.dump
-#   scripts/restore_drill.sh catalog-backups/catalog-<stamp>.dump
+#   ssh azamat 'cd ~/deploy/supervisor-telegram && bash -s -- db-backups/<file>.dump' < scripts/restore_drill.sh
 #
-# Run on the host, from ~/deploy/supervisor-telegram. The container has no
-# network and is removed on exit, so this cannot reach the live databases
+# The script lives in the repository, not on the host, so it is fed over ssh
+# as above; the dump path is relative to the deploy directory. The container
+# has no network and is removed on exit, so this cannot reach the live databases
 # whatever the dump contains: it proves a dump restores without touching
 # anything that serves. Fails on the first restore error.
 set -euo pipefail
@@ -19,7 +19,9 @@ docker run --rm --network none --memory 2g \
   --entrypoint bash pgvector/pgvector:0.8.6-pg18-bookworm -c '
     set -euo pipefail
     docker-entrypoint.sh postgres > /tmp/pg.log 2>&1 &
-    for _ in $(seq 60); do psql -U postgres -tAc "select 1" > /dev/null 2>&1 && break; sleep 1; done
+    # Over TCP: the image first runs a short-lived server on the socket only,
+    # and a restore that lands in it dies as if the dump were bad.
+    for _ in $(seq 60); do psql -h 127.0.0.1 -U postgres -tAc "select 1" > /dev/null 2>&1 && break; sleep 1; done
     createdb -U postgres drill
     start=$(date +%s)
     pg_restore --no-owner --no-privileges --exit-on-error -U postgres -d drill /in/backup.dump

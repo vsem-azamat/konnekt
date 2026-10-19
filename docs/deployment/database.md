@@ -67,8 +67,10 @@ success, and old dumps are pruned only after a successful one, so a database
 that stops answering does not cost the dumps already taken.
 
 The container turns unhealthy when its newest dump is two days old. Nothing
-else watches the backups, so `docker ps` showing `unhealthy` is the alarm, and
-a deploy's `--wait` fails on it.
+else watches the backups, so `docker ps` showing `unhealthy` is the signal. A
+deploy's `--wait` fails on it too, but only after the new release is already
+running: a red deploy with a backup container named in it is a backup problem,
+not a reason to roll back.
 
 ### Restoring
 
@@ -81,10 +83,14 @@ ssh azamat 'cd ~/deploy/supervisor-telegram && bash -s -- db-backups/<file>.dump
 ```
 
 Then restore into a new database on the database server, next to the live one,
-never over it: `createdb` a scratch name, `pg_restore --no-owner
---no-privileges -d <scratch>`, check it, and only then stop `bot` and `webapi`
-and swap the names with `ALTER DATABASE ... RENAME TO`. The old database stays
-under its new name until the restored one has been running for a while.
+never over it: `createdb` a scratch name, `pg_restore --exit-on-error
+--no-owner --no-privileges -d <scratch>`, check it, and only then stop `bot`
+and `webapi` and swap the names in one transaction (`psql -v ON_ERROR_STOP=1
+-1` with both `ALTER DATABASE ... RENAME TO`). The bot's role may lack
+`CREATEDB` on the shared server, so this is done by whoever administers that
+server. Hold deploys meanwhile, since a deploy starts what was stopped. The old
+database stays under its new name until the restored one has proved itself,
+then is dropped.
 
 Drill on 2026-10-19 (supervisor-telegram#188): `moderator-20261019T020000Z.dump`,
 13 MB, restored in 1–2 s into 21 tables at the current migration head, 73,606

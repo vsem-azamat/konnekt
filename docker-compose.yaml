@@ -42,7 +42,7 @@ x-runtime-env: &runtime-env
 x-pg-backup-loop: &pg-backup-loop
       - |
         set -euo pipefail
-        # What the healthcheck counts a fresh container's two days from.
+        # What the healthcheck counts a first dump's two days from.
         touch /tmp/backup-loop-started
         while true; do
           now=$$(date -u +%s)
@@ -67,14 +67,17 @@ x-pg-backup-loop: &pg-backup-loop
         done
 
 # Unhealthy once the newest dump is two days old, which is what `docker ps`
-# and the deploy's --wait then show: nothing else watches the dumps. A fresh
-# container is given the same two days to write its first one.
+# and the deploy's --wait then show: nothing else watches the dumps. Only a
+# directory with no dump of ours at all gets two days' grace from the loop's
+# start, so a restart cannot hide a stale backup. Dumps copied in by hand do
+# not count.
 x-pg-backup-healthcheck: &pg-backup-healthcheck
   test:
     - CMD-SHELL
     - >-
-      [ -n "$$(find /backups -maxdepth 1 -name '*.dump' -mmin -2880 -print -quit)" ]
-      || [ -n "$$(find /tmp/backup-loop-started -mmin -2880 2>/dev/null)" ]
+      [ -n "$$(find /backups -maxdepth 1 -name "$${BACKUP_PREFIX}-*.dump" -mmin -2880 -print -quit)" ]
+      || { [ -z "$$(find /backups -maxdepth 1 -name "$${BACKUP_PREFIX}-*.dump" -print -quit)" ]
+      && [ -n "$$(find /tmp/backup-loop-started -mmin -2880 2>/dev/null)" ]; }
   interval: 10m
   timeout: 10s
   retries: 1

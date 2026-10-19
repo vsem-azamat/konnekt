@@ -118,20 +118,25 @@ ssh azamat 'cd ~/deploy/supervisor-telegram && bash -s -- catalog-backups/<file>
   < scripts/restore_drill.sh
 ```
 
-Then restore beside the live database, never over it, and swap:
+Then restore beside the live database, never over it, and swap. On the host,
+from `~/deploy/supervisor-telegram`; the catalog's role is a superuser, which
+`CREATE EXTENSION vector` needs:
 
 ```sh
 docker exec supervisor-telegram-catalog-postgres sh -c 'createdb -U "$POSTGRES_USER" catalog_restore'
-docker exec -i supervisor-telegram-catalog-postgres sh -c 'pg_restore --no-owner --no-privileges \
-  -U "$POSTGRES_USER" -d catalog_restore' < catalog-backups/<file>.dump
+docker exec -i supervisor-telegram-catalog-postgres sh -c 'pg_restore --exit-on-error --no-owner \
+  --no-privileges -U "$POSTGRES_USER" -d catalog_restore' < catalog-backups/<file>.dump
 docker stop supervisor-telegram-catalog-api       # nothing may hold the live database
-docker exec supervisor-telegram-catalog-postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres \
+# One transaction: a rename that fails leaves both names where they were.
+docker exec supervisor-telegram-catalog-postgres sh -c 'psql -v ON_ERROR_STOP=1 -1 -U "$POSTGRES_USER" -d postgres \
   -c "ALTER DATABASE \"$POSTGRES_DB\" RENAME TO catalog_before_restore" \
   -c "ALTER DATABASE catalog_restore RENAME TO \"$POSTGRES_DB\""'
 docker start supervisor-telegram-catalog-api
 ```
 
-`catalog_before_restore` stays until the restored database has proved itself.
+`catalog_before_restore` stays until the restored database has proved itself,
+then is dropped, or the next swap has nowhere to put the old one. Hold deploys
+meanwhile: a deploy starts whatever was stopped.
 
 Drill on 2026-10-19 (supervisor-telegram#188): `catalog-20261019T030000Z.dump`,
 4.5 MB, restored in under a second into 34 tables at the current migration
