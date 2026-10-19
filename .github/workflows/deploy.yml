@@ -209,6 +209,10 @@ jobs:
             export DOCKER_CONFIG="$PWD/.docker"
             mkdir -p "$DOCKER_CONFIG"
 
+            # The release running now, kept after this one replaces it so that
+            # going back to it needs no pull.
+            PREVIOUS_TAG=$(docker inspect -f '{{.Config.Image}}' supervisor-telegram-bot 2>/dev/null | sed -n 's/^.*://p')
+
             docker compose pull
 
             # The catalog's password, proven against whichever Postgres holds
@@ -256,3 +260,21 @@ jobs:
             # users and chats. Read logs on the host.
             echo "--- Container status ---"
             docker compose ps
+
+            # --- prune ---
+            # This project's images only, and only once the new release is up:
+            # the host is shared, and its other projects' images and build
+            # cache are theirs to keep. 99 GB had piled up before this.
+            keep="$IMAGE_TAG catalog-$IMAGE_TAG"
+            [ -z "$PREVIOUS_TAG" ] || keep="$keep $PREVIOUS_TAG catalog-$PREVIOUS_TAG"
+            stale=$(docker images --format '{{.Repository}}:{{.Tag}}' | while read -r ref; do
+              case "$ref" in
+                ghcr.io/vsem-azamat/supervisor-telegram:*|ghcr.io/vsem-azamat/supervisor-telegram-webui:*) ;;
+                *) continue ;;
+              esac
+              case " $keep " in *" ${ref##*:} "*) continue ;; esac
+              echo "$ref"
+            done)
+            [ -z "$stale" ] || docker image rm $stale > /dev/null || true
+            echo "Removed $(printf '%s' "$stale" | grep -c .) old images of this project."
+            # --- /prune ---
