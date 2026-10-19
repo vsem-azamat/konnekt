@@ -212,7 +212,9 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 55
+# Near the real figure (88 % on 2026-10-19), so a change that drops
+# coverage noticeably fails rather than hiding under a floor nobody reaches.
+fail_under = 85
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

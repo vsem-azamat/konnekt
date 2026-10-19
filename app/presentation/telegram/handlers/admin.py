@@ -8,10 +8,17 @@ grants the wrong one eventually.
 
 from aiogram import Router, types
 from aiogram.filters import Command
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
 from app.db.repositories import AdminRepository
-from app.presentation.telegram.handlers.moderation._common import author_of, not_a_person_error, replied_message
+from app.presentation.telegram.handlers.moderation._common import (
+    author_of,
+    not_a_person_error,
+    record_reply_target,
+    replied_message,
+)
 from app.presentation.telegram.utils import other
 
 logger = get_logger("handlers.admin")
@@ -21,7 +28,7 @@ _REPLY_REQUIRED = "Используйте эту команду в ответ н
 
 
 @admin_router.message(Command("admin", prefix="!/"))
-async def new_admin(message: types.Message, admin_repo: AdminRepository) -> None:
+async def new_admin(message: types.Message, admin_repo: AdminRepository, db: AsyncSession) -> None:
     reply = replied_message(message)
     if reply is None:
         await message.answer(_REPLY_REQUIRED)
@@ -35,6 +42,7 @@ async def new_admin(message: types.Message, admin_repo: AdminRepository) -> None
     mention = other.get_user_mention(target_user)
 
     if await admin_repo.grant(target_user.id, message.chat.id, granted_by=granted_by):
+        await record_reply_target(message, db, ModerationEventAction.GRANT, target_id=target_user.id)
         chats = await admin_repo.chats_for(target_user.id)
         suffix = f" Всего чатов под модерацией: {len(chats)}." if len(chats) > 1 else ""
         await message.answer(f"{mention} — модератор этого чата ✅{suffix}")
@@ -46,7 +54,7 @@ async def new_admin(message: types.Message, admin_repo: AdminRepository) -> None
 
 
 @admin_router.message(Command("unadmin", prefix="!/"))
-async def delete_admin(message: types.Message, admin_repo: AdminRepository) -> None:
+async def delete_admin(message: types.Message, admin_repo: AdminRepository, db: AsyncSession) -> None:
     reply = replied_message(message)
     if reply is None:
         await message.answer(_REPLY_REQUIRED)
@@ -60,6 +68,7 @@ async def delete_admin(message: types.Message, admin_repo: AdminRepository) -> N
     mention = other.get_user_mention(target_user)
 
     if await admin_repo.revoke(target_user.id, message.chat.id):
+        await record_reply_target(message, db, ModerationEventAction.REVOKE, target_id=target_user.id)
         chats = await admin_repo.chats_for(target_user.id)
         suffix = f" Остаётся модератором ещё в {len(chats)} чатах." if chats else ""
         await message.answer(f"{mention} больше не модерирует этот чат ❌{suffix}")

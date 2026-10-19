@@ -212,11 +212,42 @@ class TestTheRefusal:
         """Both messages go: a refusal left on screen is noise plus an invitation."""
         msg = _message(STRANGER)
 
-        with patch("app.presentation.telegram.middlewares.admin.asyncio.sleep", new_callable=AsyncMock):
+        with patch("app.presentation.telegram.middlewares.admin.sleep_and_delete") as later:
             await you_are_not_admin(msg)
 
         said = msg.answer.await_args.args[0]
         assert said.isascii() is False
         assert "Admin" not in said
         msg.delete.assert_awaited_once()
-        msg.answer.return_value.delete.assert_awaited_once()
+        later.assert_called_once_with(msg.answer.return_value, 5)
+
+
+class TestRefusalsDoNotStall:
+    async def test_a_refusal_returns_at_once(self) -> None:
+        """It slept five seconds inside the middleware, holding the update's DB connection."""
+        import asyncio
+
+        msg = _message(STRANGER)
+
+        await asyncio.wait_for(you_are_not_admin(msg), timeout=1)
+
+        msg.delete.assert_awaited_once()
+
+    async def test_a_repeated_refusal_is_not_answered_again(self, session) -> None:
+        """Twenty refused /ban in a row were twenty replies, and twenty held connections."""
+        from app.presentation.telegram.middlewares import admin as admin_mw
+
+        admin_mw.forget_refusals()
+        data = await _seed(session, moderates=[])
+        middleware = AdminMiddleware()
+        first, second = _message(STRANGER, HOME), _message(STRANGER, HOME)
+        patched = _supers(SUPER)
+        try:
+            await middleware(AsyncMock(), first, data)
+            await middleware(AsyncMock(), second, data)
+        finally:
+            patched.stop()
+
+        first.answer.assert_awaited_once()
+        second.answer.assert_not_awaited()
+        second.delete.assert_awaited_once()

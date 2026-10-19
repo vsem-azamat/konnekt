@@ -128,3 +128,18 @@ async def test_a_refused_blacklist_says_why(session: AsyncSession, monkeypatch: 
 
     assert "главн" in callback.answer.await_args.args[0].lower()
     assert "главн" in callback.message.edit_text.await_args.args[0].lower()
+
+
+async def test_a_refused_ban_is_shown_to_the_admin(session: AsyncSession) -> None:
+    """Any error escaped the handler: no answer, and the buttons stayed as if nothing was pressed."""
+    pending = await _seed(session)
+    bot = AsyncMock()
+    bot.ban_chat_member.side_effect = RuntimeError("Bad Request: not enough rights")
+    callback = _callback()
+
+    await handle_pending_action(callback, PendingActionDecision(pending_id=pending.id, confirm=1), bot, session)
+
+    assert callback.answer.await_args.kwargs.get("show_alert") is True
+    assert "Не выполнено" in callback.answer.await_args.args[0]
+    await session.refresh(pending)
+    assert pending.status == PendingActionStatus.FAILED

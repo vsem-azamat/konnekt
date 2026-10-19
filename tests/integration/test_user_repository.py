@@ -341,3 +341,52 @@ class TestUserRepositoryLegacy:
         # Find non-existent ID
         found_user = await repo.find_blocked_user("999")
         assert found_user is None
+
+
+async def test_two_first_messages_at_once_do_not_collide(pg_engine) -> None:
+    """A new member's album arrives as several updates at once; each saw no row."""
+    import asyncio
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    sessions = async_sessionmaker(bind=pg_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def first_message(name: str) -> None:
+        async with sessions() as session:
+            await UserRepository(session).upsert_profile(424242, username=None, first_name=name, last_name=None)
+
+    await asyncio.gather(*(first_message(f"n{i}") for i in range(8)))
+
+    async with sessions() as session:
+        stored = await UserRepository(session).get_by_id(424242)
+    assert stored is not None
+    assert stored.blocked is False
+
+
+async def test_a_profile_update_never_unblocks(pg_session) -> None:
+    pg_session.add(User(id=515151, first_name="Spammer", blocked=True))
+    await pg_session.commit()
+
+    await UserRepository(pg_session).upsert_profile(515151, username="new_name", first_name="Spammer", last_name=None)
+
+    pg_session.expire_all()
+    stored = await UserRepository(pg_session).get_by_id(515151)
+    assert stored is not None
+    assert (stored.blocked, stored.username) == (True, "new_name")
+
+
+async def test_an_unchanged_profile_is_not_rewritten(pg_session) -> None:
+    """Every message rewrote the row and moved a blacklisted person up the console's list."""
+    repo = UserRepository(pg_session)
+    await repo.upsert_profile(616161, username="same", first_name="Same", last_name=None)
+    pg_session.expire_all()
+    first = await repo.get_by_id(616161)
+    assert first is not None
+    before = first.modified_at
+
+    await repo.upsert_profile(616161, username="same", first_name="Same", last_name=None)
+
+    pg_session.expire_all()
+    again = await repo.get_by_id(616161)
+    assert again is not None
+    assert again.modified_at == before

@@ -31,6 +31,8 @@ class HistoryMiddleware(BaseMiddleware):
                     await history_service.merge_user(db, user)
                 except Exception as err:
                     logger.error("merge_user_failed", error=str(err))
+                    # Swallowed, so the session must be usable for the rest of the update.
+                    await db.rollback()
 
             # Approval is only ever decided for groups. A private chat with the
             # bot is not a chat it moderates, so it is neither recorded nor
@@ -42,6 +44,7 @@ class HistoryMiddleware(BaseMiddleware):
                 await history_service.save_message(db, message)
             except Exception as err:
                 logger.error("save_message_failed", error=str(err))
+                await db.rollback()
 
             if not data.get("chat_is_approved", False):
                 return await handler(event, data)
@@ -57,6 +60,8 @@ class HistoryMiddleware(BaseMiddleware):
                     )
                 except Exception as err:
                     logger.error("ad_detector_failed", error=str(err))
+                    # Swallowed, so the session must be usable for the rest of the update.
+                    await db.rollback()
 
             if await spam_service.detect_spam(db, message):
                 # Addressed to whoever is in the room, not to the author: the

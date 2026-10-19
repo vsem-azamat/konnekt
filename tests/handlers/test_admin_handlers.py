@@ -12,6 +12,7 @@ from app.db.repositories.admin import AdminRepository
 from app.presentation.telegram.handlers.admin import delete_admin, new_admin
 
 from tests.telegram_helpers import (
+    RecordingSession,
     TelegramObjectFactory,
     create_admin_user,
     create_normal_user,
@@ -47,7 +48,7 @@ class TestGrantingRights:
         mock_admin_repository.grant.return_value = True
         mock_admin_repository.chats_for.return_value = [chat.id]
 
-        await new_admin(command_message, mock_admin_repository)
+        await new_admin(command_message, mock_admin_repository, RecordingSession())
 
         mock_admin_repository.grant.assert_awaited_once_with(target_user.id, chat.id, granted_by=admin_user.id)
         command_message.answer.assert_called_once()
@@ -70,7 +71,7 @@ class TestGrantingRights:
         mock_admin_repository.grant.return_value = True
         mock_admin_repository.chats_for.return_value = [chat.id, -1001497722835]
 
-        await new_admin(command_message, mock_admin_repository)
+        await new_admin(command_message, mock_admin_repository, RecordingSession())
 
         assert "Всего чатов под модерацией: 2" in command_message.answer.call_args[0][0]
 
@@ -85,7 +86,7 @@ class TestGrantingRights:
         )
         mock_admin_repository.grant.return_value = False
 
-        await new_admin(command_message, mock_admin_repository)
+        await new_admin(command_message, mock_admin_repository, RecordingSession())
 
         assert "уже модерирует" in command_message.answer.call_args[0][0]
 
@@ -99,7 +100,7 @@ class TestGrantingRights:
             reply_to_message=None,
         )
 
-        await new_admin(command_message, mock_admin_repository)
+        await new_admin(command_message, mock_admin_repository, RecordingSession())
 
         command_message.answer.assert_called_once()
         assert "ответ на сообщение" in command_message.answer.call_args[0][0].lower()
@@ -119,7 +120,7 @@ class TestRevokingRights:
         )
         mock_admin_repository.revoke.return_value = True
 
-        await delete_admin(command_message, mock_admin_repository)
+        await delete_admin(command_message, mock_admin_repository, RecordingSession())
 
         mock_admin_repository.revoke.assert_awaited_once_with(target_user.id, chat.id)
         said = command_message.answer.call_args[0][0]
@@ -139,7 +140,7 @@ class TestRevokingRights:
         mock_admin_repository.revoke.return_value = True
         mock_admin_repository.chats_for.return_value = [-1001497722835, -1001192822531]
 
-        await delete_admin(command_message, mock_admin_repository)
+        await delete_admin(command_message, mock_admin_repository, RecordingSession())
 
         assert "ещё в 2 чатах" in command_message.answer.call_args[0][0]
 
@@ -154,7 +155,7 @@ class TestRevokingRights:
         )
         mock_admin_repository.revoke.return_value = False
 
-        await delete_admin(command_message, mock_admin_repository)
+        await delete_admin(command_message, mock_admin_repository, RecordingSession())
 
         assert "и так не модерирует" in command_message.answer.call_args[0][0]
 
@@ -173,4 +174,4 @@ class TestWhenTheDatabaseIsDown:
         mock_admin_repository.grant.side_effect = Exception("Database connection failed")
 
         with pytest.raises(Exception, match="Database connection failed"):
-            await new_admin(command_message, mock_admin_repository)
+            await new_admin(command_message, mock_admin_repository, RecordingSession())
