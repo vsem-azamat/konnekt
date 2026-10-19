@@ -5,7 +5,6 @@ both still sent `can_send_media_messages` after Telegram had split it into six
 fields, so the two mutes differed and neither named what it meant to deny.
 """
 
-from aiogram import Bot
 from aiogram.types import ChatPermissions
 
 MUTED = ChatPermissions(
@@ -25,14 +24,8 @@ MUTED = ChatPermissions(
 )
 
 
-async def chat_defaults(bot: Bot, chat_id: int) -> ChatPermissions:
-    """The permissions every member of the chat has, which an unmute restores.
-
-    Only getChat carries them; the chat inside a message update never does.
-    Restoring the chat's own set rather than allowing everything keeps a chat
-    that forbids polls to all from handing them back to whoever was muted.
-    """
-    permissions = (await bot.get_chat(chat_id)).permissions
-    if permissions is None:
-        raise RuntimeError(f"getChat returned no default permissions for {chat_id}")
-    return permissions
+# The documented way to lift a restriction: every permission True. A member is
+# never allowed more than the chat allows everyone, so this hands back nothing
+# the chat forbids. Restoring the chat's defaults instead would keep a per-member
+# restriction that goes stale the moment the chat's own settings change.
+UNMUTED = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))

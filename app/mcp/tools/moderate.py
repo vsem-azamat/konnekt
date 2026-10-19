@@ -25,7 +25,7 @@ from app.core.enums import (
 from app.core.logging import get_logger
 from app.mcp.deps import ToolError, approved_chat_id, clamp, initiator_id, moderator_bot, session_maker
 from app.moderation.blacklist import is_protected
-from app.moderation.mute_permissions import MUTED, chat_defaults
+from app.moderation.mute_permissions import MUTED, UNMUTED
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
@@ -76,8 +76,8 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
         """Silence a user in one chat for a while.
 
         chat_id must be an approved chat — the bot does not act publicly in
-        one still awaiting approval. minutes is clamped to 1..43200 (30 days),
-        the longest restriction Telegram accepts. Reversible with unmute_user,
+        one still awaiting approval. minutes is clamped to 1..43200 (30 days);
+        Telegram's own limit is 366 days, past which a mute is forever. Reversible with unmute_user,
         so this runs immediately rather than asking for confirmation.
         """
         try:
@@ -116,7 +116,7 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
             await bot.restrict_chat_member(
                 chat_id=chat_id,
                 user_id=user_id,
-                permissions=await chat_defaults(bot, chat_id),
+                permissions=UNMUTED,
                 use_independent_chat_permissions=True,
             )
         except ToolError as err:

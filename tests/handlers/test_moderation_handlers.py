@@ -1,10 +1,9 @@
 """Tests for moderation handlers."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import ChatPermissions
-from app.moderation.mute_permissions import MUTED
+from app.moderation.mute_permissions import MUTED, UNMUTED
 from app.presentation.telegram.handlers.moderation import ban_user, mute_user, unban_user, unmute_user
 
 from tests.telegram_helpers import (
@@ -181,13 +180,14 @@ class TestModerationHandlers:
         error_msg = command_message.answer.call_args[0][0]
         assert "Произошла ошибка" in error_msg
 
-    async def test_unmute_restores_the_chat_defaults(
+    async def test_unmute_lifts_the_restriction(
         self, telegram_factory: TelegramObjectFactory, mock_bot: MockBot, audit_db
     ):
-        """The defaults come from getChat: a message's chat never carries them.
+        """Every permission True, the documented way to lift a restriction.
 
-        Reading `message.chat.permissions` found nothing on every update since
-        Bot API 7.3, so `!unmute` always answered that the bot was not an admin.
+        It used to read `message.chat.permissions`, which no update carries
+        since Bot API 7.3, so `!unmute` always answered that the bot was not an
+        admin.
         """
         admin_user = create_admin_user()
         target_user = create_normal_user(id=777777777)
@@ -196,17 +196,13 @@ class TestModerationHandlers:
         command_message = telegram_factory.create_command_message(
             command="unmute", user=admin_user, chat=chat, reply_to_message=reply_message
         )
-        defaults = ChatPermissions(can_send_messages=True, can_send_photos=True, can_send_polls=False)
-        mock_bot.mock.get_chat = AsyncMock(return_value=MagicMock(permissions=defaults))
 
         await unmute_user(command_message, mock_bot.mock, audit_db)
 
-        mock_bot.mock.get_chat.assert_awaited_once_with(chat.id)
         kwargs = mock_bot.mock.restrict_chat_member.call_args.kwargs
         assert kwargs["chat_id"] == chat.id
         assert kwargs["user_id"] == target_user.id
-        assert kwargs["permissions"] == defaults
-        assert kwargs["use_independent_chat_permissions"] is True
+        assert kwargs["permissions"] == UNMUTED
         assert "размучен" in command_message.answer.call_args[0][0]
 
     async def test_mute_takes_every_kind_of_message_and_reactions(

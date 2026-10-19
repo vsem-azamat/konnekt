@@ -71,7 +71,11 @@ def get_chat_link(tg_object: types.Message | types.Chat) -> str:
     return f"https://t.me/c/{_strip_chat_id_prefix(chat.id)}"
 
 
-_MUTE_COMMAND = re.compile(r"[!/]mute(?:@\w+)?(?:\s+(?P<time>\d+)\s*(?P<unit>[mhdw])?)?")
+_MUTE_COMMAND = re.compile(r"[!/]mute(?:@\w+)?(?:\s+(?P<time>\d+)\s*(?P<unit>[mhdw])?)?", re.IGNORECASE)
+
+
+# Telegram reads an until_date more than 366 days away as forever.
+MAX_MUTE = datetime.timedelta(days=366)
 
 
 class MuteDuration:
@@ -88,7 +92,7 @@ def calculate_mute_duration(message: str) -> MuteDuration:
     """Parse a `!mute` command into how long the mute lasts.
 
     The whole text must match: a typo used to become five minutes, and a zero
-    became an until_date Telegram reads as forever.
+    became an until_date Telegram reads as forever, as is anything past 366 days.
     """
     parsed = _MUTE_COMMAND.fullmatch(message.strip())
     if not parsed:
@@ -97,7 +101,7 @@ def calculate_mute_duration(message: str) -> MuteDuration:
     time = int(parsed.group("time") or 5)
     if time < 1:
         raise ValueError(f"Mute duration must be at least 1: {message!r}")
-    unit = parsed.group("unit") or "m"
+    unit = (parsed.group("unit") or "m").lower()
 
     # Define time units and calculate the duration
     units = {
@@ -107,6 +111,8 @@ def calculate_mute_duration(message: str) -> MuteDuration:
         "w": datetime.timedelta(weeks=time),
     }
     timedelta = units[unit]
+    if timedelta > MAX_MUTE:
+        raise ValueError(f"Mute duration over 366 days would be permanent: {message!r}")
     local_tz = ZoneInfo(settings.timezone)
     until_date = datetime.datetime.now(datetime.UTC).astimezone(local_tz) + timedelta
 

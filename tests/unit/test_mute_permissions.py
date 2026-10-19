@@ -1,7 +1,7 @@
-"""The muted permission set, shared by `!mute` and the control plane's `mute_user`."""
+"""The permission sets shared by `!mute`/`!unmute` and the control plane's tools."""
 
 from aiogram.types import ChatPermissions
-from app.moderation.mute_permissions import MUTED
+from app.moderation.mute_permissions import MUTED, UNMUTED
 
 
 def test_muted_denies_every_send_permission_the_api_has() -> None:
@@ -14,3 +14,8 @@ def test_muted_denies_every_send_permission_the_api_has() -> None:
 
 def test_muted_carries_no_retired_field() -> None:
     assert "can_send_media_messages" not in MUTED.model_dump(exclude_none=True)
+
+
+def test_unmuted_grants_every_permission_the_api_has() -> None:
+    """Anything short of all True leaves a per-member restriction behind."""
+    assert UNMUTED.model_dump() == dict.fromkeys(ChatPermissions.model_fields, True)

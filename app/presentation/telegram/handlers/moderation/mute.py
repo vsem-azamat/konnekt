@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
-from app.moderation.mute_permissions import MUTED, chat_defaults
+from app.moderation.mute_permissions import MUTED, UNMUTED
 from app.presentation.telegram.handlers.moderation._common import (
     is_user_check_error,
     record_reply_target,
@@ -95,7 +95,7 @@ async def unmute_user(message: types.Message, bot: Bot, db: AsyncSession) -> Non
         await bot.restrict_chat_member(
             chat_id=message.chat.id,
             user_id=message.reply_to_message.from_user.id,
-            permissions=await chat_defaults(bot, message.chat.id),
+            permissions=UNMUTED,
             use_independent_chat_permissions=True,
         )
         await record_reply_target(message, db, ModerationEventAction.UNMUTE)
