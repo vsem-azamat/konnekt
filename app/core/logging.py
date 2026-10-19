@@ -23,6 +23,29 @@ def add_timestamp(_logger: Any, _method_name: str, event_dict: EventDict) -> Eve
     return event_dict
 
 
+def _keep_event_name(renderer: Processor) -> Processor:
+    """Render as before, and carry the bare event name on the stdlib record.
+
+    The error alerts send that name and nothing else; without it they would
+    have to pick it out of a rendered line, which is where the data is.
+    """
+
+    def render(logger: Any, method_name: str, event_dict: EventDict) -> Any:
+        event = str(event_dict.pop(_EVENT_NAME, "?"))
+        return (renderer(logger, method_name, event_dict),), {"extra": {"structlog_event": event}}
+
+    return render
+
+
+_EVENT_NAME = "_event_name"
+
+
+def _remember_event_name(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
+    """The event as written, before positional arguments are formatted into it."""
+    event_dict[_EVENT_NAME] = event_dict.get("event", "?")
+    return event_dict
+
+
 def setup_logging() -> None:
     """Setup structured logging with both console and file output."""
 
@@ -52,6 +75,7 @@ def setup_logging() -> None:
 
     # Configure processors based on environment
     processors: list[Processor] = [
+        _remember_event_name,
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
@@ -65,9 +89,9 @@ def setup_logging() -> None:
 
     # Use JSON formatter in production, colored console in development
     if settings.environment == "production":
-        processors.append(structlog.processors.JSONRenderer())
+        processors.append(_keep_event_name(structlog.processors.JSONRenderer()))
     else:
-        processors.append(structlog.dev.ConsoleRenderer(colors=True))
+        processors.append(_keep_event_name(structlog.dev.ConsoleRenderer(colors=True)))
 
     # Configure structlog
     structlog.configure(

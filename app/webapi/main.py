@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.alerts import AlertHandler
 from app.core.config import settings
-from app.core.logging import get_logger
+from app.core.logging import get_logger, setup_logging
 from app.webapi.routes import (
     admin,
     auth,
@@ -25,6 +26,9 @@ from app.webapi.routes import (
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+# Without it structlog prints to stdout and nothing reaches the root logger:
+# no JSON in production, no LOG_FILE_PATH, and no error alerts.
+setup_logging()
 logger = get_logger("webapi.main")
 
 
@@ -42,9 +46,14 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
     _app.state.publish_bot = build_publish_bot()
     logger.info("publish_bot_started")
+    bot = _app.state.publish_bot
+    report_chat = settings.admin.default_report_chat_id
+    alerts = AlertHandler(process="webapi")
+    alerts.start(lambda text: bot.send_message(report_chat, text, parse_mode=None))
     try:
         yield
     finally:
+        await alerts.stop()
         await close_publish_bot(_app.state.publish_bot)
 
 

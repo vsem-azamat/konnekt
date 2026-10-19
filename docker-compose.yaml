@@ -108,6 +108,15 @@ services:
       - "127.0.0.1:8788:8788"
     volumes:
       - bot-logs:/app/logs
+    # Fresh only while polling answers: the file is touched after every
+    # getUpdates, which returns at least every few seconds even in silence.
+    healthcheck:
+      test: ["CMD-SHELL", '[ -n "$$(find /tmp/bot-heartbeat -mmin -2 2>/dev/null)" ]']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 5s
     restart: unless-stopped
 
   webapi:
@@ -120,7 +129,25 @@ services:
       LOG_FILE_PATH: logs/webapi.log
     volumes:
       - bot-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/api/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
     restart: unless-stopped
+
+  # The app's migrations, run by the deploy before bot or webapi is recreated,
+  # so neither serves new code against an old schema and a failed migration
+  # stops the deploy with the old release still up.
+  migrate:
+    image: ghcr.io/vsem-azamat/supervisor-telegram:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
+    command: ["migrate"]
+    profiles: ["tools"]
+    environment: *runtime-env
+    logging: *rotated-logs
+    restart: "no"
 
   webui:
     image: ghcr.io/vsem-azamat/supervisor-telegram-webui:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}

@@ -15,15 +15,17 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.types import MenuButton, MenuButtonCommands, MenuButtonWebApp, WebAppInfo
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
+from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.container import setup_container
 from app.core.logging import get_logger, setup_logging
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import Awaitable, Callable, Coroutine
 
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.session import close_db, get_session_maker
+from app.presentation.telegram import heartbeat
 from app.presentation.telegram.handlers import router
 from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
@@ -108,6 +110,7 @@ async def on_shutdown(bot: Bot) -> None:
 def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bot, Dispatcher]:
     """Create and configure the moderation bot — the only bot in this process."""
     bot = Bot(token=settings.telegram.token, default=DefaultBotProperties(parse_mode="HTML"))
+    bot.session.middleware(heartbeat.PollingHeartbeat())
     return bot, build_dispatcher(bot, session_maker)
 
 
@@ -162,6 +165,17 @@ async def main() -> None:
     """Application entry point."""
     logger.info("starting", environment=settings.environment)
 
+    # First, so that a failure anywhere in the process reaches the report chat.
+    close_alerts = await _start_alerts()
+    try:
+        await _serve()
+    finally:
+        await close_alerts()
+        logger.info("stopped")
+
+
+async def _serve() -> None:
+    """The bot, its poller and the services beside it, until the poller ends."""
     session_maker = get_session_maker()
 
     main_bot, main_dp = _setup_main_bot(session_maker)
@@ -207,11 +221,13 @@ async def main() -> None:
 
     tasks.append(run_snapshot_loop(session_maker=session_maker, bot=main_bot))
 
+    # A stalled poller ends the process, so the container restarts it.
+    tasks.append(heartbeat.watch())
+
     polling = _run_polling(
         main_bot,
         main_dp,
         name="main",
-        skip_updates=True,
         allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
     )
     try:
@@ -221,7 +237,25 @@ async def main() -> None:
             await close_db()
         except Exception as e:
             logger.error("close_db_failed", error=str(e), exc_info=True)
-        logger.info("stopped")
+
+
+async def _start_alerts() -> Callable[[], Awaitable[None]]:
+    """Send this process's errors to the report chat, until the returned closer runs.
+
+    Outside the supervised tasks and on a session of its own: the alert that
+    matters most is the one logged as the poller dies, and by then the
+    services are being cancelled and the main bot's session closed.
+    """
+    alert_bot = Bot(token=settings.telegram.token)
+    report_chat = settings.admin.default_report_chat_id
+    handler = AlertHandler(process="bot")
+    handler.start(lambda text: alert_bot.send_message(report_chat, text, parse_mode=None))
+
+    async def close() -> None:
+        await handler.stop()
+        await alert_bot.session.close()
+
+    return close
 
 
 async def _contained(service: Coroutine[Any, Any, None], *, name: str) -> None:

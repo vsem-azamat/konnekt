@@ -10,11 +10,12 @@ echo "Running entrypoint..."
 ./scripts/wait_for_postgres.sh
 
 case "${1:-bot}" in
+  # Migrations are a step of their own, run by the deploy before bot or webapi
+  # starts: running them here let the new webapi serve the old schema.
+  migrate)
+    exec alembic upgrade head
+    ;;
   bot)
-    # Run database migrations before starting the primary worker.
-    echo "Running Alembic migrations..."
-    alembic upgrade head
-
     echo "Starting bot..."
     exec python -m app.presentation.telegram
     ;;
