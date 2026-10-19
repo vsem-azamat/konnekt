@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import signal
 import subprocess
 import time
@@ -103,7 +104,7 @@ def test_nothing_else_holds_the_catalog_database_when_ours_starts() -> None:
     the old stack is gone, and the guard against anything bringing it back.
     """
     script = _deploy_step()["with"]["script"]
-    guard = script.index("docker stop -t 60 $others")
+    guard = script.index("xargs docker stop -t 60")
     starts = [m.start() for m in re.finditer(r"docker compose\b[^\n]*\b(up|run|start)\b", script)]
 
     assert starts
@@ -488,7 +489,19 @@ def test_the_bot_and_webapi_report_their_own_health() -> None:
     assert "pgrep" not in (ROOT / "Dockerfile").read_text()
 
 
-def _prune_script(tmp_path: Path, *, images: list[str], previous: str) -> list[str]:
+_SHELLS = [
+    "bash",
+    # The deploy user's login shell, which appleboy runs the script in. It does
+    # not split unquoted variables, and the first prune removed nothing.
+    # Skipped only off CI: in CI a missing zsh must fail, not pass quietly.
+    pytest.param(
+        "zsh",
+        marks=pytest.mark.skipif(shutil.which("zsh") is None and not os.environ.get("CI"), reason="zsh not installed"),
+    ),
+]
+
+
+def _prune_script(tmp_path: Path, *, images: list[str], previous: str, shell: str = "bash") -> list[str]:
     """Run the deploy's prune step against a fake docker; return what it removed."""
     script = _deploy_step()["with"]["script"]
     block = re.search(r"# --- prune ---\n(.*?)# --- /prune ---", script, re.S)
@@ -509,11 +522,12 @@ def _prune_script(tmp_path: Path, *, images: list[str], previous: str) -> list[s
     (bin_dir / "docker").chmod(0o755)
     env = {"PATH": f"{bin_dir}:{os.environ['PATH']}", "IMAGE_TAG": "new", "PREVIOUS_TAG": previous}
     # -e, as the deploy runs it: a refused removal must not fail the deploy.
-    subprocess.run(["bash", "-ec", block.group(1)], env=env, check=True)  # noqa: S603, S607 — our own deploy script
+    subprocess.run([shell, "-ec", block.group(1)], env=env, check=True)  # noqa: S603 — our own deploy script
     return sorted(removed.read_text().split()) if removed.exists() else []
 
 
-def test_a_deploy_keeps_this_release_and_the_last_and_removes_the_rest(tmp_path: Path) -> None:
+@pytest.mark.parametrize("shell", _SHELLS)
+def test_a_deploy_keeps_this_release_and_the_last_and_removes_the_rest(tmp_path: Path, shell: str) -> None:
     """99 GB of images had piled up on a disk shared with other projects."""
     repo = "ghcr.io/vsem-azamat"
     images = [
@@ -531,7 +545,7 @@ def test_a_deploy_keeps_this_release_and_the_last_and_removes_the_rest(tmp_path:
         "pgvector/pgvector:0.8.6-pg18-bookworm",
     ]
 
-    removed = _prune_script(tmp_path, images=images, previous="old")
+    removed = _prune_script(tmp_path, images=images, previous="old", shell=shell)
 
     assert removed == sorted(
         [
@@ -579,3 +593,11 @@ def test_the_previous_release_is_read_from_the_running_bot(tmp_path: Path) -> No
 
     assert result.stdout.strip() == "abc123"
     assert yaml.safe_load(COMPOSE.read_text())["services"]["bot"]["container_name"] == "supervisor-telegram-bot"
+
+
+def test_the_deploy_never_passes_a_list_as_one_unquoted_variable() -> None:
+    """zsh, the deploy user's shell, hands `docker x $list` over as a single argument."""
+    script = _deploy_step()["with"]["script"]
+
+    for name in ("holders", "others", "stale"):
+        assert not re.search(rf"(docker [^\n]*|\bin) \${name}\b", script), name
