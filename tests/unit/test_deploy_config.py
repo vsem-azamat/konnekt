@@ -623,3 +623,22 @@ def test_every_long_running_service_rotates_its_logs() -> None:
         options = services[name]["logging"]["options"]
         assert options["max-size"], name
         assert options["max-file"], name
+
+
+def test_every_action_is_pinned_to_a_commit() -> None:
+    """A tag can be moved; the ssh and scp actions receive the production SSH key and every secret."""
+    workflows = (ROOT / ".github" / "workflows").glob("*.yml")
+    loose = [
+        f"{path.name}: {ref}"
+        for path in workflows
+        for ref in re.findall(r"uses:\s*([^\s#]+)", path.read_text())
+        if not ref.startswith("./") and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", ref)
+    ]
+
+    assert loose == []
+
+
+def test_the_deploy_job_cannot_write_to_the_repository() -> None:
+    deploy = yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]
+
+    assert deploy["permissions"] == {"contents": "read"}
