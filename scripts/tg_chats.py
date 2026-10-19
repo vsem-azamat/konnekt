@@ -6,7 +6,7 @@ dormitories, and so on — and that sorting is a better description of scope tha
 anything this repository could infer, so it is read rather than guessed at.
 
     uv run python scripts/tg_chats.py folders --account main
-    uv run python scripts/tg_chats.py candidates --account main --folder студ --bot @konnekt_moder_bot
+    uv run python scripts/tg_chats.py candidates --account main --folder студ --bot @konnekt_cz_bot
 
 `folders` shows what folders exist and how many groups are in each. `candidates`
 lists the groups themselves, with whether this account can appoint admins there
@@ -293,7 +293,7 @@ def main() -> int:
         default=["Личные"],
         help="skip folders whose name contains this; repeatable, and it wins over --folder",
     )
-    candidates.add_argument("--bot", help="also report whether this bot is present, e.g. @konnekt_moder_bot")
+    candidates.add_argument("--bot", help="also report whether this bot is present, e.g. @konnekt_cz_bot")
     candidates.add_argument("--out", type=Path, help="also write the list as CSV")
 
     args = parser.parse_args()

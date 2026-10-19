@@ -5,8 +5,8 @@ not an administrator was a chat worth leaving, and the bot walked out of most of
 them. A bot cannot add itself, so this is done by the account that now
 administers those chats.
 
-    uv run python scripts/tg_add_bot.py --account work --bot @konnekt_moder_bot --chats scope.txt
-    uv run python scripts/tg_add_bot.py --account work --bot @konnekt_moder_bot --chats scope.txt --apply
+    uv run python scripts/tg_add_bot.py --account work --bot @konnekt_cz_bot --chats scope.txt
+    uv run python scripts/tg_add_bot.py --account work --bot @konnekt_cz_bot --chats scope.txt --apply
 
 Without ``--apply`` nothing is sent.
 
@@ -234,7 +234,7 @@ async def run(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--account", default="work", help="session doing the adding")
-    parser.add_argument("--bot", required=True, help="the bot, e.g. @konnekt_moder_bot")
+    parser.add_argument("--bot", required=True, help="the bot, e.g. @konnekt_cz_bot")
     parser.add_argument("--chats", type=Path, required=True, help="file of chat ids, one per line")
     parser.add_argument("--title", default="", help=f"admin title shown in the chat, up to {MAX_TITLE} characters")
     parser.add_argument("--sessions-dir", type=Path, default=SESSIONS_DIR)
