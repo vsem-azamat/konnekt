@@ -117,6 +117,10 @@ test('a city finds the chats of its universities', () => {
   assert.deepEqual(titles('brno vut'), ['VUT']);
   assert.ok(titles('прага').includes('Strahov'));
   assert.ok(!titles('прага').includes('VUT'));
+  // A city is spelled right or not at all: «права» is one letter from
+  // «praha», and somebody typing it wants the law faculty.
+  assert.deepEqual(titles('права'), []);
+  assert.deepEqual(titles('prahy'), []);
   // Without the taxonomy there are no cities, and nothing breaks.
   assert.deepEqual(search(DIRECTORY, 'брно'), []);
 });

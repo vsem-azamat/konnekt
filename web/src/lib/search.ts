@@ -129,19 +129,30 @@ function startsWord(word: string, typed: string, typos: boolean): boolean {
 }
 
 /**
+ * A field to search. `{ exact }` takes no typos: a city is a common word in
+ * another language, and «права» is one letter from «praha».
+ */
+export type Field = string | null | undefined | { exact: string | null | undefined };
+
+/**
  * Whether every word of the query starts a word of one of the fields, in any
  * order. An empty query matches everything; one with no words in it, «--» or
  * «ьь», matches nothing. Empty fields are skipped.
  */
-export function matches(
-  fields: (string | null | undefined)[],
-  query: string,
-  typos = true,
-): boolean {
+export function matches(fields: Field[], query: string, typos = true): boolean {
   const typed = keyWords(query);
   if (typed.length === 0) return query.trim() === '';
-  const words = fields.flatMap((field) => (field ? keyWords(field) : []));
-  return typed.every((part) => words.some((word) => startsWord(word, part, typos)));
+  const words = fields.flatMap((field) => {
+    if (typeof field === 'object' && field !== null) {
+      return field.exact
+        ? keyWords(field.exact).map((word) => ({ word, typos: false }))
+        : [];
+    }
+    return field ? keyWords(field).map((word) => ({ word, typos })) : [];
+  });
+  return typed.every((part) =>
+    words.some(({ word, typos }) => startsWord(word, part, typos)),
+  );
 }
 
 /**
@@ -149,11 +160,7 @@ export function matches(
  * way it was typed: «карлов» is one swap from «králov», and Univerzita Karlova
  * should not share the list with Hradec Králové because of it.
  */
-export function find<T>(
-  items: T[],
-  fields: (item: T) => (string | null | undefined)[],
-  query: string,
-): T[] {
+export function find<T>(items: T[], fields: (item: T) => Field[], query: string): T[] {
   const exact = items.filter((item) => matches(fields(item), query, false));
   return exact.length > 0 ? exact : items.filter((item) => matches(fields(item), query));
 }

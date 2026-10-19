@@ -144,8 +144,8 @@ export function fold(text: string): string {
  *
  * The code and the city are there for what nobody writes in a title: «uk»,
  * «muni», «брно». They also put a university's dormitories under its name,
- * which is where they belong. Cities come from the catalog's taxonomy, and
- * until it has loaded a city finds nothing.
+ * which is where they belong. A city takes no typos, since «права» is one
+ * letter from «praha». Cities come from the catalog's taxonomy.
  *
  * Flat on purpose: somebody who typed «fit» wants the chat, not the section
  * it sits in. An empty query narrows nothing.
@@ -161,7 +161,7 @@ export function search(
       chat.title,
       chat.group,
       chat.institution,
-      chat.institution === null ? null : cityOf.get(chat.institution),
+      { exact: chat.institution === null ? null : cityOf.get(chat.institution) },
     ],
     query,
   );

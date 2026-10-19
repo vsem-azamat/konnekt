@@ -45,16 +45,14 @@ export default function ChatsPage() {
 
   const { data, isPending, isError, refetch } = useQuery(chatsQuery);
 
-  const searching = query.trim() !== '';
   // A student's own university first. Outside Telegram there is no one to
   // ask, and the directory keeps supervisor's order.
   const me = useQuery(meQuery);
-  const institutions = useQuery({
-    ...institutionsQuery,
-    // A faculty needs it, since the taxonomy names the university above it,
-    // and so does a search, since it holds the universities' cities.
-    enabled: me.data?.institution?.parent_id != null || searching,
-  });
+  // Loaded with the screen, not on the first keystroke: it holds the
+  // universities' cities, and a search typed before it arrived would say
+  // «Такого чата нет» for a city it simply had not heard of yet. A faculty
+  // needs it too, since the taxonomy names the university above it.
+  const institutions = useQuery(institutionsQuery);
   const cityOf = useMemo(() => cities(institutions.data ?? []), [institutions.data]);
   const found = useMemo(
     () => (data ? search(data, query, cityOf) : []),
@@ -62,6 +60,7 @@ export default function ChatsPage() {
   );
   const mine = ownUniversity(me.data?.institution, institutions.data ?? []);
   const { entries, rest } = useMemo(() => directory(data ?? [], mine), [data, mine]);
+  const searching = query.trim() !== '';
 
   return (
     <>
