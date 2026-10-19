@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramRetryAfter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -43,12 +45,53 @@ async def _approved_chat_ids(db: AsyncSession) -> list[int]:
     return [chat.id for chat in await ChatRepository(db).get_chats() if chat.is_approved]
 
 
+# Telegram's flood control: the member-count loop found that 46 calls back to
+# back tripped it and lost a third of them.
+_FAN_OUT_CONCURRENCY = 4
+_FAN_OUT_ATTEMPTS = 3
+
+
+async def _fan_out(
+    chat_ids: list[int], call: Callable[[int], Awaitable[object]], *, what: str, user_id: int
+) -> list[int]:
+    """Run `call` in every chat, a few at a time, waiting out flood control.
+
+    Returns the chats where it still failed. Those were logged as "maybe
+    already banned" and forgotten, so a blacklisted person stayed in some chats
+    and an unblacklisted one stayed out of others; now they are named, and an
+    incomplete fan-out is an error, which reaches the report chat.
+    """
+    gate = asyncio.Semaphore(_FAN_OUT_CONCURRENCY)
+
+    async def in_chat(chat_id: int) -> int | None:
+        async with gate:
+            for attempt in range(1, _FAN_OUT_ATTEMPTS + 1):
+                try:
+                    await call(chat_id)
+                    return None
+                except TelegramRetryAfter as err:
+                    if attempt == _FAN_OUT_ATTEMPTS:
+                        logger.warning(f"{what}_flood_control", user_id=user_id, chat_id=chat_id)
+                        break
+                    await asyncio.sleep(err.retry_after)
+                except Exception as err:
+                    logger.warning(f"{what}_failed", user_id=user_id, chat_id=chat_id, error=str(err))
+                    return chat_id
+            return chat_id
+
+    failed = [chat_id for chat_id in await asyncio.gather(*(in_chat(c) for c in chat_ids)) if chat_id is not None]
+    if failed:
+        logger.error(f"{what}_incomplete", user_id=user_id, failed_chats=failed, chats=len(chat_ids))
+    return failed
+
+
 async def add_to_blacklist(
     db: AsyncSession,
     bot: Bot,
     id_tg: int,
     revoke_messages: bool | None = None,
-) -> None:
+) -> list[int]:
+    """Blacklist somebody and ban them from every approved chat; returns where the ban failed."""
     if is_protected(id_tg):
         raise ProtectedUserError(id_tg)
     if is_stand_in(id_tg):
@@ -58,20 +101,15 @@ async def add_to_blacklist(
     await user_repo.add_to_blacklist(id_tg)
     approved = await _approved_chat_ids(db)
 
-    async def ban_user(chat_id: int) -> None:
-        try:
-            await bot.ban_chat_member(chat_id, id_tg, revoke_messages=revoke_messages)
-        except Exception as err:
-            logger.warning(
-                f"Failed to ban user {id_tg} in chat {chat_id}.\n"
-                f"Maybe the user is already banned or not in the chat.\n"
-                f"Error: {err}"
-            )
-
-    await asyncio.gather(*(ban_user(chat_id) for chat_id in approved))
+    failed = await _fan_out(
+        approved,
+        lambda chat_id: bot.ban_chat_member(chat_id, id_tg, revoke_messages=revoke_messages),
+        what="blacklist_ban",
+        user_id=id_tg,
+    )
 
     if not revoke_messages:
-        return
+        return failed
 
     # Deliberately outside the fan-out above. Every recorded message names the
     # one chat it was written in, so deleting it there is a single call — but
@@ -90,19 +128,20 @@ async def add_to_blacklist(
             # Telegram refuses routinely here — a message already gone, or older
             # than it allows. One refusal says nothing about the next.
             logger.warning(f"Failed to delete message {message.message_id} in chat {message.chat_id}.\nError: {err}")
+    return failed
 
 
-async def remove_from_blacklist(db: AsyncSession, bot: Bot, id_tg: int) -> None:
+async def remove_from_blacklist(db: AsyncSession, bot: Bot, id_tg: int) -> list[int]:
+    """Take somebody off the blacklist and unban them everywhere; returns where the unban failed."""
     user_repo = UserRepository(db)
 
     await user_repo.remove_from_blacklist(id_tg)
     approved = await _approved_chat_ids(db)
 
-    async def unban_user(chat_id: int) -> None:
-        try:
-            # Without only_if_banned, Telegram removes a current member.
-            await bot.unban_chat_member(chat_id, id_tg, only_if_banned=True)
-        except Exception as err:
-            logger.warning(f"Failed to unban user {id_tg} in chat {chat_id}.\nError: {err}")
-
-    await asyncio.gather(*(unban_user(chat_id) for chat_id in approved))
+    return await _fan_out(
+        approved,
+        # Without only_if_banned, Telegram removes a current member.
+        lambda chat_id: bot.unban_chat_member(chat_id, id_tg, only_if_banned=True),
+        what="blacklist_unban",
+        user_id=id_tg,
+    )

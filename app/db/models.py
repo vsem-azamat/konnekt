@@ -321,6 +321,20 @@ class ChatLink(Base):
 
 class Message(Base):
     __tablename__ = "messages"
+    __table_args__ = (
+        # One row per message: a redelivered update used to be a second one.
+        Index("uq_messages_chat_message", "chat_id", "message_id", unique=True),
+        # The first-message spam check looks a text up among labelled spam. A
+        # hash, because a btree refuses texts past ~2.7 kB, and partial, because
+        # the labelled rows are the only ones it asks about.
+        Index(
+            "ix_messages_spam_text",
+            "message",
+            postgresql_using="hash",
+            postgresql_where=sa.text("spam"),
+            sqlite_where=sa.text("spam"),
+        ),
+    )
 
     # Wider than a plain serial: this table grows with every message the bot
     # sees, and the production database has held it as a bigint all along.
@@ -535,7 +549,8 @@ class ModerationEvent(Base):
         # Text columns, so the enums are restated where a value that skipped the
         # type system would land — the same guard pending_actions carries.
         sa.CheckConstraint(
-            "action IN ('ban', 'unban', 'kick', 'mute', 'unmute', 'blacklist', 'unblacklist')",
+            "action IN ('ban', 'unban', 'kick', 'mute', 'unmute', 'blacklist', 'unblacklist', "
+            "'grant', 'revoke', 'delete', 'purge', 'pin', 'unpin')",
             name="ck_moderation_events_action",
         ),
         sa.CheckConstraint("source IN ('command', 'mcp', 'console')", name="ck_moderation_events_source"),

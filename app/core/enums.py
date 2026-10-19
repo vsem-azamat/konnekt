@@ -31,6 +31,15 @@ class ModerationEventAction(StrEnum):
     UNMUTE = "unmute"
     BLACKLIST = "blacklist"
     UNBLACKLIST = "unblacklist"
+    # Trusting somebody with a chat, and taking it back: the most consequential
+    # thing a person can do here.
+    GRANT = "grant"
+    REVOKE = "revoke"
+    # Acting on a message rather than its author; the target is the author.
+    DELETE = "delete"
+    PURGE = "purge"
+    PIN = "pin"
+    UNPIN = "unpin"
 
 
 class ModerationEventSource(StrEnum):
@@ -59,6 +68,10 @@ class PendingActionStatus(StrEnum):
     """
 
     PENDING = "pending"
+    # Claimed by a press and being carried out; confirmed or failed next.
+    EXECUTING = "executing"
     CONFIRMED = "confirmed"
+    # Pressed, but Telegram refused: nothing happened, and the record says so.
+    FAILED = "failed"
     REJECTED = "rejected"
     EXPIRED = "expired"

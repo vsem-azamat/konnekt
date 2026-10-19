@@ -62,6 +62,20 @@ async def expire_stale(db: AsyncSession) -> int:
     carried out. The sweep can therefore run without a Telegram session at all.
     """
     now = utc_now()
+    # Claimed and then cut off: the process died between the press and the
+    # result. Nobody knows whether it ran, so it is closed as failed rather
+    # than left saying "executing" with live buttons that do nothing.
+    interrupted = await db.execute(
+        update(PendingAction)
+        .where(
+            PendingAction.status == PendingActionStatus.EXECUTING,
+            PendingAction.expires_at <= now - datetime.timedelta(minutes=10),
+        )
+        .values(status=PendingActionStatus.FAILED, resolved_at=now)
+    )
+    if interrupted.rowcount:  # ty: ignore[unresolved-attribute]
+        await db.commit()
+        logger.warning("pending_actions_interrupted", count=interrupted.rowcount)  # ty: ignore[unresolved-attribute]
     stale = (
         (
             await db.execute(
@@ -148,11 +162,18 @@ class PendingActionService:
         await self.db.commit()
         await self.db.refresh(pending)
 
-        message = await self.bot.send_message(
-            chat_id=initiator_id,
-            text=self._render(pending),
-            reply_markup=self._keyboard(pending.id),
-        )
+        try:
+            message = await self.bot.send_message(
+                chat_id=initiator_id,
+                text=self._render(pending),
+                reply_markup=self._keyboard(pending.id),
+            )
+        except Exception:
+            # Nobody was shown a button, so nobody can say yes; left pending it
+            # would only wait for the sweep while the caller is told nothing.
+            await self._mark(pending, PendingActionStatus.EXPIRED, admin_id=None)
+            logger.warning("pending_action_not_delivered", pending_id=pending.id, initiator_id=initiator_id)
+            raise
         pending.admin_chat_id = initiator_id
         pending.admin_message_id = message.message_id
         await self.db.commit()
@@ -187,8 +208,16 @@ class PendingActionService:
             logger.warning("pending_action_refused_protected", pending_id=pending_id, admin_id=admin_id)
             raise ProtectedUserError(pending.target_user_id)
 
+        try:
+            await self._execute(pending, self.bot, self.db)
+        except Exception:
+            # Written down after it succeeds, never before: a refusal is a
+            # failure on record, not a ban that never happened.
+            await self.db.rollback()
+            await self._mark(pending, PendingActionStatus.FAILED, admin_id=admin_id)
+            logger.warning("pending_action_failed", pending_id=pending_id, admin_id=admin_id, exc_info=True)
+            raise
         await self._mark(pending, PendingActionStatus.CONFIRMED, admin_id=admin_id)
-        await self._execute(pending, self.bot, self.db)
         # The proposal came from outside; the person who pressed confirm is the
         # one the record names, which is the whole point of the confirm tier.
         await audit.record(
@@ -218,14 +247,20 @@ class PendingActionService:
         return await expire_stale(self.db)
 
     async def _claim(self, pending_id: int) -> PendingAction | None:
-        """Fetch only while still pending, so a second press finds nothing."""
-        result = await self.db.execute(
-            select(PendingAction).where(
-                PendingAction.id == pending_id,
-                PendingAction.status == PendingActionStatus.PENDING,
-            )
+        """Take the proposal out of pending, or find it already taken.
+
+        One UPDATE, so of two presses at once exactly one wins: a read and a
+        write let both through, and the ban ran twice.
+        """
+        claimed = await self.db.execute(
+            update(PendingAction)
+            .where(PendingAction.id == pending_id, PendingAction.status == PendingActionStatus.PENDING)
+            .values(status=PendingActionStatus.EXECUTING)
         )
-        return result.scalar_one_or_none()
+        await self.db.commit()
+        if claimed.rowcount != 1:  # ty: ignore[unresolved-attribute]
+            return None
+        return await self.db.get(PendingAction, pending_id, populate_existing=True)
 
     async def _mark(self, pending: PendingAction, status: PendingActionStatus, *, admin_id: int | None) -> None:
         pending.status = status

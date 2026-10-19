@@ -51,6 +51,13 @@ def author_of(reply: types.Message) -> types.User | None:
     return user
 
 
+def signer_of(reply: types.Message) -> int | None:
+    """Whom a message stands for in the record: its author, or the chat it was sent as."""
+    if reply.sender_chat is not None:
+        return reply.sender_chat.id
+    return reply.from_user.id if reply.from_user else None
+
+
 async def untouchable(
     bot: Bot,
     admin_repo: AdminRepository,

@@ -107,3 +107,13 @@ async def test_zero_lifetime_keeps_the_message(session: AsyncSession, bot, monke
     await user_joined(_join(), bot, session)
 
     assert scheduled == []
+
+
+async def test_a_greeting_telegram_refuses_does_not_break_the_join(session: AsyncSession, bot) -> None:
+    """One bad stored value used to fail every join in the chat."""
+    from aiogram.exceptions import TelegramBadRequest
+
+    await _seed(session, welcome_message="Привет <b>", is_welcome_enabled=True)
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="can't parse entities")
+
+    await user_joined(_join(), bot, session)

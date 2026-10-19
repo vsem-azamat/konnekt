@@ -1,10 +1,11 @@
 from typing import Any
 
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import and_
 
 from app.db.models import Message
+from app.db.upsert import insert_for
 
 
 class MessageRepository:
@@ -54,14 +55,17 @@ class MessageRepository:
         message: str | None,
         message_info: dict[str, Any],
     ) -> None:
+        # Telegram redelivers what it was not sure arrived; one row per message.
         await self.db.execute(
-            insert(Message).values(
+            insert_for(self.db, Message)
+            .values(
                 chat_id=chat_id,
                 user_id=user_id,
                 message_id=message_id,
                 message=message,
                 message_info=message_info,
             )
+            .on_conflict_do_nothing(index_elements=[Message.chat_id, Message.message_id])
         )
         await self.db.commit()
 
@@ -112,9 +116,16 @@ class MessageRepository:
         count = result.scalar()
         return count or 0
 
-    async def has_previous_messages(self, chat_id: int, user_id: int) -> bool:
-        """Check if user has any previous messages in this chat."""
+    async def has_previous_messages(self, chat_id: int, user_id: int, *, before_message_id: int | None = None) -> bool:
+        """Check if user has any previous messages in this chat.
+
+        ``before_message_id`` leaves out the message being asked about and any
+        after it: history is saved before the spam check runs, so counting
+        everything counted the message itself, and no message was ever a first.
+        """
         query = select(func.count()).where(Message.user_id == user_id, Message.chat_id == chat_id)
+        if before_message_id is not None:
+            query = query.where(Message.message_id < before_message_id)
         result = await self.db.execute(query)
         count = result.scalar()
         return count is not None and count > 0
