@@ -32,11 +32,6 @@ class Container:
     def set_bot(self, bot: Bot) -> None:
         self._bot = bot
 
-    def get_bot(self) -> Bot:
-        if not self._bot:
-            raise ValueError("Bot not set")
-        return self._bot
-
     def try_get_bot(self) -> Bot | None:
         return self._bot
 

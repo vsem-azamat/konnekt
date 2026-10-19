@@ -112,11 +112,6 @@ class AdminRepository:
         await self.db.commit()
         return True
 
-    async def get_all_active(self) -> list[Admin]:
-        """Get all active admins."""
-        result = await self.db.execute(select(Admin).filter(Admin.state))
-        return list(result.scalars().all())
-
     async def _get_admin_model(self, admin_id: int) -> Admin | None:
         """Get admin model by ID."""
         result = await self.db.execute(select(Admin).filter(Admin.id == admin_id))

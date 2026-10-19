@@ -17,9 +17,16 @@ async def _delete_later(message: types.Message, seconds: int) -> None:
         await message.delete()
 
 
+# The event loop keeps only weak references to tasks; one nobody holds can be
+# collected before it runs, and the message then stays.
+_pending_deletions: set[asyncio.Task[None]] = set()
+
+
 def sleep_and_delete(message: types.Message, seconds: int = 60) -> None:
     """Schedule a message for deletion after a delay (non-blocking)."""
-    asyncio.create_task(_delete_later(message, seconds))
+    task = asyncio.create_task(_delete_later(message, seconds))
+    _pending_deletions.add(task)
+    task.add_done_callback(_pending_deletions.discard)
 
 
 def get_user_mention(user: types.User) -> str:

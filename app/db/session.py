@@ -1,5 +1,3 @@
-from collections.abc import AsyncGenerator
-
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
@@ -49,16 +47,6 @@ def get_session_maker() -> async_sessionmaker[AsyncSession]:
         )
 
     return sessionmaker
-
-
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get database session for dependency injection."""
-    session_maker = get_session_maker()
-    async with session_maker() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
 
 
 async def close_db() -> None:

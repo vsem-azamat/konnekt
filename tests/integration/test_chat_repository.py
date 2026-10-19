@@ -116,7 +116,7 @@ class TestChatRepositoryIntegration:
 
     async def test_get_all_chats_empty(self, chat_repository: ChatRepository):
         """Test getting all chats when none exist."""
-        chats = await chat_repository.get_all()
+        chats = await chat_repository.get_chats()
 
         assert chats == []
 
@@ -129,7 +129,7 @@ class TestChatRepositoryIntegration:
             await chat_repository.save(chat)
 
         # Get all chats
-        all_chats = await chat_repository.get_all()
+        all_chats = await chat_repository.get_chats()
 
         # Verify results
         assert len(all_chats) == 3

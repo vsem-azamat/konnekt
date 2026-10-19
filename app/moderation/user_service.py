@@ -53,32 +53,6 @@ class UserService:
 
         return user
 
-    async def block_user(self, user_id: int) -> User:
-        """Block user (add to blacklist)."""
-        user = await self.get_user_by_id_optional(user_id)
-
-        if not user:
-            user = User(id=user_id, blocked=True)
-        else:
-            user.block()
-
-        user = await self.user_repository.save(user)
-        logger.info("user_blocked", user_id=user_id)
-        return user
-
-    async def unblock_user(self, user_id: int) -> User:
-        """Unblock user (remove from blacklist)."""
-        user = await self.get_user_by_id(user_id)
-
-        if not user.is_blocked:
-            logger.info("unblock_attempt_not_blocked", user_id=user_id)
-            return user
-
-        user.unblock()
-        user = await self.user_repository.save(user)
-        logger.info("user_unblocked", user_id=user_id)
-        return user
-
     async def get_blocked_users(self) -> list[User]:
         """Get all blocked users."""
         return await self.user_repository.get_blocked_users()
