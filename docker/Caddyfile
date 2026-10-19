@@ -1,5 +1,27 @@
+{
+	servers {
+		# The edge proxy in front reaches this one over a private address; its
+		# X-Forwarded-For is passed on rather than replaced with its own.
+		trusted_proxies static private_ranges
+		# Read from the right: a client cannot pick its own address by
+		# sending one first.
+		trusted_proxies_strict
+	}
+}
+
 :80 {
 	encode zstd gzip
+
+	# On every response. The Mini App must stay framable by Telegram's web
+	# clients, so framing is limited with frame-ancestors, never refused with
+	# X-Frame-Options; anybody else framing the console is the clickjacking
+	# this stops. HSTS reaches browsers through the TLS edge in front.
+	header {
+		Content-Security-Policy "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+	}
 
 	# The catalog's API (catalog/), for the Mini App's help screens: tutors,
 	# profiles, requests. First, so the /api/* block below never sees it.
@@ -16,7 +38,10 @@
 	}
 
 	handle /api/* {
-		reverse_proxy webapi:8787
+		reverse_proxy webapi:8787 {
+			# One address, the one this proxy believes, rather than the chain.
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	# The old console's addresses, bookmarked or in old messages, lead to the

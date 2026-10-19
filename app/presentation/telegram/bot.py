@@ -205,9 +205,9 @@ async def _serve() -> None:
             )
         )
 
-    # The MCP control plane runs here, not in the web API: its tools need the
-    # Telethon session and the confirmation handlers, and both belong to this
-    # process. Returns immediately when MCP is inactive.
+    # The MCP control plane runs here, not in the web API: its proposals send
+    # confirmation buttons, and Telegram answers a press to the identity that
+    # sent it, which is this process's bot. Returns at once when MCP is off.
     from app.mcp.runner import run_mcp_server
     from app.moderation.pending_actions import run_expiry_sweep
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -158,7 +158,14 @@ class WebApiSettings(Settings):
         default=True,
         description="Set Secure flag on session cookie. Disable only for local http:// dev.",
     )
-    session_cookie_samesite: str = Field(default="lax", description="SameSite: lax|strict|none")
+    # Not "none": SameSite is the only defence the console's mutations have
+    # against a request another site makes with the admin's cookie.
+    session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
+
+    @field_validator("session_cookie_samesite", mode="before")
+    @classmethod
+    def _samesite_lowercase(cls, value: object) -> object:
+        return value.lower() if isinstance(value, str) else value
 
     model_config = SettingsConfigDict(
         env_prefix="WEBAPI_",

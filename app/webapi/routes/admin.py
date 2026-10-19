@@ -45,7 +45,7 @@ async def list_sessions(
             expires_at=r.expires_at,
             user_agent=r.user_agent,
             ip=r.ip,
-            is_current=r.session_id == current_token,
+            is_current=current_token is not None and r.session_id == session_store.digest(current_token),
         )
         for r in await _own_sessions(session, admin_id)
     ]
@@ -68,7 +68,8 @@ async def revoke_session(
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    if row.session_id == request.cookies.get(settings.webapi.session_cookie_name):
+    current_token = request.cookies.get(settings.webapi.session_cookie_name)
+    if current_token is not None and row.session_id == session_store.digest(current_token):
         raise HTTPException(status_code=400, detail="The current session cannot close itself")
     await session_store.revoke_session(session, row.session_id)
 

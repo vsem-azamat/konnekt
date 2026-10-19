@@ -136,7 +136,7 @@ chat whose card leads nowhere, because the catalogue keys off the column being
 set.
 
 **A public figure says how much of itself it measured.** Member counts come
-from snapshots the userbot may not have managed to take, so a reach total can
+from snapshots the bot may not have managed to take, so a reach total can
 cover part of the catalogue while naming all of it. The endpoint returns
 `measured_chats` beside `members` for exactly that reason, and the page has to
 show the gap — a number somebody is about to pay against must not quietly stand

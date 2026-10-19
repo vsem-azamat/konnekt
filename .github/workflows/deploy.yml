@@ -40,20 +40,20 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Build and push
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           target: production
@@ -64,7 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push webui
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           target: webui
@@ -77,7 +77,7 @@ jobs:
       # A tag of the same public package rather than a package of its own: a
       # new package starts private, and the host pulls without a login.
       - name: Build and push the catalog
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: catalog
           target: runtime
@@ -89,13 +89,17 @@ jobs:
 
   deploy:
     needs: build-and-push
+    # Reads the repository and nothing else; its power is the SSH key, which
+    # a token able to write would only add to.
+    permissions:
+      contents: read
     # A dispatch skips the build, and a skipped need would skip this too.
     if: ${{ !cancelled() && (needs.build-and-push.result == 'success' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
 
     steps:
       # The compose file of the release being deployed, not of main's head.
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0
@@ -150,7 +154,7 @@ jobs:
           echo "Required configuration present."
 
       - name: Copy docker-compose to VPS
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -164,7 +168,7 @@ jobs:
       # app/core/config.py — the list is not a second copy of every setting, and
       # a test pins it against docker-compose.yaml so the two cannot drift.
       - name: Deploy on VPS
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           IMAGE_TAG: ${{ inputs.sha || github.sha }}
           MIGRATE: ${{ github.event_name != 'workflow_dispatch' || inputs.migrate }}

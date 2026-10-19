@@ -35,10 +35,12 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: ${{ inputs.task }}
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           TASK: ${{ inputs.task }}
           PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}

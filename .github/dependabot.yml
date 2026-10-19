@@ -1,0 +1,26 @@
+# Weekly, grouped: one pull request per ecosystem rather than one per package,
+# so updates arrive at a pace somebody reviews. Security updates come apart
+# from these as soon as an advisory is published.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule: {interval: weekly}
+    groups:
+      python: {patterns: ["*"]}
+  - package-ecosystem: uv
+    directory: /catalog
+    schedule: {interval: weekly}
+    groups:
+      catalog: {patterns: ["*"]}
+  - package-ecosystem: npm
+    directory: /web
+    schedule: {interval: weekly}
+    groups:
+      web: {patterns: ["*"]}
+  # Actions are pinned to commits (#191); this keeps the pins moving.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+    groups:
+      actions: {patterns: ["*"]}

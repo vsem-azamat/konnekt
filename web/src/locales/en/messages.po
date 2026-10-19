@@ -26,6 +26,10 @@ msgstr "{0, plural, one {# person} other {# people}}"
 #~ msgid "курсовая по экономике"
 #~ msgstr "term paper in economics"
 
+#: src/console/pages/System.tsx
+msgid "Консоль снова откроется из Telegram."
+msgstr "The console will open again from Telegram."
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Switch on"
@@ -788,6 +792,10 @@ msgstr "See what is close"
 #: src/pages/MyHelper.tsx
 #~ msgid "Пока ни одного. Найди предмет ниже — без них тебя не найдут по поиску."
 #~ msgstr "None yet. Find a subject below — without them search cannot reach you."
+
+#: src/console/pages/System.tsx
+msgid "Выйти на этом устройстве?"
+msgstr "Sign out on this device?"
 
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
@@ -2013,6 +2021,10 @@ msgstr "Optional. An empty field means you will agree on it."
 #: src/pages/Request.tsx
 msgid "Написать"
 msgstr "Message"
+
+#: src/console/pages/System.tsx
+msgid "Выйти"
+msgstr "Sign out"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx

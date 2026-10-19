@@ -77,14 +77,11 @@ code, and changing them should be a reviewed change rather than a click.
 
 ## What the deploy checks
 
-Before anything reaches the VPS the workflow fails on:
-
-- any of `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `MODERATOR_BOT_TOKEN`,
-  `ADMIN_SUPER_ADMINS` being empty — these have no defaults, and containers
-  crash on boot without them.
-
-A test pins the forwarded list against `docker-compose.yaml`, so a setting added
-to one and not the other fails in CI rather than in production.
+The deploy workflow's first step refuses to touch the host when a setting
+without a default is empty; the list is in `.github/workflows/deploy.yml`,
+not repeated here. A test pins the forwarded list against
+`docker-compose.yaml`, so a setting added to one and not the other fails in
+CI rather than in production.
 
 ## Seeding and changing values
 
