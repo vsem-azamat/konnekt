@@ -63,12 +63,29 @@ stack's `db-backup` service dumps it daily at 02:00 UTC with `pg_dump
 `~/deploy/supervisor-telegram/db-backups/` (0700) on the application host, and
 keeps 30 days. That is another machine than the database's, so losing either
 one leaves the other. A dump is written to a `.part` file and renamed only on
-success.
+success, and old dumps are pruned only after a successful one, so a database
+that stops answering does not cost the dumps already taken.
 
-To restore, into a scratch database first:
+The container turns unhealthy when its newest dump is two days old. Nothing
+else watches the backups, so `docker ps` showing `unhealthy` is the alarm, and
+a deploy's `--wait` fails on it.
+
+### Restoring
+
+First prove the dump restores, in a throwaway container with no network
+(`scripts/restore_drill.sh` lives in the repository, not on the host):
 
 ```sh
-docker run --rm -i -e PGPASSWORD pgvector/pgvector:0.8.6-pg18-bookworm \
-  pg_restore --no-owner --no-privileges -h <scratch host> -U <user> -d <scratch> \
-  < db-backups/<file>.dump
+ssh azamat 'cd ~/deploy/supervisor-telegram && bash -s -- db-backups/<file>.dump' \
+  < scripts/restore_drill.sh
 ```
+
+Then restore into a new database on the database server, next to the live one,
+never over it: `createdb` a scratch name, `pg_restore --no-owner
+--no-privileges -d <scratch>`, check it, and only then stop `bot` and `webapi`
+and swap the names with `ALTER DATABASE ... RENAME TO`. The old database stays
+under its new name until the restored one has been running for a while.
+
+Drill on 2026-10-19 (supervisor-telegram#188): `moderator-20261019T020000Z.dump`,
+13 MB, restored in 1–2 s into 21 tables at the current migration head, 73,606
+messages and 2,688 users.

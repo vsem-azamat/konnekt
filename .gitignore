@@ -181,6 +181,7 @@ scripts/*
 !scripts/wait_for_postgres.sh
 !scripts/entrypoint.sh
 !scripts/env_to_github.sh
+!scripts/restore_drill.sh
 !scripts/adopt_existing_db.py
 !scripts/tg_accounts.py
 !scripts/tg_chats.py
