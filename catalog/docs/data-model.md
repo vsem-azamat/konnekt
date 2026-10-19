@@ -294,6 +294,26 @@ something else:
   help, and reaches `entrance_prep` through the keyword table, which is where a
   category word belongs. What stays in `synonyms` is what names *that* row and
   no other: «матан» is calculus, «приемка математика» is the maths entrance exam.
+- **A word for a whole shelf of subjects names the shelf.** «математика» names
+  no single leaf, and answered with the best-scoring one it narrowed the search
+  to «Математика для экономистов». A group may carry synonyms of its own — the
+  maths group has the stems `математик`, `matematik`, `math` — and the parser
+  answers with the group when one of them hits, no leaf was named, and the maths
+  word is all the query says about a subject: the kind of help's words, asking,
+  prepositions and what is already a field (school, date, price) may surround
+  it, nothing else. «matematiky pro ekonomy» stays the economists' leaf. Nor
+  beside a kind of help whose offers sit on another shelf — entrance exams,
+  nostrification — because that pair would match nobody. Through synonyms
+  only, never a group's name: «příprava na přijímací zkoušky» is the name of a
+  group and the kind of help in full.
+- **A shelf holds its subtree and the leaves its synonyms name.** The tree files
+  «Математика для экономистов» under economics and the maths entrance exam and
+  maturita under admissions; all of them are maths to somebody who typed
+  «математика». A leaf on another shelf belongs to a group when a word of its
+  names or synonyms starts with one of the group's synonyms (`lookup.held_by`).
+  The search filters by what a subject holds, and the request feed counts a
+  helper's offer on a leaf as an offer on every shelf that holds it
+  (`lookup.shelves_of`) — upwards only. Pickers and offers still hold leaves.
 - **A subject and a kind of help that carries none cannot both survive.** The
   `life` group's offers have no subject at all, while the search applies subject
   and kind of help together — so the pair matches nobody, and one of the two has

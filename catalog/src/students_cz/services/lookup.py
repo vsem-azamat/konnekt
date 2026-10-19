@@ -35,7 +35,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from students_cz.db.models.enums import UiLang
+from students_cz.db.models.enums import NodeKind, UiLang
 from students_cz.services.naming import translated
 
 _ENCODING = asyncio.Semaphore(1)
@@ -192,7 +192,7 @@ _SUBJECT_SQL = text(
           LEFT JOIN LATERAL (
                SELECT name FROM subject_i18n WHERE subject_id = s.id LIMIT 1
           ) any_name ON TRUE
-         WHERE s.is_active AND s.kind = 'leaf'
+         WHERE s.is_active AND s.kind = CAST(:kind AS node_kind)
          GROUP BY s.id, s.synonyms, s.external_code,
                   pref.name, any_name.name, q.raw, q.tokens
     ) ranked
@@ -201,6 +201,59 @@ _SUBJECT_SQL = text(
      LIMIT :limit
     """
 )
+
+# What a shelf holds: everything under it, and the leaves elsewhere that its
+# synonyms name. The tree files «Математика для экономистов» under economics and
+# the maths entrance exam under admissions, and both are maths to somebody who
+# typed «математика». A leaf belongs when a word of its names, in any language,
+# or of its synonyms starts with one of the shelf's synonyms. A shelf with no
+# synonyms holds its subtree and nothing else; a leaf holds itself, whatever
+# synonyms it has.
+_LEAF_WORDS = _TOKENS.format(
+    expr=_NORM.format(
+        expr="COALESCE((SELECT string_agg(i.name, ' ') FROM subject_i18n i"
+        " WHERE i.subject_id = s.id), '') || ' ' || array_to_string(s.synonyms, ' ')"
+    )
+)
+_HOLDS = f"""(
+    s.path LIKE shelf.path || '%'
+    OR (shelf.kind = 'group' AND s.kind = 'leaf' AND EXISTS (
+        SELECT 1 FROM unnest(shelf.synonyms) stem
+         WHERE btrim(stem) <> ''
+           AND strpos({_LEAF_WORDS}, ' ' || {_NORM.format(expr="btrim(stem)")}) > 0
+    ))
+)"""
+
+_HELD_BY_SQL = text(
+    f"""
+    SELECT s.id FROM subjects s, subjects shelf
+     WHERE shelf.id = :shelf AND s.is_active AND {_HOLDS}
+    """
+)
+
+_SHELVES_OF_SQL = text(
+    f"""
+    SELECT shelf.id FROM subjects shelf
+     WHERE shelf.is_active AND EXISTS (
+         SELECT 1 FROM subjects s WHERE s.id = ANY(:ids) AND {_HOLDS}
+     )
+    """
+)
+
+
+async def held_by(session: AsyncSession, subject_id: int) -> list[int]:
+    """What a search for this subject covers: itself, and for a shelf what the
+    shelf holds. Offers sit on leaves, so this is what a filter compares."""
+    return list(await session.scalars(_HELD_BY_SQL, {"shelf": subject_id}))
+
+
+async def shelves_of(session: AsyncSession, subject_ids: set[int]) -> set[int]:
+    """Every subject that holds one of these — themselves and the shelves they
+    are on. The same relation as `held_by`, read the other way."""
+    if not subject_ids:
+        return set()
+    return set(await session.scalars(_SHELVES_OF_SQL, {"ids": sorted(subject_ids)}))
+
 
 _INSTITUTION_SQL = text(
     f"""
@@ -295,7 +348,14 @@ async def find_subjects(
     *,
     limit: int = 5,
     threshold: float = NAME_THRESHOLD,
+    kind: NodeKind = NodeKind.LEAF,
 ) -> list[Match]:
+    """Subjects the query names or resembles, best first.
+
+    Leaves by default, which is what an offer or a picker can hold. Groups are
+    asked for separately, by the parser alone: a word for a whole shelf —
+    «математика» — names the shelf, and the search reads it as its leaves.
+    """
     rows = await session.execute(
         _SUBJECT_SQL,
         {
@@ -303,6 +363,7 @@ async def find_subjects(
             "lang": lang,
             "limit": limit,
             "threshold": threshold,
+            "kind": kind.value,
         },
     )
     return [

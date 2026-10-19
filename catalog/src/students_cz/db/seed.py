@@ -602,6 +602,7 @@ async def seed_subjects(session: AsyncSession, path: Path) -> tuple[int, int]:
             kind=NodeKind.GROUP,
             sort=group_sort,
             parent=None,
+            synonyms=group.get("synonyms", []),
         )
         group_count += 1
         for leaf_sort, leaf in enumerate(group.get("children", []), start=1):
