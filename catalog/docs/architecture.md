@@ -34,12 +34,12 @@ message somebody who allowed it, and the record of that is the
 permission, and then nothing is recorded, so `notify` does not try a send that
 Telegram would refuse with a 403.
 
-A `bot_started_at` recorded under `@student_cz_bot` does not say which bot it
-was. Such a person counts as reachable until the first send through the
-moderator bot comes back as a 403. `mark_unreachable` then records it as
-`BOT_BLOCKED`, although they never blocked anything (the event keeps
-Telegram's reason, "bot can't initiate conversation", which tells it apart
-from a real block), and their next visit
+A `bot_started_at` recorded under an earlier bot (`@student_cz_bot`, then
+`@konnekt_moder_bot`) does not say which bot it was. Such a person counts as
+reachable until the first send through the moderator bot comes back as a 403.
+`mark_unreachable` then records it as `BOT_BLOCKED`, although they never
+blocked anything (the event keeps Telegram's reason, "bot can't initiate
+conversation", which tells it apart from a real block), and their next visit
 through the moderator bot makes them reachable again. That notification is
 lost either way, because they have not started the moderator bot. The only
 cost is one misleading event per person.
@@ -52,7 +52,7 @@ string or an XSS in any of these apps reaches the others.
 
 **Nothing attributes a visit yet.** `users.source` is the first `start_param`
 we see, and Telegram sends one only through a Mini App deep link such as
-`t.me/konnekt_moder_bot/<app>?startapp=<source>`. The catalog is not
+`t.me/konnekt_cz_bot/<app>?startapp=<source>`. The catalog is not
 registered as a named Mini App of the moderator bot, so no such link reaches
 it. A `?start=<source>` link goes to the moderator bot's `/start`.
 

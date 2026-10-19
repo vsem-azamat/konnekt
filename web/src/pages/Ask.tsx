@@ -199,7 +199,7 @@ export default function AskPage() {
           ref={inputRef}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder={t`матан на ČVUT к 14 февраля, до 600 Kč`}
+          placeholder={t`математический анализ на ČVUT к 14 февраля, до 600 Kč`}
           rows={2}
           style={{
             all: 'unset',
@@ -349,9 +349,9 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   // example that misreads itself is a demonstration of the failure this screen
   // exists to remove.
   const examples = [
-    t`матан ČVUT`,
+    t`математический анализ ČVUT`,
     t`čeština B2`,
-    t`помощь на экзамене по матану`,
+    t`помощь на экзамене по математическому анализу`,
     t`нострификация аттестата`,
     t`курсовая работа`,
   ];

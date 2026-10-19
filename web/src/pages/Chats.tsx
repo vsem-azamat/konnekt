@@ -23,7 +23,14 @@ import {
   ui,
 } from '@/components/Ui';
 import { chatsQuery, institutionsQuery, meQuery } from '@/lib/api';
-import { directory, initials, ownUniversity, search, sectionHint } from '@/lib/chats';
+import {
+  cities,
+  directory,
+  initials,
+  ownUniversity,
+  search,
+  sectionHint,
+} from '@/lib/chats';
 
 /**
  * The chat directory: supervisor-telegram's chats, read as places to go.
@@ -38,15 +45,19 @@ export default function ChatsPage() {
 
   const { data, isPending, isError, refetch } = useQuery(chatsQuery);
 
-  const found = useMemo(() => (data ? search(data, query) : []), [data, query]);
   // A student's own university first. Outside Telegram there is no one to
   // ask, and the directory keeps supervisor's order.
   const me = useQuery(meQuery);
-  const institutions = useQuery({
-    ...institutionsQuery,
-    // Only a faculty needs it: the taxonomy names the university above it.
-    enabled: me.data?.institution?.parent_id != null,
-  });
+  // Loaded with the screen, not on the first keystroke: it holds the
+  // universities' cities, and a search typed before it arrived would say
+  // «Такого чата нет» for a city it simply had not heard of yet. A faculty
+  // needs it too, since the taxonomy names the university above it.
+  const institutions = useQuery(institutionsQuery);
+  const cityOf = useMemo(() => cities(institutions.data ?? []), [institutions.data]);
+  const found = useMemo(
+    () => (data ? search(data, query, cityOf) : []),
+    [data, query, cityOf],
+  );
   const mine = ownUniversity(me.data?.institution, institutions.data ?? []);
   const { entries, rest } = useMemo(() => directory(data ?? [], mine), [data, mine]);
   const searching = query.trim() !== '';
@@ -93,10 +104,7 @@ export default function ChatsPage() {
           </Rows>
         ) : searching ? (
           found.length === 0 ? (
-            <Empty
-              title={<Trans>Такого чата нет</Trans>}
-              body={<Trans>Попробуй название вуза или факультета латиницей.</Trans>}
-            />
+            <Empty title={<Trans>Такого чата нет</Trans>} />
           ) : (
             <>
               <Label>

@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from app.presentation.telegram.handlers import start as start_handlers
 
+from tests.plain_language import slang
 from tests.telegram_helpers import TelegramObjectFactory, create_admin_user, create_normal_user
 
 SUPER_ADMIN_ID = 123456789
@@ -77,6 +78,16 @@ class TestStart:
         assert "/banall" not in text
         assert "/help" in text
         assert len(buttons) >= 2
+
+    async def test_the_greeting_is_plain_language(self, telegram_factory, admin_repo, site):
+        """With the site configured, so the line about who helps is in it."""
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        text, buttons = _answered(message)
+        assert slang(text) == []
+        assert [b.text for b in buttons if slang(b.text)] == []
 
     async def test_the_first_button_goes_to_the_catalogue(self, telegram_factory, admin_repo, site):
         """The question people arrive with is "where is my faculty's chat".

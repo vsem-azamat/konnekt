@@ -1,19 +1,40 @@
-"""The retired catalog bot, kept only to say where Konnekt went.
+"""The retired bots, kept only to say where Konnekt went.
 
-@student_cz_bot was the catalog's bot before everything moved into this one,
-and people still write to it. When its token is configured it polls here, next
-to the main bot, and answers every private message with the new address. It
-does nothing else; switching it off is removing the token.
+Konnekt has moved address more than once: @student_cz_bot was the catalog's
+bot before everything moved into the moderator, and @konnekt_moder_bot was the
+moderator until a new bot replaced it (a username cannot be changed). People
+still write to the old ones. Each retired token that is configured polls here, next to the main bot,
+and answers every private message with the new address. It does nothing else;
+switching one off is removing its token.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    BotCommandScopeAllChatAdministrators,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeDefault,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    MenuButtonCommands,
+    Message,
+)
+from aiogram.utils.token import TokenValidationError
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
+logger = get_logger("moved")
 
 MOVED_TEXT = "Konnekt переехал: каталог, чаты и помощь с учёбой теперь в @{username}. Нажмите там /start."
+MOVED_SHORT_TEXT = "Konnekt переехал: теперь @{username}"
 
 
 async def point_to_konnekt(message: Message, konnekt_username: str) -> None:
@@ -33,10 +54,59 @@ def build_router() -> Router:
     return router
 
 
-def build_moved_bot() -> tuple[Bot, Dispatcher] | None:
-    """The retired bot and its one handler, or None when no token is configured."""
-    if not settings.telegram.retired_token:
-        return None
-    dp = Dispatcher()
-    dp.include_router(build_router())
-    return Bot(token=settings.telegram.retired_token), dp
+async def retire_profile(bot: Bot, konnekt_username: str) -> None:
+    """Replace what Telegram keeps on the bot from when it was current.
+
+    Its Mini App button would sign in with this bot's token, which the API no
+    longer accepts, its commands lead nowhere, and its description still says
+    to press that button. Each step stands alone, as in `profile.py`, and is
+    logged rather than raised: the bot still answers without it.
+    """
+    steps: list[tuple[str, Awaitable[object]]] = [
+        ("menu_button", bot.set_chat_menu_button(menu_button=MenuButtonCommands())),
+        *(
+            (f"commands:{scope.type}", bot.delete_my_commands(scope=scope))
+            for scope in (
+                BotCommandScopeDefault(),
+                BotCommandScopeAllPrivateChats(),
+                BotCommandScopeAllGroupChats(),
+                BotCommandScopeAllChatAdministrators(),
+            )
+        ),
+        ("description", bot.set_my_description(description=MOVED_TEXT.format(username=konnekt_username))),
+        (
+            "short_description",
+            bot.set_my_short_description(short_description=MOVED_SHORT_TEXT.format(username=konnekt_username)),
+        ),
+    ]
+    for name, step in steps:
+        try:
+            await step
+        except Exception as e:
+            logger.warning("retired_profile_step_failed", bot=bot.id, step=name, error=str(e))
+
+
+def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
+    """Each retired bot with a dispatcher of its own, none when no token is configured.
+
+    Of its own because a dispatcher polls one bot at a time, and a router
+    belongs to one dispatcher.
+    """
+    built = []
+    for position, token in enumerate(settings.telegram.retired_tokens, start=1):
+        if token == settings.telegram.token:
+            # A second poller on the main bot would take turns with it for moderation's updates.
+            logger.warning("retired_token_is_current", position=position)
+            continue
+        try:
+            bot = Bot(token=token)
+        except TokenValidationError:
+            # Here, before anything is contained, it would take moderation down.
+            # The position, never the token: it is a secret.
+            logger.error("retired_token_malformed", position=position)
+            continue
+        dp = Dispatcher()
+        dp.include_router(build_router())
+        dp.startup.register(retire_profile)
+        built.append((bot, dp))
+    return built

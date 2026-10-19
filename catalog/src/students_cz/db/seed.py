@@ -78,11 +78,14 @@ SERVICE_TYPES: list[dict[str, Any]] = [
         "names": {
             "ru": (
                 "Репетитор по предмету",
-                "матан, физика, экономика, программирование",
+                "математика, физика, экономика, программирование",
             ),
             "cs": ("Doučování předmětu", "matematika, fyzika, ekonomie, programování"),
             "en": ("Subject tutoring", "calculus, physics, economics, programming"),
-            "uk": ("Репетитор з предмета", "матан, фізика, економіка, програмування"),
+            "uk": (
+                "Репетитор з предмета",
+                "математика, фізика, економіка, програмування",
+            ),
         },
     },
     {
@@ -92,10 +95,10 @@ SERVICE_TYPES: list[dict[str, Any]] = [
         "requires_institution": True,
         "default_price_unit": "hour",
         "names": {
-            "ru": ("Přijímačky", "ČVUT, VŠE, UK, VUT, MUNI"),
-            "cs": ("Přijímačky", "ČVUT, VŠE, UK, VUT, MUNI"),
+            "ru": ("Вступительные экзамены", "ČVUT, VŠE, UK, VUT, MUNI"),
+            "cs": ("Přijímací zkoušky", "ČVUT, VŠE, UK, VUT, MUNI"),
             "en": ("Entrance exams", "ČVUT, VŠE, UK, VUT, MUNI"),
-            "uk": ("Přijímačky", "ČVUT, VŠE, UK, VUT, MUNI"),
+            "uk": ("Вступні іспити", "ČVUT, VŠE, UK, VUT, MUNI"),
         },
     },
     {

@@ -1532,7 +1532,7 @@
         {
           "slug": "prijimacky-technicke-vs",
           "names": {
-            "cs": "Přijímačky na technické VŠ (matematika + fyzika)",
+            "cs": "Přijímací zkoušky na technické VŠ (matematika + fyzika)",
             "en": "Admissions to Technical Universities (Maths + Physics)",
             "ru": "Поступление в технические вузы (математика + физика)",
             "uk": "Вступ до технічних ВНЗ (математика + фізика)"
@@ -1589,7 +1589,7 @@
         {
           "slug": "prijimacky-ekonomicke-vs",
           "names": {
-            "cs": "Přijímačky na ekonomické VŠ (VŠE)",
+            "cs": "Přijímací zkoušky na ekonomické VŠ (VŠE)",
             "en": "Admissions to Business Schools (VŠE)",
             "ru": "Поступление в экономические вузы (VŠE)",
             "uk": "Вступ до економічних ВНЗ (VŠE)"
@@ -1609,7 +1609,7 @@
         {
           "slug": "prijimacky-medicina",
           "names": {
-            "cs": "Přijímačky na medicínu (biologie + chemie)",
+            "cs": "Přijímací zkoušky na medicínu (biologie + chemie)",
             "en": "Medical School Admissions (Biology + Chemistry)",
             "ru": "Поступление на медицину (биология + химия)",
             "uk": "Вступ на медицину (біологія + хімія)"
