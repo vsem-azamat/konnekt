@@ -80,6 +80,8 @@ async def me(user_id: Annotated[int, Depends(require_super_admin)]) -> AuthMeRes
 def _address(request: Request) -> str | None:
     """The caller's address if it is one: it arrives through forwarded headers."""
     host = request.client.host if request.client else None
+    if host and "%" in host:
+        return None  # an IPv6 zone, of any length, says nothing about who
     try:
         return str(ipaddress.ip_address(host)) if host else None
     except ValueError:
