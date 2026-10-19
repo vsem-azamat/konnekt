@@ -20,6 +20,8 @@ from app.core.container import setup_container
 from app.core.logging import get_logger, setup_logging
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.session import close_db, get_session_maker
 from app.presentation.telegram.handlers import router
@@ -85,14 +87,17 @@ async def on_startup(bot: Bot) -> None:
 
 
 async def on_shutdown(bot: Bot) -> None:
-    """Main bot shutdown, in dependency order."""
+    """Main bot shutdown.
+
+    Not `bot.close()`: that is the Bot API method for moving a bot between API
+    servers, refused for ten minutes after launch. The HTTP session is closed
+    by `_run_polling`, and the database by `main` once nothing uses it.
+    """
     try:
         await bot.delete_webhook()
-        await bot.close()
-        await close_db()
-        logger.info("main_bot_shutdown_complete")
     except Exception as e:
-        logger.error("shutdown_error", error=str(e), exc_info=True)
+        logger.warning("shutdown_delete_webhook_failed", error=str(e))
+    logger.info("main_bot_shutdown_complete")
 
 
 # ---------------------------------------------------------------------------
@@ -103,15 +108,23 @@ async def on_shutdown(bot: Bot) -> None:
 def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bot, Dispatcher]:
     """Create and configure the moderation bot — the only bot in this process."""
     bot = Bot(token=settings.telegram.token, default=DefaultBotProperties(parse_mode="HTML"))
+    return bot, build_dispatcher(bot, session_maker)
+
+
+def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) -> Dispatcher:
+    """The moderator dispatcher, middlewares in their order, for any bot."""
     dp = Dispatcher()
 
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
     dp.update.middleware(HistoryMiddleware())
     dp.update.middleware(ApprovedChatGateMiddleware())
-    dp.message.middleware(BlacklistMiddleware())
-    # Also at the door: a blacklisted user who rejoins must not get to speak once first.
-    dp.chat_member.middleware(BlacklistMiddleware())
+    # Outer, so they see every message and membership change: an inner
+    # middleware runs only once a handler's filters match, and plain text
+    # matches none, so a blacklisted member could write freely. Also at the
+    # door: a blacklisted user who rejoins must not get to speak once first.
+    dp.message.outer_middleware(BlacklistMiddleware())
+    dp.chat_member.outer_middleware(BlacklistMiddleware())
     dp.callback_query.middleware(CallbackAnswerMiddleware())
 
     dp.include_router(router)
@@ -119,7 +132,7 @@ def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bo
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
-    return bot, dp
+    return dp
 
 
 # ---------------------------------------------------------------------------
@@ -134,8 +147,12 @@ async def _run_polling(bot: Bot, dp: Dispatcher, *, name: str, **kwargs: Any) ->
         await dp.start_polling(bot, **kwargs)
     except asyncio.CancelledError:
         logger.info("polling_cancelled", bot=name)
+        raise
     except Exception:
+        # Raised on, not swallowed: a poller that died must end the process
+        # so the container restarts, rather than leave it running deaf.
         logger.exception("polling_error", bot=name)
+        raise
     finally:
         await bot.session.close()
         logger.info("polling_stopped", bot=name)
@@ -150,15 +167,7 @@ async def main() -> None:
     main_bot, main_dp = _setup_main_bot(session_maker)
     setup_container(session_maker, main_bot)
 
-    tasks = [
-        _run_polling(
-            main_bot,
-            main_dp,
-            name="main",
-            skip_updates=True,
-            allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
-        ),
-    ]
+    tasks: list[Coroutine[Any, Any, None]] = []
 
     from app.presentation.telegram.moved import build_moved_bot
 
@@ -166,15 +175,19 @@ async def main() -> None:
         moved_bot, moved_dp = moved
         konnekt_username = (await main_bot.me()).username
         tasks.append(
-            # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
-            # and taking it here would leave the main bot without a shutdown path.
-            _run_polling(
-                moved_bot,
-                moved_dp,
+            # Contained: a revoked retired token must not crash-loop moderation.
+            _contained(
+                # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
+                # and taking it here would leave the main bot without a shutdown path.
+                _run_polling(
+                    moved_bot,
+                    moved_dp,
+                    name="moved",
+                    handle_signals=False,
+                    allowed_updates=["message"],
+                    konnekt_username=konnekt_username,
+                ),
                 name="moved",
-                handle_signals=False,
-                allowed_updates=["message"],
-                konnekt_username=konnekt_username,
             )
         )
 
@@ -194,10 +207,55 @@ async def main() -> None:
 
     tasks.append(run_snapshot_loop(session_maker=session_maker, bot=main_bot))
 
+    polling = _run_polling(
+        main_bot,
+        main_dp,
+        name="main",
+        skip_updates=True,
+        allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
+    )
     try:
-        await asyncio.gather(*tasks)
+        await _supervise(polling, tasks)
     finally:
+        try:
+            await close_db()
+        except Exception as e:
+            logger.error("close_db_failed", error=str(e), exc_info=True)
         logger.info("stopped")
+
+
+async def _contained(service: Coroutine[Any, Any, None], *, name: str) -> None:
+    """Run a service whose failure should be logged rather than end the process."""
+    try:
+        await service
+    except Exception:
+        logger.exception("service_failed", service=name)
+
+
+async def _supervise(polling: Coroutine[Any, Any, None], services: list[Coroutine[Any, Any, None]]) -> None:
+    """Run the services for as long as the main poller runs, and no longer.
+
+    The poller ending, by SIGTERM or by failing, ends the process: waiting for
+    every task kept it alive after a failed start, deaf and immune to SIGTERM,
+    and made every deploy end in a kill. A service that returns is simply done
+    (the MCP plane returns at once when it is off); one that raises takes the
+    process down with it, so a restart brings it back.
+    """
+    main = asyncio.ensure_future(polling)
+    running = {asyncio.ensure_future(service) for service in services}
+    try:
+        while True:
+            done, running = await asyncio.wait({main, *running}, return_when=asyncio.FIRST_COMPLETED)
+            running.discard(main)
+            if main in done:
+                main.result()
+                return
+            for task in done:
+                task.result()
+    finally:
+        for task in (main, *running):
+            task.cancel()
+        await asyncio.gather(main, *running, return_exceptions=True)
 
 
 def run_bot() -> None:

@@ -67,14 +67,27 @@ class BlacklistMiddleware(BaseMiddleware):
             blacklisted_ids = {user.id for user in blacklisted_users}
             _blacklist_cache = (blacklisted_ids, now + _CACHE_TTL)
 
-        if isinstance(event, types.Message) and event.from_user and event.from_user.id in blacklisted_ids:
+        if (
+            isinstance(event, types.Message)
+            # Sent as a channel or anonymously: from_user is Telegram's stand-in,
+            # shared by every such message, not the person who wrote it.
+            and event.sender_chat is None
+            and event.from_user
+            and event.from_user.id in blacklisted_ids
+        ):
             if not await _still_blocked(user_repo, event.from_user.id):
                 return await handler(event, data)
+            if event.chat.type not in ("group", "supergroup"):
+                # A private chat has nobody to ban anyone from; it is refused.
+                return None
             try:
                 await bot.ban_chat_member(event.chat.id, event.from_user.id)
+            except Exception as e:
+                logger.error("ban_failed", user_id=event.from_user.id, error=str(e))
+            try:
                 await event.delete()
             except Exception as e:
-                logger.error("ban_or_delete_failed", user_id=event.from_user.id, error=str(e))
+                logger.error("delete_failed", user_id=event.from_user.id, error=str(e))
             return None  # Stop further handler processing for blacklisted user
 
         if isinstance(event, types.ChatMemberUpdated):

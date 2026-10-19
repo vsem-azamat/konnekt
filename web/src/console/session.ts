@@ -138,7 +138,7 @@ export interface BlockedUser {
 }
 
 export interface AdminSession {
-  session_id: string;
+  id: string;
   created_at: string;
   last_seen_at: string;
   expires_at: string;

@@ -14,21 +14,30 @@
 # keep in step with the first.
 set -euo pipefail
 
-# Credentials. Readable by nobody once set — rotate rather than recover.
+# Credentials, and anything not public anyway: this repository is public, and
+# a variable is printed unmasked in its workflow logs. Readable by nobody once
+# set — rotate rather than recover.
 SECRETS="
+DB_HOST
+DB_USER
+DB_NAME
 DB_PASSWORD
 MODERATOR_BOT_TOKEN
-TELETHON_API_ID
-TELETHON_API_HASH
 MCP_TOKEN
-"
-
-# Environment-specific but not sensitive. Readable by anyone with repo access,
-# so a token landing here by mistake is a leak — the split is deliberate.
-VARIABLES="
 ADMIN_SUPER_ADMINS
 ADMIN_REPORT_CHAT_ID
+CATALOG_DB_USER
+CATALOG_DB_NAME
+CATALOG_DB_PASSWORD
+CATALOG_OWNER_TG_ID
+"
+
+# Public anyway. Printed in every workflow log, so a token landing here by
+# mistake is a leak — the split is deliberate.
+VARIABLES="
+DB_PORT
 WEBAPI_PUBLIC_URL
+CATALOG_ADS_CONTACT
 "
 
 env_file="${1:-}"

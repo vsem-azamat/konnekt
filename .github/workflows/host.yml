@@ -58,11 +58,10 @@ jobs:
                 section "who and where"
                 whoami; hostname; uptime
 
+                # This project's containers only, and no socket list: the
+                # neighbours' names, images and ports are not ours to publish.
                 section "containers"
-                docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' || true
-
-                section "listening sockets"
-                ss -tln || true
+                docker ps --filter name=supervisor-telegram --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' || true
 
                 section "what answers on 443"
                 host=$(echo "$PUBLIC_URL" | sed -e 's#^https\?://##' -e 's#/.*##')
@@ -98,8 +97,25 @@ jobs:
                 docker exec edge-caddy find /data/caddy/certificates -name "*${host}*" 2>/dev/null \
                   || echo "no certificate file names match $host"
 
+                # Reduced to time, level, message and status before printing,
+                # addresses masked: a raw line carries the visitor's address,
+                # user agent and URI.
                 section "what the edge said about this name"
-                docker logs --tail 4000 edge-caddy 2>&1 | grep -F -- "$host" | tail -30 \
-                  || echo "the edge log does not mention $host at all"
+                lines=$(docker logs --tail 4000 edge-caddy 2>&1 | grep -F -- "$host" | tail -30 || true)
+                if [ -z "$lines" ]; then
+                  echo "the edge log does not mention $host at all"
+                else
+                  printf '%s\n' "$lines" | python3 -c 'if True:
+                    import json, re, sys
+                    address = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|\[?[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){2,}\]?")
+                    for line in sys.stdin:
+                        try:
+                            entry = json.loads(line)
+                        except ValueError:
+                            continue
+                        if isinstance(entry, dict):
+                            message = address.sub("<addr>", str(entry.get("msg", "")))
+                            print(entry.get("ts"), entry.get("level"), message, entry.get("status", ""))'
+                fi
                 ;;
             esac

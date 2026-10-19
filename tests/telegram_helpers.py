@@ -107,6 +107,7 @@ class TelegramObjectFactory:
             "text": text,
             "reply_to_message": reply_to_message,
             "entities": entities or [],
+            "sender_chat": None,
             **kwargs,
         }
 
