@@ -1,8 +1,8 @@
 """Every console route refuses a caller without a session.
 
-Routes are guarded one by one with `Depends(require_super_admin)`, so a new
-route that forgets it would serve strangers and pass every other test. This
-walks the app's own route table instead of a list somebody has to keep.
+The guard sits on the console routers in main.py; a router included without
+it, or a route added on the app directly, would serve strangers and pass every
+other test. This walks the app's own routes instead of a list somebody keeps.
 """
 
 from __future__ import annotations
@@ -15,9 +15,10 @@ from httpx import ASGITransport, AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
-# Open on purpose: the public half answers strangers, sign-in issues the
-# session, health answers the container's check.
-_OPEN_PREFIXES = ("/api/public", "/api/auth", "/api/health")
+# Open on purpose: the public half answers strangers, health answers the
+# container's check, and sign-in issues the session.
+_OPEN_PREFIXES = ("/api/public", "/api/health")
+_OPEN_ROUTES = {("POST", "/api/auth/webapp")}
 
 
 def _console_routes() -> list[tuple[str, str]]:
@@ -29,7 +30,9 @@ def _console_routes() -> list[tuple[str, str]]:
             continue
         # Any value will do: the refusal comes before the path is looked at.
         concrete = re.sub(r"\{[^}]+\}", "1", path)
-        routes.extend((method.upper(), concrete) for method in sorted(operations))
+        routes.extend(
+            (method.upper(), concrete) for method in sorted(operations) if (method.upper(), path) not in _OPEN_ROUTES
+        )
     return routes
 
 
@@ -66,3 +69,16 @@ async def test_a_console_route_refuses_without_a_session(method: str, path: str,
         response = await client.request(method, path, json={})
 
     assert response.status_code == 401, f"{method} {path} answered {response.status_code}"
+
+
+@pytest.mark.parametrize("path", ["/api/openapi.json", "/api/docs", "/redoc"])
+async def test_production_does_not_publish_a_map_of_the_console(path: str, monkeypatch) -> None:
+    from app.core.config import settings
+    from app.webapi.main import create_app
+
+    monkeypatch.setattr(settings, "environment", "production")
+    production = create_app()
+    async with AsyncClient(transport=ASGITransport(app=production), base_url="http://test") as client:
+        response = await client.get(path)
+
+    assert response.status_code == 404

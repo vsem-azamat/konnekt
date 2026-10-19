@@ -62,8 +62,11 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Moderator Bot Admin API",
         version="0.1.0",
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        # Not in production: /api/* is public through the edge, and the schema
+        # is a map of every console route for whoever asks.
+        docs_url=None if settings.environment == "production" else "/api/docs",
+        openapi_url=None if settings.environment == "production" else "/api/openapi.json",
+        redoc_url=None,
         lifespan=_lifespan,
     )
 

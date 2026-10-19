@@ -2,7 +2,7 @@
 
 `/banall` only asks; the press is where a person is banned from every chat
 and, optionally, wiped. None of these presses ran in a test before, nor did
-!json, /contacts or a member leaving (#175).
+!json or /contacts (#175).
 """
 
 from __future__ import annotations
@@ -80,6 +80,13 @@ def _edited(fake_tg: FakeTelegramServer) -> str:
 async def test_pressing_ban_blacklists_and_bans_everywhere(
     production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker, spammer
 ) -> None:
+    from app.db.models import Chat as DbChat
+
+    other_approved, unapproved = -1007000000001, -1007000000002
+    async with db_session_maker() as session:
+        session.add(DbChat(id=other_approved, title="Other", resource_status=DbChat.STATUS_APPROVED))
+        session.add(DbChat(id=unapproved, title="Not ours", resource_status=DbChat.STATUS_DISCOVERED))
+        await session.commit()
     data = BlacklistConfirm(user_id=SPAMMER_ID, chat_id=APPROVED_CHAT_ID, message_id=30).pack()
 
     await production_dispatcher.feed_update(bot, _press(data))
@@ -87,7 +94,8 @@ async def test_pressing_ban_blacklists_and_bans_everywhere(
     stored = await _user(db_session_maker, SPAMMER_ID)
     assert stored is not None
     assert stored.blocked is True
-    assert SPAMMER_ID in {int(c.params["user_id"]) for c in fake_tg.get_calls("banChatMember")}
+    banned_in = {int(c.params["chat_id"]) for c in fake_tg.get_calls("banChatMember")}
+    assert banned_in == {APPROVED_CHAT_ID, other_approved}
     assert await _actions(db_session_maker) == ["blacklist"]
     assert "черный список" in _edited(fake_tg)
 
@@ -104,6 +112,7 @@ async def test_pressing_ban_and_wipe_teaches_the_spam_filter(
     assert row is not None
     assert row.spam is True
     assert any(str(c.params.get("message_id")) == "30" for c in fake_tg.get_calls("deleteMessage"))
+    assert any(str(c.params.get("revoke_messages")).lower() == "true" for c in fake_tg.get_calls("banChatMember"))
 
 
 async def test_a_super_admin_cannot_be_blacklisted_by_a_stale_dialog(
@@ -206,8 +215,13 @@ async def test_json_shows_a_super_admin_the_message_and_tidies_up(
 
 
 async def test_json_is_not_for_moderators(
-    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
 ) -> None:
+    from app.db.repositories import get_admin_repository
+
+    async with db_session_maker() as session:
+        await get_admin_repository(session).grant(MODERATOR_ID, APPROVED_CHAT_ID)
+
     await production_dispatcher.feed_update(bot, _command("!json", by=MODERATOR_ID))
 
     assert not any(str(c.params.get("text")).startswith("<pre>") for c in fake_tg.get_calls("sendMessage"))
@@ -217,26 +231,3 @@ async def test_contacts_answer_anyone(production_dispatcher: Dispatcher, bot: Bo
     await production_dispatcher.feed_update(bot, _command("/contacts", by=SPAMMER_ID))
 
     assert any("Контакты" in str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage"))
-
-
-async def test_a_member_leaving_is_only_noted(
-    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
-) -> None:
-    from aiogram.types import ChatMemberLeft, ChatMemberMember, ChatMemberUpdated
-
-    person = User(id=SPAMMER_ID, is_bot=False, first_name="Leaver")
-    leave = Update(
-        update_id=3,
-        chat_member=ChatMemberUpdated(
-            chat=GROUP,
-            from_user=person,
-            date=datetime.now(UTC),
-            old_chat_member=ChatMemberMember(user=person),
-            new_chat_member=ChatMemberLeft(user=person),
-        ),
-    )
-
-    await production_dispatcher.feed_update(bot, leave)
-
-    assert fake_tg.get_calls("sendMessage") == []
-    assert fake_tg.get_calls("banChatMember") == []

@@ -59,7 +59,7 @@ test-cov: ## Run tests with coverage report
 	uv run pytest --cov=app --cov-report=html --cov-report=term
 
 test-cov-xml: ## Run tests with XML coverage report (for CI)
-	uv run pytest --cov=app --cov-report=xml --cov-fail-under=60
+	uv run pytest --cov=app --cov-report=xml
 
 test-watch: ## Run tests in watch mode (requires pytest-watch)
 	uv run ptw

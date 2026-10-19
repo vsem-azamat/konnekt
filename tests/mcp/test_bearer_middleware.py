@@ -49,10 +49,22 @@ async def _get(headers: list[tuple[str, str]]) -> tuple[int, _Tool]:
     return response.status_code, tool
 
 
-async def test_the_right_token_gets_through() -> None:
-    status, tool = await _get([("Authorization", f"Bearer {TOKEN}")])
+@pytest.mark.parametrize("value", [f"Bearer {TOKEN}", f"bearer {TOKEN}", f"Bearer  {TOKEN} "])
+async def test_the_right_token_gets_through(value: str) -> None:
+    status, tool = await _get([("Authorization", value)])
 
     assert (status, tool.reached) == (200, 1)
+
+
+async def test_the_served_app_is_behind_the_middleware() -> None:
+    """Testing the middleware alone says nothing if the app stops using it."""
+    from app.mcp.server import build_mcp_asgi_app
+
+    served = build_mcp_asgi_app(token=TOKEN, path="/mcp")
+    async with AsyncClient(transport=ASGITransport(app=served), base_url="http://mcp") as client:
+        response = await client.post("/mcp", json={})
+
+    assert response.status_code == 401
 
 
 @pytest.mark.parametrize(
