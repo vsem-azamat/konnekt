@@ -306,14 +306,18 @@ something else:
   nostrification — because that pair would match nobody. Through synonyms
   only, never a group's name: «příprava na přijímací zkoušky» is the name of a
   group and the kind of help in full.
-- **A shelf holds its subtree and the leaves its synonyms name.** The tree files
-  «Математика для экономистов» under economics and the maths entrance exam and
-  maturita under admissions; all of them are maths to somebody who typed
-  «математика». A leaf on another shelf belongs to a group when a word of its
-  names or synonyms starts with one of the group's synonyms (`lookup.held_by`).
-  The search filters by what a subject holds, and the request feed counts a
-  helper's offer on a leaf as an offer on every shelf that holds it
-  (`lookup.shelves_of`) — upwards only. Pickers and offers still hold leaves.
+- **A shelf holds its subtree, the leaves its synonyms name, and what it
+  lists.** The tree files «Математика для экономистов» under economics and the
+  maths entrance exam under admissions; both are maths to somebody who typed
+  «математика». A leaf on another shelf belongs to a group when a word of one of
+  its names, in any language, starts with one of the group's synonyms — names,
+  not the leaf's synonyms, because a synonym can mention maths on a leaf that is
+  not about it («нострификация математика» on nostrification). What names miss
+  is listed by slug in `subjects.holds`: the maths group holds maturita. The
+  search filters by what a subject holds (`lookup.held_by`), and the request
+  feed counts a helper's offer on a leaf as an offer on every shelf that holds
+  it (`lookup.shelves_of`) — upwards only. A leaf holds itself and nothing
+  else. Pickers and offers still hold leaves.
 - **A subject and a kind of help that carries none cannot both survive.** The
   `life` group's offers have no subject at all, while the search applies subject
   and kind of help together — so the pair matches nobody, and one of the two has

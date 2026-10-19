@@ -13,6 +13,9 @@
         "matematik",
         "math"
       ],
+      "holds": [
+        "maturita"
+      ],
       "children": [
         {
           "slug": "matematicka-analyza",

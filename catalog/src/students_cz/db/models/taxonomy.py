@@ -69,6 +69,14 @@ class Subject(IdMixin, TimestampMixin, Base):
         ARRAY(Text), nullable=False, server_default="{}"
     )
 
+    # A group's leaves on other shelves, by slug, that its name does not reach:
+    # maturita is maths too, though nothing in its name says so. Written down
+    # rather than guessed from synonyms, which mention maths on leaves that are
+    # not about it. See `lookup.held_by` and docs/data-model.md.
+    holds: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), nullable=False, server_default="{}"
+    )
+
     sort: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )

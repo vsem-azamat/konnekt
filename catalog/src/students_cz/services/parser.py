@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.db.models import Subject
@@ -452,10 +453,18 @@ async def parse(
     # matches them.
     if not (subjects and _is_named(subjects[0])) and result.service_type in SHELF_KINDS:
         shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
-        if shelves and shelves[0].matched_on == "synonym":
-            shelf = await session.get(Subject, shelves[0].id)
-            if shelf and _only_names_shelf(result, norm, keyword, shelf.synonyms):
-                subjects = [shelves[0], *subjects[:3]]
+        # The synonyms themselves, not the match's kind: the query has to hold a
+        # word starting with one of them, which a hit on the name alone cannot
+        # give — that is what keeps a group's name from making it the answer.
+        stems = (
+            await session.scalar(
+                select(Subject.synonyms).where(Subject.id == shelves[0].id)
+            )
+            if shelves
+            else None
+        )
+        if stems and _only_names_shelf(result, norm, keyword, stems):
+            subjects = [shelves[0], *subjects[:3]]
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and

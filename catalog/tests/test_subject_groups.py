@@ -47,6 +47,12 @@ async def _id(session: AsyncSession, slug: str) -> int:
         ("mathematics", "en"),
         ("математика", "uk"),
         ("репетитор з математики", "uk"),
+        # Words that restate an exam, and a number, say nothing about which
+        # corner of maths.
+        ("подготовка к экзамену по математике", "ru"),
+        ("экзамен по математике", "ru"),
+        ("maths exam", "en"),
+        ("математика 1", "ru"),
         # What is already a field is not a word about the subject.
         ("математика на ČVUT", "ru"),
         ("matematika ČVUT do 14. února, do 600 Kč", "cs"),
@@ -70,6 +76,8 @@ async def test_a_word_for_the_shelf_names_the_shelf(session, text, lang) -> None
         ("вступительный экзамен по математике", "ru", "prijimacky-matematika"),
         ("matematická analýza", "cs", "matematicka-analyza"),
         ("calculus", "en", "matematicka-analyza"),
+        # A synonym naming the leaf, with nothing else in the query.
+        ("matematika VŠE", "cs", "matematika-pro-ekonomy"),
         # Inflected, so no leaf scores 1.00 — and still not the shelf, because
         # something beside the maths word says which corner of it.
         ("doučování matematiky pro ekonomy", "cs", "matematika-pro-ekonomy"),
@@ -87,6 +95,25 @@ async def test_a_named_leaf_beats_its_shelf(session, text, lang, slug) -> None:
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # A level says which language exam, not which maths.
+        ("математика B2", "ru"),
+        # Kinds of help whose offers carry no maths leaf.
+        ("math essay", "en"),
+        ("математика общежитие", "ru"),
+    ],
+)
+async def test_the_shelf_is_not_chosen_beside_what_it_cannot_go_with(
+    session, text, lang
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, "math"), (
+        parsed.subject
+    )
 
 
 @pytest.mark.parametrize(("text", "lang"), [("физика", "ru"), ("fyzika", "cs")])
@@ -126,11 +153,61 @@ async def test_searching_a_shelf_finds_every_leaf_on_it(
         ).json()
         return {item["user_id"] for item in body["results"]}
 
+    # Nostrification mentions maths in one synonym of a dozen; it is not maths.
+    nostrification = await helper_factory(
+        tg_id=94007, subject_slug="nostrifikacni-zkousky", service_code="nostrification"
+    )
+
     on_the_shelf = await found("math")
     assert {calculus.id, algebra.id, economists.id, maturita.id} <= on_the_shelf
+    assert nostrification.id not in on_the_shelf
     assert physics.id not in on_the_shelf
-    # A leaf still means that leaf alone.
-    assert algebra.id not in await found("matematicka-analyza")
+    # A leaf still means that leaf alone, however its synonyms read: only a
+    # shelf reaches across the tree.
+    on_calculus = await found("matematicka-analyza")
+    assert algebra.id not in on_calculus
+    assert economists.id not in on_calculus
+
+
+async def test_a_leaf_reaches_nothing_beyond_itself(
+    client, session, helper_factory
+) -> None:
+    """Only a shelf reaches across the tree. A leaf's synonyms read the same way
+    would make probability cover statistics for economists by the word
+    «statistik», and operating systems cover law."""
+    economists = await helper_factory(tg_id=94051, subject_slug="statistika-pro-ekonomy")
+    body = (
+        await client.get(
+            "/api/v1/search",
+            params={
+                "subject_id": await _id(session, "pravdepodobnost-a-statistika"),
+                "limit": 50,
+            },
+            headers=auth_header(94052),
+        )
+    ).json()
+    assert economists.id not in {item["user_id"] for item in body["results"]}
+
+
+async def test_a_retired_leaf_still_finds_its_own_offers(
+    client, session, helper_factory
+) -> None:
+    """As a plain filter by its id always did; only what a shelf reaches
+    beyond itself has to be live."""
+    helper = await helper_factory(tg_id=94041, subject_slug="teorie-grafu")
+    leaf = await session.get(Subject, await _id(session, "teorie-grafu"))
+    assert leaf is not None
+    leaf.is_active = False
+    await session.flush()
+
+    body = (
+        await client.get(
+            "/api/v1/search",
+            params={"subject_id": leaf.id, "limit": 50},
+            headers=auth_header(94042),
+        )
+    ).json()
+    assert helper.id in {item["user_id"] for item in body["results"]}
 
 
 async def test_a_request_for_the_shelf_reaches_a_helper_on_any_leaf(
@@ -198,3 +275,26 @@ async def test_a_request_for_a_leaf_does_not_reach_a_sibling_leaf(
     rows = await requests_service.feed_for(session, user=helper, limit=50)
     [row] = [item for item in rows if item.request.id == asked.id]
     assert row.on_subject is False
+
+
+async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
+    """`holds` reaches production by migration only, like synonyms."""
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    seeded = {
+        group["slug"]: set(group.get("holds", []))
+        for group in json.loads((root / "seeds/subjects.json").read_text())["groups"]
+    }
+    migrated: dict[str, set[str]] = {}
+    for path in sorted((root / "src/students_cz/db/migrations/versions").glob("*.py")):
+        spec = importlib.util.spec_from_file_location(f"_m_{path.stem}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for slug, slugs in getattr(module, "HOLDS", {}).items():
+            migrated[slug] = set(slugs)
+    assert migrated, "no migration declares what a shelf holds"
+    assert {slug: holds for slug, holds in seeded.items() if holds} == migrated
