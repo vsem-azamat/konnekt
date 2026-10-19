@@ -781,3 +781,30 @@ class TestSupergroupUpgrade:
         )
         await dispatcher.feed_update(bot, Update(update_id=81, message=ban))
         assert [int(c.params["user_id"]) for c in fake_tg.get_calls("banChatMember")] == [TARGET_USER_ID]
+
+
+@pytest.mark.e2e
+class TestHistoryIsOneRowPerMessage:
+    async def test_a_redelivered_update_is_stored_once(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        """Telegram redelivers what it was not sure arrived; each copy was a new row."""
+        from sqlalchemy import func
+
+        update = Update(
+            update_id=90,
+            message=Message(
+                message_id=95,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+                text="hello",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+        await dispatcher.feed_update(bot, update)
+
+        async with db_session_maker() as session:
+            stored = await session.scalar(select(func.count()).select_from(DbMessage).where(DbMessage.message_id == 95))
+        assert stored == 1

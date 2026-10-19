@@ -1,10 +1,11 @@
 from typing import Any
 
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import and_
 
 from app.db.models import Message
+from app.db.upsert import insert_for
 
 
 class MessageRepository:
@@ -54,14 +55,17 @@ class MessageRepository:
         message: str | None,
         message_info: dict[str, Any],
     ) -> None:
+        # Telegram redelivers what it was not sure arrived; one row per message.
         await self.db.execute(
-            insert(Message).values(
+            insert_for(self.db, Message)
+            .values(
                 chat_id=chat_id,
                 user_id=user_id,
                 message_id=message_id,
                 message=message,
                 message_info=message_info,
             )
+            .on_conflict_do_nothing(index_elements=[Message.chat_id, Message.message_id])
         )
         await self.db.commit()
 
