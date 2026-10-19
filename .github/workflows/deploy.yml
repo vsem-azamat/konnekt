@@ -221,7 +221,9 @@ jobs:
             # migration, with the old catalog already down.
             holders=$(docker ps --format '{{.Names}}' --filter volume=konnekt_postgres-data)
             [ -n "$holders" ] || echo "Nothing holds the catalog's database; the password is proven by the migration."
-            for holder in $holders; do
+            # Line by line rather than `for x in $list`: the deploy user's login
+            # shell is zsh, which does not split an unquoted variable into words.
+            printf '%s\n' "$holders" | grep . | while read -r holder; do
               network=$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$holder" | awk '{print $1}')
               # Named, not given a value: the value would sit in docker's argv.
               PGPASSWORD="$CATALOG_DB_PASSWORD" docker run --rm --network "$network" -e PGPASSWORD \
@@ -237,7 +239,7 @@ jobs:
             docker compose -p students-cz stop -t 60
             ours=$(docker ps -q --filter name=^supervisor-telegram-catalog-postgres$)
             others=$(docker ps -q --filter volume=konnekt_postgres-data | grep -vx "${ours:-none}" || true)
-            [ -z "$others" ] || docker stop -t 60 $others
+            [ -z "$others" ] || printf '%s\n' "$others" | xargs docker stop -t 60
 
             # Personal data, on a host shared with other projects.
             install -d -m 700 catalog-backups db-backups
@@ -276,6 +278,8 @@ jobs:
               echo "$ref"
             done)
             # An image a container still uses is refused and the rest go on.
-            removed=$([ -z "$stale" ] || docker image rm $stale 2>&1 | grep -c '^Untagged:' || true)
+            # Through xargs: zsh passed the whole unquoted list to docker as
+            # one argument, and the first prune removed nothing.
+            removed=$([ -z "$stale" ] || printf '%s\n' "$stale" | xargs docker image rm 2>&1 | grep -c '^Untagged:' || true)
             echo "Removed ${removed:-0} old images of this project."
             # --- /prune ---
