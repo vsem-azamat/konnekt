@@ -634,3 +634,47 @@ class TestSpamWarning:
 
         texts = [str(c.params.get("text", "")) for c in fake_tg.get_calls("sendMessage")]
         assert not any("Похоже на спам" in t for t in texts)
+
+
+@pytest.mark.e2e
+class TestGateOnButtons:
+    async def test_a_button_pressed_in_an_unapproved_chat_does_nothing(
+        self, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession], fake_tg: FakeTelegramServer
+    ) -> None:
+        """Approval is a property of the chat, and a press is an update like any other."""
+        from aiogram.types import CallbackQuery
+        from app.presentation.telegram.bot import build_dispatcher
+        from app.presentation.telegram.handlers import router
+        from app.presentation.telegram.utils import BlacklistConfirm
+
+        router._parent_router = None
+        for sub in router.sub_routers:
+            sub._parent_router = router
+        dp = build_dispatcher(bot, db_session_maker)
+        unapproved = Chat(id=-1008888888888, type="supergroup", title="Not ours")
+        async with db_session_maker() as session:
+            session.add(DbChat(id=unapproved.id, title="Not ours", resource_status=DbChat.STATUS_DISCOVERED))
+            await session.commit()
+
+        press = Update(
+            update_id=60,
+            callback_query=CallbackQuery(
+                id="cb-1",
+                from_user=User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin"),
+                chat_instance="1",
+                data=BlacklistConfirm(user_id=TARGET_USER_ID, chat_id=unapproved.id, message_id=30).pack(),
+                message=Message(
+                    message_id=90,
+                    date=datetime.now(UTC),
+                    chat=unapproved,
+                    from_user=User(id=123456, is_bot=True, first_name="Bot"),
+                    text="Забанить во всех одобренных чатах?",
+                ),
+            ),
+        )
+
+        await dp.feed_update(bot, press)
+        router._parent_router = None
+
+        assert fake_tg.get_calls("banChatMember") == []
+        assert fake_tg.get_calls("deleteMessage") == []

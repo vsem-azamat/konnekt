@@ -15,15 +15,18 @@ if TYPE_CHECKING:
 def _group_chat(event: TelegramObject) -> types.Chat | None:
     """The group or supergroup this update concerns, if any.
 
-    Covers messages, membership changes and join requests alike: approval is a
-    property of the chat, not of an update type. Banning someone at the door or
-    turning away an applicant is as public an action as answering a command,
-    and each arrives on a different carrier.
+    Covers messages, membership changes, join requests and button presses
+    alike: approval is a property of the chat, not of an update type. Banning
+    someone at the door, turning away an applicant or acting on a pressed
+    button is as public as answering a command, and each arrives on a
+    different carrier. A press carries its chat on the message it is attached
+    to, which stays readable as an inaccessible message.
     """
     if not isinstance(event, types.Update):
         return None
-    carrier: types.Message | types.ChatMemberUpdated | types.ChatJoinRequest | None = (
-        event.message or event.chat_member or event.chat_join_request
+    pressed = event.callback_query.message if event.callback_query else None
+    carrier: types.Message | types.InaccessibleMessage | types.ChatMemberUpdated | types.ChatJoinRequest | None = (
+        event.message or event.chat_member or event.chat_join_request or pressed
     )
     if carrier is None:
         return None
