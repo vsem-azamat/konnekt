@@ -240,3 +240,13 @@ class TestWhatItDoesNotSay:
 
         assert str(FIT) not in raw
         assert "ČVUT FIT" not in raw
+
+
+async def test_reach_is_served_from_memory_for_a_while(client_factory, db_session_maker) -> None:
+    await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+
+    first = await _reach(client_factory)
+    await _seed(db_session_maker, _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs"))
+    again = await _reach(client_factory)
+
+    assert again == first

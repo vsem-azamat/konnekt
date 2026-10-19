@@ -386,3 +386,15 @@ async def test_public_catalog_does_not_open_admin_routes(client_factory) -> None
     assert catalog.status_code == 200
     assert me.status_code == 401
     assert admin_chats.status_code == 401
+
+
+async def test_strangers_asking_again_do_not_reach_the_database(client_factory, db_session_maker) -> None:
+    """The endpoint is open to anyone and aggregates messages; a loop of requests was a loop of scans."""
+    await _seed(db_session_maker, _chat(CVUT, "ČVUT | ЧВУТ", public_link="https://t.me/cvut_chat"))
+
+    async with client_factory() as client:
+        first = (await client.get("/api/public/catalog")).json()
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+        again = (await client.get("/api/public/catalog")).json()
+
+    assert again == first

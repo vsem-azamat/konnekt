@@ -7,7 +7,8 @@ safe projections from here instead of reusing admin DTOs by accident.
 from __future__ import annotations
 
 import datetime
-from typing import Annotated, Literal
+import time
+from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import case, func, select
@@ -101,6 +102,28 @@ async def _observed_days(session: AsyncSession, since: datetime.datetime) -> int
     return result.scalar() or 0
 
 
+# Remembered for a minute: both answers aggregate over messages and member
+# snapshots, and the endpoints answer strangers, who may ask in a loop. A
+# figure a minute old is what any visitor would have seen anyway.
+_CACHE_SECONDS = 60
+_cached: dict[str, tuple[float, object]] = {}
+
+
+def forget_cached_answers() -> None:
+    _cached.clear()
+
+
+def _remembered(key: str) -> object | None:
+    entry = _cached.get(key)
+    if entry is None or entry[0] <= time.monotonic():
+        return None
+    return entry[1]
+
+
+def _remember(key: str, value: object) -> None:
+    _cached[key] = (time.monotonic() + _CACHE_SECONDS, value)
+
+
 @router.get("/catalog", response_model=list[PublicCatalogItem])
 async def get_public_catalog(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -112,6 +135,8 @@ async def get_public_catalog(
     private faculty group without one cannot appear by accident, and taking a
     chat down means clearing one column.
     """
+    if (cached := _remembered("catalog")) is not None:
+        return cast("list[PublicCatalogItem]", cached)
     parent = aliased(Chat)
     since = utc_now() - ACTIVITY_WINDOW
     grounded = await _observed_days(session, since) >= MIN_OBSERVED_DAYS
@@ -157,7 +182,7 @@ async def get_public_catalog(
     ]
     # Grouped and alphabetical, so the page renders what the server already
     # decided instead of sorting forty-five rows again in the browser.
-    return sorted(
+    answer = sorted(
         items,
         key=lambda item: (
             (item.group or _UNGROUPED).lower(),
@@ -167,6 +192,8 @@ async def get_public_catalog(
             item.title.lower(),
         ),
     )
+    _remember("catalog", answer)
+    return answer
 
 
 @router.get("/reach", response_model=PublicReach)
@@ -186,6 +213,8 @@ async def get_public_reach(
     a row per poll, and summing all of them would count the same people once per
     observation.
     """
+    if (cached := _remembered("reach")) is not None:
+        return cast("PublicReach", cached)
     newest = (
         select(
             ChatMemberSnapshot.chat_id,
@@ -235,9 +264,11 @@ async def get_public_reach(
     # and inline, that widens what the type checker believes `group` to be.
     ordered = sorted(groups.values(), key=lambda group: (-group.members, group.name.lower()))
 
-    return PublicReach(
+    answer = PublicReach(
         chats=len(rows),
         members=sum(group.members for group in ordered),
         measured_chats=measured,
         groups=ordered,
     )
+    _remember("reach", answer)
+    return answer
