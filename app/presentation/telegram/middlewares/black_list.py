@@ -67,7 +67,13 @@ class BlacklistMiddleware(BaseMiddleware):
             blacklisted_ids = {user.id for user in blacklisted_users}
             _blacklist_cache = (blacklisted_ids, now + _CACHE_TTL)
 
-        if isinstance(event, types.Message) and event.from_user and event.from_user.id in blacklisted_ids:
+        if (
+            isinstance(event, types.Message)
+            # A private chat with the bot has nobody to ban anyone from.
+            and event.chat.type in ("group", "supergroup")
+            and event.from_user
+            and event.from_user.id in blacklisted_ids
+        ):
             if not await _still_blocked(user_repo, event.from_user.id):
                 return await handler(event, data)
             try:

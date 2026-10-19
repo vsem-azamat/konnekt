@@ -103,15 +103,23 @@ async def on_shutdown(bot: Bot) -> None:
 def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bot, Dispatcher]:
     """Create and configure the moderation bot — the only bot in this process."""
     bot = Bot(token=settings.telegram.token, default=DefaultBotProperties(parse_mode="HTML"))
+    return bot, build_dispatcher(bot, session_maker)
+
+
+def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) -> Dispatcher:
+    """The moderator dispatcher, middlewares in their order, for any bot."""
     dp = Dispatcher()
 
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
     dp.update.middleware(HistoryMiddleware())
     dp.update.middleware(ApprovedChatGateMiddleware())
-    dp.message.middleware(BlacklistMiddleware())
-    # Also at the door: a blacklisted user who rejoins must not get to speak once first.
-    dp.chat_member.middleware(BlacklistMiddleware())
+    # Outer, so they see every message and membership change: an inner
+    # middleware runs only once a handler's filters match, and plain text
+    # matches none, so a blacklisted member could write freely. Also at the
+    # door: a blacklisted user who rejoins must not get to speak once first.
+    dp.message.outer_middleware(BlacklistMiddleware())
+    dp.chat_member.outer_middleware(BlacklistMiddleware())
     dp.callback_query.middleware(CallbackAnswerMiddleware())
 
     dp.include_router(router)
@@ -119,7 +127,7 @@ def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bo
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
-    return bot, dp
+    return dp
 
 
 # ---------------------------------------------------------------------------
