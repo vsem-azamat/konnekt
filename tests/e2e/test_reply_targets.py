@@ -8,6 +8,7 @@ that replies to nothing still points at the topic's first message.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -274,3 +275,51 @@ async def test_an_anonymous_admin_cannot_moderate_through_an_old_grant(
     await production_dispatcher.feed_update(bot, update)
 
     assert _calls(fake_tg, "banChatMember") == []
+
+
+async def test_purge_in_a_topic_leaves_the_other_topics_alone(
+    production_dispatcher: Dispatcher,
+    bot: Bot,
+    fake_tg: FakeTelegramServer,
+    db_session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """Message ids run across the whole chat, not per topic."""
+    from app.db.models import Message as DbMessage
+
+    async with db_session_maker() as session:
+        for message_id, thread in [(200, 50), (201, 60), (202, 50), (203, 60)]:
+            session.add(
+                DbMessage(
+                    chat_id=APPROVED_CHAT_ID,
+                    user_id=MEMBER_ID,
+                    message_id=message_id,
+                    message="x",
+                    message_info={"message_thread_id": thread, "is_topic_message": True},
+                )
+            )
+        await session.commit()
+    first = Message(
+        message_id=200,
+        date=datetime.now(UTC),
+        chat=GROUP,
+        from_user=_person(MEMBER_ID),
+        text="x",
+        message_thread_id=50,
+        is_topic_message=True,
+    )
+    command = Message(
+        message_id=204,
+        date=datetime.now(UTC),
+        chat=GROUP,
+        from_user=_person(SUPER_ADMIN_ID),
+        text="!purge",
+        entities=[MessageEntity(type="bot_command", offset=0, length=6)],
+        reply_to_message=first,
+        message_thread_id=50,
+        is_topic_message=True,
+    )
+
+    await production_dispatcher.feed_update(bot, Update(update_id=next(_ids), message=command))
+
+    (call,) = _calls(fake_tg, "deleteMessages")
+    assert sorted(int(i) for i in json.loads(call["message_ids"])) == [200, 202, 204]

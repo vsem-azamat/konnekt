@@ -109,7 +109,7 @@ class TestPurge:
         replied.message_id = 100
         cmd.message_id = 105
 
-        await purge_messages(cmd, mock_bot.mock)
+        await purge_messages(cmd, mock_bot.mock, AsyncMock())
 
         ids = mock_bot.mock.delete_messages.await_args.args[1]
         assert ids == list(range(100, 106))
@@ -120,7 +120,7 @@ class TestPurge:
         replied.message_id = 1
         cmd.message_id = 5000
 
-        await purge_messages(cmd, mock_bot.mock)
+        await purge_messages(cmd, mock_bot.mock, AsyncMock())
 
         cmd.answer.assert_awaited_once()
         mock_bot.mock.delete_messages.assert_not_awaited()
@@ -128,7 +128,7 @@ class TestPurge:
     async def test_purge_without_a_reply_explains_itself(self, telegram_factory, mock_bot) -> None:
         cmd, *_ = _pair(telegram_factory, "purge", reply=False)
 
-        await purge_messages(cmd, mock_bot.mock)
+        await purge_messages(cmd, mock_bot.mock, AsyncMock())
 
         cmd.answer.assert_awaited_once()
         mock_bot.mock.delete_messages.assert_not_awaited()

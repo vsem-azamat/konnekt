@@ -86,7 +86,7 @@ async def delete_message(message: types.Message, bot: Bot) -> None:
 
 
 @router.message(Command("purge", prefix="!/"))
-async def purge_messages(message: types.Message, bot: Bot) -> None:
+async def purge_messages(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     """Delete everything from the replied-to message up to this command."""
     reply = replied_message(message)
     if reply is None:
@@ -99,14 +99,42 @@ async def purge_messages(message: types.Message, bot: Bot) -> None:
         await message.answer(f"Слишком большой диапазон: {span} сообщений, максимум {MAX_PURGE}.")
         return
 
+    ids = list(range(first, message.message_id + 1))
+    if message.chat.is_forum:
+        ids = await _same_topic(db, message, ids)
+
     try:
-        await bot.delete_messages(message.chat.id, list(range(first, message.message_id + 1)))
+        await bot.delete_messages(message.chat.id, ids)
     except Exception as err:
         # Telegram refuses the whole batch if any message is older than 48h.
         logger.error("purge_failed", error=str(err), chat_id=message.chat.id, span=span)
         other.sleep_and_delete(
             await message.answer("Не удалось удалить пачку — возможно, сообщения старше 48 часов."), 10
         )
+
+
+async def _same_topic(db: AsyncSession, message: types.Message, ids: list[int]) -> list[int]:
+    """The ids in the span that belong to the command's own topic.
+
+    Message ids run across a forum, not per topic, so a span from one topic
+    covers the others' messages too. What the bot recorded says which topic
+    each is in; the reply and the command are in this one by definition, and a
+    message the bot never recorded is left alone rather than guessed at.
+    """
+    from app.db.models import Message
+
+    topic = message.message_thread_id if message.is_topic_message else None
+    rows = await db.execute(
+        select(Message.message_id, Message.message_info).where(
+            Message.chat_id == message.chat.id, Message.message_id.between(ids[0], ids[-1])
+        )
+    )
+    same = {
+        message_id
+        for message_id, info in rows.all()
+        if ((info or {}).get("message_thread_id") if (info or {}).get("is_topic_message") else None) == topic
+    }
+    return sorted(same | {ids[0], ids[-1]})
 
 
 @router.message(Command("pin", prefix="!/"))
