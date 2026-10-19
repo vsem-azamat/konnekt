@@ -42,6 +42,8 @@ x-runtime-env: &runtime-env
 x-pg-backup-loop: &pg-backup-loop
       - |
         set -euo pipefail
+        # What the healthcheck counts a first dump's two days from.
+        touch /tmp/backup-loop-started
         while true; do
           now=$$(date -u +%s)
           # Next occurrence of BACKUP_HOUR_UTC:00, today or tomorrow.
@@ -54,13 +56,35 @@ x-pg-backup-loop: &pg-backup-loop
             # a usable backup.
             mv "/backups/$${BACKUP_PREFIX}-$$stamp.dump.part" "/backups/$${BACKUP_PREFIX}-$$stamp.dump"
             echo "backup ok: $${BACKUP_PREFIX}-$$stamp.dump"
+            # Pruned only after a good dump: pruning after a failed one would
+            # eat a good dump a day until none were left. Only the top level:
+            # the directory may hold other dumps, kept by hand.
+            find /backups -maxdepth 1 -name '*.dump' -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
           else
             rm -f "/backups/$${BACKUP_PREFIX}-$$stamp.dump.part"
             echo "backup FAILED at $$stamp" >&2
           fi
-          # Only the top level: the directory may hold other dumps, kept by hand.
-          find /backups -maxdepth 1 -name '*.dump' -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
         done
+
+# Unhealthy once the newest dump is two days old, which is what `docker ps`
+# and the deploy's --wait then show: nothing else watches the dumps. Only a
+# directory with no dump of ours at all gets two days' grace from the loop's
+# start, so a restart cannot hide a stale backup. Dumps copied in by hand do
+# not count.
+x-pg-backup-healthcheck: &pg-backup-healthcheck
+  test:
+    - CMD-SHELL
+    - >-
+      [ -n "$$(find /backups -maxdepth 1 -name "$${BACKUP_PREFIX}-*.dump" -mmin -2880 -print -quit)" ]
+      || { [ -z "$$(find /backups -maxdepth 1 -name "$${BACKUP_PREFIX}-*.dump" -print -quit)" ]
+      && [ -n "$$(find /tmp/backup-loop-started -mmin -2880 2>/dev/null)" ]; }
+  interval: 10m
+  timeout: 10s
+  retries: 1
+  # Checked every few seconds at first, so the deploy's --wait sees a verdict
+  # in seconds rather than after the first ten-minute interval.
+  start_period: 1m
+  start_interval: 5s
 
 # Logs rotated as the catalog's old stack rotated them.
 x-rotated-logs: &rotated-logs
@@ -127,6 +151,7 @@ services:
       - ./db-backups:/backups
     entrypoint: ["/bin/bash", "-c"]
     command: *pg-backup-loop
+    healthcheck: *pg-backup-healthcheck
     security_opt: [no-new-privileges:true]
     logging: *rotated-logs
     restart: unless-stopped
@@ -240,6 +265,7 @@ services:
       catalog-postgres: {condition: service_healthy}
     entrypoint: ["/bin/bash", "-c"]
     command: *pg-backup-loop
+    healthcheck: *pg-backup-healthcheck
     security_opt: [no-new-privileges:true]
     logging: *rotated-logs
     restart: unless-stopped
