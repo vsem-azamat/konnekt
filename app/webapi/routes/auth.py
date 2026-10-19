@@ -16,6 +16,7 @@ inside a Telegram client. Telegram Desktop counts, so a laptop still works.
 
 from __future__ import annotations
 
+import ipaddress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -57,7 +58,7 @@ async def webapp_login(
         user_id=caller.user_id,
         ttl_days=settings.webapi.session_ttl_days,
         user_agent=request.headers.get("user-agent"),
-        ip=request.client.host if request.client else None,
+        ip=_address(request),
     )
     response.set_cookie(
         key=settings.webapi.session_cookie_name,
@@ -74,6 +75,15 @@ async def webapp_login(
 @router.get("/me")
 async def me(user_id: Annotated[int, Depends(require_super_admin)]) -> AuthMeResponse:
     return AuthMeResponse(user_id=user_id)
+
+
+def _address(request: Request) -> str | None:
+    """The caller's address if it is one: it arrives through forwarded headers."""
+    host = request.client.host if request.client else None
+    try:
+        return str(ipaddress.ip_address(host)) if host else None
+    except ValueError:
+        return None
 
 
 @router.post("/logout", status_code=204)

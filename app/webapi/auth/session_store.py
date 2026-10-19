@@ -39,8 +39,8 @@ def digest(token: str) -> str:
 def public_id(session_id: str) -> str:
     """The handle the console lists and revokes a session by.
 
-    Never the session id itself: that is the cookie, and returning it as JSON
-    or taking it in a URL hands it to page script and to the access log.
+    Derived from the stored digest rather than returned as it is, so the list
+    never shows a value the table can be matched against directly.
     """
     return hashlib.sha256(session_id.encode()).hexdigest()[:32]
 

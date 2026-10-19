@@ -162,6 +162,11 @@ class WebApiSettings(Settings):
     # against a request another site makes with the admin's cookie.
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
 
+    @field_validator("session_cookie_samesite", mode="before")
+    @classmethod
+    def _samesite_lowercase(cls, value: object) -> object:
+        return value.lower() if isinstance(value, str) else value
+
     model_config = SettingsConfigDict(
         env_prefix="WEBAPI_",
         case_sensitive=False,

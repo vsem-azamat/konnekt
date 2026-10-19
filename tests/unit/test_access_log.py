@@ -30,3 +30,13 @@ def test_health_checks_are_dropped(path: str) -> None:
 @pytest.mark.parametrize("path", ["/api/chats", "/api/healthy-looking", "/api/public/catalog"])
 def test_everything_else_is_kept(path: str) -> None:
     assert QuietHealthChecks().filter(_access(path)) is True
+
+
+def test_the_filter_is_attached_by_logging_setup() -> None:
+    import logging
+
+    from app.core.logging import setup_logging
+
+    setup_logging()
+
+    assert any(isinstance(f, QuietHealthChecks) for f in logging.getLogger("uvicorn.access").filters)

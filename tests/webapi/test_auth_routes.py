@@ -237,4 +237,29 @@ def test_samesite_none_is_refused() -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        WebApiSettings(session_cookie_samesite="none")
+        WebApiSettings.model_validate({"session_cookie_samesite": "none"})
+
+
+def test_samesite_is_read_whatever_its_case() -> None:
+    """`Lax` in an env file must not stop every process at import."""
+    from app.core.config import WebApiSettings
+
+    assert WebApiSettings.model_validate({"session_cookie_samesite": "Lax"}).session_cookie_samesite == "lax"
+
+
+async def test_an_address_that_is_not_one_is_not_recorded(client_factory, db_session_maker) -> None:
+    """A forwarded header is text; the column is 64 characters and the console shows it."""
+    from app.db.models import AdminSession
+    from sqlalchemy import select
+
+    async with client_factory() as client:
+        resp = await client.post(
+            "/api/auth/webapp",
+            json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)},
+            headers={"X-Forwarded-For": "x" * 200},
+        )
+
+    assert resp.status_code == 200
+    async with db_session_maker() as session:
+        ips = (await session.scalars(select(AdminSession.ip))).all()
+    assert all(ip is None or len(ip) <= 64 for ip in ips)
