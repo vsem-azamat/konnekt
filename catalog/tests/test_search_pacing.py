@@ -105,3 +105,16 @@ async def test_a_refused_request_costs_nothing(client) -> None:
         "/api/v1/search/parse", json={"text": "матан"}, headers=auth_header(90906)
     )
     assert resp.status_code == 200
+
+
+async def test_results_have_a_limit_of_their_own(client) -> None:
+    from students_cz.api.v1 import search
+
+    answers = [
+        (await client.get("/api/v1/search", headers=auth_header(90907))).status_code
+        for _ in range(search.SEARCHES_PER_MINUTE + 1)
+    ]
+
+    assert answers[:-1] == [200] * search.SEARCHES_PER_MINUTE
+    assert answers[-1] == 429
+    assert search.SEARCHES_PER_MINUTE > search.PARSES_PER_MINUTE

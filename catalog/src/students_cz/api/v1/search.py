@@ -72,7 +72,8 @@ class _Pace:
 
     def note(self, user_id: int) -> None:
         """Counted from the handler, so a request refused as invalid costs nothing."""
-        self._window(user_id, time.monotonic()).append(time.monotonic())
+        now = time.monotonic()
+        self._window(user_id, now).append(now)
 
 
 _parses = _Pace(PARSES_PER_MINUTE)
