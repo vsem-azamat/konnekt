@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.enums import PendingActionStatus
 from app.db.models import Chat, PendingAction, User
 from app.mcp.server import build_mcp_server
+from app.moderation.mute_permissions import MUTED, UNMUTED
 from sqlalchemy import select
 
 pytestmark = pytest.mark.asyncio
@@ -110,6 +111,23 @@ class TestBoundedWrites:
         permissions = bot.restrict_chat_member.await_args.kwargs["permissions"]
         assert permissions.can_react_to_messages is False
 
+    async def test_mute_is_the_same_mute_as_the_command(self, wired, bot) -> None:
+        await _seed_chat(wired)
+
+        await _call("mute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        kwargs = bot.restrict_chat_member.await_args.kwargs
+        assert kwargs["permissions"] == MUTED
+        assert kwargs["use_independent_chat_permissions"] is True
+
+    async def test_unmute_lifts_the_restriction(self, wired, bot) -> None:
+        await _seed_chat(wired)
+
+        result = await _call("unmute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
+
+        assert result["status"] == "unmuted"
+        assert bot.restrict_chat_member.await_args.kwargs["permissions"] == UNMUTED
+
     async def test_unban_restores_access(self, wired, bot) -> None:
         await _seed_chat(wired)
 
@@ -186,16 +204,6 @@ class TestRemovalsWait:
 
 
 class TestRemainingWrites:
-    async def test_unmute_restores_posting(self, wired, bot) -> None:
-        await _seed_chat(wired)
-
-        result = await _call("unmute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
-
-        assert result["status"] == "unmuted"
-        permissions = bot.restrict_chat_member.await_args.kwargs["permissions"]
-        assert permissions.can_send_messages is True
-        assert permissions.can_react_to_messages is True
-
     async def test_unmute_refuses_an_unapproved_chat(self, wired, bot) -> None:
         async with wired() as session:
             session.add(Chat(id=CHAT_ID, title="Pending", resource_status=Chat.STATUS_DISCOVERED))

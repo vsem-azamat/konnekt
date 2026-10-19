@@ -27,6 +27,8 @@ from aiogram.types import (
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from app.db.models import Chat as DbChat
 from app.db.models import Message as DbMessage
+from app.db.models import SpamPing
+from app.moderation import spam_service
 from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
     DependenciesMiddleware,
@@ -432,3 +434,78 @@ class TestManagedChatsMiddleware:
                 )
             )
             assert stored_message is not None
+
+
+@pytest.mark.e2e
+class TestHistoryCapture:
+    """What `HistoryMiddleware` leaves behind once an update is over."""
+
+    async def test_ad_signal_outlives_the_update(
+        self,
+        dispatcher: Dispatcher,
+        bot: Bot,
+        db_session_maker: async_sessionmaker[AsyncSession],
+    ):
+        """The detector's row is committed, not left for a handler to maybe commit.
+
+        No handler answers plain chatter, so nothing after the middleware
+        commits the session: a row merely added to it is rolled back when the
+        update ends, which is how `spam_pings` stayed empty in production.
+        """
+        update = Update(
+            update_id=30,
+            message=Message(
+                message_id=60,
+                date=datetime.now(UTC),
+                chat=Chat(id=CHAT_ID, type="supergroup", title="Test Chat"),
+                from_user=User(id=TARGET_USER_ID, is_bot=False, first_name="Target"),
+                text="Заходите к нам: t.me/cheap_diplomas",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        async with db_session_maker() as session:
+            pings = (await session.scalars(select(SpamPing).where(SpamPing.message_id == 60))).all()
+        assert [p.chat_id for p in pings] == [CHAT_ID]
+
+    async def test_private_message_is_neither_stored_nor_screened(
+        self,
+        dispatcher: Dispatcher,
+        bot: Bot,
+        db_session_maker: async_sessionmaker[AsyncSession],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """A conversation with the bot is not a chat it moderates.
+
+        Approval is decided only for groups, so a private chat used to fall
+        through as approved: its text went into `messages` and through the spam
+        check, whose warning addresses moderators who are not in the room.
+        """
+        screened: list[int] = []
+
+        async def _detect_spam(_db: object, message: Message) -> bool:
+            screened.append(message.message_id)
+            return False
+
+        monkeypatch.setattr(spam_service, "detect_spam", _detect_spam)
+
+        update = Update(
+            update_id=31,
+            message=Message(
+                message_id=61,
+                date=datetime.now(UTC),
+                chat=Chat(id=REPORTER_ID, type="private", first_name="Reporter"),
+                from_user=User(id=REPORTER_ID, is_bot=False, first_name="Reporter"),
+                text="Привет, вот мой канал t.me/my_channel",
+            ),
+        )
+
+        await dispatcher.feed_update(bot, update)
+
+        assert screened == []
+        async with db_session_maker() as session:
+            stored = await session.scalar(select(DbMessage).where(DbMessage.chat_id == REPORTER_ID))
+            pings = (await session.scalars(select(SpamPing).where(SpamPing.chat_id == REPORTER_ID))).all()
+        assert stored is None
+        assert pings == []

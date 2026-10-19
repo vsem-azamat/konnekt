@@ -25,6 +25,7 @@ from app.core.enums import (
 from app.core.logging import get_logger
 from app.mcp.deps import ToolError, approved_chat_id, clamp, initiator_id, moderator_bot, session_maker
 from app.moderation.blacklist import is_protected
+from app.moderation.mute_permissions import MUTED, UNMUTED
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
@@ -75,12 +76,10 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
         """Silence a user in one chat for a while.
 
         chat_id must be an approved chat — the bot does not act publicly in
-        one still awaiting approval. minutes is clamped to 1..43200 (30 days),
-        the longest restriction Telegram accepts. Reversible with unmute_user,
+        one still awaiting approval. minutes is clamped to 1..43200 (30 days);
+        Telegram's own limit is 366 days, past which a mute is forever. Reversible with unmute_user,
         so this runs immediately rather than asking for confirmation.
         """
-        from aiogram.types import ChatPermissions
-
         try:
             minutes = clamp(minutes, 1, MAX_MUTE_MINUTES)
             bot = moderator_bot()
@@ -91,15 +90,8 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
                 chat_id=chat_id,
                 user_id=user_id,
                 until_date=datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=minutes),
-                permissions=ChatPermissions(
-                    can_send_messages=False,
-                    can_send_media_messages=False,
-                    can_send_polls=False,
-                    can_send_other_messages=False,
-                    # Added in Bot API 10.0; muting without it leaves the user
-                    # able to keep reacting to messages.
-                    can_react_to_messages=False,
-                ),
+                permissions=MUTED,
+                use_independent_chat_permissions=True,
             )
         except ToolError as err:
             return err.payload()
@@ -116,8 +108,6 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
     @mcp.tool
     async def unmute_user(chat_id: int, user_id: int) -> dict[str, Any]:
         """Restore a muted user's ability to post in one chat."""
-        from aiogram.types import ChatPermissions
-
         try:
             bot = moderator_bot()
             async with session_maker()() as session:
@@ -126,14 +116,8 @@ def register_moderation_tools(mcp: FastMCP[None]) -> None:
             await bot.restrict_chat_member(
                 chat_id=chat_id,
                 user_id=user_id,
-                permissions=ChatPermissions(
-                    can_send_messages=True,
-                    can_send_media_messages=True,
-                    can_send_polls=True,
-                    can_send_other_messages=True,
-                    can_add_web_page_previews=True,
-                    can_react_to_messages=True,
-                ),
+                permissions=UNMUTED,
+                use_independent_chat_permissions=True,
             )
         except ToolError as err:
             return err.payload()
