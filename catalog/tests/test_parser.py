@@ -451,6 +451,56 @@ async def test_a_bare_prijimacky_names_the_kind_of_help(session, text) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("вступительные экзамены", "ru"),
+        ("подготовка к вступительным экзаменам", "ru"),
+        ("přijímací zkoušky", "cs"),
+        ("příprava na přijímací zkoušky", "cs"),
+        ("entrance exams", "en"),
+        ("вступні іспити", "uk"),
+        ("підготовка до вступних іспитів", "uk"),
+    ],
+)
+async def test_the_plain_name_of_entrance_exams_is_the_whole_query(
+    session, text, lang
+) -> None:
+    """The catalog's own name for the kind of help, typed back at it.
+
+    The keyword is «вступительн», and «экзамены» was left over as if it named a
+    subject: «вступительные экзамены» answered «Чешский язык B1» at 0.59,
+    because a synonym of that course has the word «экзамен» in it, and the list
+    was empty. «Экзамены» and «подготовка» only restate the kind of help.
+    """
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, f"answered with {parsed.subject}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "lang", "expected"),
+    [
+        ("помощь на экзамене по физике", "ru", "Физика"),
+        ("допомога на іспиті з фізики", "uk", "Фізика"),
+        ("вступительный экзамен по физике", "ru", "Вступительный экзамен по физике"),
+    ],
+)
+async def test_the_subject_is_read_from_what_the_kind_of_help_left(
+    session, text, lang, expected
+) -> None:
+    """The words naming the kind of help are not evidence about the subject.
+
+    Scored over the whole query, «помощь на экзамене по физике» answered
+    «Чешский язык B1», because its synonyms mention an exam.
+    """
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.label.startswith(expected), parsed.subject
+
+
+@pytest.mark.asyncio
 async def test_prijimacky_for_medicine_reaches_medicine(session) -> None:
     """Written the way one language writes it, which is where this stops.
 

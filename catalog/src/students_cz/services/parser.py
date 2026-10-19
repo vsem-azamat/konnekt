@@ -342,6 +342,21 @@ EXAM_MENTION: tuple[str, ...] = (
     "termin",
 )
 
+# Words that only restate a kind of help once its keyword has named it: the
+# exam in «вступительные экзамены», the preparing in «подготовка к ...». Left
+# in, they were read as the subject — a synonym of «Чешский язык B1» has
+# «экзамен» in it, so «помощь на экзамене по физике» answered Czech.
+RESTATING: tuple[str, ...] = (
+    "экзамен",
+    "іспит",
+    "zkous",
+    "exam",
+    "подготов",
+    "підготов",
+    "priprav",
+    "prep",
+)
+
 # Month names, unaccented and lowercased, in the order the client will have
 # typed them. Czech has both nominative and genitive forms in circulation.
 MONTHS: dict[str, int] = {}
@@ -421,8 +436,18 @@ async def parse(
     # Statistics at 0.61. A synonym hit survives, because that is not a guess —
     # "курсовая" and "нострификация" are curated names for real subjects, and
     # dropping them would lose a certainty to protect against a maybe.
-    if keyword and not _without(norm, keyword):
-        subjects = [match for match in subjects if _is_named(match)]
+    #
+    # Where something is left, a guess is scored over what is left and not over
+    # the whole query: the kind of help's words are not evidence about the
+    # subject, and scored with them «помощь на экзамене по физике» answered
+    # «Чешский язык B1». A named subject is kept as found, since the words it was
+    # named by may be the keyword's own.
+    if keyword:
+        rest = _subject_words(norm, keyword)
+        if not rest:
+            subjects = [match for match in subjects if _is_named(match)]
+        elif not (subjects and _is_named(subjects[0])):
+            subjects = await find_subjects(session, rest, lang, limit=4)
 
     # The third mechanism, and the last asked. Only where the first two found
     # nothing: a synonym or an exact name is curated and scores 1.00, and the
@@ -763,6 +788,22 @@ def _is_named(match: Match) -> bool:
     scale and mean nothing alike.
     """
     return match.matched_on != "vector" and match.score >= 1.0
+
+
+def _subject_words(norm: str, keyword: str) -> str:
+    """What could name a subject once the kind of help has been read.
+
+    The keyword's own words, the words that only restate it (RESTATING), weak
+    verbs of asking and prepositions go; everything else stays, a school or a
+    date included, because those are what the subject lookup has always been
+    given.
+    """
+    return " ".join(
+        token
+        for token in tokenise(_without(norm, keyword)).split()
+        if token not in FILLER_WORDS
+        and not any(token.startswith(word) for word in (*RESTATING, *WEAK_HELP))
+    )
 
 
 def _without(norm: str, keyword: str) -> str:
