@@ -25,6 +25,7 @@ import {
 import { hapticSelection, hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { groupRuns } from '@/lib/groups';
+import { afterHelperSaved } from '@/lib/helperSaved';
 import { type Axis, addAxis, type Draft, dropRow, keyOf } from '@/lib/offerRows';
 import { TURNAROUNDS, TurnaroundLabel } from '@/lib/turnaround';
 import type {
@@ -150,9 +151,7 @@ export default function OfferPricesPage() {
       }),
     onSuccess: (me) => {
       hapticSuccess();
-      queryClient.setQueryData(['me'], me);
-      void queryClient.invalidateQueries({ queryKey: ['my-helper'] });
-      void queryClient.invalidateQueries({ queryKey: ['home'] });
+      afterHelperSaved(queryClient, me);
       navigate('/my-helper', { replace: true });
     },
   });
@@ -160,8 +159,10 @@ export default function OfferPricesPage() {
   // A hidden profile stays hidden, so the button must not promise otherwise.
   const hidden = mine?.status === 'hidden';
 
+  // Gone once saved: until the navigation lands, the button would otherwise
+  // offer «Опубликовать» again and a second tap would publish twice.
   useMainButton(
-    loaded
+    loaded && !save.isSuccess
       ? {
           text: hidden ? t`Сохранить` : t`Опубликовать`,
           isVisible: true,
