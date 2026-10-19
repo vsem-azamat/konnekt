@@ -87,21 +87,16 @@ async def on_startup(bot: Bot) -> None:
 
 
 async def on_shutdown(bot: Bot) -> None:
-    """Main bot shutdown, each step on its own so one failure skips no other.
+    """Main bot shutdown.
 
     Not `bot.close()`: that is the Bot API method for moving a bot between API
     servers, refused for ten minutes after launch. The HTTP session is closed
-    by `_run_polling`.
+    by `_run_polling`, and the database by `main` once nothing uses it.
     """
     try:
         await bot.delete_webhook()
     except Exception as e:
         logger.warning("shutdown_delete_webhook_failed", error=str(e))
-    try:
-        await close_db()
-    except Exception as e:
-        logger.error("shutdown_error", error=str(e), exc_info=True)
-        return
     logger.info("main_bot_shutdown_complete")
 
 
@@ -172,13 +167,6 @@ async def main() -> None:
     main_bot, main_dp = _setup_main_bot(session_maker)
     setup_container(session_maker, main_bot)
 
-    polling = _run_polling(
-        main_bot,
-        main_dp,
-        name="main",
-        skip_updates=True,
-        allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
-    )
     tasks: list[Coroutine[Any, Any, None]] = []
 
     from app.presentation.telegram.moved import build_moved_bot
@@ -187,15 +175,19 @@ async def main() -> None:
         moved_bot, moved_dp = moved
         konnekt_username = (await main_bot.me()).username
         tasks.append(
-            # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
-            # and taking it here would leave the main bot without a shutdown path.
-            _run_polling(
-                moved_bot,
-                moved_dp,
+            # Contained: a revoked retired token must not crash-loop moderation.
+            _contained(
+                # The main bot owns SIGTERM: aiogram replaces the handler on each start_polling,
+                # and taking it here would leave the main bot without a shutdown path.
+                _run_polling(
+                    moved_bot,
+                    moved_dp,
+                    name="moved",
+                    handle_signals=False,
+                    allowed_updates=["message"],
+                    konnekt_username=konnekt_username,
+                ),
                 name="moved",
-                handle_signals=False,
-                allowed_updates=["message"],
-                konnekt_username=konnekt_username,
             )
         )
 
@@ -215,10 +207,29 @@ async def main() -> None:
 
     tasks.append(run_snapshot_loop(session_maker=session_maker, bot=main_bot))
 
+    polling = _run_polling(
+        main_bot,
+        main_dp,
+        name="main",
+        skip_updates=True,
+        allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
+    )
     try:
         await _supervise(polling, tasks)
     finally:
+        try:
+            await close_db()
+        except Exception as e:
+            logger.error("close_db_failed", error=str(e), exc_info=True)
         logger.info("stopped")
+
+
+async def _contained(service: Coroutine[Any, Any, None], *, name: str) -> None:
+    """Run a service whose failure should be logged rather than end the process."""
+    try:
+        await service
+    except Exception:
+        logger.exception("service_failed", service=name)
 
 
 async def _supervise(polling: Coroutine[Any, Any, None], services: list[Coroutine[Any, Any, None]]) -> None:

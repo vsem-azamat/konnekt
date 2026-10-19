@@ -16,7 +16,16 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import TelegramAPIServer
-from aiogram.types import Chat, ChatMemberLeft, ChatMemberRestricted, ChatMemberUpdated, Message, Update, User
+from aiogram.types import (
+    Chat,
+    ChatMemberLeft,
+    ChatMemberRestricted,
+    ChatMemberUpdated,
+    Message,
+    MessageEntity,
+    Update,
+    User,
+)
 from app.db.models import Chat as DbChat
 from app.db.models import User as DbUser
 from app.presentation.telegram.bot import build_dispatcher
@@ -54,8 +63,11 @@ async def bot(fake_tg: FakeTelegramServer):
 
 @pytest_asyncio.fixture()
 async def dispatcher(bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]):
-    # The handler routers are module singletons; another test may hold them.
+    # The handler routers are module singletons, and another test re-parents
+    # them under a router of its own; put them back under ours.
     router._parent_router = None
+    for sub in router.sub_routers:
+        sub._parent_router = router
     invalidate_blacklist_cache()
     async with db_session_maker() as session:
         session.add(DbChat(id=CHAT_ID, title="Approved", resource_status=DbChat.STATUS_APPROVED))
@@ -131,10 +143,10 @@ async def test_a_blacklisted_person_rejoining_restricted_is_banned(
     assert _bans(fake_tg) == [BLOCKED_ID]
 
 
-async def test_a_blacklisted_person_writing_to_the_bot_is_not_banned_there(
+async def test_a_blacklisted_person_writing_to_the_bot_is_not_banned_or_answered(
     dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
 ) -> None:
-    """There is no chat to ban anybody from in a private conversation."""
+    """There is no chat to ban from in a private conversation, and no service either."""
     person = User(id=BLOCKED_ID, is_bot=False, first_name="Spammer")
     update = Update(
         update_id=3,
@@ -143,6 +155,28 @@ async def test_a_blacklisted_person_writing_to_the_bot_is_not_banned_there(
             date=datetime.now(UTC),
             chat=Chat(id=BLOCKED_ID, type="private", first_name="Spammer"),
             from_user=person,
+            text="/start",
+            entities=[MessageEntity(type="bot_command", offset=0, length=6)],
+        ),
+    )
+
+    await dispatcher.feed_update(bot, update)
+
+    assert _bans(fake_tg) == []
+    assert fake_tg.get_calls("sendMessage") == []
+
+
+async def test_a_blacklisted_member_of_an_unapproved_chat_is_left_alone(
+    dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    """The approval gate runs first: no public action where the owner has not agreed."""
+    update = Update(
+        update_id=4,
+        message=Message(
+            message_id=12,
+            date=datetime.now(UTC),
+            chat=Chat(id=-1009999999999, type="supergroup", title="Not ours"),
+            from_user=User(id=BLOCKED_ID, is_bot=False, first_name="Spammer"),
             text="hello",
         ),
     )
@@ -150,3 +184,56 @@ async def test_a_blacklisted_person_writing_to_the_bot_is_not_banned_there(
     await dispatcher.feed_update(bot, update)
 
     assert _bans(fake_tg) == []
+
+
+async def test_a_message_sent_as_a_channel_is_not_judged_by_its_placeholder_sender(
+    dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
+) -> None:
+    """Telegram puts a stand-in user on messages sent as a channel or anonymously.
+
+    Blacklisting that stand-in by replying to one such message would otherwise
+    silence every channel post and anonymous admin in every approved chat.
+    """
+    stand_in = 136817688
+    async with db_session_maker() as session:
+        session.add(DbUser(id=stand_in, first_name="Channel", blocked=True))
+        await session.commit()
+    invalidate_blacklist_cache()
+    update = Update(
+        update_id=5,
+        message=Message(
+            message_id=13,
+            date=datetime.now(UTC),
+            chat=GROUP,
+            from_user=User(id=stand_in, is_bot=True, first_name="Channel"),
+            sender_chat=Chat(id=-1001111111111, type="channel", title="Some channel"),
+            text="a post",
+        ),
+    )
+
+    await dispatcher.feed_update(bot, update)
+
+    assert _bans(fake_tg) == []
+    assert fake_tg.get_calls("deleteMessage") == []
+
+
+async def test_a_failed_ban_still_removes_the_message(
+    dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    fake_tg.set_response(
+        "banChatMember", {"ok": False, "error_code": 400, "description": "Bad Request: not enough rights"}
+    )
+    update = Update(
+        update_id=6,
+        message=Message(
+            message_id=14,
+            date=datetime.now(UTC),
+            chat=GROUP,
+            from_user=User(id=BLOCKED_ID, is_bot=False, first_name="Spammer"),
+            text="spam",
+        ),
+    )
+
+    await dispatcher.feed_update(bot, update)
+
+    assert fake_tg.get_calls("deleteMessage")

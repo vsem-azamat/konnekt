@@ -82,14 +82,14 @@ jobs:
       - name: Check required configuration is present
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ vars.DB_USER }}
-          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           MODERATOR_BOT_TOKEN: ${{ secrets.MODERATOR_BOT_TOKEN }}
-          ADMIN_SUPER_ADMINS: ${{ vars.ADMIN_SUPER_ADMINS }}
+          ADMIN_SUPER_ADMINS: ${{ secrets.ADMIN_SUPER_ADMINS }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
-          CATALOG_DB_USER: ${{ vars.CATALOG_DB_USER }}
-          CATALOG_DB_NAME: ${{ vars.CATALOG_DB_NAME }}
+          CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
+          CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}
           CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
         run: |
           missing=""
@@ -131,19 +131,19 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ vars.DB_PORT }}
-          DB_USER: ${{ vars.DB_USER }}
-          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           MODERATOR_BOT_TOKEN: ${{ secrets.MODERATOR_BOT_TOKEN }}
-          ADMIN_SUPER_ADMINS: ${{ vars.ADMIN_SUPER_ADMINS }}
-          ADMIN_REPORT_CHAT_ID: ${{ vars.ADMIN_REPORT_CHAT_ID }}
+          ADMIN_SUPER_ADMINS: ${{ secrets.ADMIN_SUPER_ADMINS }}
+          ADMIN_REPORT_CHAT_ID: ${{ secrets.ADMIN_REPORT_CHAT_ID }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
           MCP_TOKEN: ${{ secrets.MCP_TOKEN }}
           MODERATOR_BOT_RETIRED_TOKEN: ${{ secrets.MODERATOR_BOT_RETIRED_TOKEN }}
-          CATALOG_DB_USER: ${{ vars.CATALOG_DB_USER }}
-          CATALOG_DB_NAME: ${{ vars.CATALOG_DB_NAME }}
+          CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
+          CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}
           CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
-          CATALOG_OWNER_TG_ID: ${{ vars.CATALOG_OWNER_TG_ID }}
+          CATALOG_OWNER_TG_ID: ${{ secrets.CATALOG_OWNER_TG_ID }}
           CATALOG_ADS_CONTACT: ${{ vars.CATALOG_ADS_CONTACT }}
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -183,7 +183,7 @@ jobs:
               # Named, not given a value: the value would sit in docker's argv.
               PGPASSWORD="$CATALOG_DB_PASSWORD" docker run --rm --network "$network" -e PGPASSWORD \
                 pgvector/pgvector:0.8.6-pg18-bookworm \
-                psql -h "$holder" -U "$CATALOG_DB_USER" -d "$CATALOG_DB_NAME" -tAc 'select 1' > /dev/null \
+                psql -h "$holder" -U "$CATALOG_DB_USER" -d "$CATALOG_DB_NAME" -tAc 'select 1' > /dev/null 2>&1 \
                 || { echo "CATALOG_DB_* do not open the catalog database on $holder" >&2; exit 1; }
             done
 

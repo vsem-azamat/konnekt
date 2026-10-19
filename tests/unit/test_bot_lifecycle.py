@@ -105,14 +105,47 @@ async def test_a_service_that_crashes_takes_the_process_down(monkeypatch, servic
         await asyncio.wait_for(bot_module.main(), timeout=5)
 
 
-async def test_shutdown_closes_the_database_even_if_telegram_does_not_answer(monkeypatch) -> None:
+async def test_shutdown_does_not_call_the_bot_api_close(monkeypatch) -> None:
     """`bot.close()` is the Bot API's server-move call, not a session close."""
-    close_db = AsyncMock()
-    monkeypatch.setattr(bot_module, "close_db", close_db)
     bot = AsyncMock()
     bot.delete_webhook.side_effect = ConnectionError("gone")
 
     await bot_module.on_shutdown(bot)
 
     bot.close.assert_not_awaited()
-    close_db.assert_awaited_once()
+
+
+async def test_the_database_closes_after_everything_that_uses_it(monkeypatch, services) -> None:
+    """Closed in on_shutdown, it went before the sweep and the snapshot loop stopped."""
+    order: list[str] = []
+
+    async def close_db() -> None:
+        order.append(f"db after {sorted(services)}")
+
+    async def stopped_polling(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(bot_module, "close_db", close_db)
+    monkeypatch.setattr(bot_module, "_run_polling", stopped_polling)
+
+    await asyncio.wait_for(bot_module.main(), timeout=5)
+
+    assert order == ["db after ['mcp', 'snapshots', 'sweep']"]
+
+
+async def test_the_retired_bot_failing_does_not_take_moderation_down(monkeypatch, services) -> None:
+    """A revoked retired token must not crash-loop the moderator bot."""
+    main_ran = asyncio.Event()
+
+    async def polling(_bot, _dp, *, name, **_kwargs):
+        if name == "moved":
+            raise ConnectionError("retired token revoked")
+        await asyncio.sleep(0.05)
+        main_ran.set()
+
+    monkeypatch.setattr(bot_module, "_run_polling", polling)
+    monkeypatch.setattr(moved, "build_moved_bot", lambda: (AsyncMock(), AsyncMock()))
+
+    await asyncio.wait_for(bot_module.main(), timeout=5)
+
+    assert main_ran.is_set()

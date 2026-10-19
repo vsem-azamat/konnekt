@@ -163,12 +163,21 @@ def test_every_forwarded_name_has_a_value_to_forward() -> None:
 
 
 def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
-    """A token in `vars` is readable by anyone with repository access."""
+    """A variable is printed unmasked in every log of this public repository.
+
+    So everything but what is public anyway comes from secrets: credentials,
+    people's Telegram ids, and where the databases are and what they are called.
+    """
     step = _deploy_step()
     sensitive = {
-        # Not a credential, but the address of a shared database server that
-        # listens publicly; a variable is printed unmasked in a public log.
         "DB_HOST",
+        "DB_USER",
+        "DB_NAME",
+        "CATALOG_DB_USER",
+        "CATALOG_DB_NAME",
+        "ADMIN_SUPER_ADMINS",
+        "ADMIN_REPORT_CHAT_ID",
+        "CATALOG_OWNER_TG_ID",
         "DB_PASSWORD",
         "CATALOG_DB_PASSWORD",
         "MODERATOR_BOT_TOKEN",

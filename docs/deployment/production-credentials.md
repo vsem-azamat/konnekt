@@ -10,16 +10,23 @@ file on the server.
 
 ## Secrets
 
-Credentials. Once set, GitHub will not show them again — rotate rather than
-recover.
+Credentials, and anything that is not public anyway. The repository is public,
+so its workflow logs are too, and a variable is printed in them unmasked: the
+ids of the people who run this, and where the databases are and what they are
+called, belong here as much as passwords do. Once set, GitHub will not show
+them again — rotate rather than recover.
 
 | Secret | What it is |
 | --- | --- |
-| `DB_HOST` | The shared PostgreSQL server. Not a credential, but a variable is printed unmasked in this public repository's workflow logs, and the server listens publicly. |
+| `DB_HOST`, `DB_USER`, `DB_NAME` | The shared PostgreSQL server, which listens publicly, and the bot's role and database on it |
 | `DB_PASSWORD` | PostgreSQL password. The database runs beside this stack rather than in it, so this is the password that database already has — see [The Database](database.md). |
 | `MODERATOR_BOT_TOKEN` | Bot token from BotFather |
 | `MCP_TOKEN` | Bearer token for the control plane |
+| `ADMIN_SUPER_ADMINS` | Comma-separated Telegram IDs |
+| `ADMIN_REPORT_CHAT_ID` | Optional. Defaults to the first super admin |
+| `CATALOG_DB_USER`, `CATALOG_DB_NAME` | Required. The catalog database's role and name, as its data directory has them |
 | `CATALOG_DB_PASSWORD` | The catalog database's password: the one its data directory was created with (teachers-catalog's `POSTGRES_PASSWORD`). Changing it here does not change it there — see catalog/docs/deploy.md. |
+| `CATALOG_OWNER_TG_ID` | Optional. Who the catalog tells about a first profile or request; should be one of `ADMIN_SUPER_ADMINS` so the ping's console button opens |
 | `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` | Deploy target and key |
 
 `MCP_TOKEN` is the entire protection on a plane that can mute, unmute, unban and
@@ -34,16 +41,12 @@ artefact.
 
 ## Variables
 
-Everything else that differs between environments. Readable by anyone with
-repository access, so nothing sensitive goes here.
+What is public anyway. Printed in every public workflow log.
 
 | Variable | Notes |
 | --- | --- |
-| `ADMIN_SUPER_ADMINS` | Comma-separated Telegram IDs |
-| `ADMIN_REPORT_CHAT_ID` | Defaults to the first super admin |
+| `DB_PORT` | Optional, 5432 by default |
 | `WEBAPI_PUBLIC_URL` | Required. The allowed CORS origin, and where the catalog's buttons and notifications open the app |
-| `CATALOG_DB_USER`, `CATALOG_DB_NAME` | Required. The catalog database's role and name, as its data directory has them |
-| `CATALOG_OWNER_TG_ID` | Optional. Who the catalog tells about a first profile or request; should be one of `ADMIN_SUPER_ADMINS` so the ping's console button opens |
 | `CATALOG_ADS_CONTACT` | Optional. The Telegram username the ads page offers |
 
 ## Features switch themselves on
@@ -107,7 +110,8 @@ production credentials is worth less than nothing.
 3. Re-run the deploy workflow — the new value reaches the host with the command.
 4. Revoke the old value at its source: BotFather for bot tokens, the provider
    console for API keys, `ALTER ROLE` for the database.
-5. Confirm the containers came up: `docker compose ps` and recent logs.
+5. Confirm the containers came up: the deploy log shows `docker compose ps`;
+   read the services' logs on the host, since the workflow log is public.
 
 Rotating `MCP_TOKEN` also means updating whatever client holds it.
 
