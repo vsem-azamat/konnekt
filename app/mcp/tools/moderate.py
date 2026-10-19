@@ -24,7 +24,7 @@ from app.core.enums import (
 )
 from app.core.logging import get_logger
 from app.mcp.deps import ToolError, approved_chat_id, clamp, initiator_id, moderator_bot, session_maker
-from app.moderation.blacklist import is_protected
+from app.moderation.blacklist import is_protected, is_stand_in
 from app.moderation.mute_permissions import MUTED, UNMUTED
 
 if TYPE_CHECKING:
@@ -223,8 +223,10 @@ async def _propose(action: ModerationAction, *, chat_id: int | None, user_id: in
     from app.moderation.pending_actions import PendingActionService
 
     try:
-        if action is ModerationAction.BLACKLIST and is_protected(user_id):
-            raise ToolError("protected_user", f"User {user_id} is a super admin and cannot be blacklisted.")
+        if is_protected(user_id):
+            raise ToolError("protected_user", f"User {user_id} is a super admin and cannot be removed.")
+        if is_stand_in(user_id):
+            raise ToolError("not_a_person", f"{user_id} is Telegram's stand-in for posts no person signed.")
         admin_id = initiator_id()
         bot = moderator_bot()
         async with session_maker()() as session:

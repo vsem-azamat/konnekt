@@ -51,9 +51,10 @@ async def delete_admin(message: types.Message, admin_repo: AdminRepository) -> N
     if reply is None:
         await message.answer(_REPLY_REQUIRED)
         return
-    target_user = author_of(reply)
+    # Revoking is always safe, the anonymous admins' stand-in included: older
+    # grants to it trusted every anonymous admin of the chat.
+    target_user = author_of(reply) or reply.from_user
     if target_user is None:
-        # Granting the anonymous admins' stand-in would trust every one of them.
         await message.answer(not_a_person_error())
         return
     mention = other.get_user_mention(target_user)

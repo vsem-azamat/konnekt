@@ -169,3 +169,105 @@ async def test_unban_never_removes_someone_still_in_the_chat(
 
     (call,) = _calls(fake_tg, "unbanChatMember")
     assert str(call["only_if_banned"]).lower() == "true"
+
+
+LINKED_CHANNEL = Chat(id=-1006666666666, type="channel", title="Our channel")
+DISCUSSION = Chat(id=APPROVED_CHAT_ID, type="supergroup", title="Approved")
+
+
+def _channel_post_in_discussion() -> Message:
+    """What Telegram puts in a linked group when the channel posts: an automatic forward."""
+    return Message(
+        message_id=next(_ids),
+        date=datetime.now(UTC),
+        chat=DISCUSSION,
+        from_user=User(id=777000, is_bot=False, first_name="Telegram"),
+        sender_chat=LINKED_CHANNEL,
+        is_automatic_forward=True,
+        text="our news",
+    )
+
+
+async def test_a_command_in_a_comment_thread_does_not_act_on_the_post(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    """A comment that replies to nothing still carries the channel's post as its reply."""
+    post = _channel_post_in_discussion()
+    command = Message(
+        message_id=next(_ids),
+        date=datetime.now(UTC),
+        chat=DISCUSSION,
+        from_user=_person(SUPER_ADMIN_ID),
+        text="!ban",
+        entities=[MessageEntity(type="bot_command", offset=0, length=4)],
+        reply_to_message=post,
+        message_thread_id=post.message_id,
+    )
+
+    await production_dispatcher.feed_update(bot, Update(update_id=next(_ids), message=command))
+
+    assert _calls(fake_tg, "banChatSenderChat") == []
+    assert _calls(fake_tg, "banChatMember") == []
+
+
+async def test_the_groups_own_linked_channel_is_never_banned(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    await production_dispatcher.feed_update(bot, _command("!ban", _channel_post_in_discussion()))
+
+    assert _calls(fake_tg, "banChatSenderChat") == []
+    assert "от имени" in _answers(fake_tg)
+
+
+async def test_banning_a_channel_is_recorded_against_the_channel(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.db.models import ModerationEvent
+    from sqlalchemy import select
+
+    post = _message("buy now", sender=136817688, sender_chat=CHANNEL)
+
+    await production_dispatcher.feed_update(bot, _command("!ban", post))
+
+    async with db_session_maker() as session:
+        events = (await session.scalars(select(ModerationEvent))).all()
+    assert [(e.action, e.target_user_id) for e in events] == [("ban", CHANNEL.id)]
+
+
+async def test_the_bot_does_not_ban_itself(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    await production_dispatcher.feed_update(bot, _command("!ban", _message(sender=bot.id)))
+
+    assert _calls(fake_tg, "banChatMember") == []
+
+
+async def test_a_grant_to_the_anonymous_stand_in_can_be_taken_back(
+    production_dispatcher: Dispatcher,
+    bot: Bot,
+    db_session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """Older !admin calls trusted every anonymous admin; revoking such a grant is always safe."""
+    async with db_session_maker() as session:
+        await get_admin_repository(session).grant(1087968824, APPROVED_CHAT_ID)
+    anonymous = _message("hi", sender=1087968824, sender_chat=GROUP)
+
+    await production_dispatcher.feed_update(bot, _command("!unadmin", anonymous))
+
+    async with db_session_maker() as session:
+        assert not await get_admin_repository(session).is_admin_in(1087968824, APPROVED_CHAT_ID)
+
+
+async def test_an_anonymous_admin_cannot_moderate_through_an_old_grant(
+    production_dispatcher: Dispatcher,
+    bot: Bot,
+    fake_tg: FakeTelegramServer,
+    db_session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with db_session_maker() as session:
+        await get_admin_repository(session).grant(1087968824, APPROVED_CHAT_ID)
+
+    update = _command("!ban", _message(sender=MEMBER_ID), sender=1087968824, sender_chat=GROUP)
+    await production_dispatcher.feed_update(bot, update)
+
+    assert _calls(fake_tg, "banChatMember") == []

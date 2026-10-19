@@ -176,3 +176,15 @@ class TestSuperAdmins:
         bot.ban_chat_member.assert_not_awaited()
         bot.delete_message.assert_not_awaited()
         message_repo.get_user_messages.assert_not_awaited()
+
+
+@pytest.mark.parametrize("stand_in", [136817688, 1087968824, 777000])
+async def test_a_stand_in_sender_is_never_blacklisted(stand_in: int) -> None:
+    """Blacklisting one silences every channel post, or every anonymous admin, everywhere."""
+    from app.core.exceptions import NotAPersonError
+
+    bot = AsyncMock()
+    with pytest.raises(NotAPersonError):
+        await blacklist.add_to_blacklist(AsyncMock(), bot, stand_in)
+
+    bot.ban_chat_member.assert_not_awaited()

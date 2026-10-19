@@ -228,6 +228,17 @@ read before pressing Yes could not tell them which outcome they had asked for.
 Where one command has two endings, both belong on labelled buttons in the same
 dialog.
 
+**A moderator does not act on another moderator of the same chat.** Removing
+somebody trusted with a chat is a dispute for the person who trusted them, so
+only a super admin may ban, kick or mute a moderator there; and nobody, through
+any path, removes a super admin.
+
+**A stand-in sender is nobody.** Telegram signs posts sent as a channel, by an
+anonymous admin, or forwarded from a linked channel with one shared user each.
+Blacklisting, muting or trusting that user acts on every such message in every
+chat at once, so no path accepts one as a person, and a command's target is
+resolved through `author_of`, never `reply_to_message.from_user`.
+
 **The answer is read fresh on every command.** Scoped rights were cached for
 five minutes when they were the same everywhere; per-chat they must not be, or a
 moderator removed from a chat keeps it until the cache expires.

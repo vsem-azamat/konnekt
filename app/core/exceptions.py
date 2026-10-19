@@ -18,8 +18,16 @@ class UserNotFoundException(DomainError):
 
 
 class ProtectedUserError(DomainError):
-    """Raised when an action would put a super admin on the blacklist."""
+    """Raised when an action would remove a super admin."""
 
     def __init__(self, user_id: int):
         self.user_id = user_id
-        super().__init__(f"User {user_id} is a super admin and cannot be blacklisted")
+        super().__init__(f"User {user_id} is a super admin and cannot be removed")
+
+
+class NotAPersonError(DomainError):
+    """Raised when an action names one of Telegram's stand-in senders."""
+
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+        super().__init__(f"{user_id} is Telegram's stand-in for posts no person signed")

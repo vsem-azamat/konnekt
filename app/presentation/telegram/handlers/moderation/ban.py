@@ -23,13 +23,14 @@ router = Router()
 
 
 def _posting_channel(message: types.Message, reply: types.Message) -> types.Chat | None:
-    """The channel a reply was posted as, if it was; never the chat itself.
+    """The channel a reply was posted as, if it was; never the chat's own.
 
-    An anonymous admin posts as the group, and banning the group from itself
-    is not a thing anybody means.
+    An anonymous admin posts as the group, and a linked channel's posts arrive
+    as automatic forwards: banning the group from itself, or from its own
+    channel, is not a thing anybody means.
     """
     sender = reply.sender_chat
-    if sender is None or sender.id == message.chat.id or sender.type != "channel":
+    if sender is None or sender.id == message.chat.id or sender.type != "channel" or reply.is_automatic_forward:
         return None
     return sender
 

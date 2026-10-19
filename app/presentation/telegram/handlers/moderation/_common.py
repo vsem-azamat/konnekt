@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.core.enums import ModerationEventSource
+from app.moderation.blacklist import is_stand_in
 
 if TYPE_CHECKING:
     from aiogram import Bot, types
@@ -13,20 +14,10 @@ if TYPE_CHECKING:
     from app.core.enums import ModerationEventAction
     from app.db.repositories import AdminRepository
 
-# Telegram's stand-ins on messages no person signed: posts sent as a channel,
-# anonymous admins, and posts forwarded from a linked channel. Each is shared by
-# every such message, so acting on one acts on all of them, everywhere.
-STAND_IN_SENDERS = frozenset({136817688, 1087968824, 777000})
-
 
 def reply_required_error(action: str) -> str:
     """Standard error when a command should be a reply."""
     return f"Примените команду ответом на сообщение пользователя, которого нужно {action}. 🙏"
-
-
-def is_user_check_error() -> str:
-    """Standard error when target message does not contain a user."""
-    return "🚫 Это не пользователь или что-то пошло не так."
 
 
 def not_a_person_error() -> str:
@@ -54,7 +45,7 @@ def author_of(reply: types.Message) -> types.User | None:
     if reply.sender_chat is not None:
         return None
     user = reply.from_user
-    if user is None or user.id in STAND_IN_SENDERS:
+    if user is None or is_stand_in(user.id):
         return None
     return user
 
