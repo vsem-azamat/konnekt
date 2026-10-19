@@ -132,7 +132,8 @@ class TestDependencyInjection:
                     and hasattr(obj, "__annotations__")
                     and not inspect.isclass(obj)
                     and not name.startswith("build_")  # Exclude utility functions
-                    and name not in ("reply_required_error", "is_user_check_error")  # Exclude helper functions
+                    # Handlers defined here, not helpers the module imports.
+                    and getattr(obj, "__module__", "").startswith(module.__name__)
                 ):
                     # Additional check: only include functions that might be handlers
                     # (they should have message, callback, or similar parameters)

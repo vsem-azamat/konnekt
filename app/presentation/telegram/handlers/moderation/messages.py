@@ -22,6 +22,7 @@ from app.presentation.telegram.handlers.moderation._common import (
     record_reply_target,
     replied_message,
     reply_required_error,
+    signer_of,
     untouchable,
 )
 from app.presentation.telegram.utils import other
@@ -69,7 +70,7 @@ async def kick_user(message: types.Message, bot: Bot, db: AsyncSession, admin_re
 
 
 @router.message(Command("del", prefix="!/"))
-async def delete_message(message: types.Message, bot: Bot) -> None:
+async def delete_message(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     """Delete the message this command replies to."""
     reply = replied_message(message)
     if reply is None:
@@ -78,6 +79,7 @@ async def delete_message(message: types.Message, bot: Bot) -> None:
 
     try:
         await bot.delete_message(message.chat.id, reply.message_id)
+        await _record_on_message(message, db, reply, ModerationEventAction.DELETE)
     except Exception as err:
         logger.error("delete_failed", error=str(err), chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось удалить сообщение."), 10)
@@ -105,11 +107,28 @@ async def purge_messages(message: types.Message, bot: Bot, db: AsyncSession) -> 
 
     try:
         await bot.delete_messages(message.chat.id, ids)
+        await _record_on_message(message, db, reply, ModerationEventAction.PURGE, detail=f"{len(ids)} сообщений")
     except Exception as err:
         # Telegram refuses the whole batch if any message is older than 48h.
         logger.error("purge_failed", error=str(err), chat_id=message.chat.id, span=span)
         other.sleep_and_delete(
             await message.answer("Не удалось удалить пачку — возможно, сообщения старше 48 часов."), 10
+        )
+
+
+async def _record_on_message(
+    message: types.Message,
+    db: AsyncSession,
+    reply: types.Message,
+    action: ModerationEventAction,
+    *,
+    detail: str | None = None,
+) -> None:
+    """On record against the message's author, naming the message."""
+    signer = signer_of(reply)
+    if signer is not None:
+        await record_reply_target(
+            message, db, action, target_id=signer, detail=detail or f"сообщение {reply.message_id}"
         )
 
 
@@ -138,7 +157,7 @@ async def _same_topic(db: AsyncSession, message: types.Message, ids: list[int]) 
 
 
 @router.message(Command("pin", prefix="!/"))
-async def pin_message(message: types.Message, bot: Bot) -> None:
+async def pin_message(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     """Pin the replied-to message without notifying everyone."""
     reply = replied_message(message)
     if reply is None:
@@ -153,6 +172,7 @@ async def pin_message(message: types.Message, bot: Bot) -> None:
             # moderator wants from a housekeeping action.
             disable_notification=True,
         )
+        await _record_on_message(message, db, reply, ModerationEventAction.PIN)
     except Exception as err:
         logger.error("pin_failed", error=str(err), chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось закрепить сообщение."), 10)
@@ -161,7 +181,7 @@ async def pin_message(message: types.Message, bot: Bot) -> None:
 
 
 @router.message(Command("unpin", prefix="!/"))
-async def unpin_message(message: types.Message, bot: Bot) -> None:
+async def unpin_message(message: types.Message, bot: Bot, db: AsyncSession) -> None:
     """Unpin the replied-to message."""
     reply = replied_message(message)
     if reply is None:
@@ -170,6 +190,7 @@ async def unpin_message(message: types.Message, bot: Bot) -> None:
 
     try:
         await bot.unpin_chat_message(chat_id=message.chat.id, message_id=reply.message_id)
+        await _record_on_message(message, db, reply, ModerationEventAction.UNPIN)
     except Exception as err:
         logger.error("unpin_failed", error=str(err), chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось открепить сообщение."), 10)

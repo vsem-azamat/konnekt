@@ -19,6 +19,7 @@ from app.presentation.telegram.handlers.moderation import (
 
 from tests.telegram_helpers import (
     MockBot,
+    RecordingSession,
     TelegramObjectFactory,
     create_admin_user,
     create_normal_user,
@@ -90,14 +91,14 @@ class TestDelete:
     async def test_delete_removes_the_replied_message(self, telegram_factory, mock_bot) -> None:
         cmd, replied, chat, _ = _pair(telegram_factory, "del")
 
-        await delete_message(cmd, mock_bot.mock)
+        await delete_message(cmd, mock_bot.mock, RecordingSession())
 
         mock_bot.mock.delete_message.assert_awaited_once_with(chat.id, replied.message_id)
 
     async def test_delete_without_a_reply_explains_itself(self, telegram_factory, mock_bot) -> None:
         cmd, *_ = _pair(telegram_factory, "del", reply=False)
 
-        await delete_message(cmd, mock_bot.mock)
+        await delete_message(cmd, mock_bot.mock, RecordingSession())
 
         cmd.answer.assert_awaited_once()
         mock_bot.mock.delete_message.assert_not_awaited()
@@ -139,7 +140,7 @@ class TestPin:
         """Pinning notifies every member unless told otherwise."""
         cmd, replied, chat, _ = _pair(telegram_factory, "pin")
 
-        await pin_message(cmd, mock_bot.mock)
+        await pin_message(cmd, mock_bot.mock, RecordingSession())
 
         mock_bot.mock.pin_chat_message.assert_awaited_once_with(
             chat_id=chat.id, message_id=replied.message_id, disable_notification=True
@@ -148,7 +149,7 @@ class TestPin:
     async def test_unpin_targets_the_replied_message(self, telegram_factory, mock_bot) -> None:
         cmd, replied, chat, _ = _pair(telegram_factory, "unpin")
 
-        await unpin_message(cmd, mock_bot.mock)
+        await unpin_message(cmd, mock_bot.mock, RecordingSession())
 
         mock_bot.mock.unpin_chat_message.assert_awaited_once_with(chat_id=chat.id, message_id=replied.message_id)
 

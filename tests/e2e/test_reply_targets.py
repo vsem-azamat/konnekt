@@ -323,3 +323,41 @@ async def test_purge_in_a_topic_leaves_the_other_topics_alone(
 
     (call,) = _calls(fake_tg, "deleteMessages")
     assert sorted(int(i) for i in json.loads(call["message_ids"])) == [200, 202, 204]
+
+
+async def _events(db_session_maker: async_sessionmaker[AsyncSession]) -> list[tuple]:
+    from app.db.models import ModerationEvent
+    from sqlalchemy import select
+
+    async with db_session_maker() as session:
+        rows = (await session.scalars(select(ModerationEvent).order_by(ModerationEvent.id))).all()
+    return [(e.action, e.actor_id, e.target_user_id, e.chat_id) for e in rows]
+
+
+async def test_granting_and_taking_back_moderator_rights_is_on_record(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    """The most consequential thing a person can do here was only a log line."""
+    await production_dispatcher.feed_update(bot, _command("!admin", _message(sender=MEMBER_ID)))
+    await production_dispatcher.feed_update(bot, _command("!unadmin", _message(sender=MEMBER_ID)))
+
+    assert await _events(db_session_maker) == [
+        ("grant", SUPER_ADMIN_ID, MEMBER_ID, APPROVED_CHAT_ID),
+        ("revoke", SUPER_ADMIN_ID, MEMBER_ID, APPROVED_CHAT_ID),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("command", "action"), [("!del", "delete"), ("!pin", "pin"), ("!unpin", "unpin"), ("!purge", "purge")]
+)
+async def test_message_commands_are_on_record(
+    production_dispatcher: Dispatcher,
+    bot: Bot,
+    db_session_maker: async_sessionmaker[AsyncSession],
+    command: str,
+    action: str,
+) -> None:
+    """ "Who deleted this message?" has an answer."""
+    await production_dispatcher.feed_update(bot, _command(command, _message(sender=MEMBER_ID)))
+
+    assert await _events(db_session_maker) == [(action, SUPER_ADMIN_ID, MEMBER_ID, APPROVED_CHAT_ID)]

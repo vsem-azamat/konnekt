@@ -535,7 +535,8 @@ class ModerationEvent(Base):
         # Text columns, so the enums are restated where a value that skipped the
         # type system would land — the same guard pending_actions carries.
         sa.CheckConstraint(
-            "action IN ('ban', 'unban', 'kick', 'mute', 'unmute', 'blacklist', 'unblacklist')",
+            "action IN ('ban', 'unban', 'kick', 'mute', 'unmute', 'blacklist', 'unblacklist', "
+            "'grant', 'revoke', 'delete', 'purge', 'pin', 'unpin')",
             name="ck_moderation_events_action",
         ),
         sa.CheckConstraint("source IN ('command', 'mcp', 'console')", name="ck_moderation_events_source"),

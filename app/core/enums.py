@@ -31,6 +31,15 @@ class ModerationEventAction(StrEnum):
     UNMUTE = "unmute"
     BLACKLIST = "blacklist"
     UNBLACKLIST = "unblacklist"
+    # Trusting somebody with a chat, and taking it back: the most consequential
+    # thing a person can do here.
+    GRANT = "grant"
+    REVOKE = "revoke"
+    # Acting on a message rather than its author; the target is the author.
+    DELETE = "delete"
+    PURGE = "purge"
+    PIN = "pin"
+    UNPIN = "unpin"
 
 
 class ModerationEventSource(StrEnum):
