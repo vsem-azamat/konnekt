@@ -169,6 +169,17 @@ class TestTheBreakdown:
         assert by_name["ČVUT"] == {"name": "ČVUT", "chats": 2, "members": 2000}
         assert by_name["VŠE"] == {"name": "VŠE", "chats": 1, "members": 500}
 
+    async def test_a_parent_awaiting_approval_does_not_name_the_group(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "Secret University", status=Chat.STATUS_DISCOVERED),
+            _chat(FIT, "Its faculty", public_link="https://t.me/faculty", parent_chat_id=CVUT),
+        )
+
+        body = await _reach(client_factory)
+
+        assert [(group["name"], group["chats"]) for group in body["groups"]] == [("Остальные", 1)]
+
     async def test_biggest_group_first(self, client_factory, db_session_maker) -> None:
         """Read as a table of where a post would land, largest first."""
         await _seed(
@@ -229,3 +240,13 @@ class TestWhatItDoesNotSay:
 
         assert str(FIT) not in raw
         assert "ČVUT FIT" not in raw
+
+
+async def test_reach_is_served_from_memory_for_a_while(client_factory, db_session_maker) -> None:
+    await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+
+    first = await _reach(client_factory)
+    await _seed(db_session_maker, _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs"))
+    again = await _reach(client_factory)
+
+    assert again == first

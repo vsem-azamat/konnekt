@@ -324,6 +324,8 @@ class Message(Base):
     __table_args__ = (
         # One row per message: a redelivered update used to be a second one.
         Index("uq_messages_chat_message", "chat_id", "message_id", unique=True),
+        # The public catalogue counts recent activity by time.
+        Index("ix_messages_timestamp", "timestamp"),
         # The first-message spam check looks a text up among labelled spam. A
         # hash, because a btree refuses texts past ~2.7 kB, and partial, because
         # the labelled rows are the only ones it asks about.

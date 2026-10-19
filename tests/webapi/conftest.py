@@ -32,3 +32,11 @@ def authenticated_super_admin() -> Iterator[None]:
     app.dependency_overrides[require_super_admin] = _override_require_super_admin
     yield
     app.dependency_overrides.pop(require_super_admin, None)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_public_cache() -> None:
+    """The public endpoints remember their answers; a test must start from none."""
+    from app.webapi.services import public_answers
+
+    public_answers.forget()
