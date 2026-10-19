@@ -88,7 +88,8 @@ class MessageRepository:
         if row is None:
             return False
         edited_at = (row.message_info or {}).get("edit_date")
-        if unless_edited_after is not None and isinstance(edited_at, int) and edited_at > unless_edited_after:
+        if edited_at is not None and (unless_edited_after is None or edited_at > unless_edited_after):
+            # Edited after the moderator saw it, or when they saw it is unknown.
             return False
         row.spam = True
         await self.db.commit()

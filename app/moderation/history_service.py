@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Message
+from app.db.models import Message, SpamPing
 from app.db.repositories import (
     get_chat_repository,
     get_message_repository,
@@ -64,16 +64,20 @@ async def purge_old_messages(db: AsyncSession, *, keep_days: int = KEEP_DAYS, ba
     the length of a backlog. Returns how many went.
     """
     cutoff = utc_now() - datetime.timedelta(days=keep_days)
+    expired = (Message.timestamp < cutoff, Message.spam.is_(False))
     removed = 0
     while True:
-        ids = (
-            await db.scalars(select(Message.id).where(Message.timestamp < cutoff, Message.spam.is_(False)).limit(batch))
-        ).all()
+        ids = (await db.scalars(select(Message.id).where(*expired).limit(batch))).all()
         if not ids:
-            return removed
-        await db.execute(delete(Message).where(Message.id.in_(ids)))
+            break
+        # The conditions again: a row marked as spam since the select stays.
+        await db.execute(delete(Message).where(Message.id.in_(ids), *expired))
         await db.commit()
         removed += len(ids)
+    # Ad pings carry a snippet of what was written, so they go on the same day.
+    await db.execute(delete(SpamPing).where(SpamPing.detected_at < cutoff))
+    await db.commit()
+    return removed
 
 
 async def run_history_retention(

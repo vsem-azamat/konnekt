@@ -40,3 +40,18 @@ async def test_a_large_backlog_goes_in_batches(session) -> None:
 
     assert removed == 5
     assert (await session.scalars(select(Message.message_id))).all() == []
+
+
+async def test_ad_pings_go_on_the_same_day(session) -> None:
+    """A ping keeps a snippet of the text, which is the personal data the period is for."""
+    from app.db.models import SpamPing
+
+    old = SpamPing(chat_id=-100, user_id=1, message_id=1, kind="link", matches=["t.me/x"], snippet="x")
+    old.detected_at = utc_now() - datetime.timedelta(days=200)
+    session.add(old)
+    session.add(SpamPing(chat_id=-100, user_id=1, message_id=2, kind="link", matches=["t.me/y"], snippet="y"))
+    await session.commit()
+
+    await purge_old_messages(session, keep_days=180)
+
+    assert [p.message_id for p in (await session.scalars(select(SpamPing))).all()] == [2]
