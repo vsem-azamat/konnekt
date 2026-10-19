@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from app.core.config import settings
 from app.db.models import AdminSession
-from app.webapi.auth.session_store import public_id
+from app.webapi.auth.session_store import digest, public_id
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -80,15 +80,15 @@ async def test_list_sessions_never_returns_a_session_token(client_factory, db_se
 
 async def test_list_sessions_marks_current(client_factory, db_session_maker) -> None:
     async with db_session_maker() as s:
-        await _seed_session(s, session_id="active-token")
-        await _seed_session(s, session_id="other-token")
+        await _seed_session(s, session_id=digest("active-token"))
+        await _seed_session(s, session_id=digest("other-token"))
 
     async with client_factory() as client:
         client.cookies.set(settings.webapi.session_cookie_name, "active-token")
         resp = await client.get("/api/admin/sessions")
     rows = {r["id"]: r for r in resp.json()}
-    assert rows[public_id("active-token")]["is_current"] is True
-    assert rows[public_id("other-token")]["is_current"] is False
+    assert rows[public_id(digest("active-token"))]["is_current"] is True
+    assert rows[public_id(digest("other-token"))]["is_current"] is False
 
 
 async def test_revoke_session_deletes_row(client_factory, db_session_maker) -> None:
@@ -118,11 +118,11 @@ async def test_revoke_does_not_take_a_token_in_the_url(client_factory, db_sessio
 
 async def test_revoke_current_session_400(client_factory, db_session_maker) -> None:
     async with db_session_maker() as s:
-        await _seed_session(s, session_id="active-token")
+        await _seed_session(s, session_id=digest("active-token"))
 
     async with client_factory() as client:
         client.cookies.set(settings.webapi.session_cookie_name, "active-token")
-        resp = await client.delete(f"/api/admin/sessions/{public_id('active-token')}")
+        resp = await client.delete(f"/api/admin/sessions/{public_id(digest('active-token'))}")
     assert resp.status_code == 400
     assert "cannot close itself" in resp.json()["detail"]
 
@@ -160,3 +160,24 @@ async def test_get_system_status(client_factory) -> None:
         "auth_telegram_webapp",
         "ad_detector_enabled",
     }
+
+
+async def test_a_session_is_not_written_on_every_request(db_session_maker) -> None:
+    """Every authenticated request committed last_seen_at; once in five minutes is enough to read."""
+    from app.webapi.auth import session_store
+
+    async with db_session_maker() as s:
+        await _seed_session(s, session_id=session_store.digest("token"))
+        row = await s.get(AdminSession, session_store.digest("token"))
+        assert row is not None
+        recent = datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.timedelta(minutes=1)
+        row.last_seen_at = recent
+        row.expires_at = recent + datetime.timedelta(days=30)
+        await s.commit()
+
+    async with db_session_maker() as s:
+        await session_store.load_valid_session(s, "token")
+    async with db_session_maker() as s:
+        row = await s.get(AdminSession, session_store.digest("token"))
+        assert row is not None
+        assert row.last_seen_at == recent

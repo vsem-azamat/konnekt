@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -51,11 +52,28 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     report_chat = settings.admin.default_report_chat_id
     alerts = AlertHandler(process="webapi")
     alerts.start(lambda text: bot.send_message(report_chat, text, parse_mode=None))
+    purge = asyncio.create_task(_purge_expired_sessions())
     try:
         yield
     finally:
+        purge.cancel()
+        await asyncio.gather(purge, return_exceptions=True)
         await alerts.stop()
         await close_publish_bot(_app.state.publish_bot)
+
+
+async def _purge_expired_sessions(interval_seconds: int = 3600) -> None:
+    """Delete expired console sessions hourly; nothing else ever did."""
+    from app.db.session import get_session_maker
+    from app.webapi.auth import session_store
+
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            async with get_session_maker()() as session:
+                await session_store.purge_expired(session)
+        except Exception:
+            logger.exception("session_purge_failed")
 
 
 def create_app() -> FastAPI:

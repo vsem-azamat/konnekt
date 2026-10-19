@@ -18,7 +18,9 @@ def test_framing_is_limited_to_the_app_and_telegrams_web_clients() -> None:
     """X-Frame-Options would break the Mini App inside Telegram Web; frame-ancestors does not."""
     headers = _site_headers()
 
-    assert headers["Content-Security-Policy"] == "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+    assert (
+        headers["Content-Security-Policy"] == "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+    )
     assert "X-Frame-Options" not in headers
 
 

@@ -49,23 +49,23 @@ async def test_expired_flag(session: AsyncSession) -> None:
 
 
 async def test_create_and_load_round_trip(session: AsyncSession) -> None:
-    row = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent="ua", ip="127.0.0.1")
-    found = await session_store.load_valid_session(session, row.session_id)
+    _row, token = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent="ua", ip="127.0.0.1")
+    found = await session_store.load_valid_session(session, token)
     assert found is not None
     assert found.user_id == 1
 
 
 async def test_load_expired_removes_row(session: AsyncSession) -> None:
-    row = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent=None, ip=None)
+    row, token = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent=None, ip=None)
     # Expire it.
     row.expires_at = datetime.datetime(2026, 1, 1)
     await session.commit()
-    assert await session_store.load_valid_session(session, row.session_id) is None
+    assert await session_store.load_valid_session(session, token) is None
     # And row is deleted.
-    assert await session_store.load_valid_session(session, row.session_id) is None
+    assert await session_store.load_valid_session(session, token) is None
 
 
 async def test_revoke(session: AsyncSession) -> None:
-    row = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent=None, ip=None)
+    row, _token = await session_store.create_session(session, user_id=1, ttl_days=30, user_agent=None, ip=None)
     assert await session_store.revoke_session(session, row.session_id) is True
     assert await session_store.revoke_session(session, row.session_id) is False

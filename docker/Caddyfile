@@ -1,3 +1,11 @@
+{
+	servers {
+		# The edge proxy in front reaches this one over a private address; its
+		# X-Forwarded-For is passed on rather than replaced with its own.
+		trusted_proxies static private_ranges
+	}
+}
+
 :80 {
 	encode zstd gzip
 

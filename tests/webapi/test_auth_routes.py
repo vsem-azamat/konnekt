@@ -186,4 +186,55 @@ def test_routes_without_a_client_are_gone() -> None:
     assert "/api/chats/graph" not in paths
     assert "/api/chats/{chat_id}/avatar" not in paths
     assert "get" not in paths.get("/api/users/{user_id}", {})
-    assert "/api/auth/logout" not in paths
+
+
+async def test_the_database_keeps_a_digest_not_the_cookie(client_factory, db_session_maker) -> None:
+    """A copy of the table, a backup or a careless query would otherwise be every live console session."""
+    import hashlib
+
+    from app.db.models import AdminSession
+    from sqlalchemy import select
+
+    async with client_factory() as client:
+        resp = await client.post("/api/auth/webapp", json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)})
+        token = resp.cookies.get(settings.webapi.session_cookie_name)
+        me = await client.get("/api/auth/me")
+
+    async with db_session_maker() as session:
+        stored = (await session.scalars(select(AdminSession.session_id))).all()
+    assert stored == [hashlib.sha256(token.encode()).hexdigest()]
+    assert me.status_code == 200
+
+
+async def test_signing_out_ends_the_session_here(client_factory, db_session_maker) -> None:
+    """A 30-day cookie could not be ended from the device holding it."""
+    from app.db.models import AdminSession
+    from sqlalchemy import select
+
+    async with client_factory() as client:
+        await client.post("/api/auth/webapp", json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)})
+        out = await client.post("/api/auth/logout")
+        after = await client.get("/api/auth/me")
+
+    assert out.status_code == 204
+    assert "max-age=0" in out.headers.get("set-cookie", "").lower()
+    assert after.status_code == 401
+    async with db_session_maker() as session:
+        assert (await session.scalars(select(AdminSession))).all() == []
+
+
+async def test_signing_out_without_a_session_is_harmless(client_factory) -> None:
+    async with client_factory() as client:
+        out = await client.post("/api/auth/logout")
+
+    assert out.status_code == 204
+
+
+def test_samesite_none_is_refused() -> None:
+    """Lax is the only defence the console's mutations have against cross-site requests."""
+    import pytest
+    from app.core.config import WebApiSettings
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        WebApiSettings(session_cookie_samesite="none")
