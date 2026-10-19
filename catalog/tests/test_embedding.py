@@ -280,3 +280,36 @@ async def test_the_model_name_carries_the_revision_the_image_builds() -> None:
     assert match, "the Dockerfile no longer pins a revision"
     assert match.group(1) == MODEL_REVISION
     assert MODEL_REVISION[:7] in MODEL_NAME
+
+
+async def test_the_model_runs_off_the_event_loop(client, session) -> None:
+    """Inference is CPU work; on the loop it stalled every request, healthz included."""
+    import threading
+
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .conftest import auth_header
+
+    loop_thread = threading.current_thread()
+    seen: list[threading.Thread] = []
+
+    class Recording(FakeEmbedder):
+        def encode(self, texts):
+            seen.append(threading.current_thread())
+            return super().encode(texts)
+
+    await rebuild(session, embedder=FakeEmbedder())
+    embedding.set_embedder(Recording())
+    try:
+        response = await client.post(
+            "/api/v1/search/parse",
+            json={"text": "не понимаю как считать вероятности"},
+            headers=auth_header(90802),
+        )
+    finally:
+        embedding.set_embedder(None)
+
+    assert response.status_code == 200, response.text
+    assert seen
+    assert all(thread is not loop_thread for thread in seen)
