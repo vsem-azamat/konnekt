@@ -342,6 +342,26 @@ EXAM_MENTION: tuple[str, ...] = (
     "termin",
 )
 
+# Words that only restate a kind of help once its keyword has named it: the
+# exam in «вступительные экзамены», the preparing in «подготовка к ...». A
+# query made of a keyword and these names no subject, and the scorer guessing
+# one answered the catalog's own name for entrance exams with «Чешский язык
+# B1», because a synonym of that course mentions an exam.
+RESTATING: tuple[str, ...] = (
+    "экзамен",
+    "екзамен",
+    "испытани",
+    "іспит",
+    "zkous",
+    "exam",
+    "подготов",
+    "підготов",
+    "priprav",
+    # Words, not stems: "prep" begins "přepis" and "přeprava" once unaccented.
+    Word("prep"),
+    Word("preparation"),
+)
+
 # Month names, unaccented and lowercased, in the order the client will have
 # typed them. Czech has both nominative and genitive forms in circulation.
 MONTHS: dict[str, int] = {}
@@ -421,8 +441,21 @@ async def parse(
     # Statistics at 0.61. A synonym hit survives, because that is not a guess —
     # "курсовая" and "нострификация" are curated names for real subjects, and
     # dropping them would lose a certainty to protect against a maybe.
-    if keyword and not _without(norm, keyword):
-        subjects = [match for match in subjects if _is_named(match)]
+    #
+    # "The whole query" counts the words that only restate the kind of help
+    # (RESTATING) and prepositions: «вступительные экзамены» and «příprava na
+    # přijímací zkoušky» are that kind of help named in full.
+    #
+    # A subject whose own name is nothing but those words survives too: it is
+    # the kind of help by the same name, not a guess at something unsaid —
+    # «нострификационный экзамен» is «Нострификационные экзамены» inflected.
+    bare = keyword is not None and _only_restates(norm, keyword)
+    if bare:
+        subjects = [
+            match
+            for match in subjects
+            if _is_named(match) or _only_restates(normalise(match.label), keyword)
+        ]
 
     # The third mechanism, and the last asked. Only where the first two found
     # nothing: a synonym or an exact name is curated and scores 1.00, and the
@@ -445,7 +478,7 @@ async def parse(
     # school is already a field and what is left is a word for teaching: the
     # embedder answered «Поступление в технические вузы» at 0.45 and narrowed a
     # list of tutors to the people who prepare for entrance exams.
-    if not subjects and not _accounted_for(result, norm, keyword):
+    if not subjects and not bare and not _accounted_for(result, norm, keyword):
         proposed, runner_up = await find_by_meaning(session, text, lang)
         if proposed:
             lead = proposed.score - (runner_up.score if runner_up else 0.0)
@@ -575,6 +608,7 @@ FILLER_WORDS: frozenset[str] = frozenset(
         "от",
         "из",
         "и",
+        "к",
         "мне",
         # uk
         "і",
@@ -763,6 +797,48 @@ def _is_named(match: Match) -> bool:
     scale and mean nothing alike.
     """
     return match.matched_on != "vector" and match.score >= 1.0
+
+
+def _only_restates(norm: str, keyword: str) -> bool:
+    """Is the query its keyword and nothing that could name a subject?
+
+    Besides the keyword's own words, only RESTATING words, words of asking and
+    prepositions may remain. A language level may not, although FILLER_WORDS
+    lists them: «B2» beside an exam is which Czech exam, and that is a subject.
+    Nor may the rest of FILLER — the names of languages and the word "course" —
+    since those are how people name subjects.
+    """
+    return all(
+        (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
+        or any(token.startswith(word) for word in ASKING)
+        or any(
+            token == word if isinstance(word, Word) else token.startswith(word)
+            for word in RESTATING
+        )
+        for token in tokenise(_without(norm, keyword)).split()
+    )
+
+
+# How people ask for a kind of help around its name: «нужна подготовка к
+# вступительным», "help with entrance exams". The asking part of FILLER.
+ASKING: tuple[str, ...] = (
+    *WEAK_HELP,
+    "нужн",
+    "потріб",
+    "ищу",
+    "найти",
+    "хочу",
+    "шукаю",
+    "знайти",
+    "hledam",
+    "potrebuj",
+    "looking",
+    "need",
+    "want",
+)
+
+
+_LEVEL = re.compile(r"[abc][12]")
 
 
 def _without(norm: str, keyword: str) -> str:
