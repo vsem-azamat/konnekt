@@ -64,6 +64,8 @@ def _retired(monkeypatch, raw: str | None) -> list[str]:
         (STUDENT, [STUDENT]),
         (f"{STUDENT},{MODER}", [STUDENT, MODER]),
         (f" {STUDENT} , {MODER} ,", [STUDENT, MODER]),
+        # One per line is how a secret gets pasted; a token holds no whitespace.
+        (f"{STUDENT}\n{MODER}\n", [STUDENT, MODER]),
         # Two pollers on one token fight over its updates and both lose.
         (f"{STUDENT},{STUDENT}", [STUDENT]),
         # Pasting the current token among the retired ones would put a second
@@ -89,6 +91,38 @@ def test_every_retired_token_gets_a_bot_and_a_dispatcher_of_its_own(monkeypatch)
     assert [bot.token for bot, _ in built] == [STUDENT, MODER]
     # A dispatcher polls one bot at a time; sharing one would start only the first.
     assert built[0][1] is not built[1][1]
+
+
+def test_a_malformed_token_is_skipped_rather_than_taking_moderation_down(monkeypatch) -> None:
+    """`Bot()` checks the token as it is built, before anything is contained."""
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", ["not-a-token", MODER])
+
+    assert [bot.token for bot, _ in moved.build_moved_bots()] == [MODER]
+
+
+async def test_a_retired_bot_stops_offering_the_mini_app_and_the_commands() -> None:
+    """Telegram keeps both on the bot after it is retired.
+
+    The old Mini App button signs in with the old token, which the API no
+    longer accepts, and the old commands lead nowhere: neither would ever
+    reach the message saying where Konnekt went.
+    """
+    from aiogram.types import MenuButtonCommands
+
+    bot = AsyncMock()
+
+    await moved.retire_profile(bot)
+
+    assert isinstance(bot.set_chat_menu_button.await_args.kwargs["menu_button"], MenuButtonCommands)
+    scopes = {type(call.kwargs.get("scope")).__name__ for call in bot.delete_my_commands.await_args_list}
+    assert {"BotCommandScopeDefault", "BotCommandScopeAllPrivateChats", "BotCommandScopeAllGroupChats"} <= scopes
+
+
+async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> None:
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [MODER])
+    ((_, dp),) = moved.build_moved_bots()
+
+    assert [handler.callback for handler in dp.startup.handlers] == [moved.retire_profile]
 
 
 async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
@@ -81,7 +82,7 @@ class TelegramSettings(Settings):
     """Moderator bot configuration."""
 
     token: str = Field(..., description="Moderator bot token from BotFather")
-    # Comma-separated, so `NoDecode` (see `AdminSettings.super_admins`). The
+    # A list in one variable, so `NoDecode` (see `AdminSettings.super_admins`). The
     # variable keeps its singular name: it held one token first, and renaming
     # it would mean renaming the deployed secret in the same release.
     retired_tokens: Annotated[list[str], NoDecode] = Field(
@@ -101,7 +102,8 @@ class TelegramSettings(Settings):
     @field_validator("retired_tokens", mode="before")
     @classmethod
     def _split_retired(cls, value: Any) -> Any:
-        return [token.strip() for token in value.split(",")] if isinstance(value, str) else value
+        # Whitespace too: a secret gets pasted one token per line, and a token holds none.
+        return re.split(r"[\s,]+", value) if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def _retired_are_not_current(self) -> TelegramSettings:
