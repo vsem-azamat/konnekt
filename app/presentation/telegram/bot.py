@@ -20,6 +20,8 @@ from app.core.container import setup_container
 from app.core.logging import get_logger, setup_logging
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.session import close_db, get_session_maker
 from app.presentation.telegram.handlers import router
@@ -85,14 +87,22 @@ async def on_startup(bot: Bot) -> None:
 
 
 async def on_shutdown(bot: Bot) -> None:
-    """Main bot shutdown, in dependency order."""
+    """Main bot shutdown, each step on its own so one failure skips no other.
+
+    Not `bot.close()`: that is the Bot API method for moving a bot between API
+    servers, refused for ten minutes after launch. The HTTP session is closed
+    by `_run_polling`.
+    """
     try:
         await bot.delete_webhook()
-        await bot.close()
+    except Exception as e:
+        logger.warning("shutdown_delete_webhook_failed", error=str(e))
+    try:
         await close_db()
-        logger.info("main_bot_shutdown_complete")
     except Exception as e:
         logger.error("shutdown_error", error=str(e), exc_info=True)
+        return
+    logger.info("main_bot_shutdown_complete")
 
 
 # ---------------------------------------------------------------------------
@@ -142,8 +152,12 @@ async def _run_polling(bot: Bot, dp: Dispatcher, *, name: str, **kwargs: Any) ->
         await dp.start_polling(bot, **kwargs)
     except asyncio.CancelledError:
         logger.info("polling_cancelled", bot=name)
+        raise
     except Exception:
+        # Raised on, not swallowed: a poller that died must end the process
+        # so the container restarts, rather than leave it running deaf.
         logger.exception("polling_error", bot=name)
+        raise
     finally:
         await bot.session.close()
         logger.info("polling_stopped", bot=name)
@@ -158,15 +172,14 @@ async def main() -> None:
     main_bot, main_dp = _setup_main_bot(session_maker)
     setup_container(session_maker, main_bot)
 
-    tasks = [
-        _run_polling(
-            main_bot,
-            main_dp,
-            name="main",
-            skip_updates=True,
-            allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
-        ),
-    ]
+    polling = _run_polling(
+        main_bot,
+        main_dp,
+        name="main",
+        skip_updates=True,
+        allowed_updates=["message", "callback_query", "chat_member", "chat_join_request"],
+    )
+    tasks: list[Coroutine[Any, Any, None]] = []
 
     from app.presentation.telegram.moved import build_moved_bot
 
@@ -203,9 +216,35 @@ async def main() -> None:
     tasks.append(run_snapshot_loop(session_maker=session_maker, bot=main_bot))
 
     try:
-        await asyncio.gather(*tasks)
+        await _supervise(polling, tasks)
     finally:
         logger.info("stopped")
+
+
+async def _supervise(polling: Coroutine[Any, Any, None], services: list[Coroutine[Any, Any, None]]) -> None:
+    """Run the services for as long as the main poller runs, and no longer.
+
+    The poller ending, by SIGTERM or by failing, ends the process: waiting for
+    every task kept it alive after a failed start, deaf and immune to SIGTERM,
+    and made every deploy end in a kill. A service that returns is simply done
+    (the MCP plane returns at once when it is off); one that raises takes the
+    process down with it, so a restart brings it back.
+    """
+    main = asyncio.ensure_future(polling)
+    running = {asyncio.ensure_future(service) for service in services}
+    try:
+        while True:
+            done, running = await asyncio.wait({main, *running}, return_when=asyncio.FIRST_COMPLETED)
+            running.discard(main)
+            if main in done:
+                main.result()
+                return
+            for task in done:
+                task.result()
+    finally:
+        for task in (main, *running):
+            task.cancel()
+        await asyncio.gather(main, *running, return_exceptions=True)
 
 
 def run_bot() -> None:
