@@ -20,10 +20,11 @@ who run them somewhere to work from. It was built for educational chat
 communities in the Czech Republic and still reflects that: many chats, few
 admins, and the same handful of problems arriving every day.
 
-The system runs **two Telegram identities**: a moderator bot that enforces rules
-and answers admin commands, and a Telethon userbot for Client API reads a bot
-token cannot make. Admin work happens through bot commands, an authenticated web
-UI, and an MCP control plane an external agent runtime can drive.
+The deployed system is **one Telegram identity**, a moderator bot that enforces
+rules and answers admin commands; everything it knows comes from the Bot API and
+the messages it records. Admin work happens through bot commands, an
+authenticated web UI, and an MCP control plane an external agent runtime can
+drive.
 
 Decisions that remove a person stay with a human. Nothing in this system bans on
 its own judgement.
@@ -44,7 +45,6 @@ graph TB
         ModBot["🤖 Moderator Bot<br/><i>commands, welcomes,<br/>join checks, blacklist</i>"]
         MCP["🔌 MCP Control Plane<br/><i>served by the bot process</i><br/>reads, bounded writes, proposals"]
         WebUI["📱 Mini App<br/><i>public screens,<br/>console for super admins</i>"]
-        Userbot["👤 Telethon Userbot<br/><i>Client API reads</i><br/>history, search, members"]
     end
 
     PG[("PostgreSQL 18")]
@@ -56,7 +56,6 @@ graph TB
     Admins -->|console, signed in from Telegram| WebUI
     Admins -->|via external agent runtime| MCP
     MCP -->|ban proposals await confirmation| ModBot
-    MCP -->|reads chat history through| Userbot
     ModBot --> PG
     WebUI --> PG
     MCP --> PG
@@ -81,7 +80,7 @@ and it is not published to the internet. The rules it rests on are in
 
 | Layer | Technologies |
 |---|---|
-| **Bot Framework** | aiogram 3.30 (Bot API), Telethon (Client API) |
+| **Bot Framework** | aiogram 3.30 (Bot API) |
 | **Database** | PostgreSQL 18, SQLAlchemy 2.x async, Alembic |
 | **Web API** | FastAPI, session cookies from a verified Telegram Mini App `initData` |
 | **Web UI** | One Telegram Mini App: React 19, Vite, Lingui (`web/`) |
