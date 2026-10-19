@@ -10,20 +10,24 @@ async def test_a_flood_of_searches_is_turned_away(client) -> None:
     """Any Telegram user gets a session, and every parse wrote two rows."""
     from students_cz.api.v1 import search
 
-    search.forget_pace()
     answers = [
-        (await client.get("/api/v1/search", headers=auth_header(90900))).status_code
-        for _ in range(search.SEARCHES_PER_MINUTE + 1)
+        (
+            await client.post(
+                "/api/v1/search/parse",
+                json={"text": f"матан {i}"},
+                headers=auth_header(90900),
+            )
+        ).status_code
+        for i in range(search.PARSES_PER_MINUTE + 1)
     ]
 
-    assert answers[:-1] == [200] * search.SEARCHES_PER_MINUTE
+    assert answers[:-1] == [200] * search.PARSES_PER_MINUTE
     assert answers[-1] == 429
 
 
 async def test_one_person_s_flood_does_not_stop_another(client) -> None:
     from students_cz.api.v1 import search
 
-    search.forget_pace()
     for _ in range(search.SEARCHES_PER_MINUTE + 1):
         await client.get("/api/v1/search", headers=auth_header(90901))
 
@@ -33,9 +37,7 @@ async def test_one_person_s_flood_does_not_stop_another(client) -> None:
 
 
 async def test_the_same_question_twice_is_recorded_once(client, session) -> None:
-    from students_cz.api.v1 import search
 
-    search.forget_pace()
     for _ in range(3):
         resp = await client.post(
             "/api/v1/search/parse",
@@ -53,9 +55,7 @@ async def test_the_same_question_twice_is_recorded_once(client, session) -> None
 
 
 async def test_a_recorded_search_says_how_long_it_took(client, session) -> None:
-    from students_cz.api.v1 import search
 
-    search.forget_pace()
     await client.post(
         "/api/v1/search/parse", json={"text": "химия VŠCHT"}, headers=auth_header(90904)
     )
@@ -75,3 +75,33 @@ async def test_a_refused_init_data_does_not_explain_itself(client) -> None:
 
     assert resp.status_code == 401
     assert resp.json()["detail"] == "init data rejected"
+
+
+async def test_browsing_results_is_not_held_to_the_parse_limit(client) -> None:
+    """The app runs a preview per typing pause and two searches per sort."""
+    from students_cz.api.v1 import search
+
+    for i in range(search.PARSES_PER_MINUTE):
+        await client.post(
+            "/api/v1/search/parse",
+            json={"text": f"матан {i}"},
+            headers=auth_header(90905),
+        )
+
+    assert (
+        await client.get("/api/v1/search", headers=auth_header(90905))
+    ).status_code == 200
+
+
+async def test_a_refused_request_costs_nothing(client) -> None:
+    from students_cz.api.v1 import search
+
+    for _ in range(search.PARSES_PER_MINUTE):
+        await client.post(
+            "/api/v1/search/parse", json={"text": ""}, headers=auth_header(90906)
+        )
+
+    resp = await client.post(
+        "/api/v1/search/parse", json={"text": "матан"}, headers=auth_header(90906)
+    )
+    assert resp.status_code == 200

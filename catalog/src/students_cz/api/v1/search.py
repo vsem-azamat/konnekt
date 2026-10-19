@@ -33,43 +33,62 @@ from students_cz.services.naming import short_form, translated
 
 router = APIRouter()
 
-# A person searches a few times a minute at most. One worker serves the API, so
-# a window kept in memory is the whole picture; a restart forgets it, which
-# costs a flooder one minute.
-SEARCHES_PER_MINUTE = 30
-_recent: dict[int, deque[float]] = {}
+# Per person, per minute. Parsing writes two rows and may run the model, so it
+# is the tight one; a search writes nothing and the app runs a few per screen
+# (a preview per typing pause, two per sort), so it gets room. One worker
+# serves the API, so a window kept in memory is the whole picture; a restart
+# forgets it, which costs a flooder one minute.
+PARSES_PER_MINUTE = 30
+SEARCHES_PER_MINUTE = 120
+
+
+class _Pace:
+    def __init__(self, per_minute: int) -> None:
+        self.per_minute = per_minute
+        self._recent: dict[int, deque[float]] = {}
+
+    def _window(self, user_id: int, now: float) -> deque[float]:
+        if len(self._recent) > 10_000:
+            for stale in [
+                u for u, t in self._recent.items() if not t or now - t[-1] >= 60
+            ]:
+                del self._recent[stale]
+        times = self._recent.setdefault(user_id, deque())
+        while times and now - times[0] >= 60:
+            times.popleft()
+        return times
+
+    async def check(self, user: UserDep) -> None:
+        """Turn away a caller already at the limit; any Telegram user can call."""
+        now = time.monotonic()
+        times = self._window(user.id, now)
+        if len(times) >= self.per_minute:
+            wait = int(60 - (now - times[0])) + 1
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "slow down",
+                headers={"Retry-After": str(wait)},
+            )
+
+    def note(self, user_id: int) -> None:
+        """Counted from the handler, so a request refused as invalid costs nothing."""
+        self._window(user_id, time.monotonic()).append(time.monotonic())
+
+
+_parses = _Pace(PARSES_PER_MINUTE)
+_searches = _Pace(SEARCHES_PER_MINUTE)
 
 
 def forget_pace() -> None:
-    _recent.clear()
-
-
-async def _paced(user: UserDep) -> None:
-    """Turn away a caller past SEARCHES_PER_MINUTE; any Telegram user can call."""
-    now = time.monotonic()
-    if len(_recent) > 10_000:
-        for user_id in [
-            u for u, times in _recent.items() if not times or now - times[-1] >= 60
-        ]:
-            del _recent[user_id]
-    times = _recent.setdefault(user.id, deque())
-    while times and now - times[0] >= 60:
-        times.popleft()
-    if len(times) >= SEARCHES_PER_MINUTE:
-        wait = int(60 - (now - times[0])) + 1
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            "slow down",
-            headers={"Retry-After": str(wait)},
-        )
-    times.append(now)
+    _parses._recent.clear()
+    _searches._recent.clear()
 
 
 @router.post(
     "/search/parse",
     response_model=ParseOut,
     tags=["search"],
-    dependencies=[Depends(_paced)],
+    dependencies=[Depends(_parses.check)],
 )
 async def parse_query(
     payload: ParseRequest, session: SessionDep, lang: LangDep, user: UserDep
@@ -83,11 +102,15 @@ async def parse_query(
     # Unchanged for the reason `browse.start_contact` gives: the docstring is
     # the operation's description in the OpenAPI document. The rule itself is
     # `services/search.describe`.
+    _parses.note(user.id)
     return await search.describe(session, lang, viewer=user, text=payload.text)
 
 
 @router.get(
-    "/search", response_model=SearchOut, tags=["search"], dependencies=[Depends(_paced)]
+    "/search",
+    response_model=SearchOut,
+    tags=["search"],
+    dependencies=[Depends(_searches.check)],
 )
 async def search_offers(
     session: SessionDep,
@@ -110,6 +133,7 @@ async def search_offers(
     limit: int = Query(default=20, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
 ) -> SearchOut:
+    _searches.note(user.id)
     total, results = await catalog.search(
         session,
         lang,

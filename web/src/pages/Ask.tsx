@@ -85,6 +85,9 @@ export default function AskPage() {
       setDropped(new Set());
       setAnswer(null);
     },
+    // A failed parse (a refusal, too many at once) must not leave the previous
+    // text's chips standing as if they were this text's.
+    onError: () => setParsed(null),
   });
 
   // Parse as the person pauses, not on every keystroke: each call is a round
