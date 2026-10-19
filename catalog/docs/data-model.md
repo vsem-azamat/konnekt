@@ -87,9 +87,9 @@ exists at all. No migration creates them — the initial schema builds the table
 and inserts nothing — so they are in production only because somebody ran
 `seed.py` against it by hand. Renaming one in the seed alone passes every test;
 nothing but this paragraph will tell you it needs a migration. Once a migration
-declares the rename under `SERVICE_TYPE_RENAMES` — code to the languages it
-rewrites — the test holds the seed to it, and `SUBJECT_RENAMES` does the same
-for subject names in `seeds/subjects.json`.
+declares the rename under `SERVICE_TYPE_RENAMES` — code to its name and hint in
+all four languages — the test holds the seed to it, and `SUBJECT_RENAMES` does
+the same for subject names in `seeds/subjects.json`.
 
 ## A group is not a form
 
@@ -209,10 +209,12 @@ wrong language, misspelled. Three mechanisms handle it, cheapest first:
 2. `pg_trgm` on every translated name, so similarity matching works across all
    four languages at once.
 3. `unaccent`, wrapped in an `IMMUTABLE` function so it can be used in
-   expression indexes. This is what makes `prijimacky` match `Přijímačky`.
+   expression indexes. This is what makes `prijimaci zkouska` match
+   `Přijímací zkouška`.
 
-Verified against a live database: `prijimacky` scores 1.00 against `Přijímačky`,
-`matematicka analyza` scores 1.00 against `Matematická analýza`.
+Verified against a live database: `prijimaci zkouska z matematiky` scores 1.00
+against `Přijímací zkouška z matematiky`, `matematicka analyza` scores 1.00
+against `Matematická analýza`.
 
 **The query is not transliterated for subjects, and that is a measured
 decision.** The institution lookup compares a transliterated copy of the query

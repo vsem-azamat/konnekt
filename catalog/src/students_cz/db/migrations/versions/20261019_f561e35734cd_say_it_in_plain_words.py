@@ -32,28 +32,45 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-# Name and hint per language, only for the languages that change. Declared under
-# these names so `tests/test_service_groups.py` can compare them with the seed.
+# Name and hint in all four languages, the unchanged ones too: a rename that
+# left one language out would leave production saying the old word in it, and
+# `tests/test_service_groups.py` compares every language with the seed.
 SERVICE_TYPE_RENAMES: dict[str, dict[str, tuple[str, str]]] = {
     "tutoring": {
         "ru": ("Репетитор по предмету", "математика, физика, экономика, программирование"),
+        "cs": ("Doučování předmětu", "matematika, fyzika, ekonomie, programování"),
+        "en": ("Subject tutoring", "calculus, physics, economics, programming"),
         "uk": ("Репетитор з предмета", "математика, фізика, економіка, програмування"),
     },
     "entrance_prep": {
         "ru": ("Вступительные экзамены", "ČVUT, VŠE, UK, VUT, MUNI"),
         "cs": ("Přijímací zkoušky", "ČVUT, VŠE, UK, VUT, MUNI"),
+        "en": ("Entrance exams", "ČVUT, VŠE, UK, VUT, MUNI"),
         "uk": ("Вступні іспити", "ČVUT, VŠE, UK, VUT, MUNI"),
     },
 }
 SUBJECT_RENAMES: dict[str, dict[str, str]] = {
     "prijimacky-technicke-vs": {
         "cs": "Přijímací zkoušky na technické VŠ (matematika + fyzika)",
+        "en": "Admissions to Technical Universities (Maths + Physics)",
+        "ru": "Поступление в технические вузы (математика + физика)",
+        "uk": "Вступ до технічних ВНЗ (математика + фізика)",
     },
-    "prijimacky-ekonomicke-vs": {"cs": "Přijímací zkoušky na ekonomické VŠ (VŠE)"},
-    "prijimacky-medicina": {"cs": "Přijímací zkoušky na medicínu (biologie + chemie)"},
+    "prijimacky-ekonomicke-vs": {
+        "cs": "Přijímací zkoušky na ekonomické VŠ (VŠE)",
+        "en": "Admissions to Business Schools (VŠE)",
+        "ru": "Поступление в экономические вузы (VŠE)",
+        "uk": "Вступ до економічних ВНЗ (VŠE)",
+    },
+    "prijimacky-medicina": {
+        "cs": "Přijímací zkoušky na medicínu (biologie + chemie)",
+        "en": "Medical School Admissions (Biology + Chemistry)",
+        "ru": "Поступление на медицину (биология + химия)",
+        "uk": "Вступ на медицину (біологія + хімія)",
+    },
 }
 
-# What production says today, for the downgrade.
+# What production says today, for the downgrade: only the languages that change.
 _SERVICE_TYPES_BEFORE: dict[str, dict[str, tuple[str, str]]] = {
     "tutoring": {
         "ru": ("Репетитор по предмету", "матан, физика, экономика, программирование"),
