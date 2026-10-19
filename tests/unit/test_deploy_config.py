@@ -165,6 +165,7 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "DB_PASSWORD",
         "CATALOG_DB_PASSWORD",
         "MODERATOR_BOT_TOKEN",
+        "MODERATOR_BOT_RETIRED_TOKEN",
         "OPENROUTER_API_KEY",
         "BRAVE_API_KEY",
         "TELETHON_API_ID",
