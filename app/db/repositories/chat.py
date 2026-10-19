@@ -1,6 +1,7 @@
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.time import utc_now
 from app.db.models import Chat
 from app.db.upsert import insert_for
 
@@ -83,7 +84,9 @@ class ChatRepository:
         if changed:
             # Only when something changed, or every message rewrites the row.
             differs = or_(*(getattr(Chat, name).is_distinct_from(statement.excluded[name]) for name in changed))
-            statement = statement.on_conflict_do_update(index_elements=[Chat.id], set_=changed, where=differs)
+            statement = statement.on_conflict_do_update(
+                index_elements=[Chat.id], set_={**changed, "modified_at": utc_now()}, where=differs
+            )
         else:
             statement = statement.on_conflict_do_nothing(index_elements=[Chat.id])
         await self.db.execute(statement)
