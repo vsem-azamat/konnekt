@@ -69,7 +69,7 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
     )
     # Said only when its button is there: the greeting names what it offers.
     if settings.webapi.public_url:
-        text += "А ещё здесь люди, которые помогут с учёбой: репетиторы, přijímačky, нострификация.\n\n"
+        text += "А ещё здесь люди, которые помогут с учёбой: репетиторы, вступительные экзамены, нострификация.\n\n"
 
     is_super_admin = message.from_user.id in settings.admin.super_admins
     if is_super_admin:
