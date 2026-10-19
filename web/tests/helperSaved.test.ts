@@ -25,8 +25,24 @@ test('publishing leaves no cached profile for «Моя анкета» to fill it
 
   afterHelperSaved(client, me);
 
-  // Invalidating kept this copy, «Моя анкета» filled its form from it once and
-  // «Сохранить» then sent an empty list, deleting what was just published (#230).
+  assert.equal(client.getQueryData(['my-helper']), undefined);
+});
+
+test('leaving before the refetch lands does not bring the old profile back', async () => {
+  const client = new QueryClient();
+  client.setQueryData(['my-helper'], before);
+  // The screen is still refetching when the save succeeds…
+  void client
+    .fetchQuery({
+      queryKey: ['my-helper'],
+      queryFn: () => new Promise<MyHelper>(() => {}),
+    })
+    .catch(() => {});
+
+  afterHelperSaved(client, me);
+  // …and «назад» cancels that refetch, which reverts to what it started from.
+  await client.cancelQueries({ queryKey: ['my-helper'] }, { revert: true });
+
   assert.equal(client.getQueryData(['my-helper']), undefined);
 });
 
@@ -34,4 +50,11 @@ test('the account the server answered with is what the app now knows', () => {
   const client = new QueryClient();
   afterHelperSaved(client, me);
   assert.deepEqual(client.getQueryData(['me']), me);
+});
+
+test('the catalog front page is marked stale, its counts changed', () => {
+  const client = new QueryClient();
+  client.setQueryData(['home'], { people: [], things: [] });
+  afterHelperSaved(client, me);
+  assert.equal(client.getQueryState(['home'])?.isInvalidated, true);
 });

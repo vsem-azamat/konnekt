@@ -159,8 +159,10 @@ export default function OfferPricesPage() {
   // A hidden profile stays hidden, so the button must not promise otherwise.
   const hidden = mine?.status === 'hidden';
 
+  // Gone once saved: until the navigation lands, the button would otherwise
+  // offer «Опубликовать» again and a second tap would publish twice.
   useMainButton(
-    loaded
+    loaded && !save.isSuccess
       ? {
           text: hidden ? t`Сохранить` : t`Опубликовать`,
           isVisible: true,

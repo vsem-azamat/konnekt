@@ -21,6 +21,7 @@ import {
 } from '@/components/Ui';
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { afterHelperSaved } from '@/lib/helperSaved';
 import type { MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
 import { askedFormat, formatOptions, formatQuestion } from '@/lib/workFormat';
 
@@ -114,9 +115,7 @@ export default function MyHelperPage() {
       }),
     onSuccess: (me) => {
       hapticSuccess();
-      queryClient.setQueryData(['me'], me);
-      void queryClient.invalidateQueries({ queryKey: ['my-helper'] });
-      void queryClient.invalidateQueries({ queryKey: ['home'] });
+      afterHelperSaved(queryClient, me);
     },
   });
 
