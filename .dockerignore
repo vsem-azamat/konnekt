@@ -39,7 +39,6 @@ AGENTS.md
 docs/
 PROJECT_TRACKING.md
 Makefile
-.pre-commit-config.yaml
 .env.example
 
 # Secrets & sessions

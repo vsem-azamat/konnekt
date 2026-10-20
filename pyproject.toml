@@ -163,7 +163,6 @@ dev = [
     "aiosqlite>=0.20",
     "ruff>=0.12.4",
     "ty>=0.0.23",
-    "pre-commit>=3.6",
     "watchfiles>=0.21",
     "psutil",
     "testcontainers[postgres]>=4.14.1",

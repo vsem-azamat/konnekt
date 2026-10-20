@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Prints which lanes a change touches as name=true|false: the change between
+# the two commits given, or the paths on stdin, one per line. The hooks and
+# the PR jobs in test.yml both read this, so a path is classified once.
+# tests/unit/test_githooks.py has the cases.
+set -euo pipefail
+
+if [ $# -gt 0 ]; then
+  . "$(dirname "$0")/_lib.sh"
+  # Fails, rather than printing every lane off, when there is nothing to diff.
+  paths=$(changed "$@")
+else
+  paths=$(cat)
+fi
+
+python=false web=false catalog=false
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  case "$path" in
+    .github/workflows/* | .githooks/*) python=true web=true catalog=true ;;
+    *.md) ;;
+    docs/*) ;;
+    # Root tests read these: test_web_split the sources, test_deploy_config
+    # the workspace file, and both projects must lock the same aiogram.
+    web/src/* | web/pnpm-workspace.yaml) python=true web=true ;;
+    web/*) web=true ;;
+    catalog/openapi.json) catalog=true web=true ;;
+    catalog/uv.lock) catalog=true python=true ;;
+    catalog/*) catalog=true ;;
+    *) python=true ;;
+  esac
+done <<<"$paths"
+
+printf 'python=%s\nweb=%s\ncatalog=%s\n' "$python" "$web" "$catalog"

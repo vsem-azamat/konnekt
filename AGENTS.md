@@ -87,6 +87,10 @@ uv run pytest tests/e2e tests/webapi tests/mcp
 pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test
 ```
 
+`.githooks/` runs the part of these a change can break: the fast ones on commit,
+the rest on push. `make hooks` turns them on for every worktree; skip them only
+in an emergency, with `--no-verify` or `SKIP_HOOKS=1`.
+
 `ty` currently reports a standing count of pre-existing diagnostics. Compare
 against that baseline rather than expecting zero, and do not let your change
 raise it.

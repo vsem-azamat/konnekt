@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# What CI would fail on, for everything the pushed branch changed since main.
+# Postgres-backed checks (integration tests, alembic check) stay in CI.
+set -uo pipefail
+[ -z "${SKIP_HOOKS:-}" ] || exit 0
+cd "$(git rev-parse --show-toplevel)" || exit 1
+. .githooks/_lib.sh
+
+head=$(git rev-parse HEAD)
+pushed=""
+while read -r ref sha _ _; do
+  [ "$sha" = 0000000000000000000000000000000000000000 ] && continue
+  # The checks read the working tree, which is only the pushed commit's when
+  # that commit is checked out. A tag counts as the commit it names.
+  if [ "$(git rev-parse -q --verify "$sha^{commit}")" != "$head" ]; then
+    printf 'skip  %s: not checked out here\n' "$ref"
+    continue
+  fi
+  pushed=$head
+done
+[ -n "$pushed" ] || exit 0
+
+base=$(git merge-base origin/main "$pushed" 2>/dev/null) || base=$(git rev-list --max-parents=0 "$pushed" | tail -n 1)
+paths=$(changed "$base" "$pushed") || exit 1
+lanes=$(.githooks/lanes <<<"$paths") || exit 1
+
+# Uncommitted edits would be checked in place of what is pushed.
+# New files count only where the checks would read them.
+dirty=$(changed HEAD; git -c core.quotePath=false ls-files --others --exclude-standard -- app tests scripts alembic web catalog)
+dirty_lanes=$(.githooks/lanes <<<"$dirty")
+for lane in python web catalog; do
+  if on "$lane" && grep -qx "$lane=true" <<<"$dirty_lanes"; then
+    printf 'FAIL  uncommitted changes, so the checks would not see what is pushed:\n%s\n' "$(sed 's/^/        /' <<<"$dirty")"
+    printf '      fix: commit them, then push again\n'
+    failed=1
+    finish push
+  fi
+done
+
+if on python; then
+  check "ruff" "uv run ruff check --fix app tests scripts && uv run ruff format app tests scripts" \
+    bash -c 'uv run --locked ruff check -q app tests scripts && uv run --locked ruff format --check -q app tests scripts'
+  check "ty" "" uv run --locked ty check app tests
+  if grep -q '^alembic/' <<<"$paths"; then
+    check "one alembic head" "uv run alembic merge heads -m merge" \
+      bash -c '[ "$(uv run --locked alembic heads | wc -l)" -eq 1 ]'
+  fi
+  tests=(uv run --locked pytest tests/unit tests/handlers tests/middleware tests/utils -x -q -p no:cacheprovider)
+  check "pytest (no database)" "${tests[*]}" "${tests[@]}"
+fi
+
+if on catalog; then
+  check "catalog ruff" "uv run --directory catalog ruff check --fix src tests && uv run --directory catalog ruff format src tests" \
+    bash -c 'uv run --locked --directory catalog ruff check -q src tests && uv run --locked --directory catalog ruff format --check -q src tests'
+  check "catalog ty" "" uv run --locked --directory catalog ty check src tests
+  check "catalog openapi.json" "git add catalog/openapi.json (make -C catalog contract rewrote it)" \
+    make -s -C catalog contract
+fi
+
+if on web && web_ready; then
+  check "web lint" "pnpm --dir web lint:fix" pnpm --dir web lint
+  check "web typecheck" "" pnpm --dir web typecheck
+  check "web test" "" pnpm --dir web test
+  check "lingui extract" "translate the new entries in web/src/locales/*/messages.po, then git add web/src/locales" \
+    locales_current
+  check "lingui compile" "" pnpm --dir web exec lingui compile --strict
+  check "web api client" "git add web/src/lib/generated (pnpm api:generate rewrote it)" \
+    api_client_current
+fi
+
+if grep -q true <<<"$lanes"; then
+  skipped_lanes "untouched since main"
+else
+  printf 'skip  all checks: nothing changed since main that python, web or catalog read\n'
+fi
+finish push

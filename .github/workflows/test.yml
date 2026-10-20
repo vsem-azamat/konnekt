@@ -48,13 +48,38 @@ jobs:
 
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        # A pull request's merge commit and main under it: what it changes.
+        fetch-depth: 2
+
+    # A pull request runs only the steps its change can break; main, and so
+    # the deploy, runs all of them. The hooks read the same script. The job
+    # itself always runs: branch protection waits for it by name.
+    - name: Lanes this change touches
+      id: lanes
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          lanes=$(.githooks/lanes HEAD^1 HEAD)
+        else
+          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
+        fi
+        echo "$lanes"
+        # Anything else leaves a step's condition empty, and the step skipped.
+        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
+        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
+          echo "lanes printed something other than the three lanes" >&2
+          exit 1
+        fi
+        echo "$lanes" >> "$GITHUB_OUTPUT"
 
     - name: Set up Python ${{ matrix.python-version }}
+      if: steps.lanes.outputs.python == 'true'
       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
+      if: steps.lanes.outputs.python == 'true'
       uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
         version: "0.11.11"
@@ -62,25 +87,30 @@ jobs:
         cache-dependency-glob: "uv.lock"
 
     - name: Install dependencies
+      if: steps.lanes.outputs.python == 'true'
       run: uv sync --dev
 
     # The deploy script runs in the deploy user's login shell, zsh, and the
     # deploy tests run it there too.
     - name: Install zsh
+      if: steps.lanes.outputs.python == 'true'
       run: sudo apt-get install -y --no-install-recommends zsh
 
     - name: Lint + format check (ruff)
+      if: steps.lanes.outputs.python == 'true'
       run: |
         uv run ruff check app tests scripts
         uv run ruff format --check app tests scripts
 
     - name: Type check (ty)
+      if: steps.lanes.outputs.python == 'true'
       run: uv run ty check app tests
 
     # The tests build their schema with create_all, so only this proves the
     # migration history: production applies it on every deploy. A database of
     # its own, so the tests' schema and this one never meet.
     - name: Migrations apply, and agree with the models
+      if: steps.lanes.outputs.python == 'true'
       env:
         DB_NAME: migrations_check
         PGPASSWORD: ${{ env.DB_PASSWORD }}
@@ -95,12 +125,13 @@ jobs:
     # separately AND the full run was repeated with --cov, duplicating
     # ~1.5 min of work.
     - name: Pytest with coverage
+      if: steps.lanes.outputs.python == 'true'
       # The floor lives in pyproject.toml ([tool.coverage.report] fail_under).
       run: uv run pytest --cov=app --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
-      if: success()
+      if: success() && steps.lanes.outputs.python == 'true'
       with:
         files: ./coverage.xml
         flags: unittests
@@ -109,12 +140,13 @@ jobs:
 
     - name: Upload coverage reports as artifact
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      if: always()
+      if: always() && steps.lanes.outputs.python == 'true'
       with:
         name: coverage-reports
         path: htmlcov/
 
     - name: Set up Node.js
+      if: steps.lanes.outputs.web == 'true'
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
       with:
         node-version: "24.15.0"
@@ -122,21 +154,26 @@ jobs:
     # Corepack picks the pnpm the Mini App's package.json names (11), which is
     # why each step below runs in web/.
     - name: Set up pnpm
+      if: steps.lanes.outputs.web == 'true'
       run: corepack enable
 
     - name: Install web dependencies
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm install --frozen-lockfile
 
     - name: Lint web
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm lint
 
     - name: Type check web
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm typecheck
 
     - name: Test web
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm test
 
@@ -145,6 +182,7 @@ jobs:
     # catalogs, so extract first and fail when that changes them. Never
     # --clean: it drops the obsolete entries the catalogs keep on purpose.
     - name: Every web message is translated
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: |
         pnpm exec lingui extract
@@ -160,6 +198,7 @@ jobs:
     # document, catalog/openapi.json, which the catalog job checks against the
     # API itself. Regenerating must change nothing.
     - name: The web client matches the catalog API's contract
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: |
         pnpm api:generate
@@ -171,6 +210,7 @@ jobs:
         fi
 
     - name: Build web
+      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm build
 
@@ -220,46 +260,77 @@ jobs:
 
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        # A pull request's merge commit and main under it: what it changes.
+        fetch-depth: 2
+
+    # As in the test job.
+    - name: Lanes this change touches
+      id: lanes
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          lanes=$(../.githooks/lanes HEAD^1 HEAD)
+        else
+          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
+        fi
+        echo "$lanes"
+        # Anything else leaves a step's condition empty, and the step skipped.
+        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
+        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
+          echo "lanes printed something other than the three lanes" >&2
+          exit 1
+        fi
+        echo "$lanes" >> "$GITHUB_OUTPUT"
 
     - name: Install uv
+      if: steps.lanes.outputs.catalog == 'true'
       uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
         version: "0.11.11"
         enable-cache: true
         cache-dependency-glob: "catalog/uv.lock"
 
-    - run: uv sync --locked
+    - name: Install dependencies
+      if: steps.lanes.outputs.catalog == 'true'
+      run: uv sync --locked
 
     - name: Lint
+      if: steps.lanes.outputs.catalog == 'true'
       run: |
         uv run ruff check src tests
         uv run ruff format --check src tests
 
     - name: Type-check
+      if: steps.lanes.outputs.catalog == 'true'
       run: uv run ty check src tests
 
     - name: Migrate
+      if: steps.lanes.outputs.catalog == 'true'
       run: uv run alembic upgrade head
 
     # A model changed without a migration passes every test and then fails on
     # deploy. This is the only place that catches it.
     - name: The models and the migrations agree
+      if: steps.lanes.outputs.catalog == 'true'
       run: uv run alembic check
 
     # The tests match against real subjects and institutions, because the
     # matching is the logic: «матан» has to reach calculus.
     - name: Seed reference data
+      if: steps.lanes.outputs.catalog == 'true'
       run: |
         uv run python -m students_cz.db.seed
         uv run python -m students_cz.db.demo
 
     - name: Test
+      if: steps.lanes.outputs.catalog == 'true'
       run: uv run pytest -q
 
     # catalog/openapi.json is what web/ generates its client from, and the
     # test job checks that client against it. Declared at import time, so no
     # database and no server.
     - name: The committed OpenAPI document matches the API
+      if: steps.lanes.outputs.catalog == 'true'
       run: |
         set -euo pipefail
         PYTHONIOENCODING=utf-8 uv run python -m students_cz.openapi > "$RUNNER_TEMP/openapi.json"
