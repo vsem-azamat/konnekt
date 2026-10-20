@@ -1,6 +1,6 @@
 /** A chat's activity and its place in the list, apart from the screen. */
 
-import type { ConsoleChat, HeatmapCell, MemberSnapshot } from './session.ts';
+import type { ConsoleChat, HeatmapCell, MemberDelta, MemberSnapshot } from './session.ts';
 
 const WEEK_HOURS = 7 * 24;
 
@@ -27,6 +27,40 @@ export function localHeatmap(
   const grid = Array.from({ length: 7 }, (_, day) => week.slice(day * 24, day * 24 + 24));
   const max = Math.max(0, ...week);
   return { grid, max };
+}
+
+/**
+ * A day's messages by UTC hour as eight three-hour cells of the reader's own
+ * day, 00–03 first. Approximate as localHeatmap is, and for the same reasons.
+ */
+export function dayCells(hours: number[], offsetMinutes: number): number[] {
+  const cells = Array<number>(8).fill(0);
+  const shift = Math.trunc(offsetMinutes / 60);
+  hours.forEach((count, hour) => {
+    const local = (((hour + shift) % 24) + 24) % 24;
+    const at = Math.floor(local / 3);
+    cells[at] = (cells[at] ?? 0) + count;
+  });
+  return cells;
+}
+
+/**
+ * How far the members moved across every chat, over a day and over a week.
+ * A chat counted too recently to compare leaves that window out; none known
+ * is none, not zero.
+ */
+export function memberChange(entries: MemberDelta[]): {
+  day: number | null;
+  week: number | null;
+} {
+  const sum = (values: (number | null)[]) => {
+    const known = values.filter((value): value is number => value !== null);
+    return known.length ? known.reduce((a, b) => a + b, 0) : null;
+  };
+  return {
+    day: sum(entries.map((entry) => entry.delta_24h)),
+    week: sum(entries.map((entry) => entry.delta_7d)),
+  };
 }
 
 /**

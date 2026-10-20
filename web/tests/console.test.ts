@@ -137,17 +137,20 @@ test('requests that meet a missing session together sign in once', async () => {
 
 test('what needs attention is what has a number above zero', () => {
   const items = attention({
-    adsToday: 7,
+    adsUnreviewed: 7,
     chats: [
       { resource_status: 'discovered' },
       { resource_status: 'approved' },
       { resource_status: 'discovered' },
     ],
-    profilesWeek: 0,
+    requestsUnanswered: 0,
   });
   assert.deepEqual(items, [
     { key: 'ads', count: 7 },
     { key: 'review', count: 2 },
+  ]);
+  assert.deepEqual(attention({ adsUnreviewed: 0, chats: [], requestsUnanswered: 4 }), [
+    { key: 'requests', count: 4 },
   ]);
 });
 
