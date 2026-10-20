@@ -14,7 +14,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+)
 from aiogram.types import Chat, ForumTopic, Message, PhotoSize, Update, User
 from app.ads.desk import AdsDesk
 from app.core.config import AdsBotSettings
@@ -146,6 +151,97 @@ async def test_a_topic_name_fits_telegrams_limit(session_maker) -> None:
     assert len(bot.create_forum_topic.await_args.kwargs["name"]) <= 128
 
 
+@pytest.mark.parametrize(
+    "gone",
+    ["Bad Request: message thread not found", "Bad Request: TOPIC_DELETED", "Bad Request: TOPIC_ID_INVALID"],
+)
+async def test_every_way_telegram_says_the_topic_is_gone_opens_a_new_one(session_maker, gone) -> None:
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    await desk.from_person([_private(1)])
+    bot.copy_message.side_effect = [TelegramBadRequest(method=MagicMock(), message=gone), None]
+
+    await desk.from_person([_private(2)])
+
+    assert bot.create_forum_topic.await_count == 2
+
+
+async def test_two_first_messages_at_once_open_one_topic(session_maker) -> None:
+    bot = _bot()
+    opened = bot.create_forum_topic.side_effect
+
+    async def slow_topic(**kw: Any) -> ForumTopic:
+        await asyncio.sleep(0.01)
+        return opened(**kw)
+
+    bot.create_forum_topic.side_effect = slow_topic
+    desk = AdsDesk(bot, session_maker, GROUP)
+
+    await asyncio.gather(desk.from_person([_private(1)]), desk.from_person([_private(2)]))
+
+    assert bot.create_forum_topic.await_count == 1
+    assert {call.kwargs["message_thread_id"] for call in bot.copy_message.await_args_list} == {10}
+
+
+async def test_a_card_that_failed_does_not_lose_the_topic(session_maker) -> None:
+    """Without the row, the next message would open a second topic for the same person."""
+    bot = _bot()
+    bot.send_message.side_effect = TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=5)
+    desk = AdsDesk(bot, session_maker, GROUP)
+
+    await desk.from_person([_private(1)])
+    await desk.from_person([_private(2)])
+
+    assert bot.create_forum_topic.await_count == 1
+    assert [call.kwargs["message_id"] for call in bot.copy_message.await_args_list] == [1, 2]
+    assert await _topics(session_maker) == [(GROUP, PERSON.id, 10)]
+
+
+async def test_a_message_that_could_not_be_copied_is_reported_in_the_topic(session_maker) -> None:
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    await desk.from_person([_private(1)])
+    bot.copy_message.side_effect = TelegramBadRequest(
+        method=MagicMock(), message="Bad Request: message can't be copied"
+    )
+
+    await desk.from_person([_private(2)])
+
+    # Not taken for a deleted topic.
+    assert bot.create_forum_topic.await_count == 1
+    notice = bot.send_message.await_args.kwargs
+    assert notice["message_thread_id"] == 10
+    assert notice["text"] == "Сообщение не скопировано: Bad Request: message can't be copied"
+
+
+def _flood(retry_after: int = 0) -> TelegramRetryAfter:
+    return TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=retry_after)
+
+
+async def test_a_copy_telegram_asks_to_wait_for_is_tried_once_more(session_maker) -> None:
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    await desk.from_person([_private(1)])
+    bot.send_message.reset_mock()
+    bot.copy_message.side_effect = [_flood(), None]
+
+    await desk.from_person([_private(2)])
+
+    assert bot.copy_message.await_count == 3
+    bot.send_message.assert_not_awaited()
+
+
+async def test_a_copy_still_refused_after_waiting_is_reported(session_maker) -> None:
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    await desk.from_person([_private(1)])
+    bot.copy_message.side_effect = [_flood(), _flood()]
+
+    await desk.from_person([_private(2)])
+
+    assert "не скопировано" in bot.send_message.await_args.kwargs["text"]
+
+
 # --- Staff answer -----------------------------------------------------------
 
 
@@ -161,7 +257,9 @@ async def test_a_staff_message_in_a_topic_reaches_its_person(session_maker) -> N
 
     await desk.from_staff([_in_topic(50, 10)])
 
-    bot.copy_message.assert_awaited_once_with(chat_id=PERSON.id, from_chat_id=GROUP, message_id=50)
+    bot.copy_message.assert_awaited_once_with(
+        chat_id=PERSON.id, from_chat_id=GROUP, message_id=50, message_thread_id=None
+    )
 
 
 async def test_a_staff_album_reaches_its_person_whole(session_maker) -> None:
@@ -169,7 +267,9 @@ async def test_a_staff_album_reaches_its_person_whole(session_maker) -> None:
 
     await desk.from_staff([_in_topic(i, 10, text=None, media_group_id="s") for i in (51, 52)])
 
-    bot.copy_messages.assert_awaited_once_with(chat_id=PERSON.id, from_chat_id=GROUP, message_ids=[51, 52])
+    bot.copy_messages.assert_awaited_once_with(
+        chat_id=PERSON.id, from_chat_id=GROUP, message_ids=[51, 52], message_thread_id=None
+    )
 
 
 @pytest.mark.parametrize("fields", [{"text": "// он уже писал нам"}, {"text": None, "caption": "//скрин"}])
@@ -208,6 +308,44 @@ async def test_staff_hear_in_the_topic_when_a_message_was_not_delivered(session_
     assert notice["message_thread_id"] == 10
     assert notice["reply_to_message_id"] == 50
     assert "не доставлено" in notice["text"].lower()
+
+
+async def test_a_note_in_an_albums_later_caption_still_stays_with_staff(session_maker) -> None:
+    desk, bot = await _desk_with_topic(session_maker)
+    album = [
+        _in_topic(51, 10, text=None, media_group_id="s"),
+        _in_topic(52, 10, text=None, caption="// для своих", media_group_id="s"),
+    ]
+
+    await desk.from_staff(album)
+
+    bot.copy_messages.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "errors",
+    [
+        [_flood(), _flood()],
+        [TelegramNetworkError(method=MagicMock(), message="timeout")],
+    ],
+)
+async def test_staff_hear_of_any_failure_to_deliver(session_maker, errors) -> None:
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = errors
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert "не доставлено" in bot.send_message.await_args.kwargs["text"].lower()
+
+
+async def test_a_staff_answer_telegram_asks_to_wait_for_is_tried_once_more(session_maker) -> None:
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = [_flood(), None]
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert bot.copy_message.await_count == 2
+    bot.send_message.assert_not_awaited()
 
 
 # --- Routing ----------------------------------------------------------------
@@ -296,6 +434,43 @@ async def test_an_album_arrives_as_one(routed) -> None:
     assert desk.from_person.await_count == 1
 
 
+async def _relayed_in_order(session_maker, messages: list[Message]) -> list[Any]:
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    if messages[0].chat.id == GROUP:
+        await desk.from_person([_private(1)])
+        bot.reset_mock()
+    dp = ads.build_dispatcher(desk, GROUP, album_wait=0.05)
+    recording = _RecordingBot()
+    await asyncio.gather(*(dp.feed_update(recording, Update(update_id=i, message=m)) for i, m in enumerate(messages)))
+    return [
+        call.kwargs.get("message_ids") or call.kwargs["message_id"]
+        for call in bot.mock_calls
+        if call[0] in {"copy_message", "copy_messages"}
+    ]
+
+
+PHOTO = [PhotoSize(file_id="f", file_unique_id="u", width=1, height=1)]
+
+
+async def test_a_message_written_after_an_album_does_not_overtake_it(session_maker) -> None:
+    album = [_private(i, text=None, media_group_id="g", photo=PHOTO) for i in (5, 6)]
+
+    assert await _relayed_in_order(session_maker, [*album, _private(7)]) == [[5, 6], 7]
+
+
+async def test_a_staff_answer_after_an_album_does_not_overtake_it(session_maker) -> None:
+    album = [_in_topic(i, 10, text=None, media_group_id="s", photo=PHOTO) for i in (55, 56)]
+
+    assert await _relayed_in_order(session_maker, [*album, _in_topic(57, 10)]) == [[55, 56], 57]
+
+
+async def test_an_album_delivered_out_of_order_is_copied_in_order(session_maker) -> None:
+    album = [_private(i, text=None, media_group_id="g", photo=PHOTO) for i in (6, 5)]
+
+    assert await _relayed_in_order(session_maker, album) == [[5, 6]]
+
+
 # --- Configuration ----------------------------------------------------------
 
 
@@ -310,45 +485,58 @@ def _settings(monkeypatch, **env: str) -> AdsBotSettings:
 def test_without_a_token_the_desk_is_off(monkeypatch) -> None:
     assert not _settings(monkeypatch).token
     # A secret that was never given a value arrives empty.
-    assert _settings(monkeypatch, ADS_BOT_TOKEN="", ADS_BOT_GROUP_ID="").group_id is None
+    assert _settings(monkeypatch, ADS_BOT_TOKEN="", ADS_BOT_GROUP_ID="").group_id == ""
 
 
-def test_the_group_is_read_from_the_environment(monkeypatch) -> None:
-    assert _settings(monkeypatch, ADS_BOT_TOKEN=ADS, ADS_BOT_GROUP_ID=str(GROUP)).group_id == GROUP
+def test_a_mistyped_group_does_not_stop_the_process_from_reading_its_settings(monkeypatch) -> None:
+    """Moderation reads the same settings; a bad value here must not keep it from booting."""
+    assert _settings(monkeypatch, ADS_BOT_GROUP_ID="https://t.me/c/123").group_id == "https://t.me/c/123"
 
 
-def _configured(monkeypatch, token: str, group_id: int | None) -> MagicMock:
+def _configured(monkeypatch, token: str, group_id: str, retired: list[str] | None = None) -> MagicMock:
     monkeypatch.setattr(ads.settings.ads_bot, "token", token)
     monkeypatch.setattr(ads.settings.ads_bot, "group_id", group_id)
+    monkeypatch.setattr(ads.settings.telegram, "retired_tokens", retired or [])
     logger = MagicMock()
     monkeypatch.setattr(ads, "logger", logger)
     return logger
 
 
 def test_no_token_builds_no_bot(monkeypatch) -> None:
-    _configured(monkeypatch, "", GROUP)
+    _configured(monkeypatch, "", str(GROUP))
 
     assert ads.build_ads_bot(MagicMock()) is None
 
 
 def test_a_token_without_a_group_builds_no_bot_and_says_so(monkeypatch) -> None:
-    logger = _configured(monkeypatch, ADS, None)
+    logger = _configured(monkeypatch, ADS, "")
 
     assert ads.build_ads_bot(MagicMock()) is None
     logger.warning.assert_called_once_with("ads_bot_without_group")
 
 
-def test_the_moderator_token_is_refused(monkeypatch) -> None:
+@pytest.mark.parametrize("group", ["@konnekt_ads", "https://t.me/c/9990001", "9990001", "-9990001", "-100abc"])
+def test_a_group_that_is_not_a_supergroup_id_builds_no_bot(monkeypatch, group) -> None:
+    logger = _configured(monkeypatch, ADS, group)
+
+    assert ads.build_ads_bot(MagicMock()) is None
+    logger.error.assert_called_once_with("ads_group_malformed")
+    assert group not in str(logger.mock_calls)
+
+
+@pytest.mark.parametrize("which", ["moderator", "retired"])
+def test_a_token_another_poller_uses_is_refused(monkeypatch, which) -> None:
     """A second poller on one token takes turns with the first for its updates."""
-    logger = _configured(monkeypatch, ads.settings.telegram.token, GROUP)
+    taken = ads.settings.telegram.token if which == "moderator" else "300:moder"
+    logger = _configured(monkeypatch, taken, str(GROUP), retired=["300:moder"])
 
     assert ads.build_ads_bot(MagicMock()) is None
     logger.warning.assert_called_once_with("ads_token_is_moderators")
-    assert ads.settings.telegram.token not in str(logger.mock_calls)
+    assert taken not in str(logger.mock_calls)
 
 
 def test_a_malformed_token_is_refused_without_being_logged(monkeypatch) -> None:
-    logger = _configured(monkeypatch, "123:with spaces", GROUP)
+    logger = _configured(monkeypatch, "123:with spaces", str(GROUP))
 
     assert ads.build_ads_bot(MagicMock()) is None
     logger.error.assert_called_once_with("ads_token_malformed")
@@ -356,12 +544,67 @@ def test_a_malformed_token_is_refused_without_being_logged(monkeypatch) -> None:
 
 
 def test_a_configured_desk_gets_a_bot_of_its_own(monkeypatch) -> None:
-    _configured(monkeypatch, ADS, GROUP)
+    _configured(monkeypatch, ADS, f" {GROUP} ")
 
     built = ads.build_ads_bot(MagicMock())
 
     assert built is not None
     assert built[0].token == ADS
+
+
+def _member(can_manage_topics: bool) -> Any:
+    from aiogram.types import ChatMemberAdministrator
+
+    return ChatMemberAdministrator(
+        user=User(id=400, is_bot=True, first_name="ads"),
+        can_be_edited=False,
+        is_anonymous=False,
+        can_manage_chat=True,
+        can_delete_messages=True,
+        can_manage_video_chats=False,
+        can_restrict_members=False,
+        can_promote_members=False,
+        can_change_info=False,
+        can_invite_users=False,
+        can_post_stories=False,
+        can_edit_stories=False,
+        can_delete_stories=False,
+        can_manage_topics=can_manage_topics,
+    )
+
+
+@pytest.mark.parametrize(
+    ("forum", "member", "warnings"),
+    [
+        (True, _member(can_manage_topics=True), []),
+        (False, _member(can_manage_topics=True), ["ads_group_not_a_forum"]),
+        (True, _member(can_manage_topics=False), ["ads_bot_cannot_manage_topics"]),
+        (True, None, ["ads_bot_cannot_manage_topics"]),
+    ],
+)
+async def test_the_group_is_checked_when_the_desk_starts(monkeypatch, forum, member, warnings) -> None:
+    """Rather than at the first person who writes."""
+    logger = MagicMock()
+    monkeypatch.setattr(ads, "logger", logger)
+    bot = AsyncMock()
+    bot.id = 400
+    bot.get_chat.return_value = SimpleNamespace(is_forum=forum)
+    bot.get_chat_member.return_value = member or SimpleNamespace(status="member")
+
+    await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
+
+    assert [c.args[0] for c in logger.warning.call_args_list] == warnings
+
+
+async def test_an_unreachable_group_is_logged_and_the_desk_still_starts(monkeypatch) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr(ads, "logger", logger)
+    bot = AsyncMock()
+    bot.get_chat.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: chat not found")
+
+    await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
+
+    logger.warning.assert_called_once_with("ads_group_unreachable", error="Bad Request: chat not found")
 
 
 # --- In the bot process -----------------------------------------------------

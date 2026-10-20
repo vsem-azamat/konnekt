@@ -120,7 +120,9 @@ class AdsBotSettings(Settings):
     """The ads contact desk, @konnekt_ads_bot: off without a token."""
 
     token: str = Field(default="", description="Ads bot token from BotFather; unset disables the desk")
-    group_id: int | None = Field(default=None, description="The staff forum supergroup the desk opens topics in")
+    # Text, read where the bot is built: a mistyped id (a link, an @name) must
+    # switch the desk off with a log line, not stop moderation from booting.
+    group_id: str = Field(default="", description="The staff forum supergroup (-100…) the desk opens topics in")
 
     model_config = SettingsConfigDict(
         env_prefix="ADS_BOT_",
