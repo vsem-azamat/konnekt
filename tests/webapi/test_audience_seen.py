@@ -131,3 +131,21 @@ async def test_a_start_param_none_of_our_links_carry_is_not_kept(client, bot_tok
     async with db_session_maker() as session:
         member = await session.get(AudienceMember, PERSON)
     assert member.source is None
+
+
+async def test_a_failed_write_does_not_hold_back_the_next_launch(
+    client, bot_token, db_session_maker, monkeypatch
+) -> None:
+    from app.webapi.routes import seen
+
+    async def broken(*_args, **_kwargs):
+        raise RuntimeError("database is down")
+
+    monkeypatch.setattr(seen.record, "seen", broken)
+    with pytest.raises(RuntimeError):
+        await _seen(client, _init_data(bot_token))
+    monkeypatch.undo()
+
+    assert (await _seen(client, _init_data(bot_token))).status_code == 204
+    async with db_session_maker() as session:
+        assert await session.get(AudienceMember, PERSON) is not None

@@ -52,10 +52,6 @@ async def mini_app_opened(payload: SeenRequest, session: Annotated[AsyncSession,
     now = time.monotonic()
     if now - _last_written.get(caller.user_id, -MIN_INTERVAL) < MIN_INTERVAL:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-    if len(_last_written) >= _REMEMBERED:
-        _last_written.clear()
-    _last_written[caller.user_id] = now
-
     # Telegram asks the person on launch whether the bot may write to them.
     started = Touchpoint.MAIN_BOT if caller.raw_user.get("allows_write_to_pm") else None
     await record.seen(
@@ -67,4 +63,8 @@ async def mini_app_opened(payload: SeenRequest, session: Annotated[AsyncSession,
         started=started,
     )
     await session.commit()
+    # Only once it is written: a failed write must not hold the next launch back.
+    if len(_last_written) >= _REMEMBERED:
+        _last_written.clear()
+    _last_written[caller.user_id] = now
     return Response(status_code=status.HTTP_204_NO_CONTENT)

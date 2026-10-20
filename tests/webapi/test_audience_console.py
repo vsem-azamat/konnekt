@@ -153,3 +153,11 @@ async def test_the_list_pages_by_cursor_without_repeating_anyone(client, audienc
 
 async def test_a_cursor_that_names_nothing_is_refused(client, audience) -> None:
     assert (await client.get("/api/audience?cursor=nonsense")).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "cursor",
+    ["2026-10-20T10:00:00%2B02:00_1", f"2026-10-20T10:00:00_{2**63}", "2026-10-20T10:00:00_-1"],
+)
+async def test_a_cursor_we_could_not_have_issued_is_refused(client, audience, cursor) -> None:
+    assert (await client.get(f"/api/audience?cursor={cursor}")).status_code == 422

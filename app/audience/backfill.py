@@ -46,7 +46,7 @@ from app.db.models import AdsTopic, AudienceMember, Message, ModerationEvent, Sp
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker
 
 logger = get_logger("audience.backfill")
 
@@ -135,11 +135,16 @@ async def from_bot_users(session_maker: async_sessionmaker[AsyncSession]) -> int
     return len(users)
 
 
+async def read_only(conn: AsyncConnection) -> None:
+    """Make the transaction `conn` has begun refuse every write: the catalog is not ours to change."""
+    await conn.execute(text("SET TRANSACTION READ ONLY"))
+
+
 async def read_catalog(dsn: str) -> list[CatalogUser]:
     engine = create_async_engine(dsn)
     try:
         async with engine.connect() as conn:
-            await conn.execute(text("SET TRANSACTION READ ONLY"))
+            await read_only(conn)
             rows = await conn.execute(
                 text(
                     "SELECT tg_id, tg_username, first_name, last_name, source, created_at, last_seen_at,"

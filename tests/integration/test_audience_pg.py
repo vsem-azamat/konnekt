@@ -121,5 +121,18 @@ async def test_the_catalog_is_read_in_a_read_only_transaction(pg_container) -> N
 
     [user] = await read_catalog(dsn)
 
+    # The transaction the backfill reads in refuses a write.
+    from app.audience.backfill import read_only
+    from sqlalchemy.exc import DBAPIError
+
+    catalog = create_async_engine(dsn)
+    try:
+        async with catalog.connect() as conn:
+            await read_only(conn)
+            with pytest.raises(DBAPIError, match="read-only"):
+                await conn.execute(text("DELETE FROM users"))
+    finally:
+        await catalog.dispose()
+
     assert (user.tg_id, user.first_name, user.bot_started_at) == (5, "X", None)
     assert user.created_at.tzinfo is not None

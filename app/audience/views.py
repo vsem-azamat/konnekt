@@ -168,9 +168,13 @@ def parse_cursor(cursor: str) -> tuple[datetime.datetime, int] | None:
     """The (last_seen_at, user_id) a `next` names, or None if it names nothing."""
     seen_at, _, user_id = cursor.rpartition("_")
     try:
-        return datetime.datetime.fromisoformat(seen_at), int(user_id)
+        moment, person = datetime.datetime.fromisoformat(seen_at), int(user_id)
     except ValueError:
         return None
+    # What `page` issues: a naive UTC time and a Telegram id.
+    if moment.tzinfo is not None or not 0 < person <= _MAX_ID:
+        return None
+    return moment, person
 
 
 async def person(db: AsyncSession, user_id: int) -> dict[str, Any] | None:
