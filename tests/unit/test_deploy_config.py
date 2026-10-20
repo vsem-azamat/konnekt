@@ -727,3 +727,47 @@ def test_the_webui_is_told_the_admin_host_by_the_deploy_and_has_a_fallback_nobod
     assert "command" not in webui
     assert _deploy_step()["env"]["ADMIN_HOST"] == f"${{{{ steps.{step['id']}.outputs.host }}}}"
     assert "{$ADMIN_HOST:admin.invalid}" in caddyfile
+
+
+def _admin_host_step() -> dict:
+    return next(
+        s for s in yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]["steps"] if "admin_host.sh" in s.get("run", "")
+    )
+
+
+@pytest.mark.parametrize(
+    ("admin_url", "ok", "host"),
+    [
+        ("https://admin.example.test", True, "admin.example.test"),
+        ("", True, "admin.invalid"),
+        ("https://app.example.test", False, None),
+        ("https://admin.example.test:8443", False, None),
+    ],
+)
+def test_a_bad_console_url_stops_the_deploy_instead_of_passing_an_empty_host(
+    tmp_path: Path, admin_url: str, ok: bool, host: str | None
+) -> None:
+    """The step is run as Actions runs it (`bash -e`), against its own output file.
+
+    A refusal swallowed inside `echo "$(...)"` left ADMIN_HOST empty, and the
+    webapi, which refuses the same URL, then failed to start with the Mini App's
+    API behind it.
+    """
+    output = tmp_path / "output"
+    output.touch()
+    done = subprocess.run(  # noqa: S603
+        ["bash", "-e", "-c", _admin_host_step()["run"]],  # noqa: S607
+        cwd=ROOT,
+        env={
+            "PATH": os.environ["PATH"],
+            "WEBAPI_ADMIN_URL": admin_url,
+            "WEBAPI_PUBLIC_URL": "https://app.example.test",
+            "GITHUB_OUTPUT": str(output),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert (done.returncode == 0) is ok, done.stderr
+    assert output.read_text() == (f"host={host}\n" if ok else "")

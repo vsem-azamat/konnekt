@@ -160,7 +160,11 @@ jobs:
         env:
           WEBAPI_ADMIN_URL: ${{ vars.WEBAPI_ADMIN_URL }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
-        run: echo "host=$(bash scripts/admin_host.sh "$WEBAPI_ADMIN_URL" "$WEBAPI_PUBLIC_URL")" >> "$GITHUB_OUTPUT"
+        # Its own line: an assignment's failure ends the step (bash -e), where the
+        # same call inside `echo "$(...)"` would pass with an empty host.
+        run: |
+          host=$(bash scripts/admin_host.sh "$WEBAPI_ADMIN_URL" "$WEBAPI_PUBLIC_URL")
+          echo "host=$host" >> "$GITHUB_OUTPUT"
 
       - name: Copy docker-compose to VPS
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
