@@ -19,7 +19,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
+def client_factory(db_session_maker: async_sessionmaker[AsyncSession], monkeypatch):
     from app.webapi.deps import get_session
 
     async def _override_get_session():
@@ -27,7 +27,7 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
             yield session
 
     app.dependency_overrides[get_session] = _override_get_session
-    settings.admin.super_admins = [1]
+    monkeypatch.setattr(settings.admin, "super_admins", [1])
     transport = ASGITransport(app=app)
 
     def make() -> AsyncClient:
