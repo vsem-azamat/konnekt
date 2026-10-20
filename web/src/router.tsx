@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router';
+import BrowserShell from '@/console/BrowserShell';
+import LoginPage from '@/console/Login';
 import ConsoleAudiencePage from '@/console/pages/Audience';
 import ConsoleAudiencePeoplePage from '@/console/pages/AudiencePeople';
 import ConsoleAudiencePersonPage from '@/console/pages/AudiencePerson';
@@ -75,4 +77,30 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
   },
+]);
+
+/**
+ * What a browser gets: the console beside its menu, and the way to sign in.
+ * Only the screens that webapi's session reaches; the catalog's and the
+ * partners' wait in the Mini App (see `BrowserShell`).
+ */
+export const browserRouter = createBrowserRouter([
+  { path: '/login', element: <LoginPage /> },
+  {
+    path: '/console',
+    element: <BrowserShell />,
+    children: [
+      { index: true, element: <ConsoleSummaryPage /> },
+      { path: 'audience', element: <ConsoleAudiencePage /> },
+      { path: 'audience/people', element: <ConsoleAudiencePeoplePage /> },
+      { path: 'audience/:id', element: <ConsoleAudiencePersonPage /> },
+      { path: 'chats', element: <ConsoleChatsPage /> },
+      { path: 'chats/:id', element: <ConsoleChatPage /> },
+      { path: 'spam', element: <ConsoleSpamPage /> },
+      { path: 'blacklist', element: <ConsoleBlacklistPage /> },
+      { path: 'system', element: <ConsoleSystemPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+  { path: '*', element: <NotFoundPage /> },
 ]);

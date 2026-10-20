@@ -1,5 +1,5 @@
 import { I18nProvider } from '@lingui/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   backButton,
   init,
@@ -14,13 +14,15 @@ import {
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
-import { isFinal } from '@/console/session';
+import { isBrowserConsolePath } from '@/console/browser';
+import { BrowserConsoleContext } from '@/console/browserContext';
+import { ConsoleError, isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
 import { ApiError, api, rawInitData } from '@/lib/api';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
-import { router } from '@/router';
+import { browserRouter, router } from '@/router';
 
 import './index.css';
 
@@ -34,7 +36,13 @@ async function bootstrap(): Promise<void> {
   // there is no account, no chat to notify and nothing to sign a request
   // with, so the catalog cannot run. That is a landing page, not an error.
   if (showLanding()) {
-    await renderLanding();
+    // A browser gets the console where it is meant to open and the landing
+    // page everywhere else; which host is which is the server's business.
+    if (isBrowserConsolePath(window.location.pathname)) {
+      await renderBrowserConsole();
+    } else {
+      await renderLanding();
+    }
     return;
   }
 
@@ -71,7 +79,11 @@ function reportLaunch(): void {
  */
 function showLanding(): boolean {
   if (import.meta.env.DEV) {
-    return new URLSearchParams(window.location.search).has('landing');
+    // Remembered for the tab, because the router drops the parameter on its first navigation.
+    if (new URLSearchParams(window.location.search).has('landing')) {
+      sessionStorage.setItem('dev-browser', '1');
+    }
+    return sessionStorage.getItem('dev-browser') === '1';
   }
   return !isTMA();
 }
@@ -90,6 +102,31 @@ async function renderLanding(): Promise<void> {
     <StrictMode>
       <I18nProvider i18n={i18n}>
         <LandingPage />
+      </I18nProvider>
+    </StrictMode>,
+  );
+}
+
+/** Set once the console is rendered for a browser; see `queryCache` below. */
+let browserMode = false;
+
+async function renderBrowserConsole(): Promise<void> {
+  browserMode = true;
+  const locale = resolveLocale(navigator.language);
+  await activateLocale(locale);
+  document.documentElement.lang = locale;
+
+  const container = document.getElementById('root');
+  if (!container) throw new Error('#root is missing from index.html');
+
+  createRoot(container).render(
+    <StrictMode>
+      <I18nProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserConsoleContext.Provider value={true}>
+            <RouterProvider router={browserRouter} />
+          </BrowserConsoleContext.Provider>
+        </QueryClientProvider>
       </I18nProvider>
     </StrictMode>,
   );
@@ -218,6 +255,15 @@ async function enableMobileConsole(): Promise<void> {
 }
 
 const queryClient = new QueryClient({
+  // A session that ended while a screen was open: webapi answers 401, and a
+  // browser has no initData to open another, so the way on is signing in again.
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (browserMode && error instanceof ConsoleError && error.reason === 'stale') {
+        window.location.assign('/login');
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       // Mobile data. Refetching on every window focus is a poor trade here.

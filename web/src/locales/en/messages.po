@@ -126,6 +126,10 @@ msgstr "{0, plural, one {new profile} other {new profiles}}"
 msgid "Детектор ничего не находил."
 msgstr "The detector has found nothing."
 
+#: src/console/Login.tsx
+msgid "Откроется страница Telegram, где нужно подтвердить вход. Пароль мы не просим и не храним. В приложении Telegram консоль открывается без этого шага."
+msgstr "A Telegram page opens where you confirm the sign-in. We neither ask for nor store a password. Inside the Telegram app the console opens without this step."
+
 #: src/pages/Results.tsx
 msgid "Похоже, речь о"
 msgstr "This looks like"
@@ -175,6 +179,10 @@ msgstr "Disable the chat?"
 #: src/console/pages/System.tsx
 msgid "вкл."
 msgstr "on"
+
+#: src/console/BrowserShell.tsx
+msgid "Обзор"
+msgstr "Overview"
 
 #: src/console/pages/Catalog.tsx
 msgid "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
@@ -305,6 +313,10 @@ msgstr "this device"
 msgid "оживлённый"
 msgstr "lively"
 
+#: src/console/Login.tsx
+msgid "Вход в консоль"
+msgstr "Sign in to the console"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -396,6 +408,10 @@ msgstr "first year"
 msgid "Эта проверка открывается кнопкой из заявки на вступление в чат."
 msgstr "This check opens from the button in a request to join a chat."
 
+#: src/console/Login.tsx
+msgid "Войти не получилось. Попробуйте ещё раз."
+msgstr "Sign-in failed. Try again."
+
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
 msgstr "{failed, plural, one {Telegram refused in # chat: check the bot's rights there.} other {Telegram refused in # chats: check the bot's rights there.}}"
@@ -474,6 +490,10 @@ msgstr "Try other words — or post a request and let them find you."
 #: src/components/RequestSheet.tsx
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "It did not go through — try again."
+
+#: src/console/BrowserShell.tsx
+msgid "Модерация"
+msgstr "Moderation"
 
 #: src/pages/Chats.tsx
 msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
@@ -812,6 +832,7 @@ msgid "Всё, что искали, нашлось."
 msgstr "Everything searched for was found."
 
 #: src/components/TabBar.tsx
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чаты"
@@ -887,6 +908,7 @@ msgstr "No responses yet"
 msgid "администратор"
 msgstr "administrator"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
 #: src/console/pages/System.tsx
 msgid "Система"
@@ -1554,6 +1576,7 @@ msgstr "In every chat, ever. This cannot be undone."
 msgid "Снять"
 msgstr "Take down"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
 msgid "Люди"
 msgstr "People"
@@ -1759,6 +1782,7 @@ msgstr "refresh it from Telegram"
 msgid "Чем помогает"
 msgstr "What they help with"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Spam.tsx
 #: src/console/pages/Summary.tsx
@@ -1857,6 +1881,10 @@ msgstr "Banned in every chat. Bans are made with /banall or from a chat's screen
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram refused in every chat: check the bot's rights and ban again."
+
+#: src/console/Login.tsx
+msgid "Войти через Telegram"
+msgstr "Sign in with Telegram"
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1962,6 +1990,10 @@ msgstr "appears once approved"
 #: src/console/pages/Spam.tsx
 msgid "Автор забанен"
 msgstr "Author banned"
+
+#: src/console/BrowserShell.tsx
+msgid "консоль"
+msgstr "console"
 
 #: src/console/pages/Summary.tsx
 msgid "детектор, все чаты"
@@ -2275,6 +2307,10 @@ msgstr "Console"
 msgid "первое касание"
 msgstr "first touch"
 
+#: src/console/BrowserShell.tsx
+msgid "Суперадмин"
+msgstr "Super admin"
+
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
 msgstr "Not enough to search on"
@@ -2399,6 +2435,7 @@ msgstr "Optional. An empty field means you will agree on it."
 msgid "Написать"
 msgstr "Message"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/System.tsx
 msgid "Выйти"
 msgstr "Sign out"
@@ -2415,6 +2452,10 @@ msgstr "Ban {name}?"
 #: src/console/pages/Chat.tsx
 msgid "Не показан"
 msgstr "Not shown"
+
+#: src/console/Login.tsx
+msgid "Этого аккаунта нет среди администраторов. Войдите другим аккаунтом Telegram или попросите владельца добавить вас."
+msgstr "This account is not among the administrators. Sign in with another Telegram account or ask the owner to add you."
 
 #: src/console/pages/Chats.tsx
 msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
@@ -2711,6 +2752,7 @@ msgstr "Updated just now"
 msgid "Все"
 msgstr "All"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Audience.tsx
 #: src/console/pages/Summary.tsx
 msgid "Аудитория"
@@ -2720,6 +2762,7 @@ msgstr "Audience"
 msgid "Сначала заполни профиль"
 msgstr "Fill in your profile first"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"
