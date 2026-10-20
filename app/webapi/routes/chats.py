@@ -17,11 +17,12 @@ import datetime
 from typing import Annotated, cast
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chats.metadata import fetch_member_count, fetch_metadata
+from app.chats.metadata import ask, fetch_member_count, fetch_metadata
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -37,6 +38,7 @@ from app.webapi.schemas import (
     ChatResourceStatus,
     ChatSender,
     ChatUpdate,
+    ExternalChatCreate,
     HeatmapCell,
     MemberSnapshotPoint,
 )
@@ -341,6 +343,62 @@ async def refresh_chat_from_telegram(
         public_link=chat.public_link,
         institution_code=chat.institution_code,
         member_count=member_count,
+        has_photo=chat.photo_file_id is not None,
+        last_synced_at=chat.last_synced_at,
+        created_at=chat.created_at,
+    )
+
+
+@router.post("/external", response_model=ChatRead, status_code=201)
+async def add_external_chat(
+    payload: ExternalChatCreate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    bot: Annotated[Bot, Depends(get_publish_bot)],
+    _admin_id: Annotated[int, Depends(require_super_admin)],
+) -> ChatRead:
+    """List a chat the bot is not in, marked as somebody else's.
+
+    Telegram is asked by username, which it answers for any public chat, so the
+    id and title are its own rather than typed into the console. A chat already
+    in the table is refused rather than turned external: adding a link must
+    never be the way moderation is switched off somewhere we run.
+    """
+    username = payload.public_link.rsplit("/", 1)[-1]
+    try:
+        found = await ask(lambda: bot.get_chat(f"@{username}"))
+    except TelegramAPIError as err:
+        logger.warning("external_chat_not_found", username=username, error=str(err))
+        raise HTTPException(status_code=422, detail="Telegram does not know a public chat by that link") from err
+    if found.type not in ("group", "supergroup"):
+        raise HTTPException(status_code=422, detail="That link leads to a channel or a person, not a chat")
+    if await session.get(Chat, found.id) is not None:
+        raise HTTPException(status_code=409, detail=f"Chat {found.id} is already known; change it on its own page")
+
+    chat = Chat(
+        id=found.id,
+        title=found.title,
+        resource_status=Chat.STATUS_EXTERNAL,
+        is_forum=bool(found.is_forum),
+        public_link=payload.public_link,
+    )
+    session.add(chat)
+    await session.commit()
+    public_answers.forget()
+    await session.refresh(chat)
+
+    return ChatRead(
+        id=chat.id,
+        title=chat.title,
+        resource_status=_resource_status(chat.resource_status),
+        is_forum=chat.is_forum,
+        is_welcome_enabled=chat.is_welcome_enabled,
+        is_captcha_enabled=chat.is_captcha_enabled,
+        is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
+        parent_chat_id=chat.parent_chat_id,
+        relation_notes=chat.relation_notes,
+        public_link=chat.public_link,
+        institution_code=chat.institution_code,
+        member_count=None,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
         created_at=chat.created_at,

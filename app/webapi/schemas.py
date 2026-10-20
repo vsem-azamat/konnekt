@@ -169,6 +169,25 @@ class ChatUpdate(BaseModel):
         return link
 
 
+# A public username, the one form of chat link Telegram resolves for a bot that
+# is not in the chat; an invite opens only for whoever joins through it.
+USERNAME_LINK = re.compile(r"^https://t\.me/(?P<username>[A-Za-z][\w]{3,31})$")
+
+
+class ExternalChatCreate(BaseModel):
+    """A chat the bot is not in, named by the link a student would follow."""
+
+    public_link: str
+
+    @field_validator("public_link")
+    @classmethod
+    def _check_username_link(cls, value: str) -> str:
+        link = value.strip()
+        if not USERNAME_LINK.match(link):
+            raise ValueError("An external chat is added by its public link, e.g. https://t.me/cvut_fjfi")
+        return link
+
+
 class ChatNode(BaseModel):
     """A chat listed under its parent on the chat's own screen."""
 
