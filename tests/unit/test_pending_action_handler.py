@@ -13,7 +13,7 @@ from aiogram import types
 from app.core.config import settings
 from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
-from app.db.models import PendingAction
+from app.db.models import Chat, PendingAction
 from app.moderation.pending_actions import PendingActionDecision
 from app.presentation.telegram.handlers.pending_actions import handle_pending_action
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,7 +42,9 @@ def _callback(user_id: int = ADMIN_ID) -> AsyncMock:
     return callback
 
 
-async def _seed(session: AsyncSession, *, minutes: int = 30) -> PendingAction:
+async def _seed(session: AsyncSession, *, minutes: int = 30, chat_status: str = Chat.STATUS_APPROVED) -> PendingAction:
+    # A proposal is only ever made for a chat the bot moderates.
+    session.add(Chat(id=-1001, title="Moderated", resource_status=chat_status))
     pending = PendingAction(
         origin="mcp",
         initiator_id=ADMIN_ID,
@@ -156,3 +158,15 @@ async def test_the_reason_stays_text_after_the_press(session: AsyncSession) -> N
 
     sent = callback.message.edit_text.await_args.args[0]
     assert sent.startswith("Причина: spam &lt;3 &lt;a href=")
+
+
+async def test_a_chat_no_longer_moderated_is_said_at_the_press(session: AsyncSession) -> None:
+    pending = await _seed(session, chat_status=Chat.STATUS_OBSERVED)
+    bot = AsyncMock()
+    callback = _callback()
+
+    await handle_pending_action(callback, PendingActionDecision(pending_id=pending.id, confirm=1), bot, session)
+
+    bot.ban_chat_member.assert_not_awaited()
+    assert "больше не модерирует" in callback.answer.await_args.args[0]
+    assert "больше не модерирует" in callback.message.edit_text.await_args.args[0]
