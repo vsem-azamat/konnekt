@@ -516,6 +516,8 @@ async def parse(
     # shelf would match nobody, where the leaf «Přijímací zkouška z matematiky»
     # matches them.
     shelf_spoke = False
+    stems: list[str] | None = None
+    shelf_id: int | None = None
     if not (subjects and _is_named(subjects[0])):
         shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
         # The synonyms themselves, not the match's kind: the query has to hold a
@@ -528,6 +530,7 @@ async def parse(
             if shelves
             else None
         )
+        shelf_id = shelves[0].id if stems else None
         if stems and result.service_type in SHELF_KINDS:
             school = await _school_words(session, result.institution)
             numbered = _numbers(subjects)
@@ -557,6 +560,16 @@ async def parse(
             # bring another guess from somewhere else — it answered «Chemie –
             # střední škola» beside entrance exams, which matches nobody.
             shelf_spoke = not subjects
+    # Every entrance offer sits on the admissions shelf, so a guess from
+    # anywhere else beside entrance exams matches nobody: «поступление на ЧВУТ
+    # физика» guessed «Физика 1». Where the query names a shelf that lists
+    # admissions leaves, take the best of those. After the shelves, whose own
+    # guess-drop knows nothing of where entrance offers sit.
+    if result.service_type == "entrance_prep" and subjects and not _is_named(subjects[0]):
+        subjects = await _from_admissions(
+            session, norm, lang, subjects, shelf_id, stems, result.institution
+        )
+
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -1099,6 +1112,90 @@ def _shares_a_stem(word: str, stem: str) -> bool:
     return word.startswith(stem) or (
         len(word) >= 5 and len(stem) >= 5 and word[:-1] == stem[:-1]
     )
+
+
+# The shelf every entrance offer sits on.
+ADMISSIONS_SHELF = "admissions-prep"
+
+
+async def _from_admissions(
+    session: AsyncSession,
+    norm: str,
+    lang: str,
+    subjects: list[Match],
+    shelf_id: int | None,
+    stems: list[str] | None,
+    institution: Match | None,
+) -> list[Match]:
+    """For entrance exams beside a shelf's word, the admissions leaves that
+    shelf lists, best first; otherwise these guesses untouched.
+
+    Only what a shelf lists in `holds` — physics its entrance exams, maths its
+    own — and only when the query says the shelf's word: choosing among all
+    admissions leaves is decided by the entrance words they all share, and
+    picked the technical admissions for «přijímačky z biologie». Ranked by the
+    query without its school's words, which would otherwise favour whichever
+    leaf names a school.
+    """
+    from students_cz.services.lookup import held_by
+
+    tokens = tokenise(norm).split()
+    if (
+        shelf_id is None
+        or not stems
+        or not any(
+            token.startswith(normalise(stem)) for token in tokens for stem in stems
+        )
+    ):
+        return subjects
+    admissions_id = await session.scalar(
+        select(Subject.id).where(Subject.slug == ADMISSIONS_SHELF)
+    )
+    if admissions_id is None:
+        return subjects
+    admissions = set(await held_by(session, admissions_id))
+    listed = await _entrance_exams(
+        session, admissions & set(await held_by(session, shelf_id))
+    )
+    # A guess already among them stands. Any other — off the shelf, or on it
+    # but not the named shelf's (TSP for «подготовка к поступлению по
+    # математике») — gives way.
+    if not listed or subjects[0].id in listed:
+        return subjects
+    school = await _school_words(session, institution)
+    kept = [token for token in tokens if not _is_school_word(token, school)]
+    found = [
+        match
+        for match in await find_subjects(session, " ".join(kept), lang, limit=20)
+        if match.id in listed
+    ]
+    # The shelf's own exam before one it shares: the technical admissions are
+    # listed by maths, physics and programming alike, and won «přijímačky na
+    # střední školu matematika» by its extra words over the maths exam.
+    from students_cz.services.lookup import shelves_of
+
+    sharing = {match.id: len(await shelves_of(session, {match.id})) for match in found}
+    found.sort(key=lambda match: sharing[match.id])
+    return found[:4] or subjects
+
+
+async def _entrance_exams(session: AsyncSession, ids: set[int]) -> set[int]:
+    """Those of these subjects whose name, in some language, reads as entrance
+    exams. A shelf lists maturita too, and it is the school-leaving exam."""
+    from students_cz.db.models import SubjectI18n
+
+    if not ids:
+        return set()
+    rows = await session.execute(
+        select(SubjectI18n.subject_id, SubjectI18n.name).where(
+            SubjectI18n.subject_id.in_(ids)
+        )
+    )
+    return {
+        subject_id
+        for subject_id, name in rows
+        if _match_service(normalise(name))[0] == "entrance_prep"
+    }
 
 
 async def _within_shelf(

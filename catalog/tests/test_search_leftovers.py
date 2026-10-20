@@ -366,3 +366,82 @@ async def test_ukrainian_classical_is_the_kind(session) -> None:
     parsed = await parse(session, "класична фізика", "uk", today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.id == await _id(session, "physics"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A school and a subject beside entrance exams (#259): the answer is on
+        # the admissions shelf, where every entrance offer sits.
+        ("поступление на ЧВУТ физика", "ru", "prijimacky-fyzika"),
+        ("přijímačky na VŠE z matematiky", "cs", "prijimacky-matematika"),
+        ("поступление в ВШЭ математика", "ru", "prijimacky-matematika"),
+        # What already landed there stays.
+        ("přijímačky na ČVUT", "cs", "prijimacky-technicke-vs"),
+        ("přijímačky na VŠE", "cs", "prijimacky-ekonomicke-vs"),
+        ("вступительные по физике", "ru", "prijimacky-fyzika"),
+        # A shelf that lists the technical admissions.
+        ("поступление программирование", "ru", "prijimacky-technicke-vs"),
+        # The shelf's own exam before the one three shelves share.
+        ("přijímačky na střední školu matematika", "cs", "prijimacky-matematika"),
+    ],
+)
+async def test_entrance_exams_answer_from_the_admissions_shelf(
+    session, text, lang, slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "not_slug"),
+    [
+        # No shelf word, or a shelf that lists no admissions: left as it was,
+        # rather than handed to whichever admissions leaf the entrance word
+        # alone scores highest.
+        ("přijímačky z biologie", "cs", "prijimacky-technicke-vs"),
+        ("přijímačky na filozofickou fakultu", "cs", "prijimacky-technicke-vs"),
+        ("přijímací zkoušky z chemie", "cs", "prijimacky-fyzika"),
+    ],
+)
+async def test_other_entrance_queries_are_left_alone(
+    session, text, lang, not_slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, not_slug), (
+        parsed.subject
+    )
+
+
+async def test_a_named_subject_beside_entrance_exams_stays(session) -> None:
+    parsed = await parse(session, "přijímačky čeština B2", "cs", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.label.startswith("Čeština"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A guess from the admissions shelf that the named shelf does not list
+        # is no better than one from elsewhere: TSP is not the maths exam.
+        ("подготовка к поступлению по математике", "ru", "prijimacky-matematika"),
+        ("přijímačky na ČVUT z matematiky", "cs", "prijimacky-technicke-vs"),
+    ],
+)
+async def test_a_listed_exam_replaces_an_unlisted_admissions_guess(
+    session, text, lang, slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_maturita_is_not_an_entrance_exam(session) -> None:
+    """Maths lists maturita, but it is the school-leaving exam: beside
+    entrance exams it is not the answer."""
+    parsed = await parse(session, "поступление в гимназию математика", "ru", today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(
+        session, "maturita"
+    ), parsed.subject
