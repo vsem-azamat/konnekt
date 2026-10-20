@@ -231,6 +231,19 @@ class WebApiSettings(Settings):
     # (app/webapi/origin_guard.py).
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
 
+    @field_validator("catalog_service_token", mode="before")
+    @classmethod
+    def _strong_or_off(cls, value: object) -> object:
+        """As the catalog reads its SERVICE_TOKEN: spaces dropped, blank is off,
+        and a short one refuses to start (catalog/src/students_cz/core/config.py)."""
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str):
+            return value
+        raw = raw.strip()
+        if raw and len(raw) < 32:
+            raise ValueError("WEBAPI_CATALOG_SERVICE_TOKEN must be at least 32 characters, or unset")
+        return SecretStr(raw)
+
     @field_validator("session_cookie_samesite", mode="before")
     @classmethod
     def _samesite_lowercase(cls, value: object) -> object:

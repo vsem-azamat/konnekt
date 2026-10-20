@@ -35,7 +35,9 @@ async def get_catalog_http() -> httpx.AsyncClient:
     """The process's one client to the catalog, made on first use and closed with the app."""
     global _http  # noqa: PLW0603
     if _http is None:
-        _http = httpx.AsyncClient(timeout=10)
+        # Not the environment's proxies: the token goes to the containers'
+        # network and nowhere else.
+        _http = httpx.AsyncClient(timeout=10, trust_env=False)
     return _http
 
 

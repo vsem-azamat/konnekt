@@ -191,3 +191,92 @@ def test_the_token_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch) -
     assert configured.catalog_service_token.get_secret_value() == TOKEN
     assert TOKEN not in repr(configured)
     assert configured.catalog_url == "http://catalog-api:8000"
+
+
+@pytest.fixture
+def real_guard(monkeypatch: pytest.MonkeyPatch) -> Iterator[Callable[[object], None]]:
+    """The session check as it runs, over a session store the test scripts."""
+    from unittest.mock import AsyncMock
+
+    from app.webapi.deps import get_session, require_super_admin
+
+    async def _session():
+        yield AsyncMock()
+
+    app.dependency_overrides.pop(require_super_admin, None)
+    app.dependency_overrides[get_session] = _session
+
+    def stored(row: object) -> None:
+        async def load(_session: object, _token: str) -> object:
+            return row
+
+        monkeypatch.setattr("app.webapi.auth.session_store.load_valid_session", load)
+
+    yield stored
+    app.dependency_overrides.pop(get_session, None)
+
+
+@pytest.mark.parametrize("who", ["nobody", "a stranger"])
+async def test_without_a_super_admins_session_the_catalog_is_not_asked(
+    upstream: Catalog, real_guard: Callable[[object], None], who: str
+) -> None:
+    from types import SimpleNamespace
+
+    real_guard(None if who == "nobody" else SimpleNamespace(user_id=555))
+    async with _client() as http:
+        read = await http.get("/api/catalog/admin/catalog")
+        write = await http.post("/api/catalog/admin/profiles/7/hide")
+
+    assert read.status_code == write.status_code == 401
+    assert upstream.requests == []
+
+
+async def test_the_catalog_sets_no_cookie_here(upstream: Catalog) -> None:
+    upstream.answer = lambda _: httpx.Response(200, json={}, headers={"Set-Cookie": "theirs=1; Path=/"})
+    async with _client() as http:
+        response = await http.get("/api/catalog/admin/catalog")
+
+    assert response.status_code == 200
+    assert "set-cookie" not in response.headers
+
+
+async def test_a_write_from_another_page_is_refused_before_the_catalog(upstream: Catalog) -> None:
+    async with _client() as http:
+        response = await http.post("/api/catalog/admin/profiles/7/hide", headers={"Origin": "https://evil.example"})
+
+    assert response.status_code == 403
+    assert upstream.requests == []
+
+
+async def test_the_client_ignores_proxies_from_the_environment() -> None:
+    """HTTPS_PROXY and friends must not send the token past the containers' network."""
+    client = await catalog.get_catalog_http()
+    try:
+        assert client.trust_env is False
+    finally:
+        await catalog.close_catalog_http()
+
+
+@pytest.mark.parametrize("value", ["   ", "\t\n", ""])
+def test_a_blank_token_is_off(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    from app.core.config import WebApiSettings
+
+    monkeypatch.setenv("WEBAPI_CATALOG_SERVICE_TOKEN", value)
+    assert WebApiSettings(_env_file=None).catalog_service_token.get_secret_value() == ""
+
+
+def test_a_token_is_read_without_the_spaces_around_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import WebApiSettings
+
+    monkeypatch.setenv("WEBAPI_CATALOG_SERVICE_TOKEN", f"  {TOKEN}\n")
+    assert WebApiSettings(_env_file=None).catalog_service_token.get_secret_value() == TOKEN
+
+
+@pytest.mark.parametrize("value", ["short", "x" * 31])
+def test_a_weak_token_refuses_to_start(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    from app.core.config import WebApiSettings
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("WEBAPI_CATALOG_SERVICE_TOKEN", value)
+    with pytest.raises(ValidationError):
+        WebApiSettings(_env_file=None)
