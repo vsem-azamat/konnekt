@@ -107,10 +107,8 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "приемном экз",
         "приемная комис",
         "приемной комис",
-        "поступлен",
         "prijimack",
         "přijímačk",
-        "prijimaci",
         "entrance",
         "вступн",
         # The Ukrainian spelling, which used to reach `entrance_prep` only
@@ -166,11 +164,9 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         # misses it entirely, and the word that names this kind of help in
         # English reached nothing at all.
         "nostrific",
-        "аттестат",
         "признание диплома",
         "uznani",
         "нострифік",
-        "атестат",
     ),
     "writing": (
         "написать",
@@ -359,6 +355,14 @@ EXAM_MENTION: tuple[str, ...] = (
     "termin",
 )
 
+# Entrance words that a document kind outranks and nothing else: admission
+# is what papers are for, so «перевод документов для поступления» and
+# «překlad dokumentů pro přijímací řízení» ask for the translation, while
+# «репетитор для поступления» is still entrance exams. Read right after the
+# document kinds, which keep their place below exam preparation.
+AFTER_PAPERS: dict[str, tuple[str, ...]] = {"entrance_prep": ("поступлен", "prijimaci")}
+_PAPERS = ("translation", "nostrification")
+
 # Words for entrance exams that also mean something else, so they are read
 # only after every other kind of help has had its say: «вступ» is a paper's
 # introduction («написати вступ на 2 сторінки» is writing) and admission is
@@ -370,7 +374,8 @@ LATE_KEYWORDS: dict[str, tuple[str, ...]] = {
         # Not "admission" alone: a hospital admission, an admission fee and
         # the admission of evidence are not entrance exams.
         Word("admissions"),
-        "admission to",
+        # Not "admission to" alone: a hospital and a club admit too. It is
+        # read with what follows, in _ENTERING_A_UNIVERSITY and in `parse`.
         "university admission",
         "college admission",
         "admission test",
@@ -386,11 +391,39 @@ LATE_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+# The school certificate: «перевод аттестата» is a translation and
+# «поступление с аттестатом» entering with one, so it names nostrification
+# only when no other kind of help is named, entering a university included.
+CERTIFICATE: tuple[str, ...] = ("аттестат", "атестат")
+
 # «вступ до / у / в» a university, with a word between or none: «вступ до
 # технічного університету», «вступ у ВНЗ», the leaves' own «Вступ до технічних
 # ВНЗ». Read after LATE_KEYWORDS, for the same reason.
 _ENTERING_A_UNIVERSITY = re.compile(
     r"(?:^| )(вступ (?:до|у|в)) (?:\S+ )?(?:університ|внз|виш)"
+    # The Russian for going into one, which no keyword names: «поступить в
+    # вуз», «подготовка в вуз», «готовиться к университету». «вуз» alone
+    # names no kind of help, and the scorer guessed one for it. Only the forms
+    # of going in: «поступил в университет» is already there, and
+    # «университетский экзамен» is an exam at one.
+    r"|(?:^| )((?:поступ(?:ить|ать|аю|аешь|ает|аем|ают|лю|ишь|им|ят|ающ\S*)"
+    r"|подготовк\S{0,2}|подготовиться|готовиться|готовлюсь|готовимся|готовится)"
+    r" (?:в|к|на)) (?:\S+ )?(?:вуз\S{0,2}|универ|университет\S{0,2})(?: |$)"
+    # And in the other languages: «підготовка до університету», «příprava na
+    # vysokou školu», "preparation for university" — not for an exam there.
+    r"|(?:^| )(підготовк\S{0,2} до) (?:\S+ )?(?:університет\S{0,2}|внз|виш\S{0,2})(?: |$)"
+    r"|(?:^| )(priprav\S{0,2} (?:na|k)) (?:\S+ )?"
+    r"(?:vysok\S{0,3} skol\S{0,2}|univerzit\S{0,2})(?: |$)"
+    # The university ends the query: "prep for university math" prepares for
+    # the maths, and "preparation for exams at university" for the exams.
+    r"|(?:^| )((?:preparation|prep|preparing) for) (?:the |a )?"
+    r"(?:(?!\S*(?:exam|test|course|class))\S+ ){0,2}(?:universit\S*|college) ?$"
+    # "admission to" a school or what it teaches, not to a hospital or a club,
+    # with its name in up to three words: "the Czech Technical University".
+    r"|(?:^| )(admission to) (?:the |a )?(?:\S+ ){0,3}"
+    r"(?:universit|college|faculty|school|medic|bachelor|master|programme"
+    # Study, not a student: a student club admits no one to study.
+    r"|econom|law|engineer|stud(?:y|ies|ying)(?: |$))"
 )
 
 # Words that only restate a kind of help once its keyword has named it: the
@@ -451,6 +484,28 @@ RESTATING_FOR: dict[str, tuple[str, ...]] = {
         "вуз",
         Word("внз"),
         "виш",
+        # «vysoká škola» is the Czech for a university, and the leaves' own
+        # «technické VŠ» made the scorer guess one from it.
+        "vysok",
+        Word("skola"),
+        Word("skolu"),
+        Word("skoly"),
+        Word("skole"),
+        Word("vs"),
+        # The country: every school here is Czech, so «чешский вуз» and «вуз
+        # Чехии» say no more than «вуз». Beside a subject they leave it alone:
+        # «поступление чешский язык» still has «язык» to search.
+        "чешск",
+        "чехи",
+        "чехі",
+        "чеськ",
+        "czech",
+        "cesk",
+        # And the city most of them are in: «вуз Праги», «v Praze».
+        "праг",
+        "prah",
+        "praz",
+        "prague",
     )
 }
 
@@ -528,9 +583,9 @@ async def parse(
     if (
         result.service_type is None
         and result.institution
-        and await _enters_the_school(session, norm, result.institution)
+        and (entering := await _enters_the_school(session, norm, result.institution))
     ):
-        result.service_type, keyword = "entrance_prep", "вступ до"
+        result.service_type, keyword = "entrance_prep", entering
 
     result.deadline = _match_deadline(norm, today or date.today())
     result.budget_max = _match_budget(norm)
@@ -952,6 +1007,19 @@ def _mentions(norm: str, words: tuple[str, ...]) -> bool:
     return _first(norm, words) is not None
 
 
+def _for_admission(
+    tokens: str, code: str, keyword: str, ignore: frozenset[str]
+) -> tuple[str, str]:
+    """An exam taken to get in is an entrance exam: «сдать экзамен для
+    поступления», «зачет для поступления». The entrance words that wait for the
+    papers (AFTER_PAPERS) would otherwise lose to exam preparation above them."""
+    if code == "exam_prep" and "entrance_prep" not in ignore:
+        for word in AFTER_PAPERS["entrance_prep"]:
+            if starts_a_word(tokens, word):
+                return "entrance_prep", word
+    return code, keyword
+
+
 def _match_service(
     norm: str, *, ignore: frozenset[str] = frozenset()
 ) -> tuple[str | None, str | None]:
@@ -970,13 +1038,20 @@ def _match_service(
     SUBJECTLESS at the call site.
     """
     tokens = tokenise(norm)
-    for code, keywords in SERVICE_KEYWORDS.items():
+    # In SERVICE_KEYWORDS' order, with the entrance words the document kinds
+    # outrank read right after the last of them.
+    order: list[tuple[str, tuple[str, ...]]] = []
+    for code, words in SERVICE_KEYWORDS.items():
+        order.append((code, words))
+        if code == _PAPERS[-1]:
+            order.extend(AFTER_PAPERS.items())
+    for code, keywords in order:
         if code in ignore:
             continue
         for keyword in keywords:
             match = is_whole_word if isinstance(keyword, Word) else starts_a_word
             if match(tokens, keyword):
-                return code, keyword
+                return _for_admission(tokens, code, keyword, ignore)
     for code, keywords in LATE_KEYWORDS.items():
         if code in ignore:
             continue
@@ -986,7 +1061,11 @@ def _match_service(
                 return code, keyword
     entering = _ENTERING_A_UNIVERSITY.search(tokens)
     if entering and "entrance_prep" not in ignore:
-        return "entrance_prep", entering.group(1)
+        return "entrance_prep", next(phrase for phrase in entering.groups() if phrase)
+    if "nostrification" not in ignore:
+        for word in CERTIFICATE:
+            if starts_a_word(tokens, word):
+                return "nostrification", word
 
     if any(starts_a_word(tokens, verb) for verb in WEAK_HELP):
         if any(starts_a_word(tokens, word) for word in EXAM_MENTION):
@@ -1295,15 +1374,21 @@ async def _within_shelf(
     return [match for match in subjects if match.id in held]
 
 
-async def _enters_the_school(session: AsyncSession, norm: str, school: Match) -> bool:
-    """Is it «вступ до / у / в» the school itself? «вступ до ЧВУТ» is entering
-    ČVUT; «вступ до математичного аналізу ЧВУТ» an introduction taught there."""
-    tokens = tokenise(norm).split()
+async def _enters_the_school(
+    session: AsyncSession, norm: str, school: Match
+) -> str | None:
+    """The words that enter the school itself, if any: «вступ до ЧВУТ» and
+    "admission to CTU" enter ČVUT; «вступ до математичного аналізу ЧВУТ» is an
+    introduction taught there."""
+    tokens = [token for token in tokenise(norm).split() if token not in ("the", "a")]
     words = await _school_words(session, school)
-    return any(
-        first == "вступ" and second in ("до", "у", "в") and _is_school_word(after, words)
-        for first, second, after in zip(tokens, tokens[1:], tokens[2:], strict=False)
-    )
+    for first, second, after in zip(tokens, tokens[1:], tokens[2:], strict=False):
+        entering = (first == "вступ" and second in ("до", "у", "в")) or (
+            first == "admission" and second == "to"
+        )
+        if entering and _is_school_word(after, words):
+            return f"{first} {second}"
+    return None
 
 
 def _numbers(matches: list[Match]) -> set[str]:
