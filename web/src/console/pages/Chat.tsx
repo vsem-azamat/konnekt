@@ -467,39 +467,33 @@ function ChatScreen({ chatId }: { chatId: number }) {
             if (!busy) open({ kind: 'parent' });
           }}
         />
-        {catalogReachable(inBrowser) ? (
-          <>
-            {chat.parent_chat_id === null ? (
-              <Row
-                title={<Trans>Вуз</Trans>}
-                hint={
-                  chat.institution_code ? (
-                    universityName(chat.institution_code)
-                  ) : (
-                    <Trans>не указан: чаты под ним его студентам не поднимутся</Trans>
-                  )
-                }
-                trailing={<Chevron />}
-                onClick={() => {
-                  if (!busy) open({ kind: 'institution' });
-                }}
-              />
-            ) : (
-              <Row
-                title={<Trans>Вуз</Trans>}
-                hint={
-                  parent?.institution_code ? (
-                    <Trans>
-                      как у родителя: {universityName(parent.institution_code)}
-                    </Trans>
-                  ) : (
-                    <Trans>задаётся у родителя</Trans>
-                  )
-                }
-              />
-            )}
-          </>
-        ) : null}
+        {!catalogReachable(inBrowser) ? null : chat.parent_chat_id === null ? (
+          <Row
+            title={<Trans>Вуз</Trans>}
+            hint={
+              chat.institution_code ? (
+                universityName(chat.institution_code)
+              ) : (
+                <Trans>не указан: чаты под ним его студентам не поднимутся</Trans>
+              )
+            }
+            trailing={<Chevron />}
+            onClick={() => {
+              if (!busy) open({ kind: 'institution' });
+            }}
+          />
+        ) : (
+          <Row
+            title={<Trans>Вуз</Trans>}
+            hint={
+              parent?.institution_code ? (
+                <Trans>как у родителя: {universityName(parent.institution_code)}</Trans>
+              ) : (
+                <Trans>задаётся у родителя</Trans>
+              )
+            }
+          />
+        )}
         {chat.children.map((child) => (
           <Row
             key={child.id}
