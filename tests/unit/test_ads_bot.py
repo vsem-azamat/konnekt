@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram import Bot
 from aiogram.exceptions import (
+    ClientDecodeError,
     TelegramBadRequest,
     TelegramForbiddenError,
     TelegramNetworkError,
@@ -217,6 +218,11 @@ async def test_a_message_that_could_not_be_copied_is_reported_in_the_topic(sessi
 
 def _flood(retry_after: int = 0) -> TelegramRetryAfter:
     return TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=retry_after)
+
+
+def _decode_error() -> ClientDecodeError:
+    """What aiogram raises when Telegram answers with an HTML error page, a 502 say."""
+    return ClientDecodeError("Failed to decode object", ValueError("not JSON"), "<html>502</html>")
 
 
 async def test_a_copy_telegram_asks_to_wait_for_is_tried_once_more(session_maker) -> None:
@@ -484,7 +490,8 @@ async def test_start_is_greeted_and_not_relayed(routed) -> None:
     assert "Konnekt" in greeting.text
     # The desk answers any question, advertising among them.
     assert "по любому вопросу" in greeting.text
-    assert "реклама" in greeting.text
+    for subject in ("рекламе", "сотрудничестве", "помощи с учёбой"):
+        assert subject in greeting.text
     desk.from_person.assert_not_awaited()
 
 
@@ -724,15 +731,20 @@ async def test_the_group_is_checked_when_the_desk_starts(monkeypatch, forum, mem
     assert [c.args[0] for c in logger.warning.call_args_list] == warnings
 
 
-async def test_an_unreachable_group_is_logged_and_the_desk_still_starts(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "error",
+    [TelegramBadRequest(method=MagicMock(), message="Bad Request: chat not found"), _decode_error()],
+)
+async def test_an_unreachable_group_is_logged_and_the_desk_still_starts(monkeypatch, error) -> None:
     logger = MagicMock()
     monkeypatch.setattr(ads, "logger", logger)
     bot = AsyncMock()
-    bot.get_chat.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: chat not found")
+    bot.get_chat.side_effect = error
 
-    await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
+    await ads.check_group(bot, GROUP)
 
-    logger.warning.assert_called_once_with("ads_group_unreachable", error="Bad Request: chat not found")
+    ((event,), _) = logger.warning.call_args
+    assert event == "ads_group_unreachable"
 
 
 @pytest.mark.parametrize(
@@ -766,16 +778,18 @@ def _profile_bot(name: str = "Konnekt · Ad", description: str = "", short: str 
 
 
 async def test_the_desk_introduces_itself_as_the_way_to_reach_us(monkeypatch) -> None:
-    monkeypatch.setattr(ads.settings.ads_bot, "name", "Konnekt · Связь")
+    # Not the default, so a name written into the code instead would fail here.
+    monkeypatch.setattr(ads.settings.ads_bot, "name", "Konnekt · Проверка")
     bot = _profile_bot()
 
     await ads.publish_profile(bot)
 
-    bot.set_my_name.assert_awaited_once_with(name="Konnekt · Связь")
+    bot.set_my_name.assert_awaited_once_with(name="Konnekt · Проверка")
     description = bot.set_my_description.await_args.kwargs["description"]
     short = bot.set_my_short_description.await_args.kwargs["short_description"]
     assert "по любому вопросу" in description
     assert "по любому вопросу" in short
+    assert "помощь с учёбой" in short
     # Telegram's limits.
     assert len(description) <= 512
     assert len(short) <= 120
@@ -800,17 +814,30 @@ async def test_a_profile_already_right_is_not_written_again(monkeypatch) -> None
     bot.set_my_short_description.assert_not_awaited()
 
 
-async def test_one_refused_profile_step_leaves_the_others_done(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("method", "error"),
+    [
+        ("set_my_description", _flood(3600)),
+        ("set_my_description", TelegramBadRequest(method=MagicMock(), message="Bad Request: description is too long")),
+        ("get_my_description", TelegramNetworkError(method=MagicMock(), message="timeout")),
+        # Not a TelegramAPIError: caught narrowly, it would stop the desk from polling.
+        ("set_my_description", _decode_error()),
+        ("get_my_description", _decode_error()),
+    ],
+)
+async def test_one_failed_profile_step_leaves_the_others_done(monkeypatch, method, error) -> None:
     logger = MagicMock()
     monkeypatch.setattr(ads, "logger", logger)
     bot = _profile_bot()
-    bot.set_my_description.side_effect = _flood(3600)
+    getattr(bot, method).side_effect = error
 
     await ads.publish_profile(bot)
 
     bot.set_my_short_description.assert_awaited()
     bot.set_my_name.assert_awaited()
-    logger.warning.assert_called_once()
+    ((event,), fields) = logger.warning.call_args
+    assert event == "ads_profile_step_failed"
+    assert fields["step"] == "description"
 
 
 async def test_the_profile_is_published_when_the_desk_starts() -> None:
