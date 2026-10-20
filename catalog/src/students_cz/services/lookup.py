@@ -134,8 +134,23 @@ class Match:
 # reaches Postgres with the placeholder still in it.
 # [[:alnum:]] rather than [a-z0-9]: the latter deletes every Cyrillic letter,
 # which turned "матан" into an empty token string that matched everything.
+# A synonym of four letters or more matches the start of a word, so «линал»
+# reaches «линала» — unless it ends in a digit: «физика 1» is not the start
+# of «физика 11 класс».
 _NORM = "immutable_unaccent(lower({expr}))"
 _TOKENS = "' ' || btrim(regexp_replace({expr}, '[^[:alnum:]]+', ' ', 'g')) || ' '"
+
+# Does one of the subject's synonyms appear in the query as words? Written once,
+# because the hit flag and the score must not disagree about it.
+_SYNONYM_HIT = f"""EXISTS (
+    SELECT 1 FROM unnest(s.synonyms) syn
+     WHERE btrim(syn) <> '' AND strpos(
+         q.tokens,
+         rtrim({_TOKENS.format(expr="immutable_unaccent(lower(syn))")})
+         || CASE WHEN length(btrim(syn)) >= 4 AND btrim(syn) !~ '[0-9]$'
+            THEN '' ELSE ' ' END
+     ) > 0
+)"""
 
 _SUBJECT_SQL = text(
     f"""
@@ -146,23 +161,9 @@ _SUBJECT_SQL = text(
     SELECT id, label, score, hit FROM (
         SELECT s.id,
                COALESCE(pref.name, any_name.name) AS label,
-               (EXISTS (
-                   SELECT 1 FROM unnest(s.synonyms) syn
-                    WHERE btrim(syn) <> '' AND strpos(
-                        q.tokens,
-                        rtrim({_TOKENS.format(expr="immutable_unaccent(lower(syn))")})
-                        || CASE WHEN length(btrim(syn)) >= 4 THEN '' ELSE ' ' END
-                    ) > 0
-               )) AS hit,
+               ({_SYNONYM_HIT}) AS hit,
                GREATEST(
-                   CASE WHEN EXISTS (
-                       SELECT 1 FROM unnest(s.synonyms) syn
-                        WHERE btrim(syn) <> '' AND strpos(
-                            q.tokens,
-                            rtrim({_TOKENS.format(expr="immutable_unaccent(lower(syn))")})
-                            || CASE WHEN length(btrim(syn)) >= 4 THEN '' ELSE ' ' END
-                        ) > 0
-                   ) THEN 1.0 ELSE 0.0 END,
+                   CASE WHEN {_SYNONYM_HIT} THEN 1.0 ELSE 0.0 END,
                    -- Prefix matching handles a changed word *ending* only
                    -- when the ending is added, not when it is replaced:
                    -- "линал" reaches "линала" but "линейка" does not reach
@@ -329,7 +330,8 @@ _INSTITUTION_SQL = text(
                   q.raw, q.latin, q.tokens, q.latin_tokens
       ) n
      WHERE n.score >= :threshold
-     ORDER BY n.score DESC
+     -- Total, so the same query always names the same school.
+     ORDER BY n.score DESC, n.id
      LIMIT :limit
     """
 )

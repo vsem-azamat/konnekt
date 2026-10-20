@@ -92,20 +92,8 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "spisyvan",
         "списыв",
     ),
-    "exam_prep": (
-        "к экзамену",
-        "подготовиться к экза",
-        "сдать экзамен",
-        "зачет",
-        "zapocet",
-        "na zkousku",
-        "priprava na zkousku",
-        "exam prep",
-        "до іспиту",
-        "перескладання",
-        "пересдач",
-        "opravny termin",
-    ),
+    # Before exam preparation, whose "exam prep" begins "entrance exam
+    # preparation" no less than "exam preparation".
     "entrance_prep": (
         "вступительн",
         # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
@@ -128,9 +116,24 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         # The Ukrainian spelling, which used to reach `entrance_prep` only
         # because it was a synonym of one subject on this shelf.
         "приймач",
-        "tsp",
-        "osp",
+        # Words: «osp» begins «OSPF», a networking protocol.
+        Word("tsp"),
+        Word("osp"),
         "nastupni",
+    ),
+    "exam_prep": (
+        "к экзамену",
+        "подготовиться к экза",
+        "сдать экзамен",
+        "зачет",
+        "zapocet",
+        "na zkousku",
+        "priprava na zkousku",
+        "exam prep",
+        "до іспиту",
+        "перескладання",
+        "пересдач",
+        "opravny termin",
     ),
     # Above the study kinds, unlike the rest of the non-study block below.
     # "присяжный перевод диплома" was answered as thesis writing on the strength
@@ -373,10 +376,34 @@ RESTATING: tuple[str, ...] = (
     "priprav",
     # Words, not stems: "prep" begins "přepis" and "přeprava" once unaccented.
     Word("prep"),
-    # «přijímací řízení», the admission procedure.
-    Word("rizeni"),
     Word("preparation"),
+    # Tests, as whole words: «вступительные тесты». Not a stem, since a stem
+    # would also take «тестирование» and "testing", which are subjects.
+    # Every case, since «к вступительным тестам» is as common as the
+    # nominative.
+    Word("тест"),
+    Word("теста"),
+    Word("тесту"),
+    Word("тестом"),
+    Word("тесте"),
+    Word("тесты"),
+    Word("тестов"),
+    Word("тестам"),
+    Word("тестами"),
+    Word("тестах"),
+    Word("тестів"),
+    Word("тести"),
+    Word("test"),
+    Word("tests"),
+    Word("testy"),
+    Word("testu"),
+    Word("testem"),
+    Word("testech"),
 )
+
+# Words that restate one kind of help and not the others. «přijímací řízení»
+# is the admission procedure; beside tutoring «řízení» is control, a subject.
+RESTATING_FOR: dict[str, tuple[str, ...]] = {"entrance_prep": (Word("rizeni"),)}
 
 # Month names, unaccented and lowercased, in the order the client will have
 # typed them. Czech has both nominative and genitive forms in circulation.
@@ -451,6 +478,30 @@ async def parse(
     result.budget_max = _match_budget(norm)
 
     subjects = await find_subjects(session, text, lang, limit=4)
+    # A school named in full lends its words to the scorer: "Faculty of
+    # Physical Education" guessed «Physics 1» from the school's own name. Where
+    # nothing was named, guess again from the query without the school's words;
+    # where nothing is left, the query was the school and names no subject —
+    # and the embedder is not asked to find one in it either.
+    #
+    # Not for entrance exams, where the school is the subject: «přijímačky na
+    # VŠE» is the economics admissions because of «VŠE».
+    school_only = False
+    if (
+        result.institution
+        and result.service_type != "entrance_prep"
+        and not (subjects and _is_named(subjects[0]))
+    ):
+        school = await _school_words(session, result.institution)
+        tokens = tokenise(norm).split()
+        kept = [token for token in tokens if not _is_school_word(token, school)]
+        school_only = not kept
+        if len(kept) < len(tokens):
+            subjects = (
+                await find_subjects(session, " ".join(kept), lang, limit=4)
+                if kept
+                else []
+            )
     # A word for a whole shelf — «математика», "maths" — names the shelf, and the
     # search reads a shelf as what it holds (`lookup.held_by`). Answered with the
     # leaf the scorer liked best it narrowed the search to «Математика для
@@ -520,12 +571,13 @@ async def parse(
     # A subject whose own name is nothing but those words survives too: it is
     # the kind of help by the same name, not a guess at something unsaid —
     # «нострификационный экзамен» is «Нострификационные экзамены» inflected.
-    bare = keyword is not None and _only_restates(norm, keyword)
+    bare = keyword is not None and _only_restates(norm, keyword, result.service_type)
     if bare:
         subjects = [
             match
             for match in subjects
-            if _is_named(match) or _only_restates(normalise(match.label), keyword)
+            if _is_named(match)
+            or _only_restates(normalise(match.label), keyword, result.service_type)
         ]
 
     # The third mechanism, and the last asked. Only where the first two found
@@ -553,6 +605,7 @@ async def parse(
         not subjects
         and not bare
         and not shelf_spoke
+        and not school_only
         and not _accounted_for(result, norm, keyword)
     ):
         proposed, runner_up = await find_by_meaning(session, text, lang)
@@ -890,7 +943,17 @@ SHELF_KINDS: frozenset[str | None] = frozenset(
 
 # Which school's maths, not which maths: «высшая математика» is the whole shelf
 # taught at a university, and the leaf the scorer liked found nobody.
-LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
+LEVEL_OF_SCHOOL: tuple[str, ...] = (
+    "высш",
+    "вищ",
+    "vyss",
+    "higher",
+    # The same kind of word: «učitelství matematiky» is maths for teachers,
+    # «классическая физика» physics before the quantum.
+    "ucitelstv",
+    "классическ",
+    "класичн",
+)
 
 # Said beside a subject without saying which: hurry, politeness, a school year,
 # asking for a teacher rather than a tutor. «математика срочно», «физика 9
@@ -904,15 +967,59 @@ ASIDE: tuple[str, ...] = (
     "пожалуйст",
     "будь",
     "ласка",
-    "клас",
-    "trid",
+    # A school year, as words in every case: «клас» begins «классическая»,
+    # «trid» begins «třídění».
+    Word("класс"),
+    Word("класса"),
+    Word("классу"),
+    Word("классом"),
+    Word("классе"),
+    Word("классы"),
+    Word("классов"),
+    Word("классам"),
+    Word("классами"),
+    Word("классах"),
+    Word("клас"),
+    Word("класу"),
+    Word("класом"),
+    Word("класі"),
+    Word("класи"),
+    Word("класів"),
+    Word("класам"),
+    Word("класами"),
+    Word("класах"),
+    Word("trida"),
+    Word("tridy"),
+    Word("tride"),
+    Word("tridu"),
+    Word("tridou"),
+    Word("trid"),
+    Word("tridam"),
+    Word("tridach"),
+    Word("tridami"),
     "rocnik",
     "grade",
     "учител",
     "вчител",
     "преподават",
     "викладач",
-    "ucitel",
+    # «ucitel» would begin «učitelství», which is a subject.
+    Word("ucitel"),
+    Word("ucitele"),
+    Word("uciteli"),
+    Word("ucitelem"),
+    Word("ucitelu"),
+    Word("ucitelka"),
+    Word("ucitelky"),
+    Word("ucitelce"),
+    Word("ucitelku"),
+    Word("ucitelkou"),
+    Word("ucitelek"),
+    Word("ucitelum"),
+    Word("ucitelich"),
+    Word("ucitelkam"),
+    Word("ucitelkach"),
+    Word("ucitelkami"),
     "lektor",
     "teacher",
     "rychl",
@@ -981,8 +1088,17 @@ async def _school_words(session: AsyncSession, institution: Match | None) -> set
     return {
         word
         for word in words
-        if not word.isdigit() and not any(word.startswith(stem) for stem in stems)
+        if not word.isdigit() and not any(_shares_a_stem(word, stem) for stem in stems)
     }
+
+
+def _shares_a_stem(word: str, stem: str) -> bool:
+    """Is this the word a shelf is named by, in any form? A stem's forms begin
+    with it; a listed form's siblings differ in the last letter — «chemii» is
+    «chemie». «chemicko» is neither, and stays the school's word."""
+    return word.startswith(stem) or (
+        len(word) >= 5 and len(stem) >= 5 and word[:-1] == stem[:-1]
+    )
 
 
 async def _within_shelf(
@@ -1048,45 +1164,50 @@ def _only_names_shelf(
         or (token.isdigit() and token not in numbered)
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or _is_school_word(token, school)
-        or any(token.startswith(word) for word in ASIDE)
+        or any(_says(token, word) for word in ASIDE)
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
-        or any(
-            token == word if isinstance(word, Word) else token.startswith(word)
-            for word in RESTATING
-        )
+        or any(_says(token, word) for word in RESTATING)
         for token in tokens
     )
+
+
+def _says(token: str, word: str) -> bool:
+    """Does the token say this word: all of it for a `Word`, its start for a
+    stem."""
+    return token == word if isinstance(word, Word) else token.startswith(word)
 
 
 def _is_school_word(token: str, school: set[str]) -> bool:
     """A word of the school's names, inflected: «карловом» for «Карлов».
 
-    Short words — codes like «uk» — only whole, so «uk» is not every word
-    beginning with it.
+    An ending may be added, and in Czech it may also replace the last letter:
+    «na Univerzitě Karlově» for «Univerzita Karlova». Short words — codes like
+    «uk» — only whole, so «uk» is not every word beginning with it.
     """
     word = transliterate(token)
     return word in school or any(
-        len(name) >= 4 and word.startswith(name) for name in school
+        (len(name) >= 4 and word.startswith(name))
+        or (len(name) >= 5 and word.startswith(name[:-1]))
+        for name in school
     )
 
 
-def _only_restates(norm: str, keyword: str) -> bool:
+def _only_restates(norm: str, keyword: str, kind: str | None = None) -> bool:
     """Is the query its keyword and nothing that could name a subject?
 
     Besides the keyword's own words, only RESTATING words, words of asking and
     prepositions may remain. A language level may not, although FILLER_WORDS
     lists them: «B2» beside an exam is which Czech exam, and that is a subject.
     Nor may the rest of FILLER — the names of languages and the word "course" —
-    since those are how people name subjects.
+    since those are how people name subjects. `kind` adds the words that
+    restate that kind alone (RESTATING_FOR).
     """
+    restating = (*RESTATING, *RESTATING_FOR.get(kind or "", ()))
     return all(
         (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
-        or any(
-            token == word if isinstance(word, Word) else token.startswith(word)
-            for word in RESTATING
-        )
+        or any(_says(token, word) for word in restating)
         for token in tokenise(_without(norm, keyword)).split()
     )
 

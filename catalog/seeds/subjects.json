@@ -431,11 +431,26 @@
         "програмуван",
         "programov",
         "programming",
+        "інформатиц",
+        "информатика",
+        "информатики",
+        "информатике",
+        "информатику",
+        "информатикой",
+        "інформатика",
+        "інформатики",
+        "інформатику",
+        "інформатикою",
+        "informatika",
+        "informatiky",
+        "informatiku",
+        "informatikou",
+        "informatice",
+        "informatics",
         "информатик",
         "інформатик",
-        "інформатиц",
         "informatik",
-        "informatic"
+        "informatick"
       ],
       "holds": [
         "prijimacky-technicke-vs"
@@ -904,9 +919,21 @@
         "uk": "Хімія"
       },
       "synonyms": [
-        "хими",
-        "хімі",
-        "chemi"
+        "химия",
+        "химии",
+        "химию",
+        "химией",
+        "хімія",
+        "хімії",
+        "хімію",
+        "хімією",
+        "chemie",
+        "chemii",
+        "chemistry",
+        "химик",
+        "хімік",
+        "chemik",
+        "chemical"
       ],
       "children": [
         {

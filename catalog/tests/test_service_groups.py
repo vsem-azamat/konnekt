@@ -429,19 +429,43 @@ def test_seed_and_migrations_agree_about_synonyms() -> None:
     `SYNONYM_ADDS` and `SYNONYM_REMOVES`; this holds the seed to it.
     """
     seeded = _seeded_synonyms()
-    checked = 0
-    for path in sorted(VERSIONS.glob("*.py")):
-        for slug, words in _constant(path, "SYNONYM_ADDS", {}).items():
-            assert slug in seeded, f"{path.name} names a subject the seed has not: {slug}"
-            missing = sorted(set(words) - seeded[slug])
-            assert missing == [], f"{path.name} adds synonyms the seed lacks: {missing}"
-            checked += 1
+    # What the migrations leave, in revision order: a later one may take back a
+    # word an earlier one added, and only the net result has to match the seed.
+    present: dict[tuple[str, str], bool] = {}
+    for path in _in_revision_order():
         for slug, words in _constant(path, "SYNONYM_REMOVES", {}).items():
             assert slug in seeded, f"{path.name} names a subject the seed has not: {slug}"
-            left = sorted(set(words) & seeded[slug])
-            assert left == [], f"{path.name} removes synonyms the seed still has: {left}"
-            checked += 1
-    assert checked, "no migration declares a synonym change"
+            present.update({(slug, word): False for word in words})
+        for slug, words in _constant(path, "SYNONYM_ADDS", {}).items():
+            assert slug in seeded, f"{path.name} names a subject the seed has not: {slug}"
+            present.update({(slug, word): True for word in words})
+    assert present, "no migration declares a synonym change"
+    missing = sorted(
+        key for key, on in present.items() if on and key[1] not in seeded[key[0]]
+    )
+    assert missing == [], f"migrations add synonyms the seed lacks: {missing}"
+    left = sorted(
+        key for key, on in present.items() if not on and key[1] in seeded[key[0]]
+    )
+    assert left == [], f"migrations remove synonyms the seed still has: {left}"
+
+
+def _in_revision_order() -> list[Path]:
+    """Every migration file, base first, by following `down_revision` — the
+    file names are dated but two from one day sort by their random ids."""
+    by_parent: dict[str | None, Path] = {}
+    for path in VERSIONS.glob("*.py"):
+        parent = _constant(path, "down_revision")
+        assert not isinstance(parent, tuple | list), f"{path.name} merges branches"
+        assert parent not in by_parent, f"two migrations follow {parent}"
+        by_parent[parent] = path
+    ordered: list[Path] = []
+    revision = None
+    while revision in by_parent:
+        ordered.append(by_parent[revision])
+        revision = _constant(ordered[-1], "revision")
+    assert len(ordered) == len(by_parent), "the chain does not reach every migration"
+    return ordered
 
 
 def _seeded_subject_names() -> dict[str, dict[str, str]]:
