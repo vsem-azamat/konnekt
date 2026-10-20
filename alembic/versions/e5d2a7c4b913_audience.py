@@ -3,7 +3,7 @@
 New tables and nothing else, so the previous release runs unchanged beside it.
 
 Revision ID: e5d2a7c4b913
-Revises: b3f8d1c6e925
+Revises: c5e1f8a2b947
 Create Date: 2026-10-20
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "e5d2a7c4b913"
-down_revision: str | None = "b3f8d1c6e925"
+down_revision: str | None = "c5e1f8a2b947"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
