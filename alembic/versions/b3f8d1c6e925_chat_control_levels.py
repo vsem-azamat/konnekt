@@ -1,7 +1,12 @@
 """chat_control_levels: a chat's status may also be observed or external.
 
 Only a constraint, and one every existing row already meets: the previous
-release writes three of the five values, so it runs unchanged beside this. No
+release writes three of the five values, so it runs unchanged beside this.
+
+Production already had a CHECK of this name with the three old values, made by
+hand before the migrations were squashed, and the first deploy failed creating
+it again. So the upgrade replaces whatever is there, and the downgrade puts the
+three-value one back rather than leaving the column unchecked. No
 row is changed on the way up; chats are moved to the new values from the
 console. The way down disables them, since the previous release cannot read
 them.
@@ -21,9 +26,13 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+_NAME = "ck_chats_resource_status"
+
+
 def upgrade() -> None:
+    op.execute(f"ALTER TABLE chats DROP CONSTRAINT IF EXISTS {_NAME}")
     op.create_check_constraint(
-        "ck_chats_resource_status",
+        _NAME,
         "chats",
         "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
     )
@@ -39,4 +48,5 @@ def downgrade() -> None:
         "UPDATE chats SET relation_notes = concat_ws(E'\\n', relation_notes, 'Был ' || resource_status || ' до отката'), "
         "resource_status = 'disabled' WHERE resource_status IN ('observed', 'external')"
     )
-    op.drop_constraint("ck_chats_resource_status", "chats", type_="check")
+    op.drop_constraint(_NAME, "chats", type_="check")
+    op.create_check_constraint(_NAME, "chats", "resource_status IN ('discovered', 'approved', 'disabled')")
