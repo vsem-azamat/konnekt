@@ -348,6 +348,107 @@ async def test_a_staff_answer_telegram_asks_to_wait_for_is_tried_once_more(sessi
     bot.send_message.assert_not_awaited()
 
 
+@pytest.mark.parametrize("deleted_first", [False, True])
+async def test_a_person_hears_when_no_topic_could_be_opened(session_maker, deleted_first) -> None:
+    """Otherwise the message is lost and nobody knows, the person least of all."""
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    if deleted_first:
+        await desk.from_person([_private(1)])
+        bot.copy_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: TOPIC_DELETED")
+    bot.create_forum_topic.side_effect = TelegramBadRequest(
+        method=MagicMock(), message="Bad Request: not enough rights"
+    )
+
+    await desk.from_person([_private(2)])
+
+    answer = bot.send_message.await_args.kwargs
+    assert answer["chat_id"] == PERSON.id
+    assert answer["text"] == "Не получилось передать сообщение, попробуйте чуть позже"
+
+
+async def test_a_person_who_cannot_be_told_either_is_only_logged(session_maker, monkeypatch) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr("app.ads.desk.logger", logger)
+    bot = _bot()
+    bot.create_forum_topic.side_effect = TelegramBadRequest(
+        method=MagicMock(), message="Bad Request: not enough rights"
+    )
+    bot.send_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was blocked")
+
+    await AdsDesk(bot, session_maker, GROUP).from_person([_private(1)])
+
+    logger.warning.assert_called_once_with("ads_person_not_told", user_id=PERSON.id, error="Forbidden: bot was blocked")
+
+
+async def test_a_long_wait_telegram_asks_for_is_reported_at_once(session_maker, monkeypatch) -> None:
+    """Waiting holds the person's turn; past half a minute it is better to tell staff."""
+    slept: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    desk, bot = await _desk_with_topic(session_maker)
+    monkeypatch.setattr("app.ads.desk.asyncio.sleep", sleep)
+    bot.copy_message.side_effect = [_flood(31), None]
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert slept == []
+    assert bot.copy_message.await_count == 1
+    assert "не доставлено" in bot.send_message.await_args.kwargs["text"].lower()
+
+
+async def test_a_wait_of_up_to_half_a_minute_is_waited_out(session_maker, monkeypatch) -> None:
+    slept: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    desk, bot = await _desk_with_topic(session_maker)
+    monkeypatch.setattr("app.ads.desk.asyncio.sleep", sleep)
+    bot.copy_message.side_effect = [_flood(30), None]
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert slept == [30]
+    bot.send_message.assert_not_awaited()
+
+
+async def test_one_conversation_stuck_does_not_hold_up_another(session_maker) -> None:
+    bot = _bot()
+    stuck = asyncio.Event()
+    other = PERSON.model_copy(update={"id": 556, "username": "other"})
+
+    async def copy(**kw: Any) -> None:
+        if kw["from_chat_id"] == PERSON.id:
+            await stuck.wait()
+
+    bot.copy_message.side_effect = copy
+    desk = AdsDesk(bot, session_maker, GROUP)
+    hanging = asyncio.create_task(desk.from_person([_private(1)]))
+    await asyncio.sleep(0.01)
+
+    other_message = _private(2, from_user=other, chat=Chat(id=other.id, type="private"))
+    await asyncio.wait_for(desk.from_person([other_message]), timeout=1)
+
+    assert any(call.kwargs["from_chat_id"] == other.id for call in bot.copy_message.await_args_list)
+    stuck.set()
+    await hanging
+
+
+async def test_a_notice_that_cannot_be_sent_is_logged_not_raised(session_maker, monkeypatch) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr("app.ads.desk.logger", logger)
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was blocked")
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: TOPIC_CLOSED")
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    logger.warning.assert_called_once_with("ads_notice_failed", thread_id=10, error="Bad Request: TOPIC_CLOSED")
+
+
 # --- Routing ----------------------------------------------------------------
 
 
@@ -471,11 +572,34 @@ async def test_an_album_delivered_out_of_order_is_copied_in_order(session_maker)
     assert await _relayed_in_order(session_maker, album) == [[5, 6]]
 
 
+async def test_a_stuck_topic_does_not_hold_up_another_topic(routed) -> None:
+    """Each topic is a conversation of its own, not the whole staff group."""
+    bot, _, desk = routed
+    stuck = asyncio.Event()
+    reached: list[int] = []
+
+    async def from_staff(messages: list[Message]) -> None:
+        reached.append(messages[0].message_thread_id or 0)
+        if messages[0].message_thread_id == 10:
+            await stuck.wait()
+
+    desk.from_staff.side_effect = from_staff
+    dp = ads.build_dispatcher(desk, GROUP, album_wait=0)
+    hanging = asyncio.create_task(dp.feed_update(bot, Update(update_id=1, message=_in_topic(50, 10))))
+    await asyncio.sleep(0.05)
+
+    await asyncio.wait_for(dp.feed_update(bot, Update(update_id=2, message=_in_topic(51, 11))), timeout=1)
+
+    assert reached == [10, 11]
+    stuck.set()
+    await hanging
+
+
 # --- Configuration ----------------------------------------------------------
 
 
 def _settings(monkeypatch, **env: str) -> AdsBotSettings:
-    for name in ("ADS_BOT_TOKEN", "ADS_BOT_GROUP_ID"):
+    for name in ("ADS_BOT_TOKEN", "ADS_BOT_GROUP_ID", "ADS_BOT_CONTACT"):
         monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
@@ -605,6 +729,25 @@ async def test_an_unreachable_group_is_logged_and_the_desk_still_starts(monkeypa
     await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
 
     logger.warning.assert_called_once_with("ads_group_unreachable", error="Bad Request: chat not found")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("konnekt_ads_bot", "konnekt_ads_bot"),
+        (" @konnekt_ads_bot ", "konnekt_ads_bot"),
+        ("", None),
+        # A link or a typo offers nobody rather than a button that opens nothing.
+        ("https://t.me/konnekt_ads_bot", None),
+        ("konnekt ads", None),
+    ],
+)
+def test_the_contact_is_a_username_or_nobody(monkeypatch, raw, expected) -> None:
+    assert _settings(monkeypatch, ADS_BOT_CONTACT=raw).contact_username == expected
+
+
+def test_a_mistyped_contact_does_not_stop_the_process_from_reading_its_settings(monkeypatch) -> None:
+    assert _settings(monkeypatch, ADS_BOT_CONTACT="https://t.me/x").contact == "https://t.me/x"
 
 
 # --- In the bot process -----------------------------------------------------

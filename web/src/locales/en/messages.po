@@ -1001,6 +1001,7 @@ msgstr "Where it goes"
 msgid "ČVUT, FIT, Strahov…"
 msgstr "ČVUT, FIT, Strahov…"
 
+#: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
 msgid "Открыть чат"
 msgstr "Open the chat"
@@ -1089,6 +1090,10 @@ msgstr "Four letters at most."
 msgid "Кто может помочь"
 msgstr "Who can help"
 
+#: src/components/ChatRow.tsx
+msgid "с темами"
+msgstr "with topics"
+
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "This is the first thing people read. A couple of real sentences beat a list."
@@ -1170,6 +1175,10 @@ msgstr "Lift the ban"
 #: src/pages/Home.tsx
 msgid "Что нужно?"
 msgstr "What do you need?"
+
+#: src/components/ChatRow.tsx
+msgid "Откроется в Telegram"
+msgstr "Opens in Telegram"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Как увидят студенты"
@@ -1361,6 +1370,7 @@ msgid "Реклама"
 msgstr "Ads"
 
 #: src/components/AppHeader.tsx
+#: src/components/ChatRow.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
@@ -2077,6 +2087,7 @@ msgid "Подходят"
 msgstr "Good match"
 
 #. placeholder {0}: chat.member_count
+#: src/components/ChatRow.tsx
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
 msgstr "{0, plural, one {# member} other {# members}}"

@@ -29,6 +29,9 @@ if TYPE_CHECKING:
 logger = get_logger("ads_desk")
 
 NOTE_PREFIX = "//"
+NOT_PASSED_ON = "Не получилось передать сообщение, попробуйте чуть позже"
+# Seconds.
+MAX_RETRY_AFTER = 30
 # Telegram's limit on a topic name.
 TOPIC_NAME_LIMIT = 128
 
@@ -60,9 +63,9 @@ def _topic_is_gone(error: TelegramAPIError | None) -> bool:
 class AdsDesk:
     """Relays a person's messages into their topic and staff's answers back.
 
-    Each person's messages and answers go through one lock: two first messages
-    arriving together must not open two topics, and copies must keep the order
-    they were written in.
+    A person's messages go through one lock, so that two first messages
+    arriving together do not open two topics. Their order is kept before they
+    get here (`Conversations`).
     """
 
     def __init__(self, bot: Bot, session_maker: async_sessionmaker[AsyncSession], group_id: int) -> None:
@@ -77,14 +80,23 @@ class AdsDesk:
         if person is None:
             return
         async with self._locks[person.id]:
-            thread = await self._thread_of(person.id)
-            if thread is None:
-                thread = await self._open_topic(person)
-            error = await self._copy(self.group_id, messages, thread)
-            if _topic_is_gone(error):
-                # Staff deleted the topic; the conversation starts over in a new one.
-                thread = await self._open_topic(person)
+            try:
+                thread = await self._thread_of(person.id)
+                if thread is None:
+                    thread = await self._open_topic(person)
                 error = await self._copy(self.group_id, messages, thread)
+                if _topic_is_gone(error):
+                    # Staff deleted the topic; the conversation starts over in a new one.
+                    thread = await self._open_topic(person)
+                    error = await self._copy(self.group_id, messages, thread)
+            except TelegramAPIError as e:
+                # No topic to tell staff in, so the person is told instead.
+                logger.error("ads_topic_not_opened", user_id=person.id, error=e.message)
+                try:
+                    await self.bot.send_message(chat_id=person.id, text=NOT_PASSED_ON)
+                except TelegramAPIError as told:
+                    logger.warning("ads_person_not_told", user_id=person.id, error=told.message)
+                return
             if error is not None:
                 await self._notice(thread, f"Сообщение не скопировано: {error.message}")
 
@@ -97,8 +109,7 @@ class AdsDesk:
         person_id = await self._person_in(thread)
         if person_id is None:
             return
-        async with self._locks[person_id]:
-            error = await self._copy(person_id, messages)
+        error = await self._copy(person_id, messages)
         if error is not None:
             reason = "пользователь заблокировал бота" if isinstance(error, TelegramForbiddenError) else error.message
             await self._notice(thread, f"Не доставлено: {reason}", reply_to=first.message_id)
@@ -123,7 +134,8 @@ class AdsDesk:
                         message_thread_id=thread,
                     )
             except TelegramRetryAfter as e:
-                if attempt == 2:
+                # Waiting holds up the rest of the conversation, so only a short wait is waited out.
+                if attempt == 2 or e.retry_after > MAX_RETRY_AFTER:
                     return e
                 await asyncio.sleep(e.retry_after)
             except TelegramAPIError as e:

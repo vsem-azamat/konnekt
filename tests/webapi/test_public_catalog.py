@@ -2,8 +2,8 @@
 
 Two things are being pinned here. What gets in — approved, and carrying a link,
 with neither condition sufficient alone. And what comes back for each row, which
-is four fields: a page cannot leak a Telegram id or a member count that the
-response never contained.
+is seven fields: a page cannot leak a Telegram id or who is in a room when the
+response never contained them.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 import pytest
 from app.core.config import settings
 from app.core.time import utc_now
-from app.db.models import Chat, Message
+from app.db.models import Chat, ChatMemberSnapshot, Message
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
 
@@ -126,14 +126,79 @@ class TestWhatGetsIn:
 
 
 class TestWhatComesBack:
-    async def test_the_row_carries_five_fields_and_no_more(self, client_factory, db_session_maker) -> None:
+    async def test_the_row_carries_seven_fields_and_no_more(self, client_factory, db_session_maker) -> None:
         """Whatever a page does with this, it cannot show what is not here."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
 
         async with client_factory() as client:
             resp = await client.get("/api/public/catalog")
 
-        assert set(resp.json()[0]) == {"title", "link", "group", "institution", "activity"}
+        assert set(resp.json()[0]) == {
+            "title",
+            "link",
+            "group",
+            "institution",
+            "activity",
+            "member_count",
+            "is_forum",
+        }
+
+    async def test_a_chat_says_how_many_people_are_in_it_by_its_newest_snapshot(
+        self, client_factory, db_session_maker
+    ) -> None:
+        """The preview tells a stranger how big the room is before they leave for it.
+
+        The bot writes a row per poll; the newest is the answer, not a sum of them.
+        """
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+        async with db_session_maker() as session:
+            session.add(
+                ChatMemberSnapshot(chat_id=FIT, member_count=1200, captured_at=utc_now() - datetime.timedelta(hours=2))
+            )
+            session.add(ChatMemberSnapshot(chat_id=FIT, member_count=1248, captured_at=utc_now()))
+            await session.commit()
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["member_count"] == 1248
+
+    async def test_a_count_older_than_three_days_is_not_shown_as_today_s(
+        self, client_factory, db_session_maker
+    ) -> None:
+        """The bot left a chat or stopped polling it: the last number it saw is history, not size."""
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+        async with db_session_maker() as session:
+            session.add(
+                ChatMemberSnapshot(chat_id=FIT, member_count=1248, captured_at=utc_now() - datetime.timedelta(days=4))
+            )
+            await session.commit()
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["member_count"] is None
+
+    async def test_a_chat_never_measured_has_no_count_rather_than_zero(self, client_factory, db_session_maker) -> None:
+        """Empty and unknown are different claims; a preview shows nothing for the second."""
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["member_count"] is None
+
+    async def test_a_chat_says_whether_it_has_topics(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit", is_forum=True),
+            _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs"),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert {row["title"]: row["is_forum"] for row in rows} == {"ČVUT FIT": True, "ČVUT FS": False}
 
     async def test_a_chat_names_the_university_its_group_belongs_to(self, client_factory, db_session_maker) -> None:
         """The catalog's code for it, so the app can put a student's own first.

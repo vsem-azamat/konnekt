@@ -454,6 +454,25 @@
   border-radius: var(--r-tile);
 }
 
+.tileLarge {
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+}
+
+.tileLarge .letters {
+  font-size: 19px;
+}
+
+.tileLarge .letters[data-length='3'] {
+  font-size: 17px;
+}
+
+.tileLarge .letters[data-length='4'],
+.tileLarge .letters[data-length='5'] {
+  font-size: 14px;
+}
+
 .avatar {
   flex: none;
   display: grid;
@@ -800,6 +819,59 @@
   font-size: 17px;
   font-weight: 720;
   letter-spacing: -0.02em;
+}
+
+/* A chat's preview: what a stranger can know before leaving for it. */
+.chatHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.chatHeadBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chatPlace {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fact {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 26px;
+  white-space: nowrap;
+}
+
+/* The activity chip, at the size of the facts beside it. */
+.facts .activity {
+  padding: 0 10px;
+  font-size: 12.5px;
+  line-height: 26px;
+}
+
+.sheetFoot {
+  text-align: center;
 }
 
 .pick {
