@@ -89,7 +89,8 @@ class ServiceForm(StrEnum):
 
 
 class NodeKind(StrEnum):
-    """Position in a tree. Only leaves are selectable in search."""
+    """Position in a tree. Offers and pickers hold leaves; a group is reached
+    only by the parser, through its synonyms, and searched as what it holds."""
 
     GROUP = "group"
     LEAF = "leaf"

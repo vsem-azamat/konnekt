@@ -14,8 +14,11 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from students_cz.db.models import Subject
+from students_cz.db.models.enums import NodeKind
 from students_cz.services.lookup import (
     VECTOR_FLOOR,
     VECTOR_LEAD,
@@ -435,6 +438,33 @@ async def parse(
     result.budget_max = _match_budget(norm)
 
     subjects = await find_subjects(session, text, lang, limit=4)
+    # A word for a whole shelf — «математика», "maths" — names the shelf, and the
+    # search reads a shelf as what it holds (`lookup.held_by`). Answered with the
+    # leaf the scorer liked best it narrowed the search to «Математика для
+    # экономистов».
+    #
+    # Only when the maths word is all the query says about a subject, and only
+    # through a shelf's synonyms, which are written down for exactly this. Never
+    # over a leaf the query named — «матан» is more than maths — nor beside
+    # anything else that could say which corner: «matematiky pro ekonomy» is
+    # the economists' leaf, inflected. And not with a kind of help whose offers
+    # sit on another shelf: entrance exams and nostrification beside the maths
+    # shelf would match nobody, where the leaf «Přijímací zkouška z matematiky»
+    # matches them.
+    if not (subjects and _is_named(subjects[0])) and result.service_type in SHELF_KINDS:
+        shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
+        # The synonyms themselves, not the match's kind: the query has to hold a
+        # word starting with one of them, which a hit on the name alone cannot
+        # give — that is what keeps a group's name from making it the answer.
+        stems = (
+            await session.scalar(
+                select(Subject.synonyms).where(Subject.id == shelves[0].id)
+            )
+            if shelves
+            else None
+        )
+        if stems and _only_names_shelf(result, norm, keyword, stems):
+            subjects = [shelves[0], *subjects[:3]]
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -688,15 +718,20 @@ def _accounted_for(
     words that look like them — "мар" is March and the first three letters of
     "маркетингу".
     """
+    accounted = [keyword or "", *also]
+    if result.institution:
+        accounted.append(result.institution.label)
+    return not _left_over(_spoken(result, norm), *accounted)
+
+
+def _spoken(result: "ParsedQuery", norm: str) -> str:
+    """The query without the spans the date and the price were read from."""
     spoken = norm
     if result.deadline:
         spoken = _DAY_MONTH_WORD.sub(" ", _DAY_MONTH_NUM.sub(" ", spoken))
     if result.budget_max is not None:
         spoken = _BUDGET.sub(" ", spoken)
-    accounted = [keyword or "", *also]
-    if result.institution:
-        accounted.append(result.institution.label)
-    return not _left_over(spoken, *accounted)
+    return spoken
 
 
 def _left_over(norm: str, *accounted: str) -> str:
@@ -797,6 +832,54 @@ def _is_named(match: Match) -> bool:
     scale and mean nothing alike.
     """
     return match.matched_on != "vector" and match.score >= 1.0
+
+
+# The kinds of help a shelf can go with: their offers sit on the shelf's own
+# leaves. None is the commonest — a bare «математика».
+SHELF_KINDS: frozenset[str | None] = frozenset(
+    {None, "tutoring", "exam_prep", "exam_live_help"}
+)
+
+
+# Which school's maths, not which maths: «высшая математика» is the whole shelf
+# taught at a university, and the leaf the scorer liked found nobody.
+LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
+
+
+def _only_names_shelf(
+    result: "ParsedQuery", norm: str, keyword: str | None, stems: list[str]
+) -> bool:
+    """Is a word for the shelf all the query says about a subject?
+
+    Besides the keyword's own words and what is already a field — the school,
+    the date, the price — what may remain is the shelf's word, the words of
+    asking, the words that restate the kind of help, and prepositions; not a
+    level, which says which language. «репетитор по математике на ČVUT» is the
+    shelf; «репетитор по математике для экономистов» is not.
+    """
+    spoken = _spoken(result, norm)
+    tokens = tokenise(_without(spoken, keyword) if keyword else spoken).split()
+    school = (
+        transliterate(normalise(result.institution.label)) if result.institution else None
+    )
+    named = [
+        token
+        for token in tokens
+        if any(token.startswith(normalise(stem)) for stem in stems)
+    ]
+    return bool(named) and all(
+        token in named
+        or token.isdigit()
+        or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
+        or (school is not None and transliterate(token).startswith(school))
+        or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
+        or any(token.startswith(word) for word in ASKING)
+        or any(
+            token == word if isinstance(word, Word) else token.startswith(word)
+            for word in RESTATING
+        )
+        for token in tokens
+    )
 
 
 def _only_restates(norm: str, keyword: str) -> bool:

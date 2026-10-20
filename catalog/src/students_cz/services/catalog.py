@@ -32,6 +32,7 @@ from students_cz.schemas import (
     Stat,
 )
 from students_cz.services import errors
+from students_cz.services.lookup import held_by
 from students_cz.services.naming import rows_by_id, short_form, translated
 from students_cz.services.people import log_event
 
@@ -214,7 +215,7 @@ async def _sample_avatars(
 
 def _offer_query(
     *,
-    subject_id: int | None,
+    subject_ids: list[int] | None,
     institution_id: int | None,
     service_type_id: int | None,
     max_price: float | None,
@@ -228,8 +229,8 @@ def _offer_query(
             HelperProfile.status == PublishStatus.PUBLISHED,
         )
     )
-    if subject_id:
-        stmt = stmt.where(Offer.subject_id == subject_id)
+    if subject_ids is not None:
+        stmt = stmt.where(Offer.subject_id.in_(subject_ids))
     if service_type_id:
         stmt = stmt.where(Offer.service_type_id == service_type_id)
     if institution_id:
@@ -288,7 +289,9 @@ async def search(
     """
     langs = langs or []
     base = _offer_query(
-        subject_id=subject_id,
+        # A shelf from the parser reading «математика» means what it holds;
+        # a leaf holds itself. See `lookup.held_by`.
+        subject_ids=await held_by(session, subject_id) if subject_id else None,
         institution_id=institution_id,
         service_type_id=service_type_id,
         max_price=max_price,

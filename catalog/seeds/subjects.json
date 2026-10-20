@@ -8,6 +8,14 @@
         "ru": "Математика",
         "uk": "Математика"
       },
+      "synonyms": [
+        "математик",
+        "matematik",
+        "math"
+      ],
+      "holds": [
+        "maturita"
+      ],
       "children": [
         {
           "slug": "matematicka-analyza",

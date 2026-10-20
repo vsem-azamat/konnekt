@@ -44,6 +44,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
+from students_cz.services.lookup import shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -169,6 +170,10 @@ async def _axes_of(
         )
     ).all()
     subject_ids = {row[0] for row in axes if row[0]}
+    # And every shelf that holds them: a request for «математика» is a request
+    # on the subject of somebody teaching linear algebra, or maths for
+    # economists. Upwards only — calculus is maths, maths is not calculus.
+    subject_ids = await shelves_of(session, subject_ids)
     institution_ids = {row[1] for row in axes if row[1]}
     service_ids = {row[2] for row in axes if row[2]}
     # Their own faculty counts too — a request from your own school is

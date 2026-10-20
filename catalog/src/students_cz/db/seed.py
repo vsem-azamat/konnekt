@@ -602,6 +602,8 @@ async def seed_subjects(session: AsyncSession, path: Path) -> tuple[int, int]:
             kind=NodeKind.GROUP,
             sort=group_sort,
             parent=None,
+            synonyms=group.get("synonyms", []),
+            holds=group.get("holds", []),
         )
         group_count += 1
         for leaf_sort, leaf in enumerate(group.get("children", []), start=1):
@@ -629,6 +631,7 @@ async def _upsert_subject(
     sort: int,
     parent: Subject | None,
     synonyms: list[str] | None = None,
+    holds: list[str] | None = None,
 ) -> Subject:
     row = await session.scalar(select(Subject).where(Subject.slug == slug))
     if row is None:
@@ -642,6 +645,7 @@ async def _upsert_subject(
     # Synonyms are normalised at match time, so store them as written — that
     # keeps the seed file readable and lets a human spot duplicates.
     row.synonyms = sorted({s.strip() for s in (synonyms or []) if s.strip()})
+    row.holds = sorted(holds or [])
     await session.flush()
     # The materialised path needs the row's own id, so it can only be built
     # after the flush that assigns one.
