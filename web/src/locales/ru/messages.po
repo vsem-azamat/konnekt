@@ -557,6 +557,10 @@ msgstr "анкеты, заявки, поиски без ответа"
 msgid "Партнёр"
 msgstr "Партнёр"
 
+#: src/pages/Profile.tsx
+msgid "Написать нам"
+msgstr "Написать нам"
+
 #: src/console/pages/Chat.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1609,6 +1613,10 @@ msgstr "Можно возвращаться в Telegram."
 #: src/console/pages/Chat.tsx
 msgid "Прятать «вошёл» и «вышел»"
 msgstr "Прятать «вошёл» и «вышел»"
+
+#: src/pages/Profile.tsx
+msgid "по любому вопросу"
+msgstr "по любому вопросу"
 
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx
