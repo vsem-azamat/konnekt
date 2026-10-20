@@ -1,9 +1,14 @@
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
+import { useQuery } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
+import { useState } from 'react';
 
-import { type Activity, chipFor, initials, type PublicChat } from '@/lib/chats';
+import { hapticSelection } from '@/hooks/useTelegram';
+import { institutionsQuery } from '@/lib/api';
+import { type Activity, chipFor, initials, type PublicChat, placeOf } from '@/lib/chats';
 
-import { Chevron, Letters, Row, Tile } from './Ui';
+import { Sheet } from './Sheet';
+import { Action, Chevron, Hint, Letters, Row, Tile } from './Ui';
 import css from './ui.module.css';
 
 /** Supervisor's word for how much a chat talks, and nothing for `unknown`. */
@@ -26,23 +31,109 @@ export function ActivityChip({ activity }: { activity: Activity }) {
 }
 
 /**
- * One chat. A tap opens it in Telegram, which is where it lives: the app
- * holds no conversations, only the way in.
+ * One chat. A tap shows what it is; only «Открыть чат» leaves for Telegram.
+ *
+ * The app holds no conversations, only the way in, and the way in used to be
+ * the tap itself: a reader who touched a row to see what it was found
+ * themselves outside the app. The preview is a sheet rather than a screen so
+ * the list, and where it was scrolled to, is still there when it closes.
  */
 export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Row
-      leading={
-        <Tile tone={tone}>
-          <Letters text={initials(chat.title)} />
-        </Tile>
+    <>
+      <Row
+        leading={
+          <Tile tone={tone}>
+            <Letters text={initials(chat.title)} />
+          </Tile>
+        }
+        title={chat.title}
+        hint={
+          chipFor(chat.activity) ? <ActivityChip activity={chat.activity} /> : undefined
+        }
+        trailing={<Chevron />}
+        onClick={() => {
+          hapticSelection();
+          setOpen(true);
+        }}
+      />
+      {open ? (
+        <ChatPreview chat={chat} tone={tone} onClose={() => setOpen(false)} />
+      ) : null}
+    </>
+  );
+}
+
+function ChatPreview({
+  chat,
+  tone,
+  onClose,
+}: {
+  chat: PublicChat;
+  tone: number;
+  onClose: () => void;
+}) {
+  const { t } = useLingui();
+  // Already loaded by the Chats tab for its search; a section's screen asks for
+  // it here, and until it comes the preview simply has no place line.
+  const institutions = useQuery(institutionsQuery);
+  const place = placeOf(chat, institutions.data ?? []);
+  const hasFacts =
+    chat.member_count !== null || chipFor(chat.activity) !== null || chat.is_forum;
+
+  return (
+    <Sheet
+      title={
+        <span className={css.chatHead}>
+          <Tile tone={tone} large>
+            <Letters text={initials(chat.title)} />
+          </Tile>
+          <span className={css.chatHeadBody}>
+            <span>{chat.title}</span>
+            {place ? <span className={css.chatPlace}>{place}</span> : null}
+          </span>
+        </span>
       }
-      title={chat.title}
-      hint={
-        chipFor(chat.activity) ? <ActivityChip activity={chat.activity} /> : undefined
-      }
-      trailing={<Chevron />}
-      onClick={() => openTelegramLink(chat.link)}
-    />
+      onClose={onClose}
+      closeLabel={t`Закрыть`}
+    >
+      {hasFacts ? (
+        <div className={css.facts}>
+          {chat.member_count !== null ? (
+            <span className={css.fact}>
+              <Plural
+                value={chat.member_count}
+                one="# участник"
+                few="# участника"
+                many="# участников"
+                other="# участника"
+              />
+            </span>
+          ) : null}
+          <ActivityChip activity={chat.activity} />
+          {chat.is_forum ? (
+            <span className={css.fact}>
+              <Trans>с темами</Trans>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className={css.actions}>
+        <Action
+          onClick={() => {
+            onClose();
+            openTelegramLink(chat.link);
+          }}
+        >
+          <Trans>Открыть чат</Trans>
+        </Action>
+      </div>
+      <div className={css.sheetFoot}>
+        <Hint>
+          <Trans>Откроется в Telegram</Trans>
+        </Hint>
+      </div>
+    </Sheet>
   );
 }

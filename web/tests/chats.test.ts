@@ -7,6 +7,7 @@ import {
   initials,
   ownUniversity,
   type PublicChat,
+  placeOf,
   sanitize,
   search,
   sectionHint,
@@ -23,6 +24,8 @@ function chat(
     group,
     institution: null,
     activity: 'active',
+    member_count: null,
+    is_forum: false,
     ...over,
   };
 }
@@ -227,4 +230,54 @@ test('an institution code that is not a code is dropped at the boundary', () => 
   ]);
   assert.equal(kept?.institution, 'cvut');
   assert.equal(dropped?.institution, null);
+});
+
+test('a member count is a whole number of people or nothing at all', () => {
+  const counts = sanitize(
+    [1248, 0, null, -3, 2.5, '1248', undefined].map((member_count, n) => ({
+      title: `Chat ${n}`,
+      link: `https://t.me/chat_${n}`,
+      group: null,
+      activity: 'busy',
+      member_count,
+    })),
+  ).map((c) => c.member_count);
+  // Zero is a measured empty room; anything that is not a count is "not measured".
+  assert.deepEqual(counts, [1248, 0, null, null, null, null, null]);
+});
+
+test('a chat has topics only when supervisor says so', () => {
+  const forums = sanitize(
+    [true, false, 'true', undefined].map((is_forum, n) => ({
+      title: `Chat ${n}`,
+      link: `https://t.me/chat_${n}`,
+      group: null,
+      activity: 'busy',
+      is_forum,
+    })),
+  ).map((c) => c.is_forum);
+  assert.deepEqual(forums, [true, false, false, false]);
+});
+
+test("a chat's place is its university and that university's city", () => {
+  const taxonomy = [
+    {
+      code: 'cvut',
+      name: 'České vysoké učení technické v Praze',
+      short_name: 'ČVUT',
+      city: 'Praha',
+    },
+    { code: 'vut', name: 'Vysoké učení technické v Brně', short_name: null, city: null },
+  ];
+  assert.equal(
+    placeOf(chat('ČVUT FIT', CVUT, { institution: 'cvut' }), taxonomy),
+    'České vysoké učení technické v Praze · Praha',
+  );
+  assert.equal(
+    placeOf(chat('VUT FEKT', 'VUT', { institution: 'vut' }), taxonomy),
+    'Vysoké učení technické v Brně',
+  );
+  // Not yet in the taxonomy, or no university at all: nothing rather than a code.
+  assert.equal(placeOf(chat('MUNI', 'MUNI', { institution: 'muni' }), taxonomy), null);
+  assert.equal(placeOf(chat('Strahov', null), taxonomy), null);
 });

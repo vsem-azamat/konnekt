@@ -1001,6 +1001,7 @@ msgstr "Куди потрапить"
 msgid "ČVUT, FIT, Strahov…"
 msgstr "ČVUT, FIT, Strahov…"
 
+#: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
 msgid "Открыть чат"
 msgstr "Відкрити чат"
@@ -1089,6 +1090,10 @@ msgstr "Не більше чотирьох літер."
 msgid "Кто может помочь"
 msgstr "Хто може допомогти"
 
+#: src/components/ChatRow.tsx
+msgid "с темами"
+msgstr "з темами"
+
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Це перше, що читають. Пара живих речень працює краще за список."
@@ -1170,6 +1175,10 @@ msgstr "Зняти бан"
 #: src/pages/Home.tsx
 msgid "Что нужно?"
 msgstr "Що потрібно?"
+
+#: src/components/ChatRow.tsx
+msgid "Откроется в Telegram"
+msgstr "Відкриється в Telegram"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Как увидят студенты"
@@ -1361,6 +1370,7 @@ msgid "Реклама"
 msgstr "Реклама"
 
 #: src/components/AppHeader.tsx
+#: src/components/ChatRow.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
@@ -2077,6 +2087,7 @@ msgid "Подходят"
 msgstr "Підходять"
 
 #. placeholder {0}: chat.member_count
+#: src/components/ChatRow.tsx
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
 msgstr "{0, plural, one {# учасник} few {# учасники} many {# учасників} other {# учасника}}"

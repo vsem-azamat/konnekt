@@ -23,7 +23,11 @@ function linesFrom(po: string, source: string): string[] {
 }
 
 for (const locale of ['ru', 'cs', 'en', 'uk']) {
-  for (const source of ['src/pages/Chats.tsx', 'src/pages/Ads.tsx']) {
+  for (const source of [
+    'src/pages/Chats.tsx',
+    'src/components/ChatRow.tsx',
+    'src/pages/Ads.tsx',
+  ]) {
     test(`${source} in ${locale} does not say the chats are moderated`, () => {
       const path = new URL(`../src/locales/${locale}/messages.po`, import.meta.url);
       const lines = linesFrom(readFileSync(path, 'utf8'), source);

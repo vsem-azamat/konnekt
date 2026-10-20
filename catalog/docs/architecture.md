@@ -116,8 +116,8 @@ one place», govern that `web/` directory. They stay here because the product
 they describe is this one.
 
 The catalog API never calls `/api/public/*`, and the app reads only what those
-endpoints publish: a chat's title, link, group, university code and activity, and reach summed
-per group. Member counts per chat are not public, and no screen may need them.
+endpoints publish: a chat's title, link, group, university code, activity,
+member count and whether it has topics, and reach summed per group.
 The fields are supervisor's contract. `group` is the section's title: the
 parent chat's, or the chat's own when others sit under it. It changes
 whenever supervisor changes how it groups chats. No group name is written in
@@ -158,8 +158,11 @@ one thing, and builds its entries in `lib/chats.ts`:
   `unknown`, because supervisor says `unknown` when it has not measured enough
   to say anything.
 
-A tap on a chat opens its Telegram link. The directory shows no member counts:
-supervisor does not publish them per chat.
+A tap on a chat opens a preview sheet, not Telegram: the chat's university
+and city, its member count when supervisor measured one, its activity and
+whether it has topics. Only «Открыть чат» in the sheet opens the Telegram link,
+so looking at a chat never leaves the app. The rows themselves show no member
+counts.
 
 **The ads page is a showcase, not a shop.** `/ads` is for a business that
 wants students to see it. It shows two formats and how far they reach, then

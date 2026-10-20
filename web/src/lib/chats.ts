@@ -12,7 +12,7 @@ import { find } from './search.ts';
 /** Supervisor's own words for how much a chat talks. `unknown` is an answer. */
 export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
 
-/** One chat as supervisor publishes it: five fields, no ids, no counts. */
+/** One chat as supervisor publishes it: no ids, nothing about who is in it. */
 export interface PublicChat {
   title: string;
   link: string;
@@ -24,6 +24,10 @@ export interface PublicChat {
   /** The group's university as the catalog codes it ("cvut"), when set. */
   institution: string | null;
   activity: Activity;
+  /** How many people, as last measured. Null when never measured, not zero. */
+  member_count: number | null;
+  /** Whether the chat is split into Telegram topics. */
+  is_forum: boolean;
 }
 
 const ACTIVITIES: readonly Activity[] = ['unknown', 'quiet', 'active', 'busy'];
@@ -46,7 +50,8 @@ export function sanitize(payload: unknown[]): PublicChat[] {
   const chats: PublicChat[] = [];
   for (const item of payload) {
     if (!item || typeof item !== 'object') continue;
-    const { title, link, group, institution, activity } = item as Record<string, unknown>;
+    const { title, link, group, institution, activity, member_count, is_forum } =
+      item as Record<string, unknown>;
     if (typeof title !== 'string' || !title.trim()) continue;
     if (typeof link !== 'string' || !TELEGRAM_LINK.test(link)) continue;
     chats.push({
@@ -60,6 +65,11 @@ export function sanitize(payload: unknown[]): PublicChat[] {
       activity: ACTIVITIES.includes(activity as Activity)
         ? (activity as Activity)
         : 'unknown',
+      member_count:
+        Number.isInteger(member_count) && (member_count as number) >= 0
+          ? (member_count as number)
+          : null,
+      is_forum: is_forum === true,
     });
   }
   return chats;
@@ -174,6 +184,21 @@ export function cities(
   const out = new Map<string, string>();
   for (const { code, city } of taxonomy) if (city) out.set(code, city);
   return out;
+}
+
+/**
+ * Where a chat is, for its preview: the university's full name and its city,
+ * from the catalog's taxonomy. Null when the chat names no university or the
+ * taxonomy has not heard of it: a bare code says nothing to a reader.
+ */
+export function placeOf(
+  chat: PublicChat,
+  taxonomy: readonly { code: string; name: string; city: string | null }[],
+): string | null {
+  if (chat.institution === null) return null;
+  const university = taxonomy.find(({ code }) => code === chat.institution);
+  if (!university) return null;
+  return university.city ? `${university.name} · ${university.city}` : university.name;
 }
 
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */
