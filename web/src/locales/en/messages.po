@@ -557,10 +557,6 @@ msgstr "banned in every chat"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {member} other {members}}"
 
-#: src/console/pages/Catalog.tsx
-msgid "Все новые анкеты недели просмотрены."
-msgstr "All of this week's new profiles have been reviewed."
-
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
 msgstr "faculties, dorms, general"
@@ -1315,6 +1311,10 @@ msgstr "no deadline"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# message} other {# messages}}"
 
+#: src/console/ProfileSheet.tsx
+msgid "Анкету уже изменили: вот какая она сейчас."
+msgstr "The profile changed meanwhile: this is how it is now."
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Four letters at most."
@@ -1330,6 +1330,10 @@ msgstr "with topics"
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "This is the first thing people read. A couple of real sentences beat a list."
+
+#: src/console/pages/Catalog.tsx
+msgid "Все новые анкеты просмотрены."
+msgstr "All new profiles have been reviewed."
 
 #. placeholder {0}: data.language_code
 #: src/console/pages/AudiencePerson.tsx

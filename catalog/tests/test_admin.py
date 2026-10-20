@@ -126,7 +126,7 @@ async def _person(session: AsyncSession, tg_id: int, name: str) -> User:
     return user
 
 
-async def test_new_profiles_are_the_last_weeks_newest_first(
+async def test_new_profiles_wait_for_an_operator_newest_first(
     session: AsyncSession, helper_factory
 ) -> None:
     now = datetime.now(UTC)
@@ -152,8 +152,8 @@ async def test_new_profiles_are_the_last_weeks_newest_first(
         ).json()
 
     names = [row["name"] for row in body["profiles"]]
-    assert names[:2] == ["Marina K.", "Olga"], "first name and an initial"
-    assert "Petr" not in names
+    assert names[:3] == ["Marina K.", "Olga", "Petr"], "first name and an initial"
+    # Older than a week and still nobody looked: it stays until somebody does.
     assert "Irina" not in names, "hidden since"
     assert body["profiles"][0]["services"], "what they offer, by service name"
     assert body["profiles"][1]["services"] == [], "a service switched off is not offered"
@@ -319,11 +319,14 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
     monkeypatch.setattr(admin, "SEARCH_CAP", 1)
     now = datetime.now(UTC)
     author = await _person(session, 97401, "Vera")
-    for tg_id in (97402, 97403):
+    for tg_id in (97402, 97403, 97404):
         user = await helper_factory(tg_id=tg_id)
         profile = await session.get(HelperProfile, user.id)
         assert profile is not None
         profile.published_at = now - timedelta(days=1)
+        # Looked at already: off the list and out of its count.
+        if tg_id == 97404:
+            profile.reviewed_at = now
     for text in ("one", "two"):
         session.add(
             HelpRequest(author_id=author.id, raw_text=text, status=RequestStatus.OPEN)
@@ -337,6 +340,7 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
         ).json()
 
     assert (len(body["profiles"]), body["counts"]["profiles_to_review"]) == (1, 2)
+    assert body["counts"]["profiles_week"] == 3
     assert (len(body["unanswered"]), body["counts"]["unanswered"]) == (1, 2)
     assert (len(body["failed_searches"]), body["counts"]["failed_searches"]) == (1, 2)
 
@@ -408,6 +412,12 @@ async def test_hiding_a_profile_bans_it_so_its_owner_cannot_publish_it_again(
     session: AsyncSession, helper_factory
 ) -> None:
     user_id = (await _fresh_helper(helper_factory, session, 97603)).id
+    # Taken down by its owner: hidden too, but not the operator's doing.
+    own = await _fresh_helper(helper_factory, session, 97607)
+    own_profile = await session.get(HelperProfile, own.id)
+    assert own_profile is not None
+    own_profile.status = PublishStatus.HIDDEN
+    await session.flush()
 
     async with _client(session) as http:
         hidden = await http.post(
@@ -422,6 +432,7 @@ async def test_hiding_a_profile_bans_it_so_its_owner_cannot_publish_it_again(
 
     assert hidden.status_code == 200, hidden.text
     assert hidden.json()["status"] == "banned"
+    assert body["counts"]["hidden"] == 1
     assert user_id not in [row["user_id"] for row in body["profiles"]]
     assert [row["user_id"] for row in body["hidden"]] == [user_id]
     assert again.status_code == 403
@@ -446,6 +457,8 @@ async def test_a_hidden_profile_comes_back_as_it_was(
     assert restored.status_code == 200, restored.text
     assert restored.json()["status"] == "published"
     assert body["hidden"] == []
+    # Hiding was a look at it: back in the catalog, not back on the new list.
+    assert user.id not in [row["user_id"] for row in body["profiles"]]
 
 
 @pytest.mark.parametrize("status", [PublishStatus.DRAFT, PublishStatus.HIDDEN])
@@ -466,6 +479,42 @@ async def test_only_a_listed_profile_can_be_hidden(
         )
 
     assert response.status_code == 409
+
+
+async def test_only_a_listed_profile_can_be_kept(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97608)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = PublishStatus.BANNED
+    await session.flush()
+
+    async with _client(session) as http:
+        response = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/review", headers=auth_header(OPERATOR)
+        )
+
+    assert response.status_code == 409
+
+
+async def test_a_profile_banned_before_it_was_ever_out_is_out_from_its_restore(
+    session: AsyncSession, helper_factory
+) -> None:
+    """So the owner's next save is not taken for a first publication."""
+    user = await _fresh_helper(helper_factory, session, 97609)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = PublishStatus.BANNED
+    profile.published_at = None
+    await session.flush()
+
+    async with _client(session) as http:
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+
+    assert restored.json()["published_at"] is not None
 
 
 async def test_only_a_hidden_profile_can_be_restored(

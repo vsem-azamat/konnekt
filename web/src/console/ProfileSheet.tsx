@@ -10,7 +10,7 @@ import { profileActions } from '@/console/profile';
 import { adminCatalogQuery, adminProfileQuery } from '@/console/queries';
 import { daysSince } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 
 /**
  * A catalog profile in the console, with what an operator does about it:
@@ -42,7 +42,25 @@ export function ProfileSheet({
       await queryClient.invalidateQueries({ queryKey: adminCatalogQuery.queryKey });
       onClose();
     },
+    // Changed meanwhile, by its owner or another operator: show it as it is.
+    onError: (error) => {
+      if (!stale(error)) return;
+      setConfirmHide(false);
+      void queryClient.invalidateQueries({
+        queryKey: adminProfileQuery(userId).queryKey,
+      });
+      void queryClient.invalidateQueries({ queryKey: adminCatalogQuery.queryKey });
+    },
   });
+  const failure = change.error ? (
+    <Hint>
+      {stale(change.error) ? (
+        <Trans>Анкету уже изменили: вот какая она сейчас.</Trans>
+      ) : (
+        <FailureText error={change.error} />
+      )}
+    </Hint>
+  ) : null;
 
   const data = profile.data;
   const name = data?.name ?? '';
@@ -56,11 +74,7 @@ export function ProfileSheet({
             Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем.
           </Trans>
         </Sub>
-        {change.error ? (
-          <Hint>
-            <FailureText error={change.error} />
-          </Hint>
-        ) : null}
+        {failure}
         <Actions>
           <Action
             quiet
@@ -122,11 +136,7 @@ export function ProfileSheet({
               <Trans>Автор сам снял анкету или ещё не опубликовал её.</Trans>
             </Hint>
           ) : null}
-          {change.error ? (
-            <Hint>
-              <FailureText error={change.error} />
-            </Hint>
-          ) : null}
+          {failure}
           <div className={ui.actionsStacked}>
             {profileActions(data).map((action) =>
               action === 'keep' ? (
@@ -164,6 +174,8 @@ export function ProfileSheet({
     </Sheet>
   );
 }
+
+const stale = (error: unknown) => error instanceof ApiError && error.status === 409;
 
 /** «новая, вчера»: how long it has been out, and whether anyone looked. */
 function Age({ publishedAt, reviewed }: { publishedAt: string; reviewed: boolean }) {

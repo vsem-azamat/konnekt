@@ -42,6 +42,10 @@ export type AdminCounts = {
      */
     profiles_to_review: number;
     /**
+     * Hidden
+     */
+    hidden: number;
+    /**
      * Requests Week
      */
     requests_week: number;

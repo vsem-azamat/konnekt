@@ -537,8 +537,9 @@ class AdminSearch(BaseModel):
 
 class AdminCounts(BaseModel):
     profiles_week: int
-    # The week's new profiles no operator has kept or hidden yet.
+    # Listed profiles no operator has kept or hidden yet, however old.
     profiles_to_review: int
+    hidden: int
     requests_week: int
     unanswered: int
     failed_searches: int
@@ -547,7 +548,7 @@ class AdminCounts(BaseModel):
 class AdminCatalog(BaseModel):
     """The catalog as the operator reads it. See docs/architecture.md."""
 
-    # The week's new profiles waiting for an operator; see `hidden` for the
+    # Listed profiles waiting for an operator, newest first; `hidden` are the
     # ones an operator took out.
     profiles: list[AdminProfile]
     hidden: list[AdminProfile]

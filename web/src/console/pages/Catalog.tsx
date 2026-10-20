@@ -124,7 +124,7 @@ function Catalog() {
       ) : (
         <Hint>
           {counts.profiles_week ? (
-            <Trans>Все новые анкеты недели просмотрены.</Trans>
+            <Trans>Все новые анкеты просмотрены.</Trans>
           ) : (
             <Trans>За неделю новых анкет не было.</Trans>
           )}
@@ -133,7 +133,7 @@ function Catalog() {
 
       {data.hidden.length > 0 ? (
         <>
-          <Label aside={data.hidden.length}>
+          <Label aside={counts.hidden}>
             <Trans>Скрытые</Trans>
           </Label>
           <Rows>

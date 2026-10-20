@@ -557,10 +557,6 @@ msgstr "забанені в усіх чатах"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {учасник} few {учасники} many {учасників} other {учасника}}"
 
-#: src/console/pages/Catalog.tsx
-msgid "Все новые анкеты недели просмотрены."
-msgstr "Усі нові анкети тижня переглянуто."
-
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
 msgstr "факультети, гуртожитки, загальні"
@@ -1315,6 +1311,10 @@ msgstr "без терміну"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# повідомлення} few {# повідомлення} many {# повідомлень} other {# повідомлення}}"
 
+#: src/console/ProfileSheet.tsx
+msgid "Анкету уже изменили: вот какая она сейчас."
+msgstr "Анкету вже змінили: ось яка вона зараз."
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Не більше чотирьох літер."
@@ -1330,6 +1330,10 @@ msgstr "з темами"
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Це перше, що читають. Пара живих речень працює краще за список."
+
+#: src/console/pages/Catalog.tsx
+msgid "Все новые анкеты просмотрены."
+msgstr "Усі нові анкети переглянуто."
 
 #. placeholder {0}: data.language_code
 #: src/console/pages/AudiencePerson.tsx

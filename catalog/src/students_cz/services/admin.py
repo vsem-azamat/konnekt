@@ -6,7 +6,7 @@ See docs/architecture.md, «The operator reads the catalog and runs the partner 
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, case, exists, func, select
+from sqlalchemy import ColumnElement, and_, case, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import QueryableAttribute, selectinload
 
@@ -56,7 +56,12 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         HelperProfile.status == PublishStatus.PUBLISHED,
         HelperProfile.published_at >= now - WEEK,
     )
-    to_review = and_(new_profile, HelperProfile.reviewed_at.is_(None))
+    # However old: a profile nobody looked at does not leave on its own.
+    to_review = and_(
+        HelperProfile.status == PublishStatus.PUBLISHED,
+        HelperProfile.reviewed_at.is_(None),
+    )
+    hidden = HelperProfile.status == PublishStatus.BANNED
     unanswered = and_(
         live(now), ~exists().where(RequestResponse.request_id == HelpRequest.id)
     )
@@ -66,16 +71,14 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
     return AdminCatalog(
         profiles=await _new_profiles(session, lang, to_review),
         hidden=await _new_profiles(
-            session,
-            lang,
-            HelperProfile.status == PublishStatus.BANNED,
-            newest=HelperProfile.updated_at,
+            session, lang, hidden, newest=HelperProfile.updated_at
         ),
         unanswered=await _unanswered(session, unanswered),
         failed_searches=await _failed_searches(session, failed_search),
         counts=AdminCounts(
             profiles_week=await _count(session, HelperProfile.user_id, new_profile),
             profiles_to_review=await _count(session, HelperProfile.user_id, to_review),
+            hidden=await _count(session, HelperProfile.user_id, hidden),
             requests_week=await _count(
                 session,
                 HelpRequest.id,
@@ -217,9 +220,12 @@ async def keep_profile(
     session: AsyncSession, lang: UiLang, user_id: int
 ) -> AdminProfileDetail:
     """An operator looked and left it as it is: off «Новые анкеты», still listed."""
-    helper, _ = await _helper(session, user_id)
-    helper.reviewed_at = datetime.now(UTC)
-    await session.flush()
+    await _moderate(
+        session,
+        user_id,
+        HelperProfile.status == PublishStatus.PUBLISHED,
+        reviewed_at=func.now(),
+    )
     return await profile(session, lang, user_id)
 
 
@@ -231,25 +237,54 @@ async def hide_profile(
     Only a listed profile: «Вернуть» lists it again, which must not undo an
     owner's own «hide me» or publish a draft nobody finished.
     """
-    helper, _ = await _helper(session, user_id)
-    if helper.status != PublishStatus.PUBLISHED:
-        raise Conflict("only a listed profile can be hidden")
-    helper.status = PublishStatus.BANNED
-    helper.reviewed_at = datetime.now(UTC)
-    await session.flush()
+    await _moderate(
+        session,
+        user_id,
+        HelperProfile.status == PublishStatus.PUBLISHED,
+        status=PublishStatus.BANNED,
+        reviewed_at=func.now(),
+    )
     return await profile(session, lang, user_id)
 
 
 async def restore_profile(
     session: AsyncSession, lang: UiLang, user_id: int
 ) -> AdminProfileDetail:
-    """Listed again, as it was when it was hidden."""
-    helper, _ = await _helper(session, user_id)
-    if helper.status != PublishStatus.BANNED:
-        raise Conflict("only a hidden profile can be restored")
-    helper.status = PublishStatus.PUBLISHED
-    await session.flush()
+    """Listed again, as it was when it was hidden. A profile banned before it
+    was ever out gets its first publication now, so the owner's next save is
+    not taken for one and announced."""
+    await _moderate(
+        session,
+        user_id,
+        HelperProfile.status == PublishStatus.BANNED,
+        status=PublishStatus.PUBLISHED,
+        published_at=func.coalesce(HelperProfile.published_at, func.now()),
+    )
     return await profile(session, lang, user_id)
+
+
+async def _moderate(
+    session: AsyncSession, user_id: int, only_if: ColumnElement[bool], **values: Any
+) -> None:
+    """One conditional UPDATE, so the state checked is the state changed.
+
+    Read first and written after, an owner's save landing in between would be
+    overwritten: a profile they took down, banned and then «restored» into a
+    listing. Blocked on their row instead, the WHERE is read again once they
+    commit, and a profile no longer in that state is a 409.
+    """
+    changed = await session.scalar(
+        update(HelperProfile)
+        .where(HelperProfile.user_id == user_id, only_if)
+        .values(**values)
+        .returning(HelperProfile.user_id)
+        .execution_options(synchronize_session=False)
+    )
+    if changed is None:
+        await _helper(session, user_id)  # NotFound when there is none at all
+        raise Conflict("the profile is not in a state this applies to")
+    # The UPDATE went past the session; what it holds is now stale.
+    session.expire_all()
 
 
 async def _helper(session: AsyncSession, user_id: int) -> tuple[HelperProfile, User]:

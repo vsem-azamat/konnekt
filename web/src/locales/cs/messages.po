@@ -557,10 +557,6 @@ msgstr "zabanovaní ve všech chatech"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
 
-#: src/console/pages/Catalog.tsx
-msgid "Все новые анкеты недели просмотрены."
-msgstr "Všechny nové profily týdne jsou prohlédnuté."
-
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
 msgstr "fakulty, koleje, obecné"
@@ -1315,6 +1311,10 @@ msgstr "bez termínu"
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}}"
 
+#: src/console/ProfileSheet.tsx
+msgid "Анкету уже изменили: вот какая она сейчас."
+msgstr "Profil se mezitím změnil: takhle vypadá teď."
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
 msgstr "Nejvýše čtyři písmena."
@@ -1330,6 +1330,10 @@ msgstr "s tématy"
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Tohle si přečtou první. Pár živých vět funguje líp než seznam."
+
+#: src/console/pages/Catalog.tsx
+msgid "Все новые анкеты просмотрены."
+msgstr "Všechny nové profily jsou prohlédnuté."
 
 #. placeholder {0}: data.language_code
 #: src/console/pages/AudiencePerson.tsx

@@ -1,8 +1,9 @@
 """An operator's look at a profile: helper_profiles.reviewed_at
 
-A nullable column and nothing else, so the previous release runs unchanged
-beside it. Profiles already out stay unreviewed; the console lists only the
-last week's, so the backlog is a week long at most.
+A nullable column, so the previous release runs unchanged beside it. The
+console's queue holds every listed profile nobody looked at, however old; the
+ones out for more than a week are counted as looked at, so it opens on the
+last week's and not on the whole catalog.
 
 Revision ID: 4c7e1b9d2a60
 Revises: 6e528db59a57
@@ -25,6 +26,10 @@ def upgrade() -> None:
     op.add_column(
         "helper_profiles",
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.execute(
+        "UPDATE helper_profiles SET reviewed_at = now() "
+        "WHERE published_at < now() - interval '7 days'"
     )
 
 

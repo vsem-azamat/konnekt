@@ -2126,6 +2126,10 @@
             "type": "integer",
             "title": "Profiles To Review"
           },
+          "hidden": {
+            "type": "integer",
+            "title": "Hidden"
+          },
           "requests_week": {
             "type": "integer",
             "title": "Requests Week"
@@ -2143,6 +2147,7 @@
         "required": [
           "profiles_week",
           "profiles_to_review",
+          "hidden",
           "requests_week",
           "unanswered",
           "failed_searches"

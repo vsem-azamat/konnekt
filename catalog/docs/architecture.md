@@ -257,8 +257,9 @@ and `/admin/*` answers 403 to everybody not on the list. The console writes two
 things: a profile's moderation (kept or hidden) and the partner cards, because
 otherwise the only way to do either is the database.
 
-- `/admin/catalog`: profiles published in the last 7 days that no operator has
-  kept or hidden yet, newest first, and the profiles an operator hid;
+- `/admin/catalog`: listed profiles no operator has kept or hidden yet,
+  however old, newest first (those out before the console moderated were
+  counted as looked at), and the profiles an operator hid;
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
   30 days, grouped by their text ignoring case and leading or trailing spaces, most frequent
@@ -269,7 +270,9 @@ otherwise the only way to do either is the database.
   still listed. `POST …/hide` sets it `banned`, which its owner cannot lift
   by publishing again, and `POST …/restore` lists it again. Only a published
   profile can be hidden and only a banned one restored (409 otherwise), so
-  restoring never undoes an owner's own «hide me». The owner is not told.
+  restoring never undoes an owner's own «hide me». Each is one conditional
+  `UPDATE`, and the owner's save locks the row, so neither side overwrites
+  the other in a race. The owner is not told.
 - `/admin/partners`: every placement, active or not, with its impressions and
   clicks over the last 30 days.
 - `POST /admin/placements`: a new card on the Life screen, the one slot the
