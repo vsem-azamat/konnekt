@@ -37,9 +37,20 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
     app.dependency_overrides.pop(get_session, None)
 
 
-async def _seed(session_maker, messages: dict[int, list[datetime.datetime]], untitled: tuple[int, ...] = ()) -> None:
+async def _seed(
+    session_maker,
+    messages: dict[int, list[datetime.datetime]],
+    untitled: tuple[int, ...] = (),
+    titles: dict[int, str] | None = None,
+) -> None:
     async with session_maker() as session:
-        session.add_all([Chat(id=chat_id, title=f"Chat {chat_id}") for chat_id in messages if chat_id not in untitled])
+        session.add_all(
+            [
+                Chat(id=chat_id, title=(titles or {}).get(chat_id, f"Chat {chat_id}"))
+                for chat_id in messages
+                if chat_id not in untitled
+            ]
+        )
         n = 0
         for chat_id, times in messages.items():
             for at in times:
@@ -93,16 +104,21 @@ async def test_a_chat_silent_for_a_day_is_not_among_the_busiest(client_factory, 
     assert await _heatmap(client_factory) == []
 
 
-async def test_busy_chats_tied_on_messages_keep_one_order_and_a_chat_never_stored_has_no_title(
+async def test_busy_chats_tied_on_messages_go_by_title_and_a_chat_never_stored_comes_last(
     client_factory, db_session_maker
 ) -> None:
+    """Titled so that their order is not the ids' (nor the grouping's)."""
     hour_ago = utc_now() - datetime.timedelta(hours=1)
-    await _seed(db_session_maker, {-1003: [hour_ago], -1001: [hour_ago], -1002: [hour_ago]}, untitled=(-1002,))
+    await _seed(
+        db_session_maker,
+        {-1003: [hour_ago], -1001: [hour_ago], -1002: [hour_ago]},
+        untitled=(-1002,),
+        titles={-1003: "Zeta", -1001: "Alpha"},
+    )
 
     heatmap = await _heatmap(client_factory)
 
-    assert [chat["chat_id"] for chat in heatmap] == [-1003, -1002, -1001]
-    assert [chat["title"] for chat in heatmap] == ["Chat -1003", None, "Chat -1001"]
+    assert [(chat["chat_id"], chat["title"]) for chat in heatmap] == [(-1001, "Alpha"), (-1003, "Zeta"), (-1002, None)]
     assert all(chat["total_messages"] == sum(chat["hours"]) for chat in heatmap)
 
 

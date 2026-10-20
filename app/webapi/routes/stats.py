@@ -6,7 +6,7 @@ import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import func, nulls_last, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import utc_now
@@ -44,7 +44,7 @@ async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) 
         await session.execute(
             select(ChatMemberSnapshot, Chat.title)
             .join(Chat, Chat.id == ChatMemberSnapshot.chat_id)
-            .where(ChatMemberSnapshot.captured_at >= lookback, Chat.resource_status == "approved")
+            .where(ChatMemberSnapshot.captured_at >= lookback, Chat.resource_status == Chat.STATUS_APPROVED)
             .order_by(ChatMemberSnapshot.captured_at.asc())
         )
     ).all()
@@ -87,7 +87,7 @@ async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[
             .join(Chat, Chat.id == Message.chat_id, isouter=True)
             .where(Message.timestamp >= since)
             .group_by(Message.chat_id, Chat.title)
-            .order_by(total.desc(), Message.chat_id)
+            .order_by(total.desc(), nulls_last(Chat.title.asc()), Message.chat_id)
             .limit(_CHAT_HEATMAP_TOP_N)
         )
     ).all()
@@ -99,7 +99,12 @@ async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[
         hours[chat_id][at.hour] += 1
     return [
         ChatHeatmapSummary(
-            chat_id=row.chat_id, title=row.title, total_messages=int(row.total), hours=hours[row.chat_id]
+            # The hours' sum, not the first query's count: a message stamped
+            # between the two queries is in both counts or in neither.
+            chat_id=row.chat_id,
+            title=row.title,
+            total_messages=sum(hours[row.chat_id]),
+            hours=hours[row.chat_id],
         )
         for row in top
     ]

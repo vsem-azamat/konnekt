@@ -52,7 +52,11 @@ export default function ConsoleSummaryPage() {
 function Summary() {
   const navigate = useNavigate();
   // Read again every minute while it is open: it says how fresh it is.
-  const stats = useQuery({ ...consoleStatsQuery, refetchInterval: 60_000 });
+  // Not after a failure: a stale sign-in would be sent again every minute.
+  const stats = useQuery({
+    ...consoleStatsQuery,
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
+  });
   const chats = useQuery(consoleChatsQuery);
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
@@ -170,7 +174,11 @@ function Summary() {
       ) : null}
 
       <Label
-        aside={items.length ? items.reduce((sum, item) => sum + item.count, 0) : null}
+        aside={
+          loading || !items.length
+            ? null
+            : items.reduce((sum, item) => sum + item.count, 0)
+        }
       >
         <Trans>Требует внимания</Trans>
       </Label>
