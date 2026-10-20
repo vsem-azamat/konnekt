@@ -1,9 +1,11 @@
 """A shelf's word, and not the words that begin like it
 
-The chemistry and programming shelves took stems — «хими», «chemi»,
-«информатик» — and a stem is every word that begins with it: «химиотерапия»,
-"chemist", «chemik», «информатик» the person. They take the forms of the
-subject's own name instead, which is what people type.
+The chemistry shelf took the stems «хими», «хімі» and «chemi», and a stem is
+every word that begins with it: «химиотерапия», "chemist". It takes the forms of
+the subject's name instead, and the person — «химик», «хімік», «chemik» — as
+the other shelves have «математик» and «физик». Programming keeps «информатик»
+and its siblings for the same reason and loses only "informatic", whose
+English forms are "informatics".
 
 Here as well as in `seeds/subjects.json` because the deploy runs `alembic
 upgrade head` and never the seed.
@@ -29,7 +31,7 @@ depends_on: str | Sequence[str] | None = None
 # holds change; the name is there so the shelf-migration tests run this one too.
 SYNONYM_REMOVES: dict[str, tuple[str, ...]] = {
     "chemistry": ("хими", "хімі", "chemi"),
-    "it-programming": ("информатик", "інформатик", "informatik", "informatic"),
+    "it-programming": ("informatic",),
 }
 SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
     "chemistry": (
@@ -44,6 +46,11 @@ SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
         "chemie",
         "chemii",
         "chemistry",
+        # The person, which «репетитор химик» names as naturally as the
+        # subject. Not "chemist", which in British English is a pharmacy.
+        "химик",
+        "хімік",
+        "chemik",
     ),
     "it-programming": (
         "информатика",

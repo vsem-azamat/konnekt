@@ -66,8 +66,6 @@ async def test_a_czech_locative_school_is_the_school(session, text, lang) -> Non
         # A person, a treatment and a classic are not the shelf.
         ("химиотерапия", "ru", "chemistry"),
         ("chemist", "en", "chemistry"),
-        ("chemik", "cs", "chemistry"),
-        ("информатик", "ru", "it-programming"),
         ("классическая физика", "ru", "physics"),
         ("třídění matematika", "cs", "math"),
         ("učitelství matematiky", "cs", "math"),
@@ -92,6 +90,14 @@ async def test_a_stem_stops_at_the_word_it_means(session, text, lang, shelf) -> 
         ("chemie", "cs", "chemistry"),
         ("doučování chemii", "cs", "chemistry"),
         ("chemistry", "en", "chemistry"),
+        # The person, like «математик» for maths. Not "chemist", a pharmacy.
+        ("репетитор химик", "ru", "chemistry"),
+        ("нужен химик", "ru", "chemistry"),
+        ("хімік", "uk", "chemistry"),
+        ("chemik", "cs", "chemistry"),
+        ("информатик", "ru", "it-programming"),
+        ("інформатик", "uk", "it-programming"),
+        ("informatik", "cs", "it-programming"),
         ("информатика", "ru", "it-programming"),
         ("по информатике", "ru", "it-programming"),
         ("физика 9 класс", "ru", "physics"),
