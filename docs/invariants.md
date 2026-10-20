@@ -85,6 +85,14 @@ sign-in routes; a callback without it is refused, so somebody else's valid
 numeric `id` claim (scope `profile`), not `sub`, because that is what the
 super-admin list holds.
 
+**A cookie alone does not authorise a write.** `SameSite=Lax` is same-site, not
+same-origin: another host under the same domain still sends the cookie, and a
+`text/plain` body skips the CORS preflight yet is read as JSON. So a write that
+carries the console's cookie must name one of our origins
+(`app/webapi/origin_guard.py`), and the admin site's origin joins the allowed
+ones. Writes without the cookie are not this guard's concern; a signed
+`initData` decides those.
+
 **A signature is not an authorisation.** `initData` says who is asking; the
 super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram

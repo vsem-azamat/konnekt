@@ -85,3 +85,54 @@
 		file_server
 	}
 }
+
+# The console opened in a browser (WEBAPI_ADMIN_URL's host), apart from the
+# Mini App: its own origin means its own session cookie, which the Mini App's
+# origin never receives. Only the console and the API behind it are served; the
+# catalog's API and the public half are the Mini App's, and a path that is
+# neither goes to the console rather than to the landing page.
+#
+# ADMIN_HOST is derived from WEBAPI_ADMIN_URL by the webui's command in
+# docker-compose.yaml. Unset, it falls back to a name no request can carry, so
+# the block is present and matches nothing.
+http://{$ADMIN_HOST:admin.invalid} {
+	encode zstd gzip
+
+	# Never framed: the console is not opened inside Telegram from here.
+	header {
+		Content-Security-Policy "frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+	}
+
+	@notOurs path /api/v1/* /api/public/* /healthz
+	handle @notOurs {
+		respond 404
+	}
+
+	handle /api/* {
+		reverse_proxy webapi:8787 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	handle /assets/* {
+		root * /srv/app
+		@exists file
+		header @exists Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	@console path /console /console/* /login
+	handle @console {
+		root * /srv/app
+		header Cache-Control "no-cache"
+		rewrite * /index.html
+		file_server
+	}
+
+	handle {
+		redir * /console 302
+	}
+}

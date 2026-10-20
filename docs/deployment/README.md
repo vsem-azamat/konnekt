@@ -12,3 +12,6 @@ This section covers production runtime operations and deployment contracts.
   the migration squash under the current history.
 - [Telegram Accounts](telegram-accounts.md) - the personal and working accounts,
   why their sessions are kept apart, and how to sign each in.
+- [The admin site](admin-site.md) - the console in a browser: what switches it
+  on, what has to exist outside this repository, and what to check after the
+  first deploy.

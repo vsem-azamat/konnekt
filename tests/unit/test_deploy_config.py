@@ -54,6 +54,12 @@ def _webui_passthrough() -> set[str]:
     return {name for name, value in (webui.get("environment") or {}).items() if value is None}
 
 
+def _service_passthrough(service: str) -> set[str]:
+    """Names one service inherits on top of the shared block."""
+    env = yaml.safe_load(COMPOSE.read_text())["services"][service].get("environment") or {}
+    return {name for name, value in env.items() if value is None}
+
+
 def _deploy_step() -> dict:
     workflow = yaml.safe_load(DEPLOY.read_text())
     for step in workflow["jobs"]["deploy"]["steps"]:
@@ -74,7 +80,11 @@ def test_every_forwarded_name_is_declared_in_both_places() -> None:
     step = _deploy_step()
     forwarded = {name.strip() for name in step["with"]["envs"].split(",") if name.strip()}
 
-    assert forwarded - _DEPLOY_ONLY == (_compose_passthrough() | _webui_passthrough() | _interpolated()) - _DEPLOY_ONLY
+    assert (
+        forwarded - _DEPLOY_ONLY
+        == (_compose_passthrough() | _webui_passthrough() | _service_passthrough("webapi") | _interpolated())
+        - _DEPLOY_ONLY
+    )
 
 
 def test_the_catalog_runs_here_on_the_database_it_already_has() -> None:
@@ -191,6 +201,7 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "TELETHON_API_ID",
         "TELETHON_API_HASH",
         "MCP_TOKEN",
+        "WEBAPI_OIDC_CLIENT_SECRET",
     }
 
     for name, expression in step["env"].items():
@@ -682,3 +693,29 @@ def test_the_bot_and_the_ads_pages_offer_the_same_contact() -> None:
 
     assert services["bot"]["environment"]["ADS_BOT_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"
     assert services["catalog-api"]["environment"]["ADS_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"
+
+
+def test_the_sign_in_secret_reaches_the_webapi_and_nothing_else() -> None:
+    """The bot shares most of its environment with the webapi; this is not shared."""
+    name = "WEBAPI_OIDC_CLIENT_SECRET"
+
+    assert name in _service_passthrough("webapi")
+    assert name not in _compose_passthrough()
+    assert name not in _webui_passthrough()
+    assert "WEBAPI_ADMIN_URL" in _service_passthrough("webapi")
+    assert "WEBAPI_ADMIN_URL" in _webui_passthrough()
+
+
+def test_the_webui_is_told_the_admin_host_by_the_url_and_has_a_fallback_nobody_can_send() -> None:
+    """Caddy needs a host, the webapi a URL; one variable gives both.
+
+    Empty would make the console's site address `http://`, which answers every
+    request. Unset must name a host no request carries, here and in the file.
+    """
+    command = "\n".join(yaml.safe_load(COMPOSE.read_text())["services"]["webui"]["command"])
+    caddyfile = (ROOT / "docker" / "Caddyfile").read_text()
+
+    assert "WEBAPI_ADMIN_URL" in command
+    assert "ADMIN_HOST=" in command
+    assert "admin.invalid" in command
+    assert "{$ADMIN_HOST:admin.invalid}" in caddyfile
