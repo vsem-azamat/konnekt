@@ -17,6 +17,7 @@ from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, ChatMemberRe
 from app.chats.audit import ChatState, audit_chats, inspect_chat
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
 from app.db.models import Chat
+from structlog.testing import capture_logs
 
 pytestmark = pytest.mark.asyncio
 
@@ -380,14 +381,14 @@ async def test_own_words_that_do_not_fit_are_a_finding_not_a_change(session_make
     bot.set_chat_description.assert_not_awaited()
 
 
-async def test_an_own_words_id_that_is_not_an_approved_chat_is_reported(session_maker, monkeypatch, caplog) -> None:
+async def test_an_own_words_id_that_is_not_an_approved_chat_is_reported(session_maker, monkeypatch) -> None:
     await _seed_cvut(session_maker)
     monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1, -999}))
 
-    await _audit(session_maker, chat_ids={-2})
+    with capture_logs() as logs:
+        await _audit(session_maker, chat_ids={-2})
 
-    assert "-999" in caplog.text
-    assert "-1," not in caplog.text
+    assert [log["chat_ids"] for log in logs if log["event"] == "own_words_not_approved"] == [[-999]]
 
 
 async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:

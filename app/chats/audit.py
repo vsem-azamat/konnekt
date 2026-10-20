@@ -248,7 +248,7 @@ async def audit_chats(
     # university's depends on the others.
     mains = main_chats(list(chats))
     if stray := sorted(OWN_WORDS - {chat.id for chat in chats if chat.is_approved}):
-        logger.warning("OWN_WORDS names chats that are not approved: %s", ", ".join(map(str, stray)))
+        logger.warning("own_words_not_approved", chat_ids=stray)
     if chat_ids is not None:
         chats = [chat for chat in chats if chat.id in chat_ids]
 
