@@ -32,8 +32,15 @@ logger = get_logger("ads_bot")
 
 GREETING = (
     "Здравствуйте! Это команда Konnekt.\n\n"
-    "Напишите здесь о рекламе в наших чатах, о сотрудничестве или задайте вопрос — мы ответим в этом чате."
+    "Напишите здесь по любому вопросу: чаты, реклама и сотрудничество, помощь с учёбой или что-то ещё. "
+    "Ответим в этом чате."
 )
+DESCRIPTION = (
+    "Konnekt — студенческие чаты Чехии. Здесь можно написать нашей команде по любому вопросу: "
+    "о чатах, о рекламе и сотрудничестве, о помощи с учёбой или о чём-то ещё.\n\n"
+    "Отправьте сообщение — ответим здесь же."
+)
+SHORT_DESCRIPTION = "Связь с командой Konnekt по любому вопросу: чаты, реклама, сотрудничество. Ответим здесь."
 
 # What copyMessage can carry. Everything else is a service message: a topic
 # being created, a member joining, a pin.
@@ -130,7 +137,40 @@ def build_dispatcher(desk: AdsDesk, group_id: int, *, album_wait: float = ALBUM_
     dp.message.outer_middleware(Conversations(album_wait))
     dp.include_router(router)
     dp.startup.register(partial(check_group, group_id=group_id))
+    dp.startup.register(publish_profile)
     return dp
+
+
+async def publish_profile(bot: Bot) -> None:
+    """Write the desk's name and descriptions to Telegram, as `profile.py` does for the main bot.
+
+    Compared first, since every deploy restarts the bot and setMyName is
+    rate-limited for hours; each step stands alone and is only logged.
+    The name goes last for the same reason.
+    """
+    name = settings.ads_bot.name
+
+    async def description() -> None:
+        if (await bot.get_my_description()).description != DESCRIPTION:
+            await bot.set_my_description(description=DESCRIPTION)
+
+    async def short_description() -> None:
+        if (await bot.get_my_short_description()).short_description != SHORT_DESCRIPTION:
+            await bot.set_my_short_description(short_description=SHORT_DESCRIPTION)
+
+    async def display_name() -> None:
+        if (await bot.get_my_name()).name != name:
+            await bot.set_my_name(name=name)
+
+    for step, run in (
+        ("description", description),
+        ("short_description", short_description),
+        ("name", display_name),
+    ):
+        try:
+            await run()
+        except TelegramAPIError as e:
+            logger.warning("ads_profile_step_failed", step=step, error=e.message)
 
 
 async def check_group(bot: Bot, group_id: int) -> None:
