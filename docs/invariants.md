@@ -80,7 +80,15 @@ the query id is not the same as being the person it was issued to. Carrying the
 applicant in the Mini App's URL would let anyone with the link pass the check
 on someone else's behalf — precisely the bot farm a check exists to stop. The
 request also arrives in the bot process while the check is answered by the web
-API, so the two halves have nowhere else to meet.
+API, so the two halves have nowhere else to meet. The captcha sent in a private
+message follows the same rule: a tap counts only from the applicant it was
+sent to.
+
+**One bot answers a chat's join requests.** Telegram lets a bot write to an
+applicant only until somebody else has, so with a second captcha bot in the
+chat (@simplecaptcha_bot, today) whoever writes first wins and the other's
+captcha is never delivered. Turn captcha on for a chat in the same step as
+taking the other bot out of it.
 
 ## Approval
 

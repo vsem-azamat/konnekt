@@ -230,6 +230,11 @@ async def _serve() -> None:
     tasks.append(run_mcp_server())
     tasks.append(run_expiry_sweep(session_maker))
 
+    # Declines join captchas nobody answered, including those a restart left open.
+    from app.captcha.service import run_sweep as run_captcha_sweep
+
+    tasks.append(run_captcha_sweep(session_maker, main_bot))
+
     # What people wrote is kept half a year (#174).
     from app.moderation.history_service import run_history_retention
 

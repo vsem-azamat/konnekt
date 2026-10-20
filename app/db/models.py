@@ -484,6 +484,100 @@ class JoinCheck(Base):
         self.expires_at = expires_at
 
 
+class JoinCaptcha(Base):
+    """One request to join and the emoji its applicant was asked to tap.
+
+    A row per request, whether the captcha went out or not: the wave check
+    counts them, and the expiry sweep finds the ones nobody answered, including
+    those left open by a restart.
+    """
+
+    __tablename__ = "join_captchas"
+    __table_args__ = (Index("ix_join_captchas_chat_id_created_at", "chat_id", "created_at"),)
+
+    # Sent, waiting for a tap.
+    STATUS_PENDING = "pending"
+    # Arrived during a wave: not written to, left in Telegram for the admins.
+    STATUS_HELD = "held"
+    STATUS_PASSED = "passed"
+    # Out of tries.
+    STATUS_FAILED = "failed"
+    # Out of time.
+    STATUS_EXPIRED = "expired"
+    # Turned away with the wave it came in.
+    STATUS_DECLINED = "declined"
+    # Telegram refused the private message, so the request is the admins' again.
+    STATUS_UNDELIVERED = "undelivered"
+    # Closed by someone else (an admin, another bot) before the applicant answered.
+    STATUS_GONE = "gone"
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    # Where the captcha goes. Telegram allows writing there for five minutes.
+    user_chat_id: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    answer: Mapped[str] = mapped_column(String(16))
+    options: Mapped[list[str]] = mapped_column(JSON)
+    attempts_left: Mapped[int] = mapped_column(Integer)
+    message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    wave_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    def __init__(
+        self,
+        *,
+        chat_id: int,
+        user_id: int,
+        user_chat_id: int,
+        status: str,
+        answer: str,
+        options: list[str],
+        attempts_left: int,
+        created_at: datetime.datetime,
+        expires_at: datetime.datetime,
+        wave_id: int | None = None,
+    ) -> None:
+        self.chat_id = chat_id
+        self.user_id = user_id
+        self.user_chat_id = user_chat_id
+        self.status = status
+        self.answer = answer
+        self.options = options
+        self.attempts_left = attempts_left
+        self.created_at = created_at
+        self.expires_at = expires_at
+        self.wave_id = wave_id
+
+
+class JoinWave(Base):
+    """A burst of join requests to one chat, and what an admin decided about it."""
+
+    __tablename__ = "join_waves"
+
+    DECISION_DECLINE = "decline"
+    DECISION_RESUME = "resume"
+    DECISION_LEAVE = "leave"
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    started_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    # The last moment requests came faster than the threshold; the pause ends
+    # a quiet spell after it.
+    last_surge_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    alert_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    decision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    decided_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    decided_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    def __init__(self, *, chat_id: int, started_at: datetime.datetime) -> None:
+        self.chat_id = chat_id
+        self.started_at = started_at
+        self.last_surge_at = started_at
+
+
 class ChatMemberSnapshot(Base):
     """Periodic member-count observations for managed chats.
 

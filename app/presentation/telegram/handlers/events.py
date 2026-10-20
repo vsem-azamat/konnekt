@@ -15,6 +15,7 @@ from aiogram.types import ChatJoinRequest, ChatMemberUpdated, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.captcha import service as captcha
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -97,10 +98,11 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
     middleware watches, so without this a blacklisted person is only stopped
     once an operator has already let them in.
 
-    Nobody is approved outright. With the check configured the applicant is
-    shown a Mini App and approves themselves by passing it; otherwise `queue`
-    hands the decision to the humans. A guard bot must answer either way —
-    leaving the query unanswered hangs the request.
+    Nobody is approved outright. With captcha on, the applicant approves
+    themselves by passing it: a Mini App when this bot guards the chat, a
+    private message otherwise. Without it the decision stays with the humans.
+    A guard bot must answer either way — leaving the query unanswered hangs
+    the request.
     """
     applicant = event.from_user
     chat = await db.scalar(select(Chat).where(Chat.id == event.chat.id))
@@ -119,7 +121,11 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
         return
 
     if not event.query_id:
-        # Not this chat's guard bot: approving is the operator's call to make.
+        # Not this chat's guard bot: the request is answered in a private
+        # message, or, without a captcha, left to the operator.
+        if chat.is_captcha_enabled:
+            await captcha.admit(bot, db, event, chat)
+            return
         logger.info("join_request_left_to_admins", chat_id=event.chat.id, user_id=applicant.id)
         return
 
