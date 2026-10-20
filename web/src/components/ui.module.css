@@ -824,6 +824,12 @@
   align-self: center;
 }
 
+/* Focus lands on the panel itself when it opens: it names the dialog, and a ring
+   round a whole sheet says nothing the sheet's own edges do not. */
+.sheet:focus {
+  outline: none;
+}
+
 .sheetTitle {
   font-size: 17px;
   font-weight: 720;
