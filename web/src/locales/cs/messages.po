@@ -361,10 +361,6 @@ msgstr "Vzhled: podle systému. Klepnutím změníš"
 msgid "Ссылка должна начинаться с https://, вести на сайт и быть без пробелов, не длиннее 1024 знаков."
 msgstr "Odkaz musí začínat https://, vést na web, být bez mezer a mít nejvýše 1024 znaků."
 
-#: src/pages/Ads.tsx
-msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты модерируются каждый день, поэтому чужой спам не перебивает ваш пост."
-msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Chaty moderujeme každý den, takže cizí spam váš příspěvek nepřehluší."
-
 #: src/pages/Results.tsx
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
@@ -654,6 +650,10 @@ msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a no
 #: src/console/FailureText.tsx
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
 msgstr "Přihlášení se neuložilo: otevřete konzoli v aplikaci Telegram."
+
+#: src/pages/Ads.tsx
+msgid "Студенты чешских вузов в чатах и в этом приложении. Спам из чатов мы вычищаем каждый день, поэтому чужой спам не перебивает ваш пост."
+msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Spam z chatů odstraňujeme každý den, takže cizí spam váš příspěvek nepřehluší."
 
 #: src/pages/Ask.tsx
 msgid "Убери что-нибудь из уточнений выше или напиши иначе."

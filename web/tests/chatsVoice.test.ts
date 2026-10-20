@@ -1,8 +1,9 @@
 /*
  * The chat catalogue speaks as the video does: what happens to spam, not who
  * does it. «Модерируются» was the bot's old line too, and the bot's own texts
- * changed in the same PR (#264). Only the catalogue screen is held to it here;
- * the console, which only operators open, talks about moderators by design.
+ * changed in the same PR (#264). The catalogue screen and the advertisers'
+ * page are held to it here; the console, which only operators open, talks
+ * about moderators by design.
  */
 
 import assert from 'node:assert/strict';
@@ -22,13 +23,15 @@ function linesFrom(po: string, source: string): string[] {
 }
 
 for (const locale of ['ru', 'cs', 'en', 'uk']) {
-  test(`the ${locale} chat catalogue does not say the chats are moderated`, () => {
-    const path = new URL(`../src/locales/${locale}/messages.po`, import.meta.url);
-    const lines = linesFrom(readFileSync(path, 'utf8'), 'src/pages/Chats.tsx');
-    assert.ok(lines.length > 0, 'no entries from Chats.tsx — did the file move?');
-    assert.deepEqual(
-      lines.filter((line) => SAID_OF_CHATS.test(line)),
-      [],
-    );
-  });
+  for (const source of ['src/pages/Chats.tsx', 'src/pages/Ads.tsx']) {
+    test(`${source} in ${locale} does not say the chats are moderated`, () => {
+      const path = new URL(`../src/locales/${locale}/messages.po`, import.meta.url);
+      const lines = linesFrom(readFileSync(path, 'utf8'), source);
+      assert.ok(lines.length > 0, `no entries from ${source} — did the file move?`);
+      assert.deepEqual(
+        lines.filter((line) => SAID_OF_CHATS.test(line)),
+        [],
+      );
+    });
+  }
 }
