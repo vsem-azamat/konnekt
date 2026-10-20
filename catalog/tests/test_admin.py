@@ -389,10 +389,14 @@ async def test_a_profile_opens_for_the_operator_as_the_catalog_names_it(
     assert not {"tg_id", "tg_username", "photo_url"} & set(body)
 
 
-async def test_an_unknown_profile_is_404(session: AsyncSession) -> None:
+@pytest.mark.parametrize("method", ["GET", "POST"])
+async def test_an_unknown_profile_is_404(session: AsyncSession, method: str) -> None:
+    path = "/api/v1/admin/profiles/999999999"
     async with _client(session) as http:
-        response = await http.get(
-            "/api/v1/admin/profiles/999999999", headers=auth_header(OPERATOR)
+        response = await http.request(
+            method,
+            path if method == "GET" else f"{path}/hide",
+            headers=auth_header(OPERATOR),
         )
     assert response.status_code == 404
 

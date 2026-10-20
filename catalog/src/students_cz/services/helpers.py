@@ -74,7 +74,15 @@ async def save_profile(
     # Locked for the save: an operator's ban landing between this read and the
     # write below would otherwise be overwritten by the owner's own status.
     # Waiting on the row, the read sees the ban once it commits.
-    helper = await session.get(HelperProfile, user.id, with_for_update=True)
+    # populate_existing: a profile this session loaded earlier must be read
+    # again, not answered from memory. FOR NO KEY UPDATE, so offers and
+    # contacts can still be inserted under it.
+    helper = await session.get(
+        HelperProfile,
+        user.id,
+        with_for_update={"key_share": True},
+        populate_existing=True,
+    )
     if helper is None:
         helper = HelperProfile(user_id=user.id)
         session.add(helper)

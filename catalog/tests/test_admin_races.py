@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from students_cz.db.models import HelperProfile, User
@@ -23,8 +23,19 @@ from students_cz.services.errors import Conflict, Forbidden
 pytestmark = pytest.mark.asyncio
 
 TG_ID = 97901
-# Long enough for the other transaction to reach the lock and wait on it.
-WAIT = 0.3
+
+
+async def _until_waiting(engine: AsyncEngine) -> None:
+    """Until some backend waits on a row lock: the other side has reached it."""
+    async with AsyncSession(engine) as session:
+        for _ in range(200):
+            waiting = await session.scalar(
+                text("SELECT count(*) FROM pg_locks WHERE NOT granted")
+            )
+            if waiting:
+                return
+            await asyncio.sleep(0.02)
+    raise AssertionError("the other transaction never waited on the row")
 
 
 @pytest_asyncio.fixture
@@ -81,7 +92,7 @@ async def test_an_owner_hiding_first_is_not_overwritten_by_a_ban(
         profile.status = PublishStatus.HIDDEN
         await owner.flush()
         banning = asyncio.create_task(ban())
-        await asyncio.sleep(WAIT)
+        await _until_waiting(engine)
         await owner.commit()
 
     with pytest.raises(Conflict):
@@ -107,7 +118,7 @@ async def test_an_owner_saving_over_a_ban_is_refused(
     async with AsyncSession(engine) as operator:
         await admin.hide_profile(operator, UiLang.RU, listed)
         saving = asyncio.create_task(save())
-        await asyncio.sleep(WAIT)
+        await _until_waiting(engine)
         await operator.commit()
 
     with pytest.raises(Forbidden):
