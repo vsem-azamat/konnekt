@@ -704,6 +704,7 @@ def _member(can_manage_topics: bool) -> Any:
         can_post_stories=False,
         can_edit_stories=False,
         can_delete_stories=False,
+        can_send_welcome_messages=False,
         can_manage_topics=can_manage_topics,
     )
 

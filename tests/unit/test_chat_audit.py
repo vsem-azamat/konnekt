@@ -168,6 +168,16 @@ async def test_tags_omitted_by_telegram_follow_the_pin_right() -> None:
     assert (await inspect_chat(_bot(member=member), _row())).missing_rights == ()
 
 
+async def test_the_welcome_messages_right_is_not_required() -> None:
+    """Asked for, never used: the bot sends no welcomes, so a chat that never
+    granted it lacks nothing. Bot API added it after the bot was in every chat."""
+    member = ChatMemberAdministrator.model_validate(
+        {"user": _user(), "can_be_edited": False, **{**_full_rights(), "can_send_welcome_messages": False}}
+    )
+
+    assert (await inspect_chat(_bot(member=member), _row())).missing_rights == ()
+
+
 async def test_a_creator_lacks_nothing_even_in_a_forum() -> None:
     bot = _bot(info=_chat_info(is_forum=True), member=ChatMemberOwner(user=_user(), is_anonymous=False))
 

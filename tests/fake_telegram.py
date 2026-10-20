@@ -223,6 +223,7 @@ class FakeTelegramServer:
                     "can_post_stories": True,
                     "can_edit_stories": True,
                     "can_delete_stories": True,
+                    "can_send_welcome_messages": False,
                     "can_manage_topics": True,
                     "is_anonymous": False,
                 }
