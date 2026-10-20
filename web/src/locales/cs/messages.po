@@ -1418,10 +1418,6 @@ msgstr "u nostrifikace"
 msgid "Снять с публичной вкладки?"
 msgstr "Stáhnout z veřejné záložky?"
 
-#: src/pages/Ads.tsx
-msgid "Займы, ставки, дипломы под ключ. Модерация чистит такое каждый день, и продавать то же самое сверху было бы странно."
-msgstr "Půjčky, sázky, práce na klíč. Moderace to každý den maže a prodávat totéž shora by bylo zvláštní."
-
 #: src/pages/Profile.tsx
 msgid "Жизнь в Чехии"
 msgstr "Život v Česku"
@@ -1938,6 +1934,10 @@ msgstr "Najdi svůj chat"
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"
 msgstr "Napsat na Telegram"
+
+#: src/pages/Ads.tsx
+msgid "Займы, ставки, дипломы под ключ. Такое мы вычищаем из чатов каждый день, и продавать то же самое сверху было бы странно."
+msgstr "Půjčky, sázky, práce na klíč. Takové věci z chatů každý den odstraňujeme a prodávat totéž shora by bylo zvláštní."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: от 8 900 Kč"

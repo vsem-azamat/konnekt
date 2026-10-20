@@ -1418,10 +1418,6 @@ msgstr "next to nostrification"
 msgid "Снять с публичной вкладки?"
 msgstr "Take it off the public tab?"
 
-#: src/pages/Ads.tsx
-msgid "Займы, ставки, дипломы под ключ. Модерация чистит такое каждый день, и продавать то же самое сверху было бы странно."
-msgstr "Loans, betting, ready-made theses. Moderation removes that every day, and selling the same thing on top would be odd."
-
 #: src/pages/Profile.tsx
 msgid "Жизнь в Чехии"
 msgstr "Life in Czechia"
@@ -1938,6 +1934,10 @@ msgstr "Find your chat"
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"
 msgstr "Write on Telegram"
+
+#: src/pages/Ads.tsx
+msgid "Займы, ставки, дипломы под ключ. Такое мы вычищаем из чатов каждый день, и продавать то же самое сверху было бы странно."
+msgstr "Loans, betting, ready-made theses. We clear that out of the chats every day, and selling the same thing on top would be odd."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: от 8 900 Kč"
