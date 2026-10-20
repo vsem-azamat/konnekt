@@ -122,10 +122,29 @@ def verify_id_token(id_token: str, *, jwks: dict[str, Any], client_id: str, nonc
     token_nonce = claims.get("nonce")
     if token_nonce is not None and not (isinstance(token_nonce, str) and constant_time_equal(token_nonce, nonce)):
         raise OidcError("id_token rejected: nonce")
-    user_id = claims.get("id")
-    if not isinstance(user_id, int) or isinstance(user_id, bool):
-        raise OidcError("id_token rejected: no numeric id")
+    user_id = _telegram_id(claims.get("id"))
+    if user_id is None:
+        raise OidcError(f"id_token rejected: no usable id; claims: {_shape(claims)}")
     return user_id
+
+
+def _telegram_id(raw: object) -> int | None:
+    """A positive Telegram user id, whether Telegram sent it as a number or as its digits.
+
+    Telegram's page gives the claim no type, and a live token carried it as text.
+    ASCII digits only: `str.isdigit` also admits scripts and superscripts that
+    `int` would turn into somebody else's id.
+    """
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, str) and raw.isascii() and raw.isdigit():
+        raw = int(raw)
+    return raw if isinstance(raw, int) and raw > 0 else None
+
+
+def _shape(claims: dict[str, Any]) -> str:
+    """The token's claim names and their value types, never the values: for the log."""
+    return ", ".join(f"{name}: {type(value).__name__}" for name, value in sorted(claims.items()))
 
 
 # Telegram rotates its keys rarely. A copy is kept for an hour; a token it
