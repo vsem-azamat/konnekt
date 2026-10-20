@@ -373,6 +373,10 @@ msgstr "Try other words — or post a request and let them find you."
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "It did not go through — try again."
 
+#: src/pages/Chats.tsx
+msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
+msgstr "Faculties, dorms, general chats. We clear out spam, scams and phishing."
+
 #: src/lib/turnaround.tsx
 msgid "Две недели"
 msgstr "Two weeks"
@@ -582,10 +586,6 @@ msgstr "Incoming"
 #: src/components/Incoming.tsx
 msgid "Заявки видят те, кто может на них ответить."
 msgstr "Requests are visible to people who can answer them."
-
-#: src/pages/Chats.tsx
-msgid "Факультеты, общежития, общие. Модерируются, спам вычищается."
-msgstr "Faculties, dorms, general chats. Moderated, spam gets removed."
 
 #: src/pages/Helper.tsx
 msgid "Сколько стоит"

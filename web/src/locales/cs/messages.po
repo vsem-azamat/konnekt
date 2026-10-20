@@ -373,6 +373,10 @@ msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "Neodeslalo se — zkus to znovu."
 
+#: src/pages/Chats.tsx
+msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
+msgstr "Fakulty, koleje, obecné chaty. Spam, podvody a phishing odstraňujeme."
+
 #: src/lib/turnaround.tsx
 msgid "Две недели"
 msgstr "Dva týdny"
@@ -582,10 +586,6 @@ msgstr "Příchozí"
 #: src/components/Incoming.tsx
 msgid "Заявки видят те, кто может на них ответить."
 msgstr "Poptávky vidí ti, kdo na ně můžou odpovědět."
-
-#: src/pages/Chats.tsx
-msgid "Факультеты, общежития, общие. Модерируются, спам вычищается."
-msgstr "Fakulty, koleje, obecné chaty. Moderované, spam se maže."
 
 #: src/pages/Helper.tsx
 msgid "Сколько стоит"

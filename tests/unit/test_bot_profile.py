@@ -167,3 +167,11 @@ class TestStartupIsNotHeldHostage:
         await bot_module.on_startup(bot)
 
         bot.delete_webhook.assert_awaited()
+
+
+def test_the_refusal_names_no_moderators() -> None:
+    """Only those who are not moderators ever read it: members, and Telegram
+    administrators the bot grants nothing to."""
+    from app.presentation.telegram.middlewares.admin import NOT_ADMIN
+
+    assert "модер" not in NOT_ADMIN.lower()

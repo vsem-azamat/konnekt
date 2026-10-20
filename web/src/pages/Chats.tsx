@@ -71,7 +71,7 @@ export default function ChatsPage() {
         </Title>
         <div style={{ marginTop: 6 }}>
           <Sub>
-            <Trans>Факультеты, общежития, общие. Модерируются, спам вычищается.</Trans>
+            <Trans>Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем.</Trans>
           </Sub>
         </div>
 
