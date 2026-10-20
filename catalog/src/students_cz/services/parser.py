@@ -501,6 +501,11 @@ RESTATING_FOR: dict[str, tuple[str, ...]] = {
         "чеськ",
         "czech",
         "cesk",
+        # A faculty is a part of one: «přijímačky na fakultu». Which faculty
+        # is the school's to say, not the word's.
+        "fakult",
+        "faculty",
+        "факульт",
         # And the city most of them are in: «вуз Праги», «v Praze».
         "праг",
         "prah",
@@ -682,6 +687,17 @@ async def parse(
         subjects = await _from_admissions(
             session, norm, lang, subjects, shelf_id, stems, result.institution
         )
+        # A shelf's word has chosen already: «přijímačky na VŠE z matematiky»
+        # is the maths exam, not VŠE's.
+        shelf_named = bool(stems) and any(
+            token.startswith(normalise(stem))
+            for token in tokenise(norm).split()
+            for stem in stems or ()
+        )
+        if not shelf_named:
+            subjects = await _by_what_tells_them_apart(
+                session, norm, lang, subjects, keyword, result.institution
+            )
 
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
@@ -1330,6 +1346,115 @@ async def _from_admissions(
     sharing = {match.id: len(await shelves_of(session, {match.id})) for match in found}
     found.sort(key=lambda match: sharing[match.id])
     return found[:4] or subjects
+
+
+async def _by_what_tells_them_apart(
+    session: AsyncSession,
+    norm: str,
+    lang: str,
+    subjects: list[Match],
+    keyword: str | None,
+    institution: Match | None,
+) -> list[Match]:
+    """An admissions guess re-chosen by the words that tell the leaves apart.
+
+    Every admissions leaf is named with the same entrance words («Поступление
+    в … вузы»), so over the whole query the one sharing most of them won: the
+    economics admissions answered «поступление на ЧВУТ» and «поступление в
+    технический вуз». What tells them apart is a word only one leaf has — in
+    its names or its synonyms: «technické», «cvut», «медицина», «vše». When
+    the query's own words, or the school it named, share one with exactly one
+    leaf, that leaf is the answer, over any other guess; otherwise the guess
+    stays as it was.
+    """
+    from students_cz.db.models import SubjectI18n
+    from students_cz.services.lookup import held_by
+
+    admissions_id = await session.scalar(
+        select(Subject.id).where(Subject.slug == ADMISSIONS_SHELF)
+    )
+    if admissions_id is None:
+        return subjects
+    # A guess off the shelf too: beside entrance exams it matches nobody, and
+    # «Школьная химия» answered «вступительные для поступления в технический
+    # вуз». Only a leaf the words single out replaces it.
+    leaves = await _entrance_exams(session, set(await held_by(session, admissions_id)))
+    restating = (*RESTATING, *RESTATING_FOR["entrance_prep"])
+
+    def plain(word: str) -> bool:
+        """A word that says nothing about which leaf."""
+        return (
+            word in FILLER_WORDS
+            or any(word.startswith(asking) for asking in ASKING)
+            or any(_says(word, restates) for restates in restating)
+            or _match_service(word)[0] is not None
+        )
+
+    words: dict[int, set[str]] = {leaf: set() for leaf in leaves}
+    for leaf, name in await session.execute(
+        select(SubjectI18n.subject_id, SubjectI18n.name).where(
+            SubjectI18n.subject_id.in_(leaves)
+        )
+    ):
+        words[leaf] |= set(tokenise(normalise(name)).split())
+    for leaf, synonyms in await session.execute(
+        select(Subject.id, Subject.synonyms).where(Subject.id.in_(leaves))
+    ):
+        for synonym in synonyms:
+            words[leaf] |= set(tokenise(normalise(synonym)).split())
+    # Codes of two letters («lf», «uk») and numbers are too short to tell a
+    # leaf by: «1 lf uk» would make every query about Charles University the
+    # medicine admissions. A word two leaves share tells neither: the answer
+    # has to be the only leaf told.
+    owned = {
+        leaf: {
+            transliterate(word)
+            for word in names
+            if len(word) >= 3 and not word.isdigit() and not plain(word)
+        }
+        for leaf, names in words.items()
+    }
+
+    asked = {
+        transliterate(token)
+        for token in tokenise(_without(norm, keyword) if keyword else norm).split()
+        if not plain(token)
+    } | await _school_words(session, institution)
+    told = {
+        leaf
+        for leaf, names in owned.items()
+        if any(_same_word(said, name) for said in asked for name in names)
+    }
+    if len(told) != 1:
+        return subjects
+    (leaf,) = told
+    if leaf == subjects[0].id:
+        return subjects
+    labels: dict[str, str] = {
+        str(row_lang): name
+        for row_lang, name in await session.execute(
+            select(SubjectI18n.lang, SubjectI18n.name).where(
+                SubjectI18n.subject_id == leaf
+            )
+        )
+    }
+    label = labels.get(lang) or next(iter(labels.values()), "")
+    chosen = Match(id=leaf, label=label, score=1.0, matched_on="name")
+    return [chosen, *(match for match in subjects if match.id != leaf)][:4]
+
+
+def _same_word(one: str, other: str) -> bool:
+    """The same word, inflected: «технический» and «технические», «медицину»
+    and «медицина». Equal, or sharing a beginning of five letters that leaves
+    at most three of the shorter word's letters over."""
+    if one == other:
+        return True
+    shared = 0
+    for a, b in zip(one, other, strict=False):
+        if a != b:
+            break
+        shared += 1
+    return shared >= max(5, min(len(one), len(other)) - 3)
 
 
 async def _entrance_exams(session: AsyncSession, ids: set[int]) -> set[int]:

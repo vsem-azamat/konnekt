@@ -863,3 +863,101 @@ async def test_preparing_at_or_admitting_to_else_is_not_entering(session, text) 
 async def test_admission_reaches_a_name_of_up_to_three_words(session, text) -> None:
     parsed = await parse(session, text, "en", today=TODAY)
     assert parsed.service_type == "entrance_prep"
+
+
+# #304: entering a school of one kind answered with another kind's admissions.
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        ("поступление на ЧВУТ", "ru", "prijimacky-technicke-vs"),
+        ("вступ до ЧВУТ", "uk", "prijimacky-technicke-vs"),
+        ("поступление в технический вуз", "ru", "prijimacky-technicke-vs"),
+        ("вступ до технічного університету", "uk", "prijimacky-technicke-vs"),
+        ("поступление в чешский вуз на медицину", "ru", "prijimacky-medicina"),
+        ("поступление в вуз на медицину", "ru", "prijimacky-medicina"),
+        # And the economics admissions where they are meant.
+        ("поступление в ВШЭ", "ru", "prijimacky-ekonomicke-vs"),
+        ("поступление в экономический вуз", "ru", "prijimacky-ekonomicke-vs"),
+        ("přijímačky na VŠE", "cs", "prijimacky-ekonomicke-vs"),
+    ],
+)
+async def test_the_school_or_field_picks_the_admissions(
+    session, text, lang, slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_masaryk_university_is_its_own_test(session) -> None:
+    parsed = await parse(session, "поступление в МУНИ", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "tsp-muni"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "not_slug"),
+    [
+        # Charles University teaches far more than medicine: «1 LF UK» is too
+        # short a word to say which.
+        ("поступление в Карлов университет", "ru", "prijimacky-medicina"),
+        ("přijímačky na UK", "cs", "prijimacky-medicina"),
+        # Nothing here names one kind of school, and no leaf is guessed for it.
+        ("поступление в вуз Брно", "ru", "prijimacky-medicina"),
+        ("поступление в вуз с аттестатом", "ru", "tsp-muni"),
+    ],
+)
+async def test_no_single_leaf_named_changes_nothing(
+    session, text, lang, not_slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, not_slug)
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A faculty is told by its university: FIT of ČVUT, FIS of VŠE.
+        ("поступление на ФИТ", "ru", "prijimacky-technicke-vs"),
+        ("přijímačky na FIS", "cs", "prijimacky-ekonomicke-vs"),
+        ("přijímačky na FEL", "cs", "prijimacky-technicke-vs"),
+        ("přijímačky na lékařskou fakultu", "cs", "prijimacky-medicina"),
+    ],
+)
+async def test_a_faculty_is_told_by_its_university(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_two_kinds_of_school_named_change_nothing(session) -> None:
+    """ČVUT and medicine are two leaves; neither is chosen over the other."""
+    parsed = await parse(session, "поступление в ЧВУТ на медицину", "ru", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("поступление на факультет", "ru"),
+        ("přijímačky na fakultu", "cs"),
+        ("admission to a faculty", "en"),
+    ],
+)
+async def test_a_faculty_alone_is_bare(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+async def test_a_second_entrance_word_tells_no_leaf(session) -> None:
+    """Every leaf is named with entrance words; only «технический» says which."""
+    parsed = await parse(
+        session, "вступительные для поступления в технический вуз", "ru", today=TODAY
+    )
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-technicke-vs"), (
+        parsed.subject
+    )
