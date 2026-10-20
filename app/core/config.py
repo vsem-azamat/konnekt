@@ -207,8 +207,17 @@ class WebApiSettings(Settings):
         default=True,
         description="Set Secure flag on session cookie. Disable only for local http:// dev.",
     )
-    # Not "none": SameSite is the only defence the console's mutations have
-    # against a request another site makes with the admin's cookie.
+    admin_url: str = Field(
+        default="",
+        description="Origin the console is opened at in a browser (not inside Telegram); the OpenID Connect redirect lives here.",
+    )
+    oidc_client_id: str = Field(
+        default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
+    )
+    oidc_client_secret: str = Field(default="", description="Client Secret from the same place")
+    # Not "none". Lax is same-site, not same-origin: a sibling host under the
+    # same domain still sends the cookie, which is why writes also check Origin
+    # (app/webapi/origin_guard.py).
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
 
     @field_validator("session_cookie_samesite", mode="before")
@@ -225,6 +234,11 @@ class WebApiSettings(Settings):
     )
 
     @property
+    def oidc_enabled(self) -> bool:
+        """On when configured and off otherwise, like the other optional doors."""
+        return bool(self.admin_url and self.oidc_client_id and self.oidc_client_secret)
+
+    @property
     def allowed_origins(self) -> list[str]:
         """Origins the API accepts, derived from where the UI is served.
 
@@ -235,10 +249,11 @@ class WebApiSettings(Settings):
         fell back to the local development origin, which went unnoticed only
         because the UI and the API share a host and never trigger CORS.
 
-        One origin, derived from the URL already configured, cannot disagree
-        with itself. The trailing slash goes because browsers compare exactly.
+        Origins derived from the URLs already configured cannot disagree with
+        them: the Mini App's, and the admin site's when it has one. The trailing
+        slash goes because browsers compare exactly.
         """
-        return [self.public_url.rstrip("/")] if self.public_url else []
+        return [url.rstrip("/") for url in (self.public_url, self.admin_url) if url]
 
 
 class LoggingSettings(Settings):
