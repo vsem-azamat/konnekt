@@ -6,6 +6,7 @@ import type {
   AdminPlacement,
   AdminPlacementIn,
   AdminPlacementSwitch,
+  AdminProfileDetail,
   AdsInfo,
 } from './generated/types.gen';
 import { isApproval } from './join';
@@ -357,6 +358,22 @@ export const api = {
   /** New profiles, unanswered requests, empty searches. Operators only. */
   getAdminCatalog: (signal?: AbortSignal) =>
     request<AdminCatalog>('/admin/catalog', { signal }),
+
+  /** One profile as the operator moderates it. Operators only. */
+  getAdminProfile: (userId: number, signal?: AbortSignal) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}`, { signal }),
+
+  /** Looked at and left listed: off «Новые анкеты». Operators only. */
+  keepProfile: (userId: number) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/review`, { method: 'POST' }),
+
+  /** Out of the catalog; its owner cannot list it again. Operators only. */
+  hideProfile: (userId: number) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/hide`, { method: 'POST' }),
+
+  /** A hidden profile listed again. Operators only. */
+  restoreProfile: (userId: number) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/restore`, { method: 'POST' }),
 
   /** Placements with the last month's impressions and clicks. Operators only. */
   getAdminPartners: (signal?: AbortSignal) =>

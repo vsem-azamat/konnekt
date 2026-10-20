@@ -11,6 +11,7 @@ from students_cz.schemas import (
     AdminPlacement,
     AdminPlacementIn,
     AdminPlacementSwitch,
+    AdminProfileDetail,
 )
 from students_cz.services import admin
 
@@ -20,6 +21,34 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/catalog", response_model=AdminCatalog)
 async def read_catalog(_: AdminDep, session: SessionDep, lang: LangDep) -> AdminCatalog:
     return await admin.catalog(session, lang)
+
+
+@router.get("/profiles/{user_id}", response_model=AdminProfileDetail)
+async def read_profile(
+    user_id: IdPath, _: AdminDep, session: SessionDep, lang: LangDep
+) -> AdminProfileDetail:
+    return await admin.profile(session, lang, user_id)
+
+
+@router.post("/profiles/{user_id}/review", response_model=AdminProfileDetail)
+async def keep_profile(
+    user_id: IdPath, _: AdminDep, session: SessionDep, lang: LangDep
+) -> AdminProfileDetail:
+    return await admin.keep_profile(session, lang, user_id)
+
+
+@router.post("/profiles/{user_id}/hide", response_model=AdminProfileDetail)
+async def hide_profile(
+    user_id: IdPath, _: AdminDep, session: SessionDep, lang: LangDep
+) -> AdminProfileDetail:
+    return await admin.hide_profile(session, lang, user_id)
+
+
+@router.post("/profiles/{user_id}/restore", response_model=AdminProfileDetail)
+async def restore_profile(
+    user_id: IdPath, _: AdminDep, session: SessionDep, lang: LangDep
+) -> AdminProfileDetail:
+    return await admin.restore_profile(session, lang, user_id)
 
 
 @router.get("/partners", response_model=list[AdminPlacement])

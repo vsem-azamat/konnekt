@@ -152,6 +152,9 @@ class HelperProfile(TimestampMixin, Base):
         server_default="draft",
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When an operator looked at it in the console and kept or hid it; until
+    # then a newly published profile waits on the console's «Новые анкеты».
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     work_format: Mapped[WorkFormat] = mapped_column(
         pg_enum(WorkFormat, "work_format"),

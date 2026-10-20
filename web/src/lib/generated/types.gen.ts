@@ -15,6 +15,10 @@ export type AdminCatalog = {
      */
     profiles: Array<AdminProfile>;
     /**
+     * Hidden
+     */
+    hidden: Array<AdminProfile>;
+    /**
      * Unanswered
      */
     unanswered: Array<AdminRequest>;
@@ -33,6 +37,14 @@ export type AdminCounts = {
      * Profiles Week
      */
     profiles_week: number;
+    /**
+     * Profiles To Review
+     */
+    profiles_to_review: number;
+    /**
+     * Hidden
+     */
+    hidden: number;
     /**
      * Requests Week
      */
@@ -147,6 +159,48 @@ export type AdminProfile = {
      * Published At
      */
     published_at: string;
+};
+
+/**
+ * AdminProfileDetail
+ *
+ * One profile as the operator moderates it. Named as the catalog names
+ * people, with nothing to reach them by: the console does not contact.
+ */
+export type AdminProfileDetail = {
+    /**
+     * User Id
+     */
+    user_id: number;
+    /**
+     * Name
+     */
+    name: string;
+    status: PublishStatus;
+    /**
+     * Headline
+     */
+    headline: string | null;
+    /**
+     * About
+     */
+    about: string | null;
+    /**
+     * Services
+     */
+    services: Array<string>;
+    /**
+     * Institution
+     */
+    institution: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
 };
 
 /**
@@ -972,6 +1026,11 @@ export type Price = {
  * PriceUnit
  */
 export type PriceUnit = 'hour' | 'lesson' | 'work' | 'day' | 'week' | 'month' | 'semester' | 'item' | 'negotiable';
+
+/**
+ * PublishStatus
+ */
+export type PublishStatus = 'draft' | 'pending' | 'published' | 'hidden' | 'banned';
 
 /**
  * RequestCreate
@@ -2252,6 +2311,150 @@ export type ReadCatalogApiV1AdminCatalogGetResponses = {
 };
 
 export type ReadCatalogApiV1AdminCatalogGetResponse = ReadCatalogApiV1AdminCatalogGetResponses[keyof ReadCatalogApiV1AdminCatalogGetResponses];
+
+export type ReadProfileApiV1AdminProfilesUserIdGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/profiles/{user_id}';
+};
+
+export type ReadProfileApiV1AdminProfilesUserIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReadProfileApiV1AdminProfilesUserIdGetError = ReadProfileApiV1AdminProfilesUserIdGetErrors[keyof ReadProfileApiV1AdminProfilesUserIdGetErrors];
+
+export type ReadProfileApiV1AdminProfilesUserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminProfileDetail;
+};
+
+export type ReadProfileApiV1AdminProfilesUserIdGetResponse = ReadProfileApiV1AdminProfilesUserIdGetResponses[keyof ReadProfileApiV1AdminProfilesUserIdGetResponses];
+
+export type KeepProfileApiV1AdminProfilesUserIdReviewPostData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/profiles/{user_id}/review';
+};
+
+export type KeepProfileApiV1AdminProfilesUserIdReviewPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KeepProfileApiV1AdminProfilesUserIdReviewPostError = KeepProfileApiV1AdminProfilesUserIdReviewPostErrors[keyof KeepProfileApiV1AdminProfilesUserIdReviewPostErrors];
+
+export type KeepProfileApiV1AdminProfilesUserIdReviewPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminProfileDetail;
+};
+
+export type KeepProfileApiV1AdminProfilesUserIdReviewPostResponse = KeepProfileApiV1AdminProfilesUserIdReviewPostResponses[keyof KeepProfileApiV1AdminProfilesUserIdReviewPostResponses];
+
+export type HideProfileApiV1AdminProfilesUserIdHidePostData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/profiles/{user_id}/hide';
+};
+
+export type HideProfileApiV1AdminProfilesUserIdHidePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HideProfileApiV1AdminProfilesUserIdHidePostError = HideProfileApiV1AdminProfilesUserIdHidePostErrors[keyof HideProfileApiV1AdminProfilesUserIdHidePostErrors];
+
+export type HideProfileApiV1AdminProfilesUserIdHidePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminProfileDetail;
+};
+
+export type HideProfileApiV1AdminProfilesUserIdHidePostResponse = HideProfileApiV1AdminProfilesUserIdHidePostResponses[keyof HideProfileApiV1AdminProfilesUserIdHidePostResponses];
+
+export type RestoreProfileApiV1AdminProfilesUserIdRestorePostData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/profiles/{user_id}/restore';
+};
+
+export type RestoreProfileApiV1AdminProfilesUserIdRestorePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RestoreProfileApiV1AdminProfilesUserIdRestorePostError = RestoreProfileApiV1AdminProfilesUserIdRestorePostErrors[keyof RestoreProfileApiV1AdminProfilesUserIdRestorePostErrors];
+
+export type RestoreProfileApiV1AdminProfilesUserIdRestorePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminProfileDetail;
+};
+
+export type RestoreProfileApiV1AdminProfilesUserIdRestorePostResponse = RestoreProfileApiV1AdminProfilesUserIdRestorePostResponses[keyof RestoreProfileApiV1AdminProfilesUserIdRestorePostResponses];
 
 export type ReadPartnersApiV1AdminPartnersGetData = {
     body?: never;
