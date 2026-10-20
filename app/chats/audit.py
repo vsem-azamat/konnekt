@@ -50,8 +50,14 @@ if TYPE_CHECKING:
 PINNED_PREVIEW_CHARS = 120
 # Topics exist only in forums; elsewhere Telegram reports the right as off and it means nothing.
 _FORUM_ONLY_RIGHTS = frozenset({"can_manage_topics"})
+# Asked for by the bot's rule of every right, used by nothing: the bot sends no
+# welcomes. Bot API added it after the bot was in every chat, so holding chats to
+# it would report all of them for a right nobody needs.
+_UNUSED_RIGHTS = frozenset({"can_send_welcome_messages"})
 _EXPECTED_RIGHTS = tuple(
-    name for name, value in DEFAULT_ADMIN_RIGHTS.model_dump().items() if isinstance(value, bool) and value
+    name
+    for name, value in DEFAULT_ADMIN_RIGHTS.model_dump().items()
+    if isinstance(value, bool) and value and name not in _UNUSED_RIGHTS
 )
 # The settings a per-kind chat profile will be agreed on, copied as Telegram gives them.
 _SETTINGS = (

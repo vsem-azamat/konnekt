@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import (
@@ -53,7 +53,7 @@ def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
 
 
 @asynccontextmanager
-async def unit_of_work(session: AsyncSession) -> AsyncIterator[AsyncSession]:
+async def unit_of_work(session: AsyncSession) -> AsyncGenerator[AsyncSession]:
     """Commit on the way out, roll back on a raise.
 
     Separate from `session_scope` so the test fixture can wrap its own session

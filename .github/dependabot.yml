@@ -1,26 +1,25 @@
-# Weekly, grouped: one pull request per ecosystem rather than one per package,
-# so updates arrive at a pace somebody reviews. Security updates come apart
-# from these as soon as an advisory is published.
+# Monthly, grouped: one pull request per ecosystem a month rather than one per
+# package a week, so updates arrive at a pace somebody reviews and CI is spent
+# once. Security updates come apart from these as soon as an advisory is
+# published, whatever the schedule.
 version: 2
 updates:
+  # Both Python projects in one group: they must lock the same aiogram
+  # (tests/webapi/test_init_data_agrees_with_aiogram.py), and two groups bumped
+  # it in one and not the other.
   - package-ecosystem: uv
-    directory: /
-    schedule: {interval: weekly}
+    directories: ["/", "/catalog"]
+    schedule: {interval: monthly}
     groups:
       python: {patterns: ["*"]}
-  - package-ecosystem: uv
-    directory: /catalog
-    schedule: {interval: weekly}
-    groups:
-      catalog: {patterns: ["*"]}
   - package-ecosystem: npm
     directory: /web
-    schedule: {interval: weekly}
+    schedule: {interval: monthly}
     groups:
       web: {patterns: ["*"]}
   # Actions are pinned to commits (#191); this keeps the pins moving.
   - package-ecosystem: github-actions
     directory: /
-    schedule: {interval: weekly}
+    schedule: {interval: monthly}
     groups:
       actions: {patterns: ["*"]}
