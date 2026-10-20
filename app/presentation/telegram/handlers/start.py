@@ -65,7 +65,7 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
     text = (
         "<b>Konnekt</b>\n\n"
         "Каталог студенческих чатов Чехии — по университетам, факультетам "
-        "и общежитиям. За ними следят модераторы, спам вычищается.\n\n"
+        "и общежитиям. Спам, скам и фишинг из чатов мы вычищаем.\n\n"
     )
     # Said only when its button is there: the greeting names what it offers.
     if settings.webapi.public_url:
@@ -128,7 +128,7 @@ async def help_command(message: types.Message, admin_repo: AdminRepository) -> N
         "<b>Всем</b>\n"
         "/chats — чаты списком\n"
         "/contacts — связаться\n"
-        "/report — в ответ на сообщение, позвать модераторов (в группе)\n"
+        "/report — в ответ на сообщение, пожаловаться на него (в группе)\n"
     )
 
     is_super_admin = message.from_user.id in settings.admin.super_admins

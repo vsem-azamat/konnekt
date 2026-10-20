@@ -25,7 +25,7 @@ NAME = "Konnekt"
 SHORT_DESCRIPTION = "Студенческие чаты Чехии и помощь с учёбой."
 DESCRIPTION = (
     "Konnekt — студенческие чаты Чехии: по университетам, факультетам и общежитиям. "
-    "За ними следят модераторы, спам вычищается.\n\n"
+    "Спам, скам и фишинг из чатов мы вычищаем.\n\n"
     "Здесь же люди, которые помогут с учёбой: репетиторы, подготовка к вступительным экзаменам, нострификация.\n\n"
     "Нажмите «Открыть» или /start."
 )
@@ -41,7 +41,7 @@ PRIVATE_COMMANDS = [
     BotCommand(command="contacts", description="Связаться"),
 ]
 GROUP_COMMANDS = [
-    BotCommand(command="report", description="В ответ на сообщение: позвать модераторов"),
+    BotCommand(command="report", description="В ответ на сообщение: пожаловаться на него"),
     BotCommand(command="chats", description="Чаты списком"),
     BotCommand(command="help", description="Команды"),
 ]

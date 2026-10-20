@@ -361,10 +361,6 @@ msgstr "Vzhled: podle systému. Klepnutím změníš"
 msgid "Ссылка должна начинаться с https://, вести на сайт и быть без пробелов, не длиннее 1024 знаков."
 msgstr "Odkaz musí začínat https://, vést na web, být bez mezer a mít nejvýše 1024 znaků."
 
-#: src/pages/Ads.tsx
-msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты модерируются каждый день, поэтому чужой спам не перебивает ваш пост."
-msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Chaty moderujeme každý den, takže cizí spam váš příspěvek nepřehluší."
-
 #: src/pages/Results.tsx
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
@@ -372,6 +368,10 @@ msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
 #: src/components/RequestSheet.tsx
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "Neodeslalo se — zkus to znovu."
+
+#: src/pages/Chats.tsx
+msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
+msgstr "Fakulty, koleje, obecné chaty. Spam, podvody a phishing odstraňujeme."
 
 #: src/lib/turnaround.tsx
 msgid "Две недели"
@@ -582,10 +582,6 @@ msgstr "Příchozí"
 #: src/components/Incoming.tsx
 msgid "Заявки видят те, кто может на них ответить."
 msgstr "Poptávky vidí ti, kdo na ně můžou odpovědět."
-
-#: src/pages/Chats.tsx
-msgid "Факультеты, общежития, общие. Модерируются, спам вычищается."
-msgstr "Fakulty, koleje, obecné chaty. Moderované, spam se maže."
 
 #: src/pages/Helper.tsx
 msgid "Сколько стоит"
@@ -946,6 +942,10 @@ msgstr "Jak učíš"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Moje služby"
+
+#: src/pages/Ads.tsx
+msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
+msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Chaty každý den čistíme od spamu, takže cizí reklama váš příspěvek nepřehluší."
 
 #: src/components/TabBar.tsx
 msgid "опиши задачу — придут отклики"
@@ -1417,10 +1417,6 @@ msgstr "u nostrifikace"
 #: src/console/pages/Chat.tsx
 msgid "Снять с публичной вкладки?"
 msgstr "Stáhnout z veřejné záložky?"
-
-#: src/pages/Ads.tsx
-msgid "Займы, ставки, дипломы под ключ. Модерация чистит такое каждый день, и продавать то же самое сверху было бы странно."
-msgstr "Půjčky, sázky, práce na klíč. Moderace to každý den maže a prodávat totéž shora by bylo zvláštní."
 
 #: src/pages/Profile.tsx
 msgid "Жизнь в Чехии"
@@ -1938,6 +1934,10 @@ msgstr "Najdi svůj chat"
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"
 msgstr "Napsat na Telegram"
+
+#: src/pages/Ads.tsx
+msgid "Займы, ставки, дипломы под ключ. Такое мы вычищаем из чатов каждый день, и продавать то же самое сверху было бы странно."
+msgstr "Půjčky, sázky, práce na klíč. Takové věci z chatů každý den odstraňujeme a prodávat totéž shora by bylo zvláštní."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: от 8 900 Kč"
