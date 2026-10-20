@@ -148,6 +148,9 @@ services:
       WEBAPI_ADMIN_URL:
       WEBAPI_OIDC_CLIENT_ID:
       WEBAPI_OIDC_CLIENT_SECRET:
+      # How the console in a browser reads the catalog's screens: the catalog's
+      # SERVICE_TOKEN, shared by these two containers alone.
+      WEBAPI_CATALOG_SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
     volumes:
       - bot-logs:/app/logs
     healthcheck:
