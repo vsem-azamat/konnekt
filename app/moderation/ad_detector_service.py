@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import delete
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models import SpamPing
-from app.moderation.ad_detector import AdSignal, extract_ad_signals
+from app.moderation.ad_detector import extract_ad_signals
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,36 +45,48 @@ async def record_ad_signals(
     """
     if not settings.moderation.ad_detector_enabled:
         return []
-    if replace:
-        # An edit: what the message holds now replaces what it held, so a
-        # message edited three times is still one message with one ad.
-        await db.execute(delete(SpamPing).where(SpamPing.chat_id == chat_id, SpamPing.message_id == message_id))
-        await db.commit()
-    if not text:
-        return []
-
-    signals = extract_ad_signals(text, whitelist=settings.moderation.ad_detector_whitelist)
-    if not signals:
-        return []
-
-    snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars)
-    by_kind: dict[str, list[AdSignal]] = {}
+    signals = extract_ad_signals(text, whitelist=settings.moderation.ad_detector_whitelist) if text else []
+    snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars) if text else None
+    by_kind: dict[str, list[str]] = {}
     for sig in signals:
-        by_kind.setdefault(sig.kind, []).append(sig)
+        by_kind.setdefault(sig.kind, []).append(sig.canonical)
+
+    # An edit: what the message holds now replaces what it held, so a message
+    # edited three times is still one message with one ad. A hit whose links
+    # did not change is the same hit and keeps its answer; other links are a
+    # new question.
+    earlier: dict[str, SpamPing] = {}
+    if replace:
+        earlier = {
+            ping.kind: ping
+            for ping in await db.scalars(
+                select(SpamPing).where(SpamPing.chat_id == chat_id, SpamPing.message_id == message_id)
+            )
+        }
+        for kind, ping in earlier.items():
+            if kind not in by_kind:
+                await db.delete(ping)
 
     rows: list[SpamPing] = []
-    for kind, group in by_kind.items():
-        row = SpamPing(
-            chat_id=chat_id,
-            user_id=user_id,
-            message_id=message_id,
-            kind=kind,
-            matches=[s.canonical for s in group],
-            snippet=snippet,
-        )
-        db.add(row)
+    for kind, matches in by_kind.items():
+        row = earlier.get(kind)
+        if row is None:
+            row = SpamPing(
+                chat_id=chat_id, user_id=user_id, message_id=message_id, kind=kind, matches=matches, snippet=snippet
+            )
+            db.add(row)
+        else:
+            if row.matches != matches:
+                row.matches = matches
+                row.verdict = None
+                row.reviewed_at = None
+                row.reviewed_by = None
+            row.snippet = snippet
         rows.append(row)
-    await db.commit()
+    if rows or earlier:
+        await db.commit()
+    if not rows:
+        return []
 
     logger.info(
         "ad_signals_detected",

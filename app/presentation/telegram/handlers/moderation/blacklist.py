@@ -132,7 +132,9 @@ async def process_blacklist_confirm(
         await bot.ban_chat_member(callback.message.chat.id, user_id)
         member = await bot.get_chat_member(callback.message.chat.id, user_id)
         mention = other.get_user_mention(member.user)
-        failed = await moderation_services.add_to_blacklist(db, bot, user_id, revoke_messages=revoke)
+        failed = await moderation_services.add_to_blacklist(
+            db, bot, user_id, revoke_messages=revoke, actor_id=callback.from_user.id
+        )
         # No chat: the entry holds everywhere, and the ban just carried out in
         # this one is a consequence of it rather than a separate decision.
         await audit.record(

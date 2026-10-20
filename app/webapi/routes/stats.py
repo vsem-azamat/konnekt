@@ -19,6 +19,7 @@ from app.webapi.schemas import (
     SpamPingRead,
     SpamPingsSummary,
 )
+from app.webapi.services.spam_pings import count_unreviewed
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -145,5 +146,7 @@ async def home_stats(
     return HomeStats(
         chat_heatmap=chat_heatmap,
         members_delta=members_delta,
-        spam_pings=SpamPingsSummary(count_24h=count_24h, count_7d=count_7d, recent=recent),
+        spam_pings=SpamPingsSummary(
+            count_24h=count_24h, count_7d=count_7d, unreviewed=await count_unreviewed(session), recent=recent
+        ),
     )
