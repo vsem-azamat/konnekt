@@ -386,3 +386,77 @@ class WebAppLoginPayload(BaseModel):
 class AuthMeResponse(BaseModel):
     user_id: int
     is_authenticated: bool = True
+
+
+AudienceStatus = Literal["reachable", "never_started", "blocked", "opted_out"]
+
+
+class AudienceLanguage(BaseModel):
+    code: str
+    count: int
+
+
+class AudienceSummary(BaseModel):
+    """The top of the Audience page: how many, who may be written to, where they came from."""
+
+    total: int
+    # By status, about the main bot: see app.audience.views.
+    reach: dict[AudienceStatus, int]
+    # By the touchpoint each person used first.
+    first_touch: dict[str, int]
+    # New people per seven days, oldest first, the last entry ending now.
+    new_by_week: list[int]
+    new_this_week: int
+    languages: list[AudienceLanguage]
+
+
+class AudienceMemberRead(BaseModel):
+    """One person in the audience list. Only what Telegram itself tells about them."""
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    language_code: str | None
+    first_seen_at: datetime.datetime
+    last_seen_at: datetime.datetime
+    status: AudienceStatus
+    touchpoints: list[str]
+
+
+class AudiencePage(BaseModel):
+    total: int
+    items: list[AudienceMemberRead]
+    # Pass as `cursor` for the next page; None on the last one.
+    next: str | None
+
+
+class AudienceTouchRead(BaseModel):
+    touchpoint: str
+    first_at: datetime.datetime
+    last_at: datetime.datetime
+    count: int
+
+
+class AudienceReachRead(BaseModel):
+    bot: str
+    started_at: datetime.datetime | None
+    blocked_at: datetime.datetime | None
+
+
+class AudiencePersonRead(BaseModel):
+    """One person's card: profile, every touchpoint, and whether each bot may write."""
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    language_code: str | None
+    first_seen_at: datetime.datetime
+    last_seen_at: datetime.datetime
+    status: AudienceStatus
+    is_premium: bool
+    source: str | None
+    opted_out_at: datetime.datetime | None
+    touches: list[AudienceTouchRead]
+    reach: list[AudienceReachRead]

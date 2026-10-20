@@ -120,3 +120,15 @@ async def test_join_request_in_approved_chat_passes() -> None:
     await gate(handler, _join_request_update(create_test_chat()), {"chat_is_approved": True})
 
     assert handler.called is True
+
+
+async def test_the_bots_own_membership_in_an_unapproved_group_is_stopped() -> None:
+    """my_chat_member is polled for private blocks; in a group it must meet the same gate."""
+    update = _join_update(create_test_chat())
+    own = Update(update_id=2, my_chat_member=update.chat_member)
+    gate = ApprovedChatGateMiddleware()
+    handler = _Handler()
+
+    await gate(handler, own, {"chat_resource_status": DbChat.STATUS_DISCOVERED})
+
+    assert handler.called is False

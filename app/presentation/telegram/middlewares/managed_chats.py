@@ -31,7 +31,12 @@ def _group_chat(event: TelegramObject) -> types.Chat | None:
         return None
     pressed = event.callback_query.message if event.callback_query else None
     carrier: types.Message | types.InaccessibleMessage | types.ChatMemberUpdated | types.ChatJoinRequest | None = (
-        event.message or event.edited_message or event.chat_member or event.chat_join_request or pressed
+        event.message
+        or event.edited_message
+        or event.chat_member
+        or event.my_chat_member
+        or event.chat_join_request
+        or pressed
     )
     if carrier is None:
         return None

@@ -22,6 +22,8 @@ msgid "+ Внешний чат"
 msgstr "+ Externí chat"
 
 #. placeholder {0}: blocked.data.length
+#. placeholder {0}: data.new_this_week
+#: src/console/pages/Audience.tsx
 #: src/console/pages/Summary.tsx
 msgid "{0, plural, one {# человек} few {# человека} many {# человек} other {# человека}}"
 msgstr "{0, plural, one {# člověk} few {# lidé} many {# člověka} other {# lidí}}"
@@ -50,6 +52,10 @@ msgstr "Nastav si v Telegramu veřejný @username — jinak ti nikdo neodpoví"
 msgid "приветствие"
 msgstr "uvítání"
 
+#: src/console/AudienceLabels.tsx
+msgid "Старые боты"
+msgstr "Staré boty"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: VZP"
 msgstr "např. VZP"
@@ -69,6 +75,11 @@ msgstr "Nalezeno"
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
 msgstr "Detektor tu nic nenašel."
+
+#. placeholder {0}: data.total
+#: src/console/pages/Audience.tsx
+msgid "{0, plural, one {человек} few {человека} many {человек} other {человека}}"
+msgstr "{0, plural, one {člověk} few {lidé} many {lidí} other {lidí}}"
 
 #: src/console/pages/Chat.tsx
 msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
@@ -128,6 +139,10 @@ msgstr "Zkontroluj připojení a zkus to znovu."
 msgid "Онлайн"
 msgstr "Online"
 
+#: src/console/pages/Audience.tsx
+msgid "Кто к нам приходил и кому основной бот сможет написать."
+msgstr "Kdo k nám přišel a komu může hlavní bot napsat."
+
 #: src/console/pages/Chat.tsx
 msgid "Отметить внешним"
 msgstr "Označit jako externí"
@@ -167,6 +182,10 @@ msgstr "Pomoc"
 #: src/pages/MyHelper.tsx
 msgid "Видимость"
 msgstr "Viditelnost"
+
+#: src/console/pages/AudiencePeople.tsx
+msgid "новые за неделю"
+msgstr "noví za týden"
 
 #: src/console/BanSheet.tsx
 msgid "Забанить и стереть"
@@ -225,6 +244,10 @@ msgstr "Skrýt"
 #: src/pages/MyHelper.tsx
 msgid "О себе"
 msgstr "O sobě"
+
+#: src/console/pages/AudiencePerson.tsx
+msgid "Может ли бот написать"
+msgstr "Může bot napsat"
 
 #: src/components/Phrase.tsx
 msgid "Экзамены и поступление"
@@ -297,6 +320,10 @@ msgstr "Ukazujeme ji tomu, kdo ji právě potřebuje, ne všem."
 msgid "Их ведёт не Konnekt, и правила там свои."
 msgstr "Nespravuje je Konnekt a pravidla jsou tam jejich vlastní."
 
+#: src/console/AudienceLabels.tsx
+msgid "Mini App"
+msgstr "Mini App"
+
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -342,6 +369,10 @@ msgstr "první rok"
 msgid "Эта проверка открывается кнопкой из заявки на вступление в чат."
 msgstr "Tahle kontrola se otevírá tlačítkem v žádosti o vstup do chatu."
 
+#: src/console/pages/Audience.tsx
+msgid "Все люди"
+msgstr "Všichni lidé"
+
 #: src/console/pages/Summary.tsx
 msgid "где выполнен вход, настройки"
 msgstr "kde jste přihlášeni, nastavení"
@@ -353,6 +384,10 @@ msgstr "Zadej poptávku — ozvou se sami"
 #: src/console/pages/Chats.tsx
 msgid "Добавить в каталог"
 msgstr "Přidat do katalogu"
+
+#: src/console/AudienceLabels.tsx
+msgid "Бот"
+msgstr "Bot"
 
 #: src/pages/Ask.tsx
 msgid "помощь на экзамене по математическому анализу"
@@ -369,6 +404,11 @@ msgstr "{activePlacements, plural, one {# karta} few {# karty} many {# karty} ot
 #: src/pages/ChatSection.tsx
 msgid "Другие чаты"
 msgstr "Spravují jiní"
+
+#. placeholder {0}: languages.rest
+#: src/console/pages/Audience.tsx
+msgid "другие {0}"
+msgstr "ostatní {0}"
 
 #. placeholder {0}: search.times
 #: src/console/pages/Catalog.tsx
@@ -429,6 +469,10 @@ msgstr "Jazyk"
 msgid "Месяц"
 msgstr "Měsíc"
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "Пришли по ссылке"
+msgstr "Přišli přes odkaz"
+
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
 msgstr "Přihlášení se neuložilo"
@@ -486,9 +530,18 @@ msgstr "Dál · {0}"
 msgid "одобрен"
 msgstr "schválený"
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "История"
+msgstr "Historie"
+
 #: src/console/pages/Chat.tsx
 msgid "входит в этот чат"
 msgstr "patří pod tento chat"
+
+#. placeholder {0}: labels.touchpoint[event.touchpoint] ?? event.touchpoint
+#: src/console/pages/AudiencePerson.tsx
+msgid "Последний раз: {0}"
+msgstr "Naposledy: {0}"
 
 #: src/console/pages/Summary.tsx
 msgid "забанены во всех чатах"
@@ -510,6 +563,11 @@ msgstr "Příspěvek vyjde a vy dostanete odkazy na něj."
 #: src/components/InstitutionPicker.tsx
 msgid "Вуз или факультет — ČVUT, VŠE, FEL"
 msgstr "Škola nebo fakulta — ČVUT, VŠE, FEL"
+
+#. placeholder {0}: labels.touchpoint[event.touchpoint] ?? event.touchpoint
+#: src/console/pages/AudiencePerson.tsx
+msgid "Впервые: {0}"
+msgstr "Poprvé: {0}"
 
 #: src/console/pages/Chat.tsx
 msgid "Показан в «Чатах»"
@@ -583,6 +641,11 @@ msgstr "Jsou vidět na tvé stránce."
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
 msgstr "Napiš to tak, jak to máš v hlavě. Poznáme předmět, školu, termín i rozpočet."
 
+#. placeholder {0}: date(row?.blocked_at ?? '')
+#: src/console/pages/AudiencePerson.tsx
+msgid "заблокирован {0}"
+msgstr "zablokován {0}"
+
 #: src/pages/Ads.tsx
 msgid "в разделе «Не про учёбу»"
 msgstr "v sekci «Ne o studiu»"
@@ -590,6 +653,10 @@ msgstr "v sekci «Ne o studiu»"
 #: src/components/Phrase.tsx
 msgid "сдали"
 msgstr "uspěli"
+
+#: src/console/pages/Audience.tsx
+msgid "список, поиск, фильтры"
+msgstr "seznam, hledání, filtry"
 
 #: src/console/pages/Summary.tsx
 msgid "анкеты, заявки, поиски без ответа"
@@ -700,6 +767,10 @@ msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a no
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
 msgstr "Přihlášení se neuložilo: otevřete konzoli v aplikaci Telegram."
 
+#: src/console/pages/AudiencePeople.tsx
+msgid "@username, имя или id"
+msgstr "@username, jméno nebo id"
+
 #: src/pages/Ask.tsx
 msgid "Убери что-нибудь из уточнений выше или напиши иначе."
 msgstr "Odeber něco z upřesnění výše, nebo to napiš jinak."
@@ -802,9 +873,18 @@ msgstr "Napíšete, co chcete zveřejnit."
 msgid "Не отправилось — попробуй ещё раз"
 msgstr "Neodeslalo se — zkus to znovu"
 
+#. placeholder {0}: date(row?.started_at ?? '')
+#: src/console/pages/AudiencePerson.tsx
+msgid "может писать, с {0}"
+msgstr "může psát, od {0}"
+
 #: src/console/pages/Partners.tsx
 msgid "когда поиск пуст"
 msgstr "když hledání nic nenajde"
+
+#: src/console/AudienceLabels.tsx
+msgid "отписались"
+msgstr "odhlásili se"
 
 #: src/console/pages/Summary.tsx
 msgid "иерархия, защита, модерация"
@@ -861,6 +941,10 @@ msgstr "Ochrana"
 msgid "Модерирует"
 msgstr "Moderuje"
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "Рассылки"
+msgstr "Oznámení"
+
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
 msgstr "Kontrola neprošla"
@@ -890,6 +974,10 @@ msgstr "dnes"
 msgid "Откройте приложение заново"
 msgstr "Otevřete aplikaci znovu"
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "Где бывает"
+msgstr "Kde bývá"
+
 #: src/console/pages/System.tsx
 msgid "выкл."
 msgstr "vyp."
@@ -915,6 +1003,10 @@ msgstr "V katalogu"
 #: src/console/pages/Partners.tsx
 msgid "Активные"
 msgstr "Aktivní"
+
+#: src/console/pages/Audience.tsx
+msgid "8 недель"
+msgstr "8 týdnů"
 
 #. placeholder {0}: chats.data.length
 #: src/console/pages/Summary.tsx
@@ -942,6 +1034,10 @@ msgstr "doučování, práce, pomoc"
 msgid "Дальше вопросов не будет."
 msgstr "Víc otázek nebude."
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "оценка по старым данным"
+msgstr "odhad ze starých dat"
+
 #: src/console/pages/Chats.tsx
 msgid "не на сайте"
 msgstr "není na webu"
@@ -953,6 +1049,11 @@ msgstr "Vysoká škola"
 #: src/components/RequestSheet.tsx
 msgid "Сколько готов платить"
 msgstr "Kolik jsi ochoten platit"
+
+#. placeholder {0}: data.new_by_week.join(', ')
+#: src/console/pages/Audience.tsx
+msgid "Новые люди по неделям, от старой к нынешней: {0}"
+msgstr "Noví lidé po týdnech, od nejstaršího k aktuálnímu: {0}"
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -990,6 +1091,12 @@ msgstr "Tento účet nepatří mezi operátory katalogu."
 #: src/pages/Chats.tsx
 msgid "Остальные"
 msgstr "Ostatní"
+
+#. placeholder {0}: date(touch.first_at)
+#. placeholder {1}: date(touch.last_at)
+#: src/console/pages/AudiencePerson.tsx
+msgid "с {0}, последний раз {1}"
+msgstr "od {0}, naposledy {1}"
 
 #: src/console/pages/Chat.tsx
 msgid "Модерировать"
@@ -1038,6 +1145,11 @@ msgstr "v profilu"
 msgid "Бот будет только записывать историю: ничего не пишет и ни на что не отвечает. В каталоге чат показан как наш."
 msgstr "Bot bude jen zaznamenávat historii: nic nepíše a na nic neodpovídá. V katalogu je chat uveden jako náš."
 
+#. placeholder {0}: date(data.opted_out_at)
+#: src/console/pages/AudiencePerson.tsx
+msgid "отписались {0}"
+msgstr "odhlásili se {0}"
+
 #: src/console/pages/System.tsx
 msgid "на месте: баны и обновления из Telegram работают"
 msgstr "připraven: bany a obnovení z Telegramu fungují"
@@ -1081,6 +1193,10 @@ msgstr "Kam se dostane"
 #: src/pages/Chats.tsx
 msgid "ČVUT, FIT, Strahov…"
 msgstr "ČVUT, FIT, Strahov…"
+
+#: src/console/AudienceLabels.tsx
+msgid "Бот связи"
+msgstr "Kontaktní bot"
 
 #: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
@@ -1187,6 +1303,11 @@ msgstr "s tématy"
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Tohle si přečtou první. Pár živých vět funguje líp než seznam."
 
+#. placeholder {0}: data.language_code
+#: src/console/pages/AudiencePerson.tsx
+msgid "язык {0}"
+msgstr "jazyk {0}"
+
 #: src/console/pages/Chats.tsx
 msgid "Откл."
 msgstr "Vyp."
@@ -1227,6 +1348,10 @@ msgstr "Přihlášení do konzole platí hodinu po otevření aplikace."
 msgid "чатов · людей"
 msgstr "chatů · lidí"
 
+#: src/console/AudienceLabels.tsx
+msgid "не запускали бота"
+msgstr "bota nespustili"
+
 #: src/lib/workFormat.tsx
 msgid "Удалённо"
 msgstr "Na dálku"
@@ -1234,6 +1359,10 @@ msgstr "Na dálku"
 #: src/pages/Results.tsx
 msgid "изменить"
 msgstr "změnit"
+
+#: src/console/pages/Summary.tsx
+msgid "кто пользовался ботами и Mini App"
+msgstr "kdo používal boty a Mini App"
 
 #: src/console/pages/Chat.tsx
 msgid "Ссылка для публичной вкладки"
@@ -1269,6 +1398,10 @@ msgstr "Zrušit ban"
 msgid "Что нужно?"
 msgstr "Co potřebuješ?"
 
+#: src/console/pages/AudiencePeople.tsx
+msgid "Показать ещё"
+msgstr "Zobrazit další"
+
 #: src/components/ChatRow.tsx
 msgid "Откроется в Telegram"
 msgstr "Otevře se v Telegramu"
@@ -1297,6 +1430,10 @@ msgstr "Ve všech chatech, za celou dobu. Nelze vrátit."
 msgid "Снять"
 msgstr "Stáhnout"
 
+#: src/console/pages/AudiencePeople.tsx
+msgid "Люди"
+msgstr "Lidé"
+
 #: src/console/pages/Chat.tsx
 msgid "Не виден: чат не одобрен"
 msgstr "Není vidět: chat není schválený"
@@ -1321,6 +1458,10 @@ msgstr "Přihlášení vypršelo: otevřete aplikaci znovu."
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
 msgstr "Odpovíme, ve kterých chatech se to hodí a kolik to stojí."
+
+#: src/console/AudienceLabels.tsx
+msgid "можно написать"
+msgstr "lze napsat"
 
 #: src/pages/Profile.tsx
 msgid "черновик — не видна в каталоге"
@@ -1602,6 +1743,10 @@ msgstr "Bez přístupu k chatům"
 msgid "Сколько берёшь?"
 msgstr "Kolik si bereš?"
 
+#: src/console/pages/Audience.tsx
+msgid "Язык Telegram"
+msgstr "Jazyk Telegramu"
+
 #: src/lib/workFormat.tsx
 msgid "Хожу вместе"
 msgstr "Jdu s tebou"
@@ -1617,6 +1762,10 @@ msgstr "na webu"
 #: src/pages/Join.tsx
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Nepodařilo se spojit. Zkus to znovu."
+
+#: src/console/pages/Audience.tsx
+msgid "Новые за неделю"
+msgstr "Noví za týden"
 
 #: src/pages/AdsApp.tsx
 msgid "Так она выглядит"
@@ -1653,6 +1802,10 @@ msgstr "Tenhle člověk nemá @username — nedá se mu napsat"
 #: src/console/pages/System.tsx
 msgid "Бот для действий из консоли"
 msgstr "Bot pro akce z konzole"
+
+#: src/console/pages/AudiencePerson.tsx
+msgid "не запускали"
+msgstr "nespustili"
 
 #: src/console/pages/Chat.tsx
 msgid "появится после одобрения"
@@ -1837,10 +1990,19 @@ msgstr "vybrán"
 msgid "Работает именно с этим вузом"
 msgstr "Pracuje přímo s touhle školou"
 
+#: src/console/AudienceLabels.tsx
+msgid "заблокировали"
+msgstr "zablokovali"
+
 #: src/pages/Join.tsx
 msgid "Помощь с учёбой"
 msgstr "Pomoc se studiem"
 
+#: src/console/pages/AudiencePerson.tsx
+msgid "не отписывались"
+msgstr "neodhlásili se"
+
+#: src/console/pages/AudiencePerson.tsx
 #: src/pages/Landing.tsx
 msgid "Открыть в Telegram"
 msgstr "Otevřít v Telegramu"
@@ -1865,6 +2027,10 @@ msgstr "Konzole je jen pro administrátory"
 #: src/console/pages/Chat.tsx
 msgid "Не виден: у чата нет названия"
 msgstr "Není vidět: chat nemá název"
+
+#: src/console/pages/AudiencePeople.tsx
+msgid "Последняя активность"
+msgstr "Poslední aktivita"
 
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"
@@ -1913,6 +2079,10 @@ msgstr "Nahoře — kdo učí „{0}“"
 msgid "Консоль"
 msgstr "Konzole"
 
+#: src/console/pages/Audience.tsx
+msgid "первое касание"
+msgstr "první kontakt"
+
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
 msgstr "Podle tohohle to zatím nenajdeme"
@@ -1953,6 +2123,10 @@ msgstr "Levnější než ostatní, ale tuhle zkoušku nevedl"
 msgid "Язык приложения"
 msgstr "Jazyk aplikace"
 
+#: src/console/pages/Audience.tsx
+msgid "Новые по неделям"
+msgstr "Noví po týdnech"
+
 #: src/console/BanSheet.tsx
 msgid "Подтверждение"
 msgstr "Potvrzení"
@@ -1966,6 +2140,10 @@ msgstr "Katalog"
 #: src/components/Phrase.tsx
 msgid "{0, plural, one {Отвечает примерно за # минуту} few {Отвечает примерно за # минуты} many {Отвечает примерно за # минут} other {Отвечает примерно за # минуты}}"
 msgstr "{0, plural, one {Odpovídá zhruba za # minutu} few {Odpovídá zhruba za # minuty} many {Odpovídá zhruba za # minuty} other {Odpovídá zhruba za # minut}}"
+
+#: src/console/pages/Audience.tsx
+msgid "Откуда приходят"
+msgstr "Odkud přicházejí"
 
 #: src/pages/Request.tsx
 msgid "Ты отказался"
@@ -2099,6 +2277,7 @@ msgstr "3 dny"
 msgid "Помощь нужна до экзамена или на нём?"
 msgstr "Potřebuješ pomoc před zkouškou, nebo přímo na ní?"
 
+#: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Blacklist.tsx
 msgid "Никого не нашлось."
 msgstr "Nikdo nenalezen."
@@ -2143,6 +2322,10 @@ msgstr "Zveřejnit poptávku"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Zabanovaní"
+
+#: src/console/pages/AudiencePerson.tsx
+msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
+msgstr "Texty zpráv se neukládají: jen to, co sdělí Telegram, a kdy člověk přišel."
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"
@@ -2291,9 +2474,15 @@ msgstr "Studium"
 msgid "Открой из заявки"
 msgstr "Otevři ze žádosti"
 
+#: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
 msgid "Все"
 msgstr "Vše"
+
+#: src/console/pages/Audience.tsx
+#: src/console/pages/Summary.tsx
+msgid "Аудитория"
+msgstr "Publikum"
 
 #: src/components/Incoming.tsx
 msgid "Сначала заполни профиль"

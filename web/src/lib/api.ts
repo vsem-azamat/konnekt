@@ -242,6 +242,18 @@ export const api = {
       throw new ApiError(502, answer, 'join check gave no approval');
   },
 
+  /**
+   * Tell supervisor this person opened the Mini App, for the console's
+   * audience. Once per launch; nothing waits on it and nothing is shown if it
+   * fails.
+   */
+  reportLaunch: async (initData: string): Promise<void> => {
+    await publicRequest<unknown>('/seen', {
+      method: 'POST',
+      body: JSON.stringify({ init_data: initData }),
+    });
+  },
+
   /** Who a business writes to about advertising, if anyone. */
   getAds: (signal?: AbortSignal) => request<AdsInfo>('/ads', { signal }),
 

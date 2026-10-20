@@ -6,6 +6,14 @@
 import { api, rawInitData } from '@/lib/api';
 
 import {
+  type AudienceFilters,
+  type AudiencePage,
+  type AudiencePerson,
+  type AudienceSummary,
+  audiencePath,
+} from './audience';
+
+import {
   type AdminSession,
   type BlockedUser,
   type ChatUpdate,
@@ -147,3 +155,31 @@ export const spamPingsQuery = {
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 };
+
+/** The top of the Audience screen: how many, who may be written to, where from. */
+export const audienceSummaryQuery = {
+  queryKey: ['console', 'audience', 'summary'] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<AudienceSummary>('/api/audience/summary', { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+};
+
+/** The audience list, a page at a time, newest activity first. */
+export const audiencePeopleQuery = (filters: AudienceFilters) => ({
+  queryKey: ['console', 'audience', 'people', filters] as const,
+  queryFn: ({ signal, pageParam }: { signal: AbortSignal; pageParam: string | null }) =>
+    consoleGet<AudiencePage>(audiencePath(filters, pageParam), { signal }),
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: AudiencePage) => last.next ?? undefined,
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
+
+export const audiencePersonQuery = (id: number) => ({
+  queryKey: ['console', 'audience', 'person', id] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<AudiencePerson>(`/api/audience/${id}`, { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});

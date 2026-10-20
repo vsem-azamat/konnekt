@@ -40,3 +40,11 @@ def _fresh_public_cache() -> None:
     from app.webapi.services import public_answers
 
     public_answers.forget()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_seen_throttle() -> None:
+    """Who the Mini App reported recently is per process; a test must not inherit it."""
+    from app.webapi.routes import seen
+
+    seen.forget()

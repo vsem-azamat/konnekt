@@ -192,6 +192,17 @@ function Summary() {
         />
         <Row
           leading={
+            <Tile tone={2}>
+              <PersonIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Аудитория</Trans>}
+          hint={<Trans>кто пользовался ботами и Mini App</Trans>}
+          trailing={<Chevron />}
+          onClick={() => open('/console/audience')}
+        />
+        <Row
+          leading={
             <Tile tone={0}>
               <DocumentIcon size={19} />
             </Tile>
