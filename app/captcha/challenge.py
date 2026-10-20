@@ -87,6 +87,10 @@ def failed_text(chat_title: str) -> str:
     return f"Заявка в <b>{html.escape(chat_title)}</b> отклонена: проверка не пройдена. Можно подать её ещё раз."
 
 
+def expired_text(chat_title: str) -> str:
+    return f"Заявка в <b>{html.escape(chat_title)}</b> отклонена: время вышло. Можно подать её ещё раз."
+
+
 def gone_text(chat_title: str) -> str:
     return f"Заявку в <b>{html.escape(chat_title)}</b> уже рассмотрели админы чата."
 
