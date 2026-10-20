@@ -313,15 +313,16 @@ ChatNode.model_rebuild()
 
 
 class ChatHeatmapSummary(BaseModel):
-    """Home tile: per-chat total activity over the last 7 days.
+    """Home tile: one of the busiest chats of the last 24 hours.
 
-    We send totals (not the full grid) to keep the home payload small;
-    the full grid lives on /chats/:id.
+    Its messages by UTC hour of day over those 24 hours, not the week's grid,
+    to keep the home payload small; the full grid lives on /chats/:id.
     """
 
     chat_id: int
     title: str | None
     total_messages: int
+    hours: list[int]
 
 
 class MembersDeltaEntry(BaseModel):

@@ -25,7 +25,6 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 
 _DELTA_LOOKBACK_DAYS = 30
 _CHAT_HEATMAP_TOP_N = 8
-_CHAT_HEATMAP_LOOKBACK_DAYS = 7
 _SPAM_RECENT_LIMIT = 5
 
 
@@ -83,6 +82,38 @@ async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) 
     return out
 
 
+async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[ChatHeatmapSummary]:
+    """The chats that wrote most in the last 24 hours, each by UTC hour of day.
+
+    The hours are counted from the timestamps of those few chats only, in
+    Python as /chats/:id does, so no dialect's date functions are involved.
+    """
+    since = now - datetime.timedelta(hours=24)
+    total = func.count(Message.id).label("total")
+    top = (
+        await session.execute(
+            select(Message.chat_id, Chat.title, total)
+            .join(Chat, Chat.id == Message.chat_id, isouter=True)
+            .where(Message.timestamp >= since)
+            .group_by(Message.chat_id, Chat.title)
+            .order_by(total.desc())
+            .limit(_CHAT_HEATMAP_TOP_N)
+        )
+    ).all()
+    hours: dict[int, list[int]] = {row.chat_id: [0] * 24 for row in top}
+    stamps = await session.execute(
+        select(Message.chat_id, Message.timestamp).where(Message.chat_id.in_(hours), Message.timestamp >= since)
+    )
+    for chat_id, at in stamps:
+        hours[chat_id][at.hour] += 1
+    return [
+        ChatHeatmapSummary(
+            chat_id=row.chat_id, title=row.title, total_messages=int(row.total), hours=hours[row.chat_id]
+        )
+        for row in top
+    ]
+
+
 @router.get("/home", response_model=HomeStats)
 async def home_stats(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -90,23 +121,8 @@ async def home_stats(
 ) -> HomeStats:
     now = utc_now()
 
-    # --- Chat heatmap summary (top N chats by total messages, last 7d) ---
-    heatmap_since = now - datetime.timedelta(days=_CHAT_HEATMAP_LOOKBACK_DAYS)
-    total_msgs = func.count(Message.id).label("total_msgs")
-    heatmap_rows = (
-        await session.execute(
-            select(Message.chat_id, Chat.title, total_msgs)
-            .join(Chat, Chat.id == Message.chat_id, isouter=True)
-            .where(Message.timestamp >= heatmap_since)
-            .group_by(Message.chat_id, Chat.title)
-            .order_by(total_msgs.desc())
-            .limit(_CHAT_HEATMAP_TOP_N)
-        )
-    ).all()
-    chat_heatmap = [
-        ChatHeatmapSummary(chat_id=row.chat_id, title=row.title, total_messages=int(row.total_msgs))
-        for row in heatmap_rows
-    ]
+    # --- The busiest chats of the last day, by hour ---
+    chat_heatmap = await _busiest_chats(session, now)
 
     # --- Members delta ---
     members_delta = await _compute_members_delta(session, now)
