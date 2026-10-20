@@ -1,6 +1,6 @@
 # Makefile for moderator-bot project
 
-.PHONY: help install test test-unit test-integration test-e2e test-performance test-cov clean lint format type-check pre-commit setup-dev
+.PHONY: help install test test-unit test-integration test-e2e test-performance test-cov clean lint format type-check hooks setup-dev
 
 # Default target
 help: ## Show this help message
@@ -11,8 +11,12 @@ help: ## Show this help message
 install: ## Install dependencies
 	uv sync --dev
 
-setup-dev: install ## Setup development environment
-	uv run pre-commit install
+# The value is relative, so every worktree runs its own branch's hooks, and it
+# lives in the shared .git/config, so one run covers every worktree.
+hooks: ## Run .githooks/ on commit and push (pnpm install in web/ does it too)
+	git config core.hooksPath .githooks
+
+setup-dev: install hooks ## Setup development environment
 	@echo "Development environment setup complete!"
 
 # Code quality
@@ -91,9 +95,6 @@ docker-logs: ## Show Docker logs
 # CI/CD
 ci-test: quality test-cov-xml ## Run CI test suite
 	@echo "CI tests completed successfully!"
-
-pre-commit: ## Run pre-commit hooks on all files
-	uv run pre-commit run --all-files
 
 # Cleanup
 clean: ## Clean up build artifacts and cache

@@ -86,7 +86,7 @@ and it is not published to the internet. The rules it rests on are in
 | **Web UI** | One Telegram Mini App: React 19, Vite, Lingui (`web/`) |
 | **Control plane** | MCP over HTTP (FastMCP), bearer-token auth, served by the bot process |
 | **Architecture** | Feature-based modular packages, service locator DI |
-| **Quality** | ruff, ty (Astral type checker), pytest, pre-commit, structlog |
+| **Quality** | ruff, ty (Astral type checker), pytest, git hooks (`.githooks/`), structlog |
 | **Infrastructure** | Docker multi-stage, uv package manager |
 
 > Structure is deliberately not mirrored here — read `app/` for it, and

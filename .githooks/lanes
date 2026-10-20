@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Changed paths on stdin, one per line; prints which lanes they touch as
+# name=true|false. The hooks and the PR jobs in test.yml both read this, so a
+# path is classified once. tests/unit/test_githooks.py has the cases.
+set -euo pipefail
+
+python=false web=false catalog=false
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  case "$path" in
+    .github/workflows/* | .githooks/*) python=true web=true catalog=true ;;
+    *.md) ;;
+    docs/*) ;;
+    # Root tests read these: test_web_split the sources, test_deploy_config
+    # the workspace file, and both projects must lock the same aiogram.
+    web/src/* | web/pnpm-workspace.yaml) python=true web=true ;;
+    web/*) web=true ;;
+    catalog/openapi.json) catalog=true web=true ;;
+    catalog/uv.lock) catalog=true python=true ;;
+    catalog/*) catalog=true ;;
+    *) python=true ;;
+  esac
+done
+
+printf 'python=%s\nweb=%s\ncatalog=%s\n' "$python" "$web" "$catalog"

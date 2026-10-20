@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# The fast checks, on what is staged; the slower ones wait for pre-push.
+# Enabled by `make hooks`. They read the working tree, so stage whole files.
+set -uo pipefail
+[ -z "${SKIP_HOOKS:-}" ] || exit 0
+cd "$(git rev-parse --show-toplevel)" || exit 1
+. .githooks/_lib.sh
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+lanes=$(.githooks/lanes <<<"$staged")
+
+if on python; then
+  # The directories CI lints.
+  mapfile -t py < <(grep -E '^(app|tests|scripts)/.*\.py$' <<<"$staged")
+  if [ ${#py[@]} -gt 0 ]; then
+    check "ruff check" "uv run ruff check --fix ${py[*]}" uv run ruff check -q "${py[@]}"
+    check "ruff format" "uv run ruff format ${py[*]}" uv run ruff format --check -q "${py[@]}"
+  fi
+  check "ty" "" uv run ty check app tests
+fi
+
+if on catalog; then
+  mapfile -t cpy < <(grep -E '^catalog/(src|tests)/.*\.py$' <<<"$staged" | sed 's#^catalog/##')
+  if [ ${#cpy[@]} -gt 0 ]; then
+    check "catalog ruff check" "uv run --directory catalog ruff check --fix ${cpy[*]}" \
+      uv run --locked --directory catalog ruff check -q "${cpy[@]}"
+    check "catalog ruff format" "uv run --directory catalog ruff format ${cpy[*]}" \
+      uv run --locked --directory catalog ruff format --check -q "${cpy[@]}"
+  fi
+  check "catalog ty" "" uv run --locked --directory catalog ty check src tests
+fi
+
+if on web && web_ready; then
+  mapfile -t wf < <(grep -E '^web/' <<<"$staged" | sed 's#^web/##')
+  check "biome" "pnpm --dir web exec biome check --write ${wf[*]}" \
+    pnpm --dir web exec biome check --no-errors-on-unmatched --files-ignore-unknown=true "${wf[@]}"
+  if grep -q '^web/src/' <<<"$staged"; then
+    check "lingui extract" "translate the new entries in web/src/locales/*/messages.po, then git add web/src/locales" \
+      locales_current
+  fi
+fi
+
+if grep -q true <<<"$lanes"; then
+  skipped_lanes "nothing of theirs staged"
+else
+  printf 'skip  all checks: nothing staged that python, web or catalog read\n'
+fi
+finish commit
