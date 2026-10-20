@@ -95,6 +95,10 @@ def handed_back_text(chat_title: str) -> str:
     return f"Заявку в <b>{html.escape(chat_title)}</b> рассмотрят админы чата."
 
 
+def superseded_text(chat_title: str) -> str:
+    return f"Эта проверка для чата <b>{html.escape(chat_title)}</b> больше не действует: ты подал(а) новую заявку."
+
+
 def open_chat(link: str | None) -> InlineKeyboardMarkup | None:
     if not link:
         return None

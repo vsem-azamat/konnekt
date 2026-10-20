@@ -10,6 +10,7 @@ import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, ChatJoinRequest, User
 from app.captcha import service, waves
 from app.core.config import settings
@@ -176,3 +177,106 @@ async def test_a_wave_is_decided_once(session: AsyncSession, bot, chat) -> None:
 
     assert again is None
     bot.decline_chat_join_request.assert_not_awaited()
+
+
+# --- review ------------------------------------------------------------------
+
+
+def _bad_request(message: str) -> TelegramBadRequest:
+    return TelegramBadRequest(method=MagicMock(), message=f"Bad Request: {message}")
+
+
+async def _the_wave(session: AsyncSession) -> JoinWave:
+    wave = await session.scalar(select(JoinWave).order_by(JoinWave.id.desc()))
+    assert wave is not None
+    return wave
+
+
+async def test_one_person_asking_many_times_is_not_a_wave(session: AsyncSession, bot, chat) -> None:
+    for _ in range(waves.PER_MINUTE + 5):
+        await service.admit(bot, session, _request(42), chat, now=T0)
+
+    assert _alerts(bot) == []
+
+
+async def test_a_burst_that_goes_on_after_a_resume_is_a_new_wave(session: AsyncSession, bot, chat) -> None:
+    """Resuming must not switch the safeguard off for the rest of the raid."""
+    await _flood(bot, session, chat, waves.PER_MINUTE + 5)
+    first = await _the_wave(session)
+    await waves.decide(bot, session, wave_id=first.id, action=waves.RESUME, admin_id=ADMIN_ID, admin_name="A", now=T0)
+
+    later = T0 + datetime.timedelta(seconds=10)
+    await _flood(bot, session, chat, waves.PER_MINUTE + 50, start=1000, at=later)
+
+    second = await _the_wave(session)
+    assert second.id != first.id
+    assert len(_alerts(bot)) == 2
+    assert _captchas_sent(bot) == 2 * waves.PER_MINUTE
+    held = (await session.scalars(select(JoinCaptcha).where(JoinCaptcha.status == JoinCaptcha.STATUS_HELD))).all()
+    assert {r.wave_id for r in held if r.user_id >= 1000} == {second.id}
+
+
+async def test_a_burst_that_returns_keeps_the_pause(session: AsyncSession, bot, chat) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 1)
+    await _flood(bot, session, chat, waves.PER_MINUTE + 1, start=500, at=T0 + datetime.timedelta(minutes=10))
+
+    await service.admit(bot, session, _request(9000), chat, now=T0 + datetime.timedelta(minutes=20))
+
+    assert len(_alerts(bot)) == 1
+    assert _captchas_sent(bot) == waves.PER_MINUTE
+    assert await _count(session, JoinCaptcha.STATUS_HELD) == 1 + waves.PER_MINUTE + 1 + 1
+
+
+async def test_the_alert_count_keeps_up(session: AsyncSession, bot, chat) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 7)
+
+    await waves.refresh_alerts(bot, session, T0)
+
+    edit = bot.edit_message_text.await_args.kwargs
+    assert edit["message_id"] == 500
+    assert "Ждут решения: 7" in edit["text"]
+
+
+async def test_declines_that_fail_are_left_for_another_press(session: AsyncSession, bot, chat) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 3)
+    wave = await _the_wave(session)
+    bot.decline_chat_join_request.side_effect = [None, _bad_request("CHAT_ADMIN_REQUIRED"), None]
+
+    note = await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")
+
+    assert note is not None
+    assert "Отклонено 2" in note
+    assert "Не удалось отклонить 1" in note
+    assert await _count(session, JoinCaptcha.STATUS_HELD) == 1
+
+    bot.decline_chat_join_request.side_effect = None
+    again = await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")
+
+    assert again is not None
+    assert await _count(session, JoinCaptcha.STATUS_HELD) == 0
+
+
+async def test_requests_settled_meanwhile_are_not_counted_as_declined(session: AsyncSession, bot, chat) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 2)
+    wave = await _the_wave(session)
+    bot.decline_chat_join_request.side_effect = [None, _bad_request("HIDE_REQUESTER_MISSING")]
+
+    note = await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")
+
+    assert note is not None
+    assert "Отклонено 1 " in note
+    assert await _count(session, JoinCaptcha.STATUS_GONE) == 1
+
+
+async def test_declining_a_wave_in_a_chat_that_dropped_captcha_declines_nobody(
+    session: AsyncSession, bot, chat
+) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 3)
+    wave = await _the_wave(session)
+    chat.is_captcha_enabled = False
+    await session.commit()
+
+    await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")
+
+    bot.decline_chat_join_request.assert_not_awaited()
+    assert await _count(session, JoinCaptcha.STATUS_HELD) == 3

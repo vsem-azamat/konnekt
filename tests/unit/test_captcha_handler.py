@@ -126,3 +126,23 @@ async def test_a_super_admin_declines_the_wave(session: AsyncSession, bot, chat)
     await session.refresh(wave)
     assert wave.decision == JoinWave.DECISION_DECLINE
     assert wave.decided_by == ADMIN_ID
+
+
+async def test_a_wave_decided_otherwise_says_so(session: AsyncSession, bot, chat) -> None:
+    wave = await _wave(session, bot, chat)
+    await wave_decision(_press(ADMIN_ID), WaveDecision(wave_id=wave.id, action=waves.LEAVE), bot, session)
+    callback = _press(ADMIN_ID)
+
+    await wave_decision(callback, WaveDecision(wave_id=wave.id, action=waves.DECLINE), bot, session)
+
+    callback.answer.assert_awaited_once_with("По этой волне уже решили иначе", show_alert=True)
+    bot.decline_chat_join_request.assert_not_awaited()
+
+
+def test_both_handlers_answer_their_presses_themselves() -> None:
+    """The dispatcher's automatic answer would be a second answer to the same press."""
+    from app.presentation.telegram.handlers.captcha import router
+
+    handlers = router.callback_query.handlers
+    assert len(handlers) == 2
+    assert all(h.flags.get("callback_answer") == {"disabled": True} for h in handlers)
