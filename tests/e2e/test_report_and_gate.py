@@ -845,6 +845,43 @@ class TestSupergroupUpgradeEdges:
         assert new is not None
         assert (new.resource_status, new.public_link) == (DbChat.STATUS_APPROVED, "https://t.me/x")
 
+    @pytest.mark.parametrize("decided", [DbChat.STATUS_OBSERVED, DbChat.STATUS_EXTERNAL, DbChat.STATUS_DISABLED])
+    async def test_an_upgrade_never_overrides_a_decision_about_the_new_chat(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker, decided: str
+    ) -> None:
+        """An old group's approval landing on a chat we only watch would start moderating it."""
+        old_id, new_id = -4555125, -1004555125000
+        async with db_session_maker() as session:
+            session.add(
+                DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_APPROVED, public_link="https://t.me/old")
+            )
+            session.add(DbChat(id=new_id, title="New", resource_status=decided))
+            await session.commit()
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+        assert new is not None
+        assert (new.resource_status, new.public_link) == (decided, None)
+
+    async def test_an_observed_group_stays_observed_and_listed_as_a_supergroup(
+        self, dispatcher: Dispatcher, bot: Bot, db_session_maker
+    ) -> None:
+        old_id, new_id = -4555126, -1004555126000
+        async with db_session_maker() as session:
+            session.add(
+                DbChat(id=old_id, title="Old", resource_status=DbChat.STATUS_OBSERVED, public_link="https://t.me/ntk")
+            )
+            await session.commit()
+
+        await self._announce(dispatcher, bot, old_id, new_id)
+
+        async with db_session_maker() as session:
+            new = await session.get(DbChat, new_id)
+        assert new is not None
+        assert (new.resource_status, new.public_link) == (DbChat.STATUS_OBSERVED, "https://t.me/ntk")
+
     async def test_a_moderator_already_scoped_to_the_new_chat_does_not_stop_the_move(
         self, dispatcher: Dispatcher, bot: Bot, db_session_maker
     ) -> None:

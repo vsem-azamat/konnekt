@@ -374,6 +374,15 @@
   background: var(--surface-pressed);
 }
 
+/* A chat somebody else runs: drawn, not filled, so a reader can tell at a
+   glance which rows are ours. The padding gives back the border's pixel so the
+   row keeps its height and its text lines up with the filled rows. */
+.rowOutline {
+  padding: 6px 11px 6px 8px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+}
+
 /* flex:1 and min-width:0 together are what let the hint truncate: without the
    min-width a flex child refuses to shrink below its content, so the text runs
    under the avatars instead of ending in an ellipsis. */
@@ -874,6 +883,23 @@
   text-align: center;
 }
 
+/* Said to a screen reader and drawn for nobody: what an outline tells the eye. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sheetNote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
 .pick {
   display: flex;
   align-items: center;
@@ -1315,6 +1341,12 @@
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
+/* What cannot be undone. Red is kept for this so that it means one thing. */
+.actionDanger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
 /* Skeletons rather than a spinner: the layout does not jump when data lands,
    and the shape tells you what is coming. */
 .skeleton {
@@ -1416,6 +1448,64 @@
   margin-top: 10px;
 }
 
+/* A ban's two answers, as radio rows; the one that deletes is red. */
+.banChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.banChoices:disabled {
+  opacity: 0.6;
+}
+
+.banOption:focus-within {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
+}
+
+.banOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.banOption input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.banOptionDanger {
+  background: var(--danger-soft);
+}
+
+.banOptionDanger b {
+  color: var(--danger);
+}
+
+.banOptionDanger input {
+  accent-color: var(--danger);
+}
+
+.banOptionHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
 /* The message an ad-detector hit came from, as the bot saw it. */
 .quote {
   margin: 10px 0 6px;
@@ -1466,6 +1556,171 @@
   background: var(--surface-pressed);
 }
 
+/* The audience summary: who may be written to, as one bar in four parts. */
+.reach {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.reachTotal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.reachTotal b {
+  color: var(--ink);
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.reachBar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.reachLegend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.reachLegend button {
+  all: unset;
+  cursor: pointer;
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reachLegend b {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-status='reachable'] {
+  --status: var(--tone-0-fg);
+}
+[data-status='never_started'] {
+  --status: var(--muted);
+}
+[data-status='blocked'] {
+  --status: var(--tone-4-fg);
+}
+[data-status='opted_out'] {
+  --status: var(--tone-1-fg);
+}
+
+.reachBar > [data-status] {
+  background: var(--status);
+}
+
+.reachLegend b,
+.statusText {
+  color: var(--status);
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.barRow {
+  all: unset;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.barRow b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--hairline);
+}
+
+.barTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--tone-3-fg);
+}
+
+.weeks {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 64px;
+}
+
+.weeks > span {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 4px;
+  background: var(--tone-3-bg);
+}
+
+.weeks > span:last-child {
+  background: var(--tone-3-fg);
+}
+
+.touchpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.touchpoints > span {
+  padding: 1px 7px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--surface-pressed);
+  color: var(--ink-soft);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 4px 0;
+}
+
+.timeline > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.timeline small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
 .trend {
   display: flex;
   flex-direction: column;
@@ -1511,4 +1766,167 @@
   display: flex;
   flex-direction: column;
   gap: var(--gap-row);
+}
+
+/* A catalog profile in the console sheet: who, then what they wrote. */
+.profileTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileTop b {
+  font-size: 16px;
+}
+
+.profileHeadline {
+  font-size: 14px;
+}
+
+/* A hit in the ads queue: who and where, what they wrote, and the answers.
+   The top part opens the hit; the answers sit below it, not inside it. */
+.pingCard {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.pingCard .actions {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Sized to their words, as in a toolbar: three equal pills squeeze
+   «Не реклама» onto two lines on a phone. */
+.pingCard .action {
+  flex: none;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.pingCard .actionQuiet {
+  background: var(--bg);
+}
+
+.pingCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.pingCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pingCardTop b {
+  color: var(--ink);
+}
+
+.pingCardText {
+  font-size: 14.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pingCardVerdict {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* The console summary's numbers, two to a row, each in its section's tone. */
+.summaryTiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap-row);
+  margin-top: 16px;
+}
+
+.summaryTile {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 12px;
+  border-radius: var(--r-tile);
+  font-size: 12px;
+}
+
+.summaryTile span {
+  font-weight: 650;
+}
+
+.summaryTile b {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.summaryTile[data-tone='0'] {
+  background: var(--tone-0-bg);
+  color: var(--tone-0-fg);
+}
+
+.summaryTile[data-tone='1'] {
+  background: var(--tone-1-bg);
+  color: var(--tone-1-fg);
+}
+
+.summaryTile[data-tone='2'] {
+  background: var(--tone-2-bg);
+  color: var(--tone-2-fg);
+}
+
+.summaryTile[data-tone='3'] {
+  background: var(--tone-3-bg);
+  color: var(--tone-3-fg);
+}
+
+/* A day by three hours per chat: the name, then eight cells. */
+.busyChats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+}
+
+.busyChatRow {
+  display: grid;
+  grid-template-columns: 104px repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
+}
+
+.busyChatRow .heatmapCell {
+  aspect-ratio: auto;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.busyChatName {
+  overflow: hidden;
+  padding-right: 6px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

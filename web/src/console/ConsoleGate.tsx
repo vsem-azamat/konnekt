@@ -1,9 +1,13 @@
 import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { Navigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { Empty, Row, Rows, Screen, SkeletonRows } from '@/components/Ui';
+import { endsSession } from '@/console/browser';
+import { useBrowserConsole } from '@/console/browserContext';
+import { browserSessionQuery } from '@/console/queries';
 import { ConsoleError, isFinal } from '@/console/session';
 import { meQuery, UnauthorizedError } from '@/lib/api';
 
@@ -14,6 +18,44 @@ import { meQuery, UnauthorizedError } from '@/lib/api';
  * it is refused on the server all the same.
  */
 export function ConsoleGate({ children }: { children: ReactNode }) {
+  return useBrowserConsole() ? (
+    <BrowserGate>{children}</BrowserGate>
+  ) : (
+    <TelegramGate>{children}</TelegramGate>
+  );
+}
+
+/**
+ * In a browser the session is the proof, asked of webapi: the catalog's `/me`
+ * wants a Telegram signature a browser does not have. Without one the way on
+ * is the sign-in page; the frame around the screen is the browser shell's.
+ */
+function BrowserGate({ children }: { children: ReactNode }) {
+  const session = useQuery(browserSessionQuery);
+
+  if (session.data) return <>{children}</>;
+  if (session.isPending) {
+    return (
+      <div style={{ marginTop: 16 }}>
+        <SkeletonRows count={3} />
+      </div>
+    );
+  }
+  if (endsSession(session.error)) {
+    return <Navigate to="/login" replace />;
+  }
+  return (
+    <Rows>
+      <Row
+        title={<Trans>Не удалось загрузить</Trans>}
+        hint={<Trans>Нажмите, чтобы попробовать ещё раз</Trans>}
+        onClick={() => void session.refetch()}
+      />
+    </Rows>
+  );
+}
+
+function TelegramGate({ children }: { children: ReactNode }) {
   const me = useQuery(meQuery);
 
   return (

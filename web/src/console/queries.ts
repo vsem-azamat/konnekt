@@ -3,7 +3,17 @@
  * the catalog's are ordinary `/api/v1` calls that only operators may make.
  */
 
+import { infiniteQueryOptions } from '@tanstack/react-query';
+
 import { api, rawInitData } from '@/lib/api';
+
+import {
+  type AudienceFilters,
+  type AudiencePage,
+  type AudiencePerson,
+  type AudienceSummary,
+  audiencePath,
+} from './audience';
 
 import {
   type AdminSession,
@@ -11,11 +21,27 @@ import {
   type ChatUpdate,
   type ConsoleChat,
   type ConsoleChatDetail,
+  ConsoleError,
   consoleRequester,
   type HomeStats,
   type SpamPing,
+  type SpamVerdict,
   type SystemStatus,
 } from './session';
+import {
+  nextBefore,
+  type PageCursor,
+  type PingFilters,
+  pingsPath,
+  unreviewedPath,
+} from './spam';
+
+/** A ban's or an unban's answer: where Telegram refused, and how many took. */
+export interface BanAnswer {
+  blocked: boolean;
+  failed_chats: number[];
+  banned_in: number;
+}
 
 /** The console's requester for webapi's session endpoints. See session.ts. */
 export const consoleGet = consoleRequester((...args) => fetch(...args), rawInitData);
@@ -28,6 +54,12 @@ export const adminCatalogQuery = {
   queryFn: ({ signal }: { signal: AbortSignal }) => api.getAdminCatalog(signal),
   staleTime: CONSOLE_STALE,
 };
+
+export const adminProfileQuery = (userId: number) => ({
+  queryKey: ['console', 'catalog', 'profile', userId] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) => api.getAdminProfile(userId, signal),
+  staleTime: CONSOLE_STALE,
+});
 
 export const adminPartnersQuery = {
   queryKey: ['console', 'partners'] as const,
@@ -71,14 +103,22 @@ export const consoleChanges = {
       body: JSON.stringify(update),
     }),
 
+  /** A chat the bot is not in, listed by its public link and marked as not ours. */
+  addExternalChat: (publicLink: string) =>
+    consoleGet<ConsoleChat>('/api/chats/external', {
+      method: 'POST',
+      body: JSON.stringify({ public_link: publicLink }),
+    }),
+
   /** Title, photo and member count, read again from Telegram. */
   refreshChat: (id: number) =>
     consoleGet<ConsoleChat>(`/api/chats/${id}/refresh`, { method: 'POST' }),
 
   /** Banned in every chat the bot moderates, as /banall does; optionally
-   *  with every message of theirs the bot recorded. */
+   *  with every message of theirs the bot recorded. `failed_chats` are the
+   *  approved chats where Telegram refused. */
   block: (userId: number, revokeMessages: boolean) =>
-    consoleGet<{ blocked: boolean }>(`/api/users/${userId}/block`, {
+    consoleGet<BanAnswer>(`/api/users/${userId}/block`, {
       method: 'POST',
       body: JSON.stringify({ revoke_messages: revokeMessages }),
     }),
@@ -101,8 +141,34 @@ export const consoleChanges = {
       method: 'DELETE',
     }),
 
+  /** A moderator's answer to a hit; the answer is the hit as it now is,
+   *  and a 409 says somebody answered it first. */
+  reviewPing: (id: number, verdict: Exclude<SpamVerdict, 'ad'>) =>
+    consoleGet<SpamPing>(`/api/spam/pings/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ verdict }),
+    }),
+
   unblock: (userId: number) =>
-    consoleGet<{ blocked: boolean }>(`/api/users/${userId}/block`, { method: 'DELETE' }),
+    consoleGet<BanAnswer>(`/api/users/${userId}/block`, {
+      method: 'DELETE',
+    }),
+};
+
+/**
+ * Who this browser is signed in as. The Mini App never asks: Telegram says who
+ * it is on every request. A missing session is the same `stale` a console
+ * request meets, which the browser answers by going to the sign-in page.
+ */
+export const browserSessionQuery = {
+  queryKey: ['console', 'session'] as const,
+  queryFn: async ({ signal }: { signal: AbortSignal }) => {
+    const response = await fetch('/api/auth/me', { credentials: 'same-origin', signal });
+    if (response.status === 401) throw new ConsoleError(401, 'stale');
+    if (!response.ok) throw new ConsoleError(response.status);
+    return (await response.json()) as { user_id: number };
+  },
+  staleTime: 5 * 60 * 1000,
 };
 
 /** Who the super admins are, among webapi's operational facts. */
@@ -132,11 +198,51 @@ export const sessionsQuery = {
   retryOnMount: false,
 };
 
-/** The ad detector's latest hits across every chat. */
-export const spamPingsQuery = {
-  queryKey: ['console', 'spam'] as const,
+/** The ad detector's hits as the filters pick them, a page at a time. */
+export const spamQueueQuery = (filters: PingFilters) =>
+  infiniteQueryOptions({
+    queryKey: ['console', 'spam', filters] as const,
+    queryFn: ({ signal, pageParam }) =>
+      consoleGet<SpamPing[]>(pingsPath(filters, pageParam), { signal }),
+    initialPageParam: undefined as PageCursor | undefined,
+    getNextPageParam: nextBefore,
+    staleTime: CONSOLE_STALE,
+    retryOnMount: false,
+  });
+
+/** How many hits wait under the queue's chat and period. */
+export const spamCountQuery = (filters: PingFilters) => ({
+  queryKey: ['console', 'spam', 'count', filters.chatId, filters.days] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>
-    consoleGet<SpamPing[]>('/api/spam/pings?limit=100', { signal }),
+    consoleGet<{ count: number }>(unreviewedPath(filters), { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
+
+/** The top of the Audience screen: how many, who may be written to, where from. */
+export const audienceSummaryQuery = {
+  queryKey: ['console', 'audience', 'summary'] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<AudienceSummary>('/api/audience/summary', { signal }),
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 };
+
+/** The audience list, a page at a time, newest activity first. */
+export const audiencePeopleQuery = (filters: AudienceFilters) => ({
+  queryKey: ['console', 'audience', 'people', filters] as const,
+  queryFn: ({ signal, pageParam }: { signal: AbortSignal; pageParam: string | null }) =>
+    consoleGet<AudiencePage>(audiencePath(filters, pageParam), { signal }),
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: AudiencePage) => last.next ?? undefined,
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
+
+export const audiencePersonQuery = (id: number) => ({
+  queryKey: ['console', 'audience', 'person', id] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<AudiencePerson>(`/api/audience/${id}`, { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});

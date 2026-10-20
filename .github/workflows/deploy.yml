@@ -40,20 +40,20 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build and push
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: production
@@ -64,7 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push webui
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: webui
@@ -77,7 +77,7 @@ jobs:
       # A tag of the same public package rather than a package of its own: a
       # new package starts private, and the host pulls without a login.
       - name: Build and push the catalog
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: catalog
           target: runtime
@@ -99,7 +99,7 @@ jobs:
 
     steps:
       # The compose file of the release being deployed, not of main's head.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0
@@ -153,6 +153,19 @@ jobs:
           fi
           echo "Required configuration present."
 
+      # The console's host for Caddy, from the same URL the webapi reads.
+      # Refuses one that would take the Mini App's traffic or match nothing.
+      - name: Work out the console's host
+        id: admin_host
+        env:
+          WEBAPI_ADMIN_URL: ${{ vars.WEBAPI_ADMIN_URL }}
+          WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
+        # Its own line: an assignment's failure ends the step (bash -e), where the
+        # same call inside `echo "$(...)"` would pass with an empty host.
+        run: |
+          host=$(bash scripts/admin_host.sh "$WEBAPI_ADMIN_URL" "$WEBAPI_PUBLIC_URL")
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+
       - name: Copy docker-compose to VPS
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
@@ -182,6 +195,11 @@ jobs:
           ADMIN_REPORT_CHAT_ID: ${{ secrets.ADMIN_REPORT_CHAT_ID }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
           MCP_TOKEN: ${{ secrets.MCP_TOKEN }}
+          # The browser's sign-in (app/webapi/routes/auth_telegram.py): all three, or none.
+          WEBAPI_ADMIN_URL: ${{ vars.WEBAPI_ADMIN_URL }}
+          ADMIN_HOST: ${{ steps.admin_host.outputs.host }}
+          WEBAPI_OIDC_CLIENT_ID: ${{ vars.WEBAPI_OIDC_CLIENT_ID }}
+          WEBAPI_OIDC_CLIENT_SECRET: ${{ secrets.WEBAPI_OIDC_CLIENT_SECRET }}
           # The retired bots' tokens, comma-separated (app/presentation/telegram/moved.py).
           MODERATOR_BOT_RETIRED_TOKEN: ${{ secrets.MODERATOR_BOT_RETIRED_TOKEN }}
           # The ads contact desk, @konnekt_ads_bot (app/presentation/telegram/ads.py).
@@ -200,7 +218,7 @@ jobs:
           # Pull, migrate, embed and wait: more than the default ten minutes
           # on a slow day, and a session cut off midway leaves no catalog.
           command_timeout: 30m
-          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
+          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,WEBAPI_ADMIN_URL,ADMIN_HOST,WEBAPI_OIDC_CLIENT_ID,WEBAPI_OIDC_CLIENT_SECRET,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
           script: |
             set -e
             cd ~/deploy/supervisor-telegram

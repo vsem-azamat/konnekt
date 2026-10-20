@@ -77,13 +77,13 @@ def test_retired_tokens_are_read_however_they_were_written(monkeypatch, raw: str
 def test_without_a_token_there_is_no_moved_bot(monkeypatch) -> None:
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [])
 
-    assert moved.build_moved_bots() == []
+    assert moved.build_moved_bots(MagicMock()) == []
 
 
 def test_every_retired_token_gets_a_bot_and_a_dispatcher_of_its_own(monkeypatch) -> None:
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [STUDENT, MODER])
 
-    built = moved.build_moved_bots()
+    built = moved.build_moved_bots(MagicMock())
 
     assert [bot.token for bot, _ in built] == [STUDENT, MODER]
     # A dispatcher polls one bot at a time; sharing one would start only the first.
@@ -102,7 +102,7 @@ def test_a_malformed_token_is_skipped_rather_than_taking_moderation_down(monkeyp
     logger = _logged(monkeypatch)
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", ["123:with spaces", MODER])
 
-    assert [bot.token for bot, _ in moved.build_moved_bots()] == [MODER]
+    assert [bot.token for bot, _ in moved.build_moved_bots(MagicMock())] == [MODER]
     logger.error.assert_called_once_with("retired_token_malformed", position=1)
     assert "with spaces" not in str(logger.mock_calls)
 
@@ -113,7 +113,7 @@ def test_the_current_token_among_the_retired_is_skipped_with_a_warning(monkeypat
     monkeypatch.setattr(moved.settings.telegram, "token", MAIN)
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [STUDENT, MAIN])
 
-    assert [bot.token for bot, _ in moved.build_moved_bots()] == [STUDENT]
+    assert [bot.token for bot, _ in moved.build_moved_bots(MagicMock())] == [STUDENT]
     logger.warning.assert_called_once_with("retired_token_is_current", position=2)
     assert MAIN not in str(logger.mock_calls)
 
@@ -164,7 +164,7 @@ async def test_one_failed_reset_step_leaves_the_others_done() -> None:
 
 async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> None:
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [MODER])
-    ((_, dp),) = moved.build_moved_bots()
+    ((_, dp),) = moved.build_moved_bots(MagicMock())
 
     assert [handler.callback for handler in dp.startup.handlers] == [moved.retire_profile]
 
@@ -172,7 +172,7 @@ async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> No
 async def test_a_retired_bot_starts_with_the_new_address_to_hand(monkeypatch) -> None:
     """The startup handler gets the new username from the polling call, as the message handler does."""
     monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [MODER])
-    ((_, dp),) = moved.build_moved_bots()
+    ((_, dp),) = moved.build_moved_bots(MagicMock())
     bot = AsyncMock()
 
     await dp.emit_startup(bot=bot, konnekt_username="konnekt_cz_bot")
@@ -194,7 +194,7 @@ async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch)
     monkeypatch.setattr(bot_module, "setup_container", lambda *_: None)
     monkeypatch.setattr(bot_module, "_run_polling", fake_run_polling)
     retired = [(SimpleNamespace(id=200), AsyncMock()), (SimpleNamespace(id=300), AsyncMock())]
-    monkeypatch.setattr(moved, "build_moved_bots", lambda: retired)
+    monkeypatch.setattr(moved, "build_moved_bots", lambda _sm: retired)
 
     async def idle(*_args, **_kwargs):
         return None
@@ -211,3 +211,34 @@ async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch)
         assert call["handle_signals"] is False
         assert call["konnekt_username"] == "konnekt_cz_bot"
     assert "handle_signals" not in next(c for c in calls if c["name"] == "main")
+
+
+async def test_a_visit_to_a_retired_bot_is_kept_but_never_counts_as_a_way_to_reach_anyone(
+    monkeypatch, session_maker
+) -> None:
+    import datetime
+
+    from aiogram.types import Chat, Message, Update, User
+    from app.core.enums import Touchpoint
+    from app.db.models import AudienceReach, AudienceTouch
+    from sqlalchemy import select
+
+    monkeypatch.setattr(moved.settings.telegram, "retired_tokens", [MODER])
+    ((_, dp),) = moved.build_moved_bots(session_maker)
+    person = User(id=31, is_bot=False, first_name="Old")
+    message = Message(
+        message_id=1,
+        date=datetime.datetime.now(datetime.UTC),
+        chat=Chat(id=31, type="private"),
+        from_user=person,
+        text="hi",
+    )
+    bot = AsyncMock()
+
+    await dp.feed_update(bot, Update(update_id=1, message=message), konnekt_username="konnekt_cz_bot")
+
+    async with session_maker() as session:
+        touches = [(t.user_id, t.touchpoint) for t in await session.scalars(select(AudienceTouch))]
+        reach = list(await session.scalars(select(AudienceReach)))
+    assert touches == [(31, Touchpoint.MOVED_BOT)]
+    assert reach == []

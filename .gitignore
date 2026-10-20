@@ -180,6 +180,7 @@ logs/
 scripts/*
 !scripts/wait_for_postgres.sh
 !scripts/entrypoint.sh
+!scripts/admin_host.sh
 !scripts/env_to_github.sh
 !scripts/restore_drill.sh
 !scripts/adopt_existing_db.py

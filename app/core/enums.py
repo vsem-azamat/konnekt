@@ -75,3 +75,29 @@ class PendingActionStatus(StrEnum):
     FAILED = "failed"
     REJECTED = "rejected"
     EXPIRED = "expired"
+
+
+class Touchpoint(StrEnum):
+    """Where a person met us. The bots among them are also who may write back.
+
+    The retired bots count as a place someone came to, but nobody is reached
+    through them: they only point at the main bot.
+    """
+
+    MAIN_BOT = "main_bot"
+    CONTACT_BOT = "contact_bot"
+    MINI_APP = "mini_app"
+    MOVED_BOT = "moved_bot"
+
+
+class SpamVerdict(StrEnum):
+    """What a moderator said about an ad-detector hit.
+
+    ``DONE`` and ``NOT_AD`` are answered in the console; ``NOT_AD`` is a false
+    alarm, kept to tune the detector by. ``AD`` is written by a ban, on every
+    hit of the author still waiting, once the ban took in some chat.
+    """
+
+    DONE = "done"
+    NOT_AD = "not_ad"
+    AD = "ad"

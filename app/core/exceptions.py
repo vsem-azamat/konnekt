@@ -25,6 +25,14 @@ class ProtectedUserError(DomainError):
         super().__init__(f"User {user_id} is a super admin and cannot be removed")
 
 
+class ChatNotManagedError(DomainError):
+    """Raised when an action would act in a chat the bot does not moderate."""
+
+    def __init__(self, chat_id: int):
+        self.chat_id = chat_id
+        super().__init__(f"Chat {chat_id} is not one the bot moderates")
+
+
 class NotAPersonError(DomainError):
     """Raised when an action names one of Telegram's stand-in senders."""
 

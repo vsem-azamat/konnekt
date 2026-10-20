@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.db.models import AdminSession
 from app.webapi.auth.session_store import digest, public_id
 from app.webapi.main import app
+from app.webapi.origin_guard import DEV_ORIGIN
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
@@ -122,7 +123,10 @@ async def test_revoke_current_session_400(client_factory, db_session_maker) -> N
 
     async with client_factory() as client:
         client.cookies.set(settings.webapi.session_cookie_name, "active-token")
-        resp = await client.delete(f"/api/admin/sessions/{public_id(digest('active-token'))}")
+        resp = await client.delete(
+            f"/api/admin/sessions/{public_id(digest('active-token'))}",
+            headers={"Origin": DEV_ORIGIN},  # a browser always names the page that wrote
+        )
     assert resp.status_code == 400
     assert "cannot close itself" in resp.json()["detail"]
 

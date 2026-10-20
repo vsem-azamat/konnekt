@@ -5,8 +5,19 @@ import { useParams } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import { ChatRow } from '@/components/ChatRow';
 import { TabBar } from '@/components/TabBar';
-import { Empty, Row, Rows, Screen, SkeletonRows, Sub, Title } from '@/components/Ui';
+import {
+  Empty,
+  Hint,
+  Label,
+  Row,
+  Rows,
+  Screen,
+  SkeletonRows,
+  Sub,
+  Title,
+} from '@/components/Ui';
 import { chatsQuery } from '@/lib/api';
+import { byOwner } from '@/lib/chats';
 
 /**
  * One group's chats: a university with its faculties and dorms.
@@ -24,6 +35,9 @@ export default function ChatSectionPage() {
   // Straight from the data, not through the directory's entries: a group
   // that has shrunk to one chat is still a group somebody may have linked to.
   const chats = (data ?? []).filter((chat) => chat.group === group);
+  // Somebody else's chats go below ours, under a heading that says so, rather
+  // than marked one by one among them.
+  const { ours, others } = byOwner(chats);
 
   return (
     <>
@@ -58,11 +72,33 @@ export default function ChatSectionPage() {
                 />
               </Sub>
             </div>
+            {others.length > 0 && ours.length > 0 ? (
+              <Label aside={ours.length}>
+                <Trans>Наши чаты</Trans>
+              </Label>
+            ) : null}
             <Rows>
-              {chats.map((chat, index) => (
+              {ours.map((chat, index) => (
                 <ChatRow key={chat.link} chat={chat} tone={index} />
               ))}
             </Rows>
+            {others.length > 0 ? (
+              <>
+                <Label aside={others.length}>
+                  <Trans>Другие чаты</Trans>
+                </Label>
+                <div style={{ marginTop: -4, marginBottom: 10 }}>
+                  <Hint>
+                    <Trans>Их ведёт не Konnekt, и правила там свои.</Trans>
+                  </Hint>
+                </div>
+                <Rows>
+                  {others.map((chat, index) => (
+                    <ChatRow key={chat.link} chat={chat} tone={ours.length + index} />
+                  ))}
+                </Rows>
+              </>
+            ) : null}
           </>
         )}
       </Screen>

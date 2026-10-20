@@ -18,6 +18,7 @@ from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.container import setup_container
+from app.core.enums import Touchpoint
 from app.core.logging import get_logger, setup_logging
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ from app.presentation.telegram import heartbeat
 from app.presentation.telegram.handlers import router
 from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
+    AudienceMiddleware,
     BlacklistMiddleware,
     DependenciesMiddleware,
     HistoryMiddleware,
@@ -118,6 +120,7 @@ def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) 
     """The moderator dispatcher, middlewares in their order, for any bot."""
     dp = Dispatcher()
 
+    dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT))
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
     dp.update.middleware(HistoryMiddleware())
@@ -185,7 +188,7 @@ async def _serve() -> None:
 
     from app.presentation.telegram.moved import build_moved_bots
 
-    if moved := build_moved_bots():
+    if moved := build_moved_bots(session_maker):
         konnekt_username = (await main_bot.me()).username
         for moved_bot, moved_dp in moved:
             # The bot id is the token's public half: enough to tell them apart in the logs.
@@ -216,7 +219,14 @@ async def _serve() -> None:
         # token must not take moderation down, and SIGTERM is the main bot's.
         tasks.append(
             _contained(
-                _run_polling(ads_bot, ads_dp, name="ads", handle_signals=False, allowed_updates=["message"]),
+                _run_polling(
+                    ads_bot,
+                    ads_dp,
+                    name="ads",
+                    handle_signals=False,
+                    # my_chat_member: a person blocking or unblocking the desk.
+                    allowed_updates=["message", "my_chat_member"],
+                ),
                 name="ads",
             )
         )
@@ -229,6 +239,11 @@ async def _serve() -> None:
 
     tasks.append(run_mcp_server())
     tasks.append(run_expiry_sweep(session_maker))
+
+    # Declines join captchas nobody answered, including those a restart left open.
+    from app.captcha.service import run_sweep as run_captcha_sweep
+
+    tasks.append(run_captcha_sweep(session_maker, main_bot))
 
     # What people wrote is kept half a year (#174).
     from app.moderation.history_service import run_history_retention
@@ -250,7 +265,15 @@ async def _serve() -> None:
         main_dp,
         name="main",
         # Edits too: a message posted clean and edited into an ad went unseen.
-        allowed_updates=["message", "edited_message", "callback_query", "chat_member", "chat_join_request"],
+        # my_chat_member: in a private chat, the person blocking or unblocking the bot.
+        allowed_updates=[
+            "message",
+            "edited_message",
+            "callback_query",
+            "chat_member",
+            "my_chat_member",
+            "chat_join_request",
+        ],
     )
     try:
         await _supervise(polling, tasks)

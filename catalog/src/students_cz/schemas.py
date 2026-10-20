@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from students_cz.db.models.enums import (
     PriceUnit,
+    PublishStatus,
     ServiceForm,
     ServiceGroup,
     UiLang,
@@ -536,6 +537,9 @@ class AdminSearch(BaseModel):
 
 class AdminCounts(BaseModel):
     profiles_week: int
+    # Listed profiles no operator has kept or hidden yet, however old.
+    profiles_to_review: int
+    hidden: int
     requests_week: int
     unanswered: int
     failed_searches: int
@@ -544,10 +548,28 @@ class AdminCounts(BaseModel):
 class AdminCatalog(BaseModel):
     """The catalog as the operator reads it. See docs/architecture.md."""
 
+    # Listed profiles waiting for an operator, newest first; `hidden` are the
+    # ones an operator took out.
     profiles: list[AdminProfile]
+    hidden: list[AdminProfile]
     unanswered: list[AdminRequest]
     failed_searches: list[AdminSearch]
     counts: AdminCounts
+
+
+class AdminProfileDetail(BaseModel):
+    """One profile as the operator moderates it. Named as the catalog names
+    people, with nothing to reach them by: the console does not contact."""
+
+    user_id: int
+    name: str
+    status: PublishStatus
+    headline: str | None
+    about: str | None
+    services: list[str]
+    institution: str | None
+    published_at: datetime | None
+    reviewed_at: datetime | None
 
 
 class AdminPlacement(BaseModel):

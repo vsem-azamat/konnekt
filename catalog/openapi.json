@@ -1613,6 +1613,246 @@
         }
       }
     },
+    "/api/v1/admin/profiles/{user_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Read Profile",
+        "operationId": "read_profile_api_v1_admin_profiles__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfileDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/profiles/{user_id}/review": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Keep Profile",
+        "operationId": "keep_profile_api_v1_admin_profiles__user_id__review_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfileDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/profiles/{user_id}/hide": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Hide Profile",
+        "operationId": "hide_profile_api_v1_admin_profiles__user_id__hide_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfileDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/profiles/{user_id}/restore": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Restore Profile",
+        "operationId": "restore_profile_api_v1_admin_profiles__user_id__restore_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfileDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/partners": {
       "get": {
         "tags": [
@@ -1840,6 +2080,13 @@
             "type": "array",
             "title": "Profiles"
           },
+          "hidden": {
+            "items": {
+              "$ref": "#/components/schemas/AdminProfile"
+            },
+            "type": "array",
+            "title": "Hidden"
+          },
           "unanswered": {
             "items": {
               "$ref": "#/components/schemas/AdminRequest"
@@ -1861,6 +2108,7 @@
         "type": "object",
         "required": [
           "profiles",
+          "hidden",
           "unanswered",
           "failed_searches",
           "counts"
@@ -1873,6 +2121,14 @@
           "profiles_week": {
             "type": "integer",
             "title": "Profiles Week"
+          },
+          "profiles_to_review": {
+            "type": "integer",
+            "title": "Profiles To Review"
+          },
+          "hidden": {
+            "type": "integer",
+            "title": "Hidden"
           },
           "requests_week": {
             "type": "integer",
@@ -1890,6 +2146,8 @@
         "type": "object",
         "required": [
           "profiles_week",
+          "profiles_to_review",
+          "hidden",
           "requests_week",
           "unanswered",
           "failed_searches"
@@ -2060,6 +2318,99 @@
           "published_at"
         ],
         "title": "AdminProfile"
+      },
+      "AdminProfileDetail": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PublishStatus"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headline"
+          },
+          "about": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "About"
+          },
+          "services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Services"
+          },
+          "institution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institution"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "name",
+          "status",
+          "headline",
+          "about",
+          "services",
+          "institution",
+          "published_at",
+          "reviewed_at"
+        ],
+        "title": "AdminProfileDetail",
+        "description": "One profile as the operator moderates it. Named as the catalog names\npeople, with nothing to reach them by: the console does not contact."
       },
       "AdminRequest": {
         "properties": {
@@ -3643,6 +3994,17 @@
           "negotiable"
         ],
         "title": "PriceUnit"
+      },
+      "PublishStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "pending",
+          "published",
+          "hidden",
+          "banned"
+        ],
+        "title": "PublishStatus"
       },
       "RequestCreate": {
         "properties": {

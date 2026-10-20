@@ -57,15 +57,17 @@ async def follow_upgrade(db: AsyncSession, *, old_id: int, new_id: int) -> bool:
     old.public_link = None
     old.resource_status = Chat.STATUS_DISABLED
     old.relation_notes = f"Стал супергруппой {new_id}"
-    if new.resource_status == Chat.STATUS_APPROVED:
+    if new.resource_status != Chat.STATUS_DISCOVERED:
         # Somebody already decided about the new chat; the old one's settings
-        # must not undo that, its approval and its link least of all.
+        # must not undo that, its status and its link least of all. An old
+        # approval landing on a chat we only watch would start moderating it.
         carried = {name: value for name, value in carried.items() if getattr(new, name) in (None, False)}
         carried.pop("resource_status", None)
-        # Restoring approval must not silently republish a link: only an
-        # approved old chat's link may follow it.
-        if old_status != Chat.STATUS_APPROVED:
-            carried.pop("public_link", None)
+        carried.pop("public_link", None)
+    elif old_status not in Chat.LISTABLE_STATUSES:
+        # Restoring a status must not silently republish a link: only a listed
+        # old chat's link may follow it.
+        carried.pop("public_link", None)
     for name, value in carried.items():
         setattr(new, name, value)
     await db.flush()

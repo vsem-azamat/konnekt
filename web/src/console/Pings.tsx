@@ -1,10 +1,18 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
 import { Action, Hint, Row, Rows, Sub, ui } from '@/components/Ui';
+import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
+import { type BanOutcome, banOutcome } from '@/console/ban';
 import { FailureText } from '@/console/FailureText';
-import { blockedQuery, consoleChanges, consoleSystemQuery } from '@/console/queries';
+import {
+  blockedQuery,
+  consoleChanges,
+  consoleStatsQuery,
+  consoleSystemQuery,
+} from '@/console/queries';
 import { personName, type SpamPing, utc } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 
@@ -59,17 +67,19 @@ export function PingRows({
 
 /**
  * One hit up close: the message as the bot saw it, and the ban that answers
- * it. A ban is global, as /banall is; «стереть» also deletes everything of
- * theirs the bot recorded.
+ * it, asked in a sheet of its own (see BanSheet).
  */
 export function PingSheet({
   ping,
   onClose,
   onOpenChat,
+  banFirst = false,
 }: {
   ping: SpamPing;
   onClose: () => void;
   onOpenChat?: () => void;
+  /** Straight to the ban, as a queue card asks; «Отмена» then closes it. */
+  banFirst?: boolean;
 }) {
   const { t } = useLingui();
   const queryClient = useQueryClient();
@@ -77,17 +87,51 @@ export function PingSheet({
   const admin = system.data?.super_admin_ids.includes(ping.user_id) ?? false;
   const ban = useMutation({
     mutationFn: (revoke: boolean) => consoleChanges.block(ping.user_id, revoke),
-    onSuccess: () => {
+    onSuccess: (answer) => {
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
-      onClose();
+      void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
+      const outcome = banOutcome(answer);
+      if (outcome === 'done') onClose();
+      else setOutcome({ outcome, failed: answer.failed_chats.length });
     },
   });
+  const [banning, setBanning] = useState(banFirst);
+  const [outcome, setOutcome] = useState<{
+    outcome: Exclude<BanOutcome, 'done'>;
+    failed: number;
+  } | null>(null);
   const close = () => {
     ban.reset();
     onClose();
   };
+
+  if (outcome !== null) {
+    return <BanOutcomeSheet name={personName(ping)} {...outcome} onClose={close} />;
+  }
+  // Listed and the hit still waiting is a ban that took nowhere: on offer again.
+  const bannable = !admin && (!ping.blocked || ping.verdict === null);
+  // Nobody to ban is the hit's own sheet, which says why.
+  if (banning && bannable) {
+    return (
+      <BanSheet
+        name={personName(ping)}
+        busy={ban.isPending}
+        error={ban.error ? <FailureText error={ban.error} /> : null}
+        onBan={(revoke) => ban.mutate(revoke)}
+        // Back to the hit it was asked from, not out of both.
+        onClose={
+          banFirst
+            ? close
+            : () => {
+                ban.reset();
+                setBanning(false);
+              }
+        }
+      />
+    );
+  }
 
   return (
     <Sheet title={t`Реклама`} closeLabel={t`Отмена`} onClose={close}>
@@ -101,13 +145,8 @@ export function PingSheet({
       </Sub>
       {ping.snippet ? <blockquote className={ui.quote}>{ping.snippet}</blockquote> : null}
       <Hint>{ping.matches.join(', ')}</Hint>
-      {ban.error ? (
-        <Hint>
-          <FailureText error={ban.error} />
-        </Hint>
-      ) : null}
       <div className={ui.actionsStacked}>
-        {ping.blocked ? (
+        {!bannable && ping.blocked ? (
           <Hint>
             <Trans>Уже в чёрном списке.</Trans>
           </Hint>
@@ -116,14 +155,9 @@ export function PingSheet({
             <Trans>Это главный администратор.</Trans>
           </Hint>
         ) : (
-          <>
-            <Action disabled={ban.isPending} onClick={() => ban.mutate(false)}>
-              <Trans>Забанить везде</Trans>
-            </Action>
-            <Action quiet disabled={ban.isPending} onClick={() => ban.mutate(true)}>
-              <Trans>Забанить и стереть все его сообщения</Trans>
-            </Action>
-          </>
+          <Action onClick={() => setBanning(true)}>
+            <Trans>Забанить…</Trans>
+          </Action>
         )}
         {onOpenChat ? (
           <Action quiet onClick={onOpenChat}>

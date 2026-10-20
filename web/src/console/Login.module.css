@@ -1,0 +1,61 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px max(16px, env(safe-area-inset-left));
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.box {
+  width: min(380px, 100%);
+  display: grid;
+  gap: 16px;
+}
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.problem {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-row);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* A plain link: it works before anything else has loaded, and it is what a browser knows how to do. */
+.cta {
+  display: block;
+  padding: 14px 16px;
+  border-radius: var(--r-row);
+  background: var(--accent);
+  color: var(--accent-ink);
+  text-align: center;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}

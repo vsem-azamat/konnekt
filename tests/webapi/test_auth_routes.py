@@ -18,6 +18,7 @@ from urllib.parse import urlencode
 import pytest
 from app.core.config import settings
 from app.webapi.main import app
+from app.webapi.origin_guard import DEV_ORIGIN
 from httpx import ASGITransport, AsyncClient
 
 if TYPE_CHECKING:
@@ -213,7 +214,7 @@ async def test_signing_out_ends_the_session_here(client_factory, db_session_make
 
     async with client_factory() as client:
         await client.post("/api/auth/webapp", json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)})
-        out = await client.post("/api/auth/logout")
+        out = await client.post("/api/auth/logout", headers={"Origin": DEV_ORIGIN})
         after = await client.get("/api/auth/me")
 
     assert out.status_code == 204
@@ -255,6 +256,20 @@ def test_only_an_address_is_recorded(host: str, recorded: str | None) -> None:
     """It arrives through forwarded headers; the column is 64 characters and the console shows it."""
     from types import SimpleNamespace
 
-    from app.webapi.routes.auth import _address
+    from app.webapi.auth.login import caller_address
 
-    assert _address(SimpleNamespace(client=SimpleNamespace(host=host))) == recorded  # ty: ignore[invalid-argument-type]
+    assert caller_address(SimpleNamespace(client=SimpleNamespace(host=host))) == recorded  # ty: ignore[invalid-argument-type]
+
+
+async def test_a_stale_cookie_does_not_stop_a_fresh_sign_in(client_factory) -> None:
+    """An expired session's cookie rides along with the next sign-in; the signed payload decides."""
+    async with client_factory() as client:
+        client.cookies.set(settings.webapi.session_cookie_name, "an-expired-token")
+        resp = await client.post(
+            "/api/auth/webapp",
+            json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)},
+            headers={"Origin": DEV_ORIGIN},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.cookies.get(settings.webapi.session_cookie_name) != "an-expired-token"
+        assert (await client.get("/api/auth/me")).status_code == 200

@@ -6,9 +6,11 @@ import datetime
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-ChatResourceStatus = Literal["discovered", "approved", "disabled"]
+from app.core.enums import SpamVerdict
+
+ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 
 # What may be stored as a chat's public link.
 #
@@ -54,6 +56,11 @@ class PublicCatalogItem(BaseModel):
     member_count: int | None = None
     # Telegram's topics, so the preview can say the chat is split into them.
     is_forum: bool = False
+    # Somebody else's chat, listed so a student can find it. The one thing a
+    # stranger learns about how a chat is run, because it is the one thing they
+    # need: the rules in there are not ours. A chat we only observe is still
+    # ours and is not marked.
+    external: bool = False
 
 
 class PublicReachGroup(BaseModel):
@@ -164,6 +171,28 @@ class ChatUpdate(BaseModel):
         return link
 
 
+# A public username, the one form of chat link Telegram resolves for a bot that
+# is not in the chat; an invite opens only for whoever joins through it. Taken
+# as people paste it: "@name", "name", "t.me/name" or the full link.
+_USERNAME = re.compile(r"^(?:@|(?:https?://)?(?:t\.me|telegram\.me)/)?(?P<username>[A-Za-z][\w]{3,31})/?$")
+
+
+def username_of(link: str) -> str | None:
+    """The username a pasted link names, or None when it names no public chat."""
+    match = _USERNAME.match(link.strip())
+    return match["username"] if match else None
+
+
+class ExternalChatCreate(BaseModel):
+    """A chat the bot is not in, named by the link a student would follow.
+
+    Checked in the route rather than here, so that a refusal carries the same
+    plain code as the others the console has to tell apart.
+    """
+
+    public_link: str = Field(max_length=200)
+
+
 class ChatNode(BaseModel):
     """A chat listed under its parent on the chat's own screen."""
 
@@ -243,6 +272,10 @@ class UserBlockResponse(BaseModel):
     user_id: int
     blocked: bool
     message: str
+    # The approved chats where Telegram refused, and how many it took in:
+    # none of either means there was no approved chat to act in.
+    failed_chats: list[int] = []
+    banned_in: int = 0
 
 
 class AdminSessionRead(BaseModel):
@@ -280,15 +313,16 @@ ChatNode.model_rebuild()
 
 
 class ChatHeatmapSummary(BaseModel):
-    """Home tile: per-chat total activity over the last 7 days.
+    """Home tile: one of the busiest chats of the last 24 hours.
 
-    We send totals (not the full grid) to keep the home payload small;
-    the full grid lives on /chats/:id.
+    Its messages by UTC hour of day over those 24 hours, not the week's grid,
+    to keep the home payload small; the full grid lives on /chats/:id.
     """
 
     chat_id: int
     title: str | None
     total_messages: int
+    hours: list[int]
 
 
 class MembersDeltaEntry(BaseModel):
@@ -324,6 +358,17 @@ class SpamPingRead(BaseModel):
     matches: list[str]
     snippet: str | None
     detected_at: datetime.datetime
+    verdict: SpamVerdict | None = None
+
+
+class SpamReviewRequest(BaseModel):
+    """Body for POST /api/spam/pings/{id}/review. «ad» is a ban's to write."""
+
+    verdict: Literal[SpamVerdict.DONE, SpamVerdict.NOT_AD]
+
+
+class SpamQueueCount(BaseModel):
+    count: int
 
 
 class SpamPingsSummary(BaseModel):
@@ -331,6 +376,8 @@ class SpamPingsSummary(BaseModel):
 
     count_24h: int
     count_7d: int
+    # Hits nobody answered yet, of any age: the console's ads queue.
+    unreviewed: int = 0
     recent: list[SpamPingRead] = []
 
 
@@ -359,3 +406,77 @@ class WebAppLoginPayload(BaseModel):
 class AuthMeResponse(BaseModel):
     user_id: int
     is_authenticated: bool = True
+
+
+AudienceStatus = Literal["reachable", "never_started", "blocked", "opted_out"]
+
+
+class AudienceLanguage(BaseModel):
+    code: str
+    count: int
+
+
+class AudienceSummary(BaseModel):
+    """The top of the Audience page: how many, who may be written to, where they came from."""
+
+    total: int
+    # By status, about the main bot: see app.audience.views.
+    reach: dict[AudienceStatus, int]
+    # By the touchpoint each person used first.
+    first_touch: dict[str, int]
+    # New people per seven days, oldest first, the last entry ending now.
+    new_by_week: list[int]
+    new_this_week: int
+    languages: list[AudienceLanguage]
+
+
+class AudienceMemberRead(BaseModel):
+    """One person in the audience list. Only what Telegram itself tells about them."""
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    language_code: str | None
+    first_seen_at: datetime.datetime
+    last_seen_at: datetime.datetime
+    status: AudienceStatus
+    touchpoints: list[str]
+
+
+class AudiencePage(BaseModel):
+    total: int
+    items: list[AudienceMemberRead]
+    # Pass as `cursor` for the next page; None on the last one.
+    next: str | None
+
+
+class AudienceTouchRead(BaseModel):
+    touchpoint: str
+    first_at: datetime.datetime
+    last_at: datetime.datetime
+    count: int
+
+
+class AudienceReachRead(BaseModel):
+    bot: str
+    started_at: datetime.datetime | None
+    blocked_at: datetime.datetime | None
+
+
+class AudiencePersonRead(BaseModel):
+    """One person's card: profile, every touchpoint, and whether each bot may write."""
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    language_code: str | None
+    first_seen_at: datetime.datetime
+    last_seen_at: datetime.datetime
+    status: AudienceStatus
+    is_premium: bool
+    source: str | None
+    opted_out_at: datetime.datetime | None
+    touches: list[AudienceTouchRead]
+    reach: list[AudienceReachRead]

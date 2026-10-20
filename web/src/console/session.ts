@@ -23,12 +23,29 @@ export type ConsoleFailureReason = 'refused' | 'stale' | 'not-kept' | 'failed';
 export class ConsoleError extends Error {
   readonly status: number;
   readonly reason: ConsoleFailureReason;
+  /** webapi's own code for a refusal (`already_known`), when it gave one. */
+  readonly detail: string | null;
 
-  constructor(status: number, reason: ConsoleFailureReason = 'failed') {
+  constructor(
+    status: number,
+    reason: ConsoleFailureReason = 'failed',
+    detail: string | null = null,
+  ) {
     super(`console request failed: ${status} (${reason})`);
     this.name = 'ConsoleError';
     this.status = status;
     this.reason = reason;
+    this.detail = detail;
+  }
+}
+
+/** The `detail` of a FastAPI refusal, when it is a plain code rather than a list. */
+async function detailOf(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === 'string' ? body.detail : null;
+  } catch {
+    return null;
   }
 }
 
@@ -95,14 +112,21 @@ export function consoleRequester(
         throw new ConsoleError(401, 'not-kept');
       }
     }
-    if (!response.ok) throw new ConsoleError(response.status);
+    if (!response.ok) {
+      throw new ConsoleError(response.status, 'failed', await detailOf(response));
+    }
     return (response.status === 204 ? undefined : await response.json()) as T;
   };
 }
 
 // ── webapi's shapes, as far as the console reads them ─────────────────────
 
-export type ChatStatus = 'discovered' | 'approved' | 'disabled';
+/**
+ * How far the bot's hand reaches in a chat. Approved: it moderates. Observed:
+ * it records and stays silent, since the owner's own bot is in charge.
+ * External: it is not there; the chat is only listed, marked as not ours.
+ */
+export type ChatStatus = 'discovered' | 'approved' | 'observed' | 'external' | 'disabled';
 
 export interface ConsoleChat {
   id: number;
@@ -182,7 +206,12 @@ export interface SpamPing {
   matches: string[];
   snippet: string | null;
   detected_at: string;
+  /** A moderator's answer; none while it waits in the queue. */
+  verdict: SpamVerdict | null;
 }
+
+/** «ad» is written by a ban, the other two in the console. */
+export type SpamVerdict = 'done' | 'not_ad' | 'ad';
 
 export interface ConsoleChatDetail extends ConsoleChat {
   welcome_message: string | null;
@@ -207,27 +236,46 @@ export type ChatUpdate = Partial<
   > & { public_link: string }
 >;
 
+/** One of the busiest chats of the last 24 hours, by UTC hour of day. */
+export interface BusyChat {
+  chat_id: number;
+  title: string | null;
+  total_messages: number;
+  hours: number[];
+}
+
+/** How a chat's member count moved; none where no count is old enough. */
+export interface MemberDelta {
+  chat_id: number;
+  title: string | null;
+  current: number | null;
+  delta_24h: number | null;
+  delta_7d: number | null;
+}
+
 export interface HomeStats {
-  spam_pings: { count_24h: number; count_7d: number };
+  chat_heatmap: BusyChat[];
+  members_delta: MemberDelta[];
+  spam_pings: { count_24h: number; count_7d: number; unreviewed: number };
 }
 
 // ── what the summary says ─────────────────────────────────────────────────
 
-export type AttentionKey = 'ads' | 'review' | 'profiles';
+export type AttentionKey = 'ads' | 'review' | 'requests';
 
 /** What needs a look, in the order the summary lists it; zero is not news. */
 export function attention(input: {
-  adsToday: number;
+  adsUnreviewed: number;
   chats: Pick<ConsoleChat, 'resource_status'>[];
-  profilesWeek: number;
+  requestsUnanswered: number;
 }): { key: AttentionKey; count: number }[] {
   const items: { key: AttentionKey; count: number }[] = [
-    { key: 'ads', count: input.adsToday },
+    { key: 'ads', count: input.adsUnreviewed },
     {
       key: 'review',
       count: input.chats.filter((chat) => chat.resource_status === 'discovered').length,
     },
-    { key: 'profiles', count: input.profilesWeek },
+    { key: 'requests', count: input.requestsUnanswered },
   ];
   return items.filter((item) => item.count > 0);
 }

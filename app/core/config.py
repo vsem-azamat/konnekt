@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -207,8 +208,17 @@ class WebApiSettings(Settings):
         default=True,
         description="Set Secure flag on session cookie. Disable only for local http:// dev.",
     )
-    # Not "none": SameSite is the only defence the console's mutations have
-    # against a request another site makes with the admin's cookie.
+    admin_url: str = Field(
+        default="",
+        description="Origin the console is opened at in a browser (not inside Telegram); the OpenID Connect redirect lives here.",
+    )
+    oidc_client_id: str = Field(
+        default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
+    )
+    oidc_client_secret: SecretStr = Field(default=SecretStr(""), description="Client Secret from the same place")
+    # Not "none". Lax is same-site, not same-origin: a sibling host under the
+    # same domain still sends the cookie, which is why writes also check Origin
+    # (app/webapi/origin_guard.py).
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
 
     @field_validator("session_cookie_samesite", mode="before")
@@ -224,6 +234,32 @@ class WebApiSettings(Settings):
         extra="ignore",
     )
 
+    @model_validator(mode="after")
+    def _the_console_has_a_host_of_its_own(self) -> WebApiSettings:
+        """A console host equal to the Mini App's takes that site's traffic.
+
+        One with a port or a path matches no request, so the console would be
+        configured and unreachable. Refused at startup instead; the deploy
+        refuses the same URLs (scripts/admin_host.sh). Local development may
+        name a port on localhost.
+        """
+        if not self.admin_url:
+            return self
+        admin = urlsplit(self.admin_url)
+        local = admin.hostname in {"localhost", "127.0.0.1"}
+        if admin.scheme != ("http" if local else "https") or not admin.hostname:
+            raise ValueError("admin_url must be an https URL")
+        if (admin.port and not local) or admin.path.strip("/") or admin.query or admin.fragment:
+            raise ValueError("admin_url must be a bare origin: no port, no path")
+        if self.public_url and urlsplit(self.public_url).hostname == admin.hostname:
+            raise ValueError("admin_url must not be the Mini App's host")
+        return self
+
+    @property
+    def oidc_enabled(self) -> bool:
+        """On when configured and off otherwise, like the other optional doors."""
+        return bool(self.admin_url and self.oidc_client_id and self.oidc_client_secret.get_secret_value())
+
     @property
     def allowed_origins(self) -> list[str]:
         """Origins the API accepts, derived from where the UI is served.
@@ -235,10 +271,11 @@ class WebApiSettings(Settings):
         fell back to the local development origin, which went unnoticed only
         because the UI and the API share a host and never trigger CORS.
 
-        One origin, derived from the URL already configured, cannot disagree
-        with itself. The trailing slash goes because browsers compare exactly.
+        Origins derived from the URLs already configured cannot disagree with
+        them: the Mini App's, and the admin site's when it has one. The trailing
+        slash goes because browsers compare exactly.
         """
-        return [self.public_url.rstrip("/")] if self.public_url else []
+        return [url.rstrip("/") for url in (self.public_url, self.admin_url) if url]
 
 
 class LoggingSettings(Settings):

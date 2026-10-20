@@ -29,6 +29,7 @@ them again — rotate rather than recover.
 | `CATALOG_DB_USER`, `CATALOG_DB_NAME` | Required. The catalog database's role and name, as its data directory has them |
 | `CATALOG_DB_PASSWORD` | The catalog database's password: the one its data directory was created with (teachers-catalog's `POSTGRES_PASSWORD`). Changing it here does not change it there — see catalog/docs/deploy.md. |
 | `CATALOG_OWNER_TG_ID` | Optional. Who the catalog tells about a first profile or request; should be one of `ADMIN_SUPER_ADMINS` so the ping's console button opens |
+| `WEBAPI_OIDC_CLIENT_SECRET` | Optional. The Client Secret BotFather shows under the bot's Login Widget. Reaches only the webapi. See [The admin site](admin-site.md) |
 | `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` | Deploy target and key |
 
 `MCP_TOKEN` is the entire protection on a plane that can mute, unmute, unban and
@@ -49,6 +50,8 @@ What is public anyway. Printed in every public workflow log.
 | --- | --- |
 | `DB_PORT` | Optional, 5432 by default |
 | `WEBAPI_PUBLIC_URL` | Required. The allowed CORS origin, and where the catalog's buttons and notifications open the app |
+| `WEBAPI_OIDC_CLIENT_ID` | Optional. The Client ID next to that secret: the bot's id, which every sign-in URL shows anyway |
+| `WEBAPI_ADMIN_URL` | Optional. The origin the console opens at in a browser; the OpenID Connect redirect is `<it>/api/auth/telegram/callback` and must be one of BotFather's Allowed URLs |
 | `ADS_BOT_NAME` | Optional. The ads desk bot's display name; unset keeps the one in `app/core/config.py` |
 | `CATALOG_ADS_CONTACT` | Optional. The Telegram username the ads pages and the bot's /start and /contacts offer; unset, they offer none |
 

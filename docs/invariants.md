@@ -63,34 +63,99 @@ received field except `hash`, `signature` included: only Telegram's third-party
 Ed25519 check leaves `signature` out, and leaving it out here refused every
 real launch.
 
-**The console has one door, and it opens from inside Telegram.** A session is
-issued for a verified `initData` payload and nothing else. What was removed
-should stay removed: the Login Widget asked a browser to re-prove an identity
-Telegram had already proven, and a magic link was a password-less bearer token
-sent through a chat, forwardable by whoever received it. Any new way in has to
-carry a signature the bot token can check, or it is not a way in.
+**The console has two doors, and each carries a proof Telegram made.** Inside
+Telegram a session is issued for a verified `initData` payload. In a browser it
+is issued for an OpenID Connect `id_token` that Telegram signed for this client
+(code flow, PKCE S256, `state` and `nonce`), checked against Telegram's
+published keys with the algorithm fixed here rather than read from the token.
+What was removed should stay removed: the Login Widget asked a browser to
+re-prove an identity Telegram had already proven, and a magic link was a
+password-less bearer token sent through a chat, forwardable by whoever received
+it. The browser door differs from the widget in that nothing reusable reaches
+the browser: its `code` is worthless without the verifier in its own cookie and
+the client secret held server-side. Any further way in has to carry a signature
+that can be checked, or it is not a way in. The browser door exists only while
+`WEBAPI_ADMIN_URL`, `WEBAPI_OIDC_CLIENT_ID` and `WEBAPI_OIDC_CLIENT_SECRET` are
+all set.
+
+**An OIDC callback finishes only the sign-in its own browser started.** The
+`state`, `nonce` and PKCE verifier wait in an httpOnly cookie scoped to the two
+sign-in routes; a callback without it is refused, so somebody else's valid
+`code` cannot sign the admin's browser in to their account. The identity is the
+numeric `id` claim (scope `profile`), not `sub`, because that is what the
+super-admin list holds.
+
+**A cookie alone does not authorise a write.** `SameSite=Lax` is same-site, not
+same-origin: another host under the same domain still sends the cookie, and a
+`text/plain` body skips the CORS preflight yet is read as JSON. So a write that
+carries the console's cookie must name one of our origins
+(`app/webapi/origin_guard.py`), and the admin site's origin joins the allowed
+ones. Writes without the cookie are not this guard's concern; a signed
+`initData` decides those.
 
 **A signature is not an authorisation.** `initData` says who is asking; the
 super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram
 signed rather than any id the payload volunteers elsewhere.
 
+**Two public endpoints write, and only about the caller.** The join check and
+`/api/public/seen` take a signed `initData` and act on the id Telegram signed,
+never on one the body names. `/seen` is idempotent: the visit is dated by
+`auth_date`, which names one launch, so a payload sent again counts once; and
+it writes a person at most once per half minute. A new public endpoint that
+writes joins this list or is not public.
+
+**The audience holds what Telegram tells us, never what people wrote.** Names,
+username, language and when somebody came, per bot and the Mini App; no
+message text, and no ids or names in the logs. Being in a moderated group is
+not being in the audience: a bot cannot write to someone who never opened a
+chat with it.
+
 **A join check belongs to one applicant, and that binding is stored.** Holding
 the query id is not the same as being the person it was issued to. Carrying the
 applicant in the Mini App's URL would let anyone with the link pass the check
 on someone else's behalf — precisely the bot farm a check exists to stop. The
 request also arrives in the bot process while the check is answered by the web
-API, so the two halves have nowhere else to meet.
+API, so the two halves have nowhere else to meet. The captcha sent in a private
+message follows the same rule: a tap counts only from the applicant it was
+sent to.
+
+**One bot answers a chat's join requests.** Telegram lets a bot write to an
+applicant only until somebody else has, so with a second captcha bot in the
+chat (@simplecaptcha_bot, today) whoever writes first wins and the other's
+captcha is never delivered. Turn captcha on for a chat in the same step as
+taking the other bot out of it.
 
 ## Approval
 
-**Being in a chat is not permission to publish or moderate it.** The bot can
-sync a group it does not own, and legacy `approved` rows are not evidence of
-an agreement with the owner. Until an owner agrees, keep that group's listing
-unpublished and its active moderation disabled. When taking a listing down,
-clear its public link as well as its approval status: restoring approval must
-not silently republish an old link. Future external directory entries need
-consent and a listing lifecycle independent of bot moderation.
+**Being in a chat is not permission to moderate it.** The bot can sync a
+group it does not own, and legacy `approved` rows are not evidence of an
+agreement with the owner. Until somebody decides about a discovered group, its
+listing stays unpublished and its active moderation disabled. When taking a
+listing down, clear its public link as well as its status: restoring a status
+must not silently republish an old link.
+
+**Listing a chat is not claiming it.** A chat run by somebody else may be
+listed so students can find it, as `external`, and the catalogue marks it as
+not ours, because its rules are not ours either. That mark is the whole of the
+consent question: an unmarked listing would vouch for a room we do not run.
+`observed` is a chat of ours where another bot of ours is in charge (NTK's own
+bot in @chat_ntk): ours to list and unmarked, never ours to act in, since a
+second bot answering there competes with the one already running it. Neither
+is reach: nobody buying a post can be sold a room our posts do not go to. The
+price of that honesty is accepted: a group's chat count on the ads page can be
+smaller than in the catalogue, which shows which of its chats are not
+moderated.
+
+**Moderation is the one meaning of `approved`, read when the action runs.**
+Every path that acts in a chat asks whether it is approved at the moment it
+acts — a proposal confirmed later or a join check passed later asks again,
+since the chat may have been switched to watching in between. The statuses
+that only list a chat are other values of the same column rather than a second
+column beside it: a second column would have to be remembered at every one of
+those checks, and the one that forgets it is the bot moderating a chat it was
+told to watch, whereas a new status that nothing checks for is merely a chat
+nobody listed.
 
 **A chat is approved or it is not — that is a property of the chat, not of an
 update type.** The bot records what it observes in unapproved groups but takes

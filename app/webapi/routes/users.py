@@ -18,7 +18,7 @@ from app.core.enums import ModerationEventAction, ModerationEventSource
 from app.core.exceptions import NotAPersonError, ProtectedUserError, UserNotFoundException
 from app.db.models import User
 from app.moderation import audit
-from app.moderation.blacklist import add_to_blacklist, remove_from_blacklist
+from app.moderation.blacklist import add_to_blacklist, approved_chat_ids, remove_from_blacklist
 from app.webapi.deps import get_publish_bot, get_session, require_super_admin
 from app.webapi.schemas import BlockedUserRead, UserBlockRequest, UserBlockResponse
 
@@ -57,7 +57,10 @@ async def block_user(
     admin_id: Annotated[int, Depends(require_super_admin)],
 ) -> UserBlockResponse:
     try:
-        await add_to_blacklist(session, bot, user_id, revoke_messages=payload.revoke_messages or None)
+        chats = len(await approved_chat_ids(session))
+        failed = await add_to_blacklist(
+            session, bot, user_id, revoke_messages=payload.revoke_messages or None, actor_id=admin_id
+        )
     except ProtectedUserError as err:
         raise HTTPException(status_code=400, detail="A super admin cannot be banned") from err
     except NotAPersonError as err:
@@ -75,6 +78,8 @@ async def block_user(
         user_id=user_id,
         blocked=True,
         message="User blocked across all managed chats." + (" Messages revoked." if payload.revoke_messages else ""),
+        failed_chats=failed,
+        banned_in=chats - len(failed),
     )
 
 

@@ -13,13 +13,17 @@ from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.webapi.deps import require_super_admin
+from app.webapi.origin_guard import DEV_ORIGIN, RequireOurOrigin
 from app.webapi.routes import (
     admin,
+    audience,
     auth,
+    auth_telegram,
     chats,
     health,
     join_check,
     public,
+    seen,
     spam,
     stats,
     users,
@@ -56,6 +60,7 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         yield
     finally:
+        await auth_telegram.close_oidc_http()
         purge.cancel()
         await asyncio.gather(purge, return_exceptions=True)
         await alerts.stop()
@@ -88,18 +93,22 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # Inside CORS, so a refusal still carries its headers.
+    app.add_middleware(RequireOurOrigin)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.webapi.allowed_origins or ["http://localhost:5173"],
+        allow_origins=settings.webapi.allowed_origins or [DEV_ORIGIN],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     app.include_router(auth.router, prefix="/api")
+    app.include_router(auth_telegram.router, prefix="/api")
     app.include_router(health.router, prefix="/api")
     app.include_router(public.router, prefix="/api")
     app.include_router(join_check.router, prefix="/api")
+    app.include_router(seen.router, prefix="/api")
     # The console, guarded at the router: a route added here cannot forget to
     # ask, and the question comes before anything else a route depends on.
     console = [Depends(require_super_admin)]
@@ -108,6 +117,7 @@ def create_app() -> FastAPI:
     app.include_router(stats.router, prefix="/api", dependencies=console)
     app.include_router(users.router, prefix="/api", dependencies=console)
     app.include_router(admin.router, prefix="/api", dependencies=console)
+    app.include_router(audience.router, prefix="/api", dependencies=console)
 
     # Default no-op singleton for test environments (ASGITransport bypasses
     # lifespan). _lifespan replaces this with the real instance at startup.

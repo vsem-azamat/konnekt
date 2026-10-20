@@ -24,7 +24,8 @@ from aiogram.exceptions import (
 from aiogram.types import Chat, ForumTopic, Message, PhotoSize, Update, User
 from app.ads.desk import AdsDesk
 from app.core.config import AdsBotSettings
-from app.db.models import AdsTopic
+from app.core.enums import Touchpoint
+from app.db.models import AdsTopic, AudienceReach, AudienceTouch
 from app.presentation.telegram import ads
 from sqlalchemy import select
 
@@ -317,6 +318,28 @@ async def test_staff_hear_in_the_topic_when_a_message_was_not_delivered(session_
     assert "не доставлено" in notice["text"].lower()
 
 
+async def test_a_person_who_blocked_the_desk_is_marked_unreachable(session_maker) -> None:
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was blocked")
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    async with session_maker() as session:
+        reach = await session.get(AudienceReach, (PERSON.id, Touchpoint.CONTACT_BOT))
+    assert reach is not None
+    assert reach.blocked_at is not None
+
+
+async def test_an_undelivered_message_for_another_reason_says_nothing_about_reach(session_maker) -> None:
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: chat not found")
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    async with session_maker() as session:
+        assert await session.get(AudienceReach, (PERSON.id, Touchpoint.CONTACT_BOT)) is None
+
+
 async def test_a_note_in_an_albums_later_caption_still_stays_with_staff(session_maker) -> None:
     desk, bot = await _desk_with_topic(session_maker)
     album = [
@@ -471,9 +494,9 @@ class _RecordingBot(Bot):
 
 
 @pytest.fixture
-def routed() -> tuple[_RecordingBot, Any, AsyncMock]:
+def routed(session_maker) -> tuple[_RecordingBot, Any, AsyncMock]:
     desk = AsyncMock()
-    dp = ads.build_dispatcher(desk, GROUP, album_wait=0)
+    dp = ads.build_dispatcher(desk, GROUP, session_maker, album_wait=0)
     return _RecordingBot(), dp, desk
 
 
@@ -493,6 +516,24 @@ async def test_start_is_greeted_and_not_relayed(routed) -> None:
     for subject in ("рекламе", "сотрудничестве", "помощи с учёбой"):
         assert subject in greeting.text
     desk.from_person.assert_not_awaited()
+
+
+async def test_whoever_writes_to_the_desk_joins_the_audience(routed, session_maker) -> None:
+    await _feed(routed, _private(1))
+
+    async with session_maker() as session:
+        touches = list(await session.scalars(select(AudienceTouch)))
+        reach = await session.get(AudienceReach, (PERSON.id, Touchpoint.CONTACT_BOT))
+    assert [(t.user_id, t.touchpoint) for t in touches] == [(PERSON.id, Touchpoint.CONTACT_BOT)]
+    assert reach is not None
+    assert reach.started_at is not None
+
+
+async def test_staff_writing_in_the_group_are_not_audience(routed, session_maker) -> None:
+    await _feed(routed, _in_topic(50, 10))
+
+    async with session_maker() as session:
+        assert list(await session.scalars(select(AudienceTouch))) == []
 
 
 async def test_a_private_message_is_relayed(routed) -> None:
@@ -536,7 +577,7 @@ async def test_what_is_not_a_conversation_is_ignored(routed, message) -> None:
 async def test_an_album_arrives_as_one(routed) -> None:
     """Telegram sends an album as separate messages sharing a media group."""
     bot, _, desk = routed
-    dp = ads.build_dispatcher(desk, GROUP, album_wait=0.05)
+    dp = ads.build_dispatcher(desk, GROUP, MagicMock(), album_wait=0.05)
     photo = [PhotoSize(file_id="f", file_unique_id="u", width=1, height=1)]
     album = [_private(i, text=None, media_group_id="g", photo=photo) for i in (5, 6)]
     await asyncio.gather(*(dp.feed_update(bot, Update(update_id=i, message=m)) for i, m in enumerate(album)))
@@ -552,7 +593,7 @@ async def _relayed_in_order(session_maker, messages: list[Message]) -> list[Any]
     if messages[0].chat.id == GROUP:
         await desk.from_person([_private(1)])
         bot.reset_mock()
-    dp = ads.build_dispatcher(desk, GROUP, album_wait=0.05)
+    dp = ads.build_dispatcher(desk, GROUP, MagicMock(), album_wait=0.05)
     recording = _RecordingBot()
     await asyncio.gather(*(dp.feed_update(recording, Update(update_id=i, message=m)) for i, m in enumerate(messages)))
     return [
@@ -595,7 +636,7 @@ async def test_a_stuck_topic_does_not_hold_up_another_topic(routed) -> None:
             await stuck.wait()
 
     desk.from_staff.side_effect = from_staff
-    dp = ads.build_dispatcher(desk, GROUP, album_wait=0)
+    dp = ads.build_dispatcher(desk, GROUP, MagicMock(), album_wait=0)
     hanging = asyncio.create_task(dp.feed_update(bot, Update(update_id=1, message=_in_topic(50, 10))))
     await asyncio.sleep(0.05)
 
@@ -704,6 +745,7 @@ def _member(can_manage_topics: bool) -> Any:
         can_post_stories=False,
         can_edit_stories=False,
         can_delete_stories=False,
+        can_send_welcome_messages=False,
         can_manage_topics=can_manage_topics,
     )
 
@@ -726,7 +768,7 @@ async def test_the_group_is_checked_when_the_desk_starts(monkeypatch, forum, mem
     bot.get_chat.return_value = SimpleNamespace(is_forum=forum)
     bot.get_chat_member.return_value = member or SimpleNamespace(status="member")
 
-    await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
+    await ads.build_dispatcher(AsyncMock(), GROUP, MagicMock()).emit_startup(bot=bot)
 
     assert [c.args[0] for c in logger.warning.call_args_list] == warnings
 
@@ -841,7 +883,7 @@ async def test_one_failed_profile_step_leaves_the_others_done(monkeypatch, metho
 
 
 async def test_the_profile_is_published_when_the_desk_starts() -> None:
-    dp = ads.build_dispatcher(AsyncMock(), GROUP)
+    dp = ads.build_dispatcher(AsyncMock(), GROUP, MagicMock())
 
     assert ads.publish_profile in [handler.callback for handler in dp.startup.handlers]
 
@@ -868,7 +910,7 @@ def serving(monkeypatch) -> list[dict]:
     monkeypatch.setattr(bot_module, "setup_container", lambda *_: None)
     monkeypatch.setattr(bot_module, "_run_polling", fake_run_polling)
     monkeypatch.setattr(bot_module, "close_db", AsyncMock())
-    monkeypatch.setattr(moved, "build_moved_bots", lambda: [])
+    monkeypatch.setattr(moved, "build_moved_bots", lambda _sm: [])
 
     async def idle(*_args, **_kwargs):
         return None
@@ -891,7 +933,8 @@ async def test_the_desk_polls_beside_moderation_and_its_failure_is_contained(mon
     (desk,) = [c for c in serving if c["name"] == "ads"]
     # The main bot owns SIGTERM.
     assert desk["handle_signals"] is False
-    assert desk["allowed_updates"] == ["message"]
+    # my_chat_member: a person blocking or unblocking the desk.
+    assert desk["allowed_updates"] == ["message", "my_chat_member"]
     assert any(c["name"] == "main" for c in serving)
 
 

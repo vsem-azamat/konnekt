@@ -86,10 +86,30 @@ class AdminChat(Base):
 class Chat(Base):
     __tablename__ = "chats"
 
+    # How far the bot's hand reaches here, in one column, so that a check for
+    # "approved" is a check for active moderation and nothing else can mean it.
+    #
+    # Approved is a chat the bot moderates. Observed is one it sits in and
+    # records but never speaks in: its owner's own bot is in charge there.
+    # External is one the bot is not in at all, listed by its public link and
+    # marked as somebody else's. Those three may be listed; discovered awaits a
+    # decision and disabled was taken down.
     STATUS_DISCOVERED = "discovered"
     STATUS_APPROVED = "approved"
+    STATUS_OBSERVED = "observed"
+    STATUS_EXTERNAL = "external"
     STATUS_DISABLED = "disabled"
-    VALID_RESOURCE_STATUSES = frozenset({STATUS_DISCOVERED, STATUS_APPROVED, STATUS_DISABLED})
+    VALID_RESOURCE_STATUSES = frozenset(
+        {STATUS_DISCOVERED, STATUS_APPROVED, STATUS_OBSERVED, STATUS_EXTERNAL, STATUS_DISABLED}
+    )
+    LISTABLE_STATUSES = frozenset({STATUS_APPROVED, STATUS_OBSERVED, STATUS_EXTERNAL})
+
+    __table_args__ = (
+        sa.CheckConstraint(
+            "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
+            name="ck_chats_resource_status",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -464,6 +484,100 @@ class JoinCheck(Base):
         self.expires_at = expires_at
 
 
+class JoinCaptcha(Base):
+    """One request to join and the emoji its applicant was asked to tap.
+
+    A row per request, whether the captcha went out or not: the wave check
+    counts them, and the expiry sweep finds the ones nobody answered, including
+    those left open by a restart.
+    """
+
+    __tablename__ = "join_captchas"
+    __table_args__ = (Index("ix_join_captchas_chat_id_created_at", "chat_id", "created_at"),)
+
+    # Sent, waiting for a tap.
+    STATUS_PENDING = "pending"
+    # Arrived during a wave: not written to, left in Telegram for the admins.
+    STATUS_HELD = "held"
+    STATUS_PASSED = "passed"
+    # Out of tries.
+    STATUS_FAILED = "failed"
+    # Out of time.
+    STATUS_EXPIRED = "expired"
+    # Turned away with the wave it came in.
+    STATUS_DECLINED = "declined"
+    # Telegram refused the private message, so the request is the admins' again.
+    STATUS_UNDELIVERED = "undelivered"
+    # Closed by someone else (an admin, another bot) before the applicant answered.
+    STATUS_GONE = "gone"
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    # Where the captcha goes. Telegram allows writing there for five minutes.
+    user_chat_id: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    answer: Mapped[str] = mapped_column(String(16))
+    options: Mapped[list[str]] = mapped_column(JSON)
+    attempts_left: Mapped[int] = mapped_column(Integer)
+    message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    wave_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    def __init__(
+        self,
+        *,
+        chat_id: int,
+        user_id: int,
+        user_chat_id: int,
+        status: str,
+        answer: str,
+        options: list[str],
+        attempts_left: int,
+        created_at: datetime.datetime,
+        expires_at: datetime.datetime,
+        wave_id: int | None = None,
+    ) -> None:
+        self.chat_id = chat_id
+        self.user_id = user_id
+        self.user_chat_id = user_chat_id
+        self.status = status
+        self.answer = answer
+        self.options = options
+        self.attempts_left = attempts_left
+        self.created_at = created_at
+        self.expires_at = expires_at
+        self.wave_id = wave_id
+
+
+class JoinWave(Base):
+    """A burst of join requests to one chat, and what an admin decided about it."""
+
+    __tablename__ = "join_waves"
+
+    DECISION_DECLINE = "decline"
+    DECISION_RESUME = "resume"
+    DECISION_LEAVE = "leave"
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    started_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    # The last moment requests came faster than the threshold; the pause ends
+    # a quiet spell after it.
+    last_surge_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    alert_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    decision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    decided_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    decided_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    def __init__(self, *, chat_id: int, started_at: datetime.datetime) -> None:
+        self.chat_id = chat_id
+        self.started_at = started_at
+        self.last_surge_at = started_at
+
+
 class ChatMemberSnapshot(Base):
     """Periodic member-count observations for managed chats.
 
@@ -500,6 +614,15 @@ class SpamPing(Base):
     __table_args__ = (
         Index("ix_spam_pings_chat_id_detected_at", "chat_id", "detected_at"),
         Index("ix_spam_pings_detected_at", "detected_at"),
+        # The console's queue: what waits, newest first, a page at a time.
+        Index(
+            "ix_spam_pings_unreviewed",
+            "detected_at",
+            "id",
+            postgresql_where=sa.text("verdict IS NULL"),
+            sqlite_where=sa.text("verdict IS NULL"),
+        ),
+        sa.CheckConstraint("verdict IN ('done', 'not_ad', 'ad')", name="ck_spam_pings_verdict"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -510,6 +633,10 @@ class SpamPing(Base):
     matches: Mapped[list[str]] = mapped_column(JSON)
     snippet: Mapped[str | None] = mapped_column(String, nullable=True)
     detected_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+    # A SpamVerdict from the console; none while the hit waits in the queue.
+    verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reviewed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    reviewed_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     def __init__(
         self,
@@ -636,3 +763,70 @@ class AdsTopic(Base):
         self.group_id = group_id
         self.user_id = user_id
         self.thread_id = thread_id
+
+
+class AudienceMember(Base):
+    """Somebody who has used one of our bots or the Mini App at least once.
+
+    Kept apart from ``users``, which also holds everybody who ever wrote in a
+    moderated group: being in a group the bot watches is not using Konnekt,
+    and a bot cannot write to someone who has not opened a chat with it.
+    Only what Telegram itself tells us about the person is stored, never what
+    they wrote. ``opted_out_at`` is for announcements that do not exist yet:
+    whoever sets it must never hear from them.
+    """
+
+    __tablename__ = "audience_members"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    language_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    is_premium: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    # The start or startapp payload that first brought them; later ones say less.
+    source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_seen_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    last_seen_at: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
+    opted_out_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AudienceTouch(Base):
+    """When one person first and last used one touchpoint, and how many times."""
+
+    __tablename__ = "audience_touches"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "touchpoint IN ('main_bot', 'contact_bot', 'mini_app', 'moved_bot')", name="ck_audience_touches_touchpoint"
+        ),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audience_members.user_id", ondelete="CASCADE"), primary_key=True
+    )
+    touchpoint: Mapped[str] = mapped_column(String(16), primary_key=True)
+    first_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    last_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    count: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class AudienceReach(Base):
+    """Whether one bot may write to one person.
+
+    A bot may write to whoever has opened a chat with it (``started_at``) and
+    has not blocked it since (``blocked_at``). Telegram reports a block as a
+    membership change of the private chat, or as a 403 on the next send.
+    ``known_at`` is the time of the latest event that set this state: events
+    arrive late and are replayed, and one older than that changes nothing.
+    """
+
+    __tablename__ = "audience_reach"
+    __table_args__ = (sa.CheckConstraint("bot IN ('main_bot', 'contact_bot')", name="ck_audience_reach_bot"),)
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audience_members.user_id", ondelete="CASCADE"), primary_key=True
+    )
+    bot: Mapped[str] = mapped_column(String(16), primary_key=True)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    blocked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    known_at: Mapped[datetime.datetime] = mapped_column(DateTime)

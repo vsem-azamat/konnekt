@@ -1,6 +1,6 @@
 import { Plural, Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
+import { useState } from 'react';
 import { SearchIcon, TargetIcon } from '@/components/icons';
 import {
   Chevron,
@@ -16,13 +16,15 @@ import {
   ui,
 } from '@/components/Ui';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { ProfileSheet } from '@/console/ProfileSheet';
 import { adminCatalogQuery } from '@/console/queries';
 import { daysSince } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
- * The catalog as the operator reads it: new profiles, requests nobody
- * answered, and what people searched for and did not find. Reads only.
+ * The catalog as the operator reads it: new profiles to look at, requests
+ * nobody answered, and what people searched for and did not find. A profile
+ * opens here, in a sheet, to be kept or hidden.
  * See catalog/docs/architecture.md, «The operator reads the catalog and runs the partner cards».
  */
 export default function ConsoleCatalogPage() {
@@ -46,8 +48,12 @@ function Days({ since }: { since: string }) {
 }
 
 function Catalog() {
-  const navigate = useNavigate();
   const { data, isPending, error, refetch } = useQuery(adminCatalogQuery);
+  const [opened, setOpened] = useState<number | null>(null);
+  const open = (userId: number) => {
+    hapticSelection();
+    setOpened(userId);
+  };
 
   if (isPending) {
     return (
@@ -88,7 +94,7 @@ function Catalog() {
         </div>
       </div>
 
-      <Label>
+      <Label aside={counts.profiles_to_review || null}>
         <Trans>Новые анкеты</Trans>
       </Label>
       {data.profiles.length > 0 ? (
@@ -111,18 +117,43 @@ function Catalog() {
                   <Chevron />
                 </>
               }
-              onClick={() => {
-                hapticSelection();
-                navigate(`/helper/${profile.user_id}`);
-              }}
+              onClick={() => open(profile.user_id)}
             />
           ))}
         </Rows>
       ) : (
         <Hint>
-          <Trans>За неделю новых анкет не было.</Trans>
+          {counts.profiles_week ? (
+            <Trans>Все новые анкеты просмотрены.</Trans>
+          ) : (
+            <Trans>За неделю новых анкет не было.</Trans>
+          )}
         </Hint>
       )}
+
+      {data.hidden.length > 0 ? (
+        <>
+          <Label aside={counts.hidden}>
+            <Trans>Скрытые</Trans>
+          </Label>
+          <Rows>
+            {data.hidden.map((profile) => (
+              <Row
+                key={profile.user_id}
+                leading={
+                  <Tile tone={4}>
+                    <Letters text={profile.name.slice(0, 1).toUpperCase()} />
+                  </Tile>
+                }
+                title={profile.name}
+                hint={profile.services.join(', ')}
+                trailing={<Chevron />}
+                onClick={() => open(profile.user_id)}
+              />
+            ))}
+          </Rows>
+        </>
+      ) : null}
 
       <Label
         aside={counts.unanswered > data.unanswered.length ? counts.unanswered : null}
@@ -187,6 +218,9 @@ function Catalog() {
           <Trans>Всё, что искали, нашлось.</Trans>
         </Hint>
       )}
+      {opened !== null ? (
+        <ProfileSheet key={opened} userId={opened} onClose={() => setOpened(null)} />
+      ) : null}
     </>
   );
 }
