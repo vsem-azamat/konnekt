@@ -145,7 +145,7 @@ def test_pre_commit_refuses_unformatted_python_and_names_the_fix(repo: Path) -> 
     result = _hook(repo, "pre-commit")
 
     assert result.returncode != 0
-    assert "uv run ruff format app/bad.py" in result.stdout + result.stderr
+    assert "uv run ruff format --force-exclude app/bad.py" in result.stdout + result.stderr
 
 
 def test_pre_commit_passes_formatted_python(repo: Path) -> None:
@@ -320,7 +320,7 @@ def test_the_fix_quotes_a_path_for_the_shell(repo: Path) -> None:
 
     result = _hook(repo, "pre-commit")
 
-    assert "uv run ruff format app/my\\ module.py" in result.stdout
+    assert "uv run ruff format --force-exclude app/my\\ module.py" in result.stdout
 
 
 def test_pre_push_refuses_while_uncommitted_edits_would_be_checked(repo: Path) -> None:
@@ -343,7 +343,7 @@ def test_pre_push_of_a_commit_not_checked_out_says_it_checked_nothing(repo: Path
     result = _hook(repo, "pre-push", f"refs/heads/b {base} refs/heads/b {ZERO}\n")
 
     assert result.returncode == 0
-    assert result.stdout.startswith("skip  all checks")
+    assert result.stdout == "skip  refs/heads/b: not checked out here\n"
 
 
 def test_these_tests_leave_the_repository_that_runs_them_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -364,3 +364,69 @@ def test_a_check_in_a_subdirectory_reads_this_repository(repo: Path) -> None:
     result = _run("bash", "-c", script, "-", repo, env=env, check=True)
 
     assert result.stdout.strip() == str(repo)
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_the_ci_lanes_step_fails_unless_lanes_names_all_three(repo: Path, workdir: str, script: str) -> None:
+    (repo / ".githooks" / "lanes").write_text("#!/usr/bin/env bash\necho python=true\n")
+    _stage(repo, "app/x.py", "x = 1\n")
+    _commit(repo)
+
+    code, output = _ci_step(repo, workdir, script)
+
+    assert code != 0
+    assert output == ""
+
+
+def test_pre_push_checks_a_tag_on_the_checked_out_commit(repo: Path) -> None:
+    _stage(repo, "docs/notes.md", "notes\n")
+    head = _commit(repo)
+    _git(repo, "tag", "-a", "v1", "-m", "v1")
+    tag = _git(repo, "rev-parse", "v1")
+
+    result = _hook(
+        repo, "pre-push", f"refs/heads/b {head} refs/heads/b {ZERO}\nrefs/tags/v1 {tag} refs/tags/v1 {ZERO}\n"
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "not checked out" not in result.stdout
+    assert "nothing changed since main" in result.stdout
+
+
+def test_pre_push_still_checks_head_beside_a_ref_that_is_not_checked_out(repo: Path) -> None:
+    _stage(repo, "docs/notes.md", "notes\n")
+    head = _commit(repo)
+    base = _git(repo, "rev-parse", "HEAD^")
+
+    result = _hook(
+        repo, "pre-push", f"refs/heads/old {base} refs/heads/old {ZERO}\nrefs/heads/b {head} refs/heads/b {ZERO}\n"
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[0] == "skip  refs/heads/old: not checked out here"
+    assert "nothing changed since main" in result.stdout
+
+
+def test_pre_push_ignores_new_files_where_no_check_reads(repo: Path) -> None:
+    _stage(repo, "app/x.py", "x = 1\n")
+    head = _commit(repo)
+    (repo / "notes.txt").write_text("scratch\n")
+
+    result = _hook(repo, "pre-push", f"refs/heads/b {head} refs/heads/b {ZERO}\n")
+
+    assert "uncommitted" not in result.stdout
+
+
+def test_pre_commit_leaves_what_ruff_excludes_alone(repo: Path) -> None:
+    """The catalog's migrations are generated and excluded; on stdin ruff only knows if told to look."""
+    (repo / "catalog").mkdir()
+    shutil.copy(ROOT / "catalog" / "pyproject.toml", repo / "catalog")
+    shutil.copy(ROOT / "catalog" / "uv.lock", repo / "catalog")
+    (repo / "catalog" / "tests").mkdir()
+    (repo / "catalog" / "tests" / "__init__.py").write_text("")
+    _stage(repo, "catalog/src/students_cz/db/migrations/versions/x.py", "import os\nx = {  'a':1 }\n")
+
+    result = _hook(repo, "pre-commit")
+
+    assert "ok    catalog ruff check" in result.stdout, result.stdout + result.stderr
+    assert "ok    catalog ruff format" in result.stdout, result.stdout + result.stderr

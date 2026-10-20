@@ -26,8 +26,8 @@ if on python; then
   # The directories CI lints.
   mapfile -t py < <(grep -E '^(app|tests|scripts)/.*\.py$' <<<"$present")
   if [ ${#py[@]} -gt 0 ]; then
-    check "ruff check" "uv run ruff check --fix $(quoted "${py[@]}")" ruff_staged . check "${py[@]}"
-    check "ruff format" "uv run ruff format $(quoted "${py[@]}")" ruff_staged . format "${py[@]}"
+    check "ruff check" "uv run ruff check --fix --force-exclude $(quoted "${py[@]}")" ruff_staged . check "${py[@]}"
+    check "ruff format" "uv run ruff format --force-exclude $(quoted "${py[@]}")" ruff_staged . format "${py[@]}"
   fi
   check "ty" "" uv run --locked ty check app tests
   working_tree_note '\.py$' ty
@@ -37,8 +37,8 @@ if on catalog; then
   mapfile -t cpy < <(grep -E '^catalog/(src|tests)/.*\.py$' <<<"$present")
   if [ ${#cpy[@]} -gt 0 ]; then
     cfix=$(quoted "${cpy[@]#catalog/}")
-    check "catalog ruff check" "uv run --directory catalog ruff check --fix $cfix" ruff_staged catalog check "${cpy[@]}"
-    check "catalog ruff format" "uv run --directory catalog ruff format $cfix" ruff_staged catalog format "${cpy[@]}"
+    check "catalog ruff check" "uv run --directory catalog ruff check --fix --force-exclude $cfix" ruff_staged catalog check "${cpy[@]}"
+    check "catalog ruff format" "uv run --directory catalog ruff format --force-exclude $cfix" ruff_staged catalog format "${cpy[@]}"
   fi
   check "catalog ty" "" uv run --locked --directory catalog ty check src tests
   working_tree_note '^catalog/.*\.py$' "catalog ty"

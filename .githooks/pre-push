@@ -8,15 +8,15 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 
 head=$(git rev-parse HEAD)
 pushed=""
-while read -r _ sha _ _; do
+while read -r ref sha _ _; do
   [ "$sha" = 0000000000000000000000000000000000000000 ] && continue
   # The checks read the working tree, which is only the pushed commit's when
-  # that commit is checked out.
-  if [ "$sha" != "$head" ]; then
-    printf 'skip  all checks: the pushed %s is not checked out here\n' "${sha:0:12}"
-    exit 0
+  # that commit is checked out. A tag counts as the commit it names.
+  if [ "$(git rev-parse -q --verify "$sha^{commit}")" != "$head" ]; then
+    printf 'skip  %s: not checked out here\n' "$ref"
+    continue
   fi
-  pushed=$sha
+  pushed=$head
 done
 [ -n "$pushed" ] || exit 0
 
@@ -25,7 +25,8 @@ paths=$(changed "$base" "$pushed") || exit 1
 lanes=$(.githooks/lanes <<<"$paths") || exit 1
 
 # Uncommitted edits would be checked in place of what is pushed.
-dirty=$(changed HEAD; git -c core.quotePath=false ls-files --others --exclude-standard)
+# New files count only where the checks would read them.
+dirty=$(changed HEAD; git -c core.quotePath=false ls-files --others --exclude-standard -- app tests scripts alembic web catalog)
 dirty_lanes=$(.githooks/lanes <<<"$dirty")
 for lane in python web catalog; do
   if on "$lane" && grep -qx "$lane=true" <<<"$dirty_lanes"; then

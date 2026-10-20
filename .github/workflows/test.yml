@@ -59,11 +59,18 @@ jobs:
       id: lanes
       run: |
         if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-          .githooks/lanes HEAD^1 HEAD >> "$GITHUB_OUTPUT"
+          lanes=$(.githooks/lanes HEAD^1 HEAD)
         else
-          printf 'python=true\nweb=true\ncatalog=true\n' >> "$GITHUB_OUTPUT"
+          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
         fi
-        cat "$GITHUB_OUTPUT"
+        echo "$lanes"
+        # Anything else leaves a step's condition empty, and the step skipped.
+        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
+        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
+          echo "lanes printed something other than the three lanes" >&2
+          exit 1
+        fi
+        echo "$lanes" >> "$GITHUB_OUTPUT"
 
     - name: Set up Python ${{ matrix.python-version }}
       if: steps.lanes.outputs.python == 'true'
@@ -262,11 +269,18 @@ jobs:
       id: lanes
       run: |
         if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-          ../.githooks/lanes HEAD^1 HEAD >> "$GITHUB_OUTPUT"
+          lanes=$(../.githooks/lanes HEAD^1 HEAD)
         else
-          printf 'python=true\nweb=true\ncatalog=true\n' >> "$GITHUB_OUTPUT"
+          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
         fi
-        cat "$GITHUB_OUTPUT"
+        echo "$lanes"
+        # Anything else leaves a step's condition empty, and the step skipped.
+        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
+        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
+          echo "lanes printed something other than the three lanes" >&2
+          exit 1
+        fi
+        echo "$lanes" >> "$GITHUB_OUTPUT"
 
     - name: Install uv
       if: steps.lanes.outputs.catalog == 'true'

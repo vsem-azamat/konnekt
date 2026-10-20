@@ -46,10 +46,10 @@ ruff_staged() {
   shift 2
   for path in "$@"; do
     if [ "$mode" = format ]; then
-      git show ":$path" | uv run --locked --directory "$dir" ruff format --check -q --stdin-filename "${path#"$dir"/}" - \
+      git show ":$path" | uv run --locked --directory "$dir" ruff format --check -q --force-exclude --stdin-filename "${path#"$dir"/}" - \
         >/dev/null 2>&1 || { printf 'would reformat: %s\n' "$path"; rc=1; }
     else
-      git show ":$path" | uv run --locked --directory "$dir" ruff check -q --stdin-filename "${path#"$dir"/}" - || rc=1
+      git show ":$path" | uv run --locked --directory "$dir" ruff check -q --force-exclude --stdin-filename "${path#"$dir"/}" - || rc=1
     fi
   done
   return "$rc"
