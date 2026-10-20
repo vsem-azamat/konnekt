@@ -112,19 +112,7 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "přijímačk",
         "prijimaci",
         "entrance",
-        "admission",
         "вступн",
-        # The Ukrainian noun, only where it cannot be «introduction»: «вступ на
-        # медицину», «вступ з математики», «вступ до університету». «вступ до»
-        # with a school found is read in `parse`; «вступ до програмування» is an
-        # introduction to programming.
-        Word("вступ на"),
-        Word("вступ з"),
-        Word("вступ у"),
-        Word("вступ в"),
-        "вступ до університ",
-        "вступ до внз",
-        "вступ до виш",
         # The Ukrainian spelling, which used to reach `entrance_prep` only
         # because it was a synonym of one subject on this shelf.
         "приймач",
@@ -371,6 +359,35 @@ EXAM_MENTION: tuple[str, ...] = (
     "termin",
 )
 
+# Words for entrance exams that also mean something else, so they are read
+# only after every other kind of help has had its say: «вступ» is a paper's
+# introduction («написати вступ на 2 сторінки» is writing) and admission is
+# what a translation or a nostrification is for. And «вступ у/в X» is the calque
+# of «введение в», so only a university follows it here; «вступ до» a school
+# the query names is read in `parse`.
+LATE_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "entrance_prep": (
+        # Not "admission" alone: a hospital admission, an admission fee and
+        # the admission of evidence are not entrance exams.
+        Word("admissions"),
+        "admission to",
+        "university admission",
+        "college admission",
+        "admission test",
+        "admission exam",
+        Word("вступ на"),
+        Word("вступ з"),
+        "вступ до університ",
+        "вступ у університ",
+        "вступ в університ",
+        "вступ до внз",
+        "вступ у внз",
+        "вступ в внз",
+        "вступ до виш",
+        "вступ у виш",
+    ),
+}
+
 # Words that only restate a kind of help once its keyword has named it: the
 # exam in «вступительные экзамены», the preparing in «подготовка к ...». A
 # query made of a keyword and these names no subject, and the scorer guessing
@@ -424,9 +441,11 @@ RESTATING_FOR: dict[str, tuple[str, ...]] = {
         "університет",
         "universit",
         "univerzit",
-        Word("вуз"),
+        # Stems for «вузы», «вуза», «виші»; entrance exams only, where nothing
+        # else begins that way.
+        "вуз",
         Word("внз"),
-        Word("виш"),
+        "виш",
     )
 }
 
@@ -504,7 +523,7 @@ async def parse(
     if (
         result.service_type is None
         and result.institution
-        and is_whole_word(tokenise(norm), "вступ до")
+        and await _enters_the_school(session, norm, result.institution)
     ):
         result.service_type, keyword = "entrance_prep", "вступ до"
 
@@ -953,6 +972,13 @@ def _match_service(
             match = is_whole_word if isinstance(keyword, Word) else starts_a_word
             if match(tokens, keyword):
                 return code, keyword
+    for code, keywords in LATE_KEYWORDS.items():
+        if code in ignore:
+            continue
+        for keyword in keywords:
+            match = is_whole_word if isinstance(keyword, Word) else starts_a_word
+            if match(tokens, keyword):
+                return code, keyword
 
     if any(starts_a_word(tokens, verb) for verb in WEAK_HELP):
         if any(starts_a_word(tokens, word) for word in EXAM_MENTION):
@@ -1259,6 +1285,17 @@ async def _within_shelf(
     # Only guesses are here — a named match would have sorted first and kept
     # this from being asked — so what stays is what the shelf holds.
     return [match for match in subjects if match.id in held]
+
+
+async def _enters_the_school(session: AsyncSession, norm: str, school: Match) -> bool:
+    """Is it «вступ до» the school itself? «вступ до ЧВУТ» is entering ČVUT;
+    «вступ до математичного аналізу ЧВУТ» an introduction taught there."""
+    tokens = tokenise(norm).split()
+    words = await _school_words(session, school)
+    return any(
+        first == "вступ" and second == "до" and _is_school_word(after, words)
+        for first, second, after in zip(tokens, tokens[1:], tokens[2:], strict=False)
+    )
 
 
 def _numbers(matches: list[Match]) -> set[str]:
