@@ -49,7 +49,7 @@ What is public anyway. Printed in every public workflow log.
 | --- | --- |
 | `DB_PORT` | Optional, 5432 by default |
 | `WEBAPI_PUBLIC_URL` | Required. The allowed CORS origin, and where the catalog's buttons and notifications open the app |
-| `CATALOG_ADS_CONTACT` | Optional. The Telegram username the ads page offers |
+| `CATALOG_ADS_CONTACT` | Optional. The Telegram username the ads pages and the bot's /start and /contacts offer; unset, they offer none |
 
 ## Features switch themselves on
 

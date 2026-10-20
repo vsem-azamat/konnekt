@@ -25,10 +25,6 @@ from app.presentation.telegram.utils import other
 router = Router()
 logger = get_logger("handlers.start")
 
-# Where somebody who wants to place an advertisement, or to say anything else,
-# is sent. The bot answers questions about chats; a person answers the rest.
-CONTACT_USERNAME = "work_azamat"
-
 
 def _site() -> str:
     return settings.webapi.public_url.rstrip("/")
@@ -98,7 +94,10 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
         # why most people come.
         builder.add(_open_button("🎓 Помощь с учёбой", _site(), private=private))
         builder.add(_open_button("📣 Реклама в чатах", f"{_site()}/ads", private=private))
-    builder.add(types.InlineKeyboardButton(text="✉️ Написать нам", url=f"https://t.me/{CONTACT_USERNAME}"))
+    # Where somebody who wants to place an advertisement, or to say anything
+    # else, is sent. The bot answers questions about chats; people answer the rest.
+    if contact := settings.ads_bot.contact_username:
+        builder.add(types.InlineKeyboardButton(text="✉️ Написать нам", url=f"https://t.me/{contact}"))
 
     # A column of identical full-width buttons reads as a wall, and gives the
     # same weight to the reason somebody opened the bot and to the two things
@@ -173,7 +172,11 @@ async def get_chats(message: types.Message, db: AsyncSession) -> None:
 
 @router.message(Command("contacts", prefix="/!"))
 async def get_contacts(message: types.Message) -> None:
-    text = f"📞 <b>Контакты:</b>\n\n• 📧 <b>Сотрудничество:</b> @{CONTACT_USERNAME}\n• 🧑🏿‍💻 <b>Dev:</b> @vsem_azamat"
+    lines = ["📞 <b>Контакты:</b>", ""]
+    if contact := settings.ads_bot.contact_username:
+        lines.append(f"• 📧 <b>Сотрудничество:</b> @{contact}")
+    lines.append("• 🧑🏿‍💻 <b>Dev:</b> @vsem_azamat")
+    text = "\n".join(lines)
     bot_message = await message.answer(text)
     await message.delete()
     other.sleep_and_delete(bot_message)

@@ -123,6 +123,16 @@ class AdsBotSettings(Settings):
     # Text, read where the bot is built: a mistyped id (a link, an @name) must
     # switch the desk off with a log line, not stop moderation from booting.
     group_id: str = Field(default="", description="The staff forum supergroup (-100…) the desk opens topics in")
+    # The same variable as the catalog's ADS_CONTACT (docker-compose.yaml), so
+    # the bot and the site's ads pages send people to one place. Text, for the
+    # reason given above; `contact_username` is what is offered.
+    contact: str = Field(default="", description="Telegram username advertisers and questions are sent to")
+
+    @property
+    def contact_username(self) -> str | None:
+        """The contact without its «@», or None when unset or not a username: no button to nowhere."""
+        username = self.contact.strip().removeprefix("@")
+        return username if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{3,31}", username) else None
 
     model_config = SettingsConfigDict(
         env_prefix="ADS_BOT_",

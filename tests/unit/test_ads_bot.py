@@ -599,7 +599,7 @@ async def test_a_stuck_topic_does_not_hold_up_another_topic(routed) -> None:
 
 
 def _settings(monkeypatch, **env: str) -> AdsBotSettings:
-    for name in ("ADS_BOT_TOKEN", "ADS_BOT_GROUP_ID"):
+    for name in ("ADS_BOT_TOKEN", "ADS_BOT_GROUP_ID", "ADS_BOT_CONTACT"):
         monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
@@ -729,6 +729,25 @@ async def test_an_unreachable_group_is_logged_and_the_desk_still_starts(monkeypa
     await ads.build_dispatcher(AsyncMock(), GROUP).emit_startup(bot=bot)
 
     logger.warning.assert_called_once_with("ads_group_unreachable", error="Bad Request: chat not found")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("konnekt_ads_bot", "konnekt_ads_bot"),
+        (" @konnekt_ads_bot ", "konnekt_ads_bot"),
+        ("", None),
+        # A link or a typo offers nobody rather than a button that opens nothing.
+        ("https://t.me/konnekt_ads_bot", None),
+        ("konnekt ads", None),
+    ],
+)
+def test_the_contact_is_a_username_or_nobody(monkeypatch, raw, expected) -> None:
+    assert _settings(monkeypatch, ADS_BOT_CONTACT=raw).contact_username == expected
+
+
+def test_a_mistyped_contact_does_not_stop_the_process_from_reading_its_settings(monkeypatch) -> None:
+    assert _settings(monkeypatch, ADS_BOT_CONTACT="https://t.me/x").contact == "https://t.me/x"
 
 
 # --- In the bot process -----------------------------------------------------

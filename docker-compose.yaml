@@ -106,6 +106,9 @@ services:
       # The ads contact desk (app/presentation/telegram/ads.py), likewise only here.
       ADS_BOT_TOKEN: ${ADS_BOT_TOKEN:-}
       ADS_BOT_GROUP_ID: ${ADS_BOT_GROUP_ID:-}
+      # Who /start and /contacts send people to: the variable the ads pages
+      # use too (catalog-api's ADS_CONTACT), so the two cannot disagree.
+      ADS_BOT_CONTACT: ${CATALOG_ADS_CONTACT:-}
     # The MCP control plane is served here rather than by webapi: Telegram
     # answers a confirmation button to the identity that sent it, and that
     # identity is this process. Loopback only — not published to the internet.
