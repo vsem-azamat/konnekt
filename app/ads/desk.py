@@ -92,7 +92,10 @@ class AdsDesk:
             except TelegramAPIError as e:
                 # No topic to tell staff in, so the person is told instead.
                 logger.error("ads_topic_not_opened", user_id=person.id, error=e.message)
-                await self.bot.send_message(chat_id=person.id, text=NOT_PASSED_ON)
+                try:
+                    await self.bot.send_message(chat_id=person.id, text=NOT_PASSED_ON)
+                except TelegramAPIError as told:
+                    logger.warning("ads_person_not_told", user_id=person.id, error=told.message)
                 return
             if error is not None:
                 await self._notice(thread, f"Сообщение не скопировано: {error.message}")

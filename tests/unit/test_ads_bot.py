@@ -367,6 +367,20 @@ async def test_a_person_hears_when_no_topic_could_be_opened(session_maker, delet
     assert answer["text"] == "Не получилось передать сообщение, попробуйте чуть позже"
 
 
+async def test_a_person_who_cannot_be_told_either_is_only_logged(session_maker, monkeypatch) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr("app.ads.desk.logger", logger)
+    bot = _bot()
+    bot.create_forum_topic.side_effect = TelegramBadRequest(
+        method=MagicMock(), message="Bad Request: not enough rights"
+    )
+    bot.send_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was blocked")
+
+    await AdsDesk(bot, session_maker, GROUP).from_person([_private(1)])
+
+    logger.warning.assert_called_once_with("ads_person_not_told", user_id=PERSON.id, error="Forbidden: bot was blocked")
+
+
 async def test_a_long_wait_telegram_asks_for_is_reported_at_once(session_maker, monkeypatch) -> None:
     """Waiting holds the person's turn; past half a minute it is better to tell staff."""
     slept: list[float] = []
@@ -556,6 +570,29 @@ async def test_an_album_delivered_out_of_order_is_copied_in_order(session_maker)
     album = [_private(i, text=None, media_group_id="g", photo=PHOTO) for i in (6, 5)]
 
     assert await _relayed_in_order(session_maker, album) == [[5, 6]]
+
+
+async def test_a_stuck_topic_does_not_hold_up_another_topic(routed) -> None:
+    """Each topic is a conversation of its own, not the whole staff group."""
+    bot, _, desk = routed
+    stuck = asyncio.Event()
+    reached: list[int] = []
+
+    async def from_staff(messages: list[Message]) -> None:
+        reached.append(messages[0].message_thread_id or 0)
+        if messages[0].message_thread_id == 10:
+            await stuck.wait()
+
+    desk.from_staff.side_effect = from_staff
+    dp = ads.build_dispatcher(desk, GROUP, album_wait=0)
+    hanging = asyncio.create_task(dp.feed_update(bot, Update(update_id=1, message=_in_topic(50, 10))))
+    await asyncio.sleep(0.05)
+
+    await asyncio.wait_for(dp.feed_update(bot, Update(update_id=2, message=_in_topic(51, 11))), timeout=1)
+
+    assert reached == [10, 11]
+    stuck.set()
+    await hanging
 
 
 # --- Configuration ----------------------------------------------------------
