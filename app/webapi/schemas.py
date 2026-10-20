@@ -26,10 +26,12 @@ PUBLIC_LINK = re.compile(
 class PublicCatalogItem(BaseModel):
     """What a stranger may know about a chat.
 
-    Five fields, and the shape is the safety rather than any check downstream:
-    there is no Telegram id here, no member count, no moderation state, nothing
-    about who is in the room. A public page cannot leak a field this model does
-    not carry, however carelessly it is written.
+    The shape is the safety rather than any check downstream: there is no
+    Telegram id here, no moderation state, nothing about who is in the room. A
+    public page cannot leak a field this model does not carry, however
+    carelessly it is written. How many are in the room is here: the app shows it
+    before a stranger leaves for the chat, and Telegram shows the same number on
+    the chat's own public page.
 
     ``group`` is the section's title: the parent chat's for a chat under one
     ("ČVUT" above "ČVUT FIT"), the chat's own for a chat others sit under, and
@@ -47,15 +49,18 @@ class PublicCatalogItem(BaseModel):
     # behind the other three values is too short to stand on. A page shows
     # nothing for it rather than guessing.
     activity: Literal["unknown", "quiet", "active", "busy"]
+    # The newest snapshot the bot wrote; None when it never measured the chat,
+    # which is not the same claim as an empty room.
+    member_count: int | None = None
+    # Telegram's topics, so the preview can say the chat is split into them.
+    is_forum: bool = False
 
 
 class PublicReachGroup(BaseModel):
     """One university's worth of catalogue, as an advertiser would ask about it.
 
-    Aggregated per group and never per chat. The catalogue already says which
-    chats exist; how large each individual room is does not need to be
-    published alongside it, and a sum is what somebody buying a placement is
-    actually asking for.
+    Aggregated per group: a sum is what somebody buying a placement is
+    actually asking for. Each room's own size is on the catalogue.
     """
 
     name: str

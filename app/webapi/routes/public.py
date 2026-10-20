@@ -18,7 +18,7 @@ from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message
 from app.webapi.deps import get_session
 from app.webapi.schemas import PublicCatalogItem, PublicReach, PublicReachGroup
-from app.webapi.services import public_answers
+from app.webapi.services import member_counts, public_answers
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -129,8 +129,10 @@ async def get_public_catalog(
     rows = (
         await session.execute(
             select(
+                Chat.id,
                 Chat.title,
                 Chat.public_link,
+                Chat.is_forum,
                 _section(parent),
                 # The group's university: the parent's under one, the chat's own
                 # at the top. Never a child's own: one left from when it stood at
@@ -146,6 +148,7 @@ async def get_public_catalog(
             .where(Chat.public_link.is_not(None))
         )
     ).all()
+    counts = await member_counts.latest_for(session, [row.id for row in rows])
 
     items = [
         PublicCatalogItem(
@@ -154,6 +157,8 @@ async def get_public_catalog(
             group=row.group_title,
             institution=row.institution,
             activity=_activity(row.messages, grounded=grounded),
+            member_count=counts.get(row.id),
+            is_forum=bool(row.is_forum),
         )
         for row in rows
         if row.title and row.public_link
