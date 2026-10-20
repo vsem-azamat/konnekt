@@ -6,7 +6,6 @@ import css from './Login.module.css';
 /**
  * The browser's catch-all. Not the Mini App's: that one draws the Telegram
  * header, which asks the catalog who is looking, and a browser has no answer.
- * The catalog's and the partners' addresses land here too.
  */
 export default function BrowserNotFound() {
   return (

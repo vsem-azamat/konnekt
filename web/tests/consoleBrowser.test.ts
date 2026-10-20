@@ -3,7 +3,6 @@ import { test } from 'node:test';
 
 import {
   BROWSER_PATHS,
-  catalogReachable,
   endsSession,
   isBrowserConsolePath,
   loginProblem,
@@ -33,17 +32,16 @@ test('a browser gets the console and its sign-in, and the landing page everywher
   assert.equal(isBrowserConsolePath('/login/extra'), false);
 });
 
-test('the browser reaches no screen that needs the catalog', () => {
-  for (const path of BROWSER_PATHS) {
-    assert.doesNotMatch(path, /catalog|partners/);
+test('the browser reaches the catalog and the partners too (#293)', () => {
+  for (const path of [
+    'catalog',
+    'partners',
+    'partners/new',
+    'chats',
+    'system',
+  ] as const) {
+    assert.ok(BROWSER_PATHS.includes(path), path);
   }
-  assert.ok(BROWSER_PATHS.includes('chats'));
-  assert.ok(BROWSER_PATHS.includes('system'));
-});
-
-test('the catalog is asked from the Mini App and never from a browser', () => {
-  assert.equal(catalogReachable(false), true);
-  assert.equal(catalogReachable(true), false);
 });
 
 test('a missing session sends the browser to sign in, and a failed request does not', () => {

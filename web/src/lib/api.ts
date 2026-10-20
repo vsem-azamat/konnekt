@@ -1,4 +1,9 @@
+import { i18n } from '@lingui/core';
 import { retrieveRawInitData } from '@tma.js/sdk-react';
+
+import { ConsoleError } from '@/console/session';
+
+import { type CatalogDoor, catalogCall } from './catalogDoor';
 
 import { type PublicChat, sanitize } from './chats';
 import type {
@@ -43,7 +48,16 @@ import type {
  */
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
-const API_PREFIX = '/api/v1';
+/** How the catalog is asked; see catalogDoor.ts. Telegram's way until told otherwise. */
+let catalogDoor: CatalogDoor = 'init-data';
+
+/**
+ * The console in a browser: the catalog's screens are asked of webapi, under
+ * its session. Called once, before the console renders there.
+ */
+export function askCatalogThroughConsole(): void {
+  catalogDoor = 'console-session';
+}
 
 /** Thrown for any non-2xx response. */
 export class ApiError extends Error {
@@ -134,17 +148,20 @@ interface RequestOptions {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', query, body, signal } = options;
 
+  const call = catalogCall(catalogDoor, path, toQuery(query), i18n.locale);
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    ...authHeader(),
+    ...(call.initData ? authHeader() : {}),
   };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const response = await fetch(`${BASE_URL}${API_PREFIX}${path}${toQuery(query)}`, {
+  const response = await fetch(`${BASE_URL}${call.url}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
+    // The console's session cookie, which webapi asks the catalog under.
+    credentials: call.initData ? undefined : 'same-origin',
   });
 
   if (response.status === 204) return undefined as T;
@@ -152,6 +169,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload = await readBody(response);
 
   if (!response.ok) {
+    // Through webapi a 401 is the browser's session gone, which the console
+    // answers by signing in again (browser.ts, `endsSession`).
+    if (response.status === 401 && !call.initData) throw new ConsoleError(401, 'stale');
     if (response.status === 401) {
       const error = new UnauthorizedError(payload);
       for (const listener of unauthorizedListeners) listener(error);

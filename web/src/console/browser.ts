@@ -18,14 +18,17 @@ export function loginProblem(search: string): LoginProblem | null {
 
 /**
  * The screens a browser reaches, below `/console`; `''` is the summary. The
- * catalog's and the partners' are absent on purpose: they ask the catalog API,
- * which takes a Telegram signature and nothing else (#293).
+ * catalog's and the partners' are asked of webapi, which asks the catalog for
+ * the signed-in super admin (#293, lib/catalogDoor.ts).
  */
 export const BROWSER_PATHS = [
   '',
   'audience',
   'audience/people',
   'audience/:id',
+  'catalog',
+  'partners',
+  'partners/new',
   'chats',
   'chats/:id',
   'spam',
@@ -34,11 +37,6 @@ export const BROWSER_PATHS = [
 ] as const;
 
 export type BrowserPath = (typeof BROWSER_PATHS)[number];
-
-/** Whether the catalog's API can be asked: not from a browser. */
-export function catalogReachable(inBrowser: boolean): boolean {
-  return !inBrowser;
-}
 
 /**
  * Whether a failure means the session is gone, so the way on is signing in.

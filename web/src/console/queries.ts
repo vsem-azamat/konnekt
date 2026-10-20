@@ -1,6 +1,7 @@
 /**
  * The console's queries. Webapi's go through its session (see session.ts);
- * the catalog's are ordinary `/api/v1` calls that only operators may make.
+ * the catalog's are ordinary `/api/v1` calls that only operators may make,
+ * asked of webapi instead in a browser (lib/catalogDoor.ts).
  */
 
 import { infiniteQueryOptions } from '@tanstack/react-query';

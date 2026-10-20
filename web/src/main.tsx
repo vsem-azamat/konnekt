@@ -24,7 +24,7 @@ import { BrowserConsoleContext } from '@/console/browserContext';
 import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
-import { ApiError, api, rawInitData } from '@/lib/api';
+import { ApiError, api, askCatalogThroughConsole, rawInitData } from '@/lib/api';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -118,6 +118,8 @@ let browserMode = false;
 
 async function renderBrowserConsole(): Promise<void> {
   browserMode = true;
+  // No initData here: the catalog's screens are asked of webapi (#293).
+  askCatalogThroughConsole();
   const locale = resolveLocale(navigator.language);
   await activateLocale(locale);
   document.documentElement.lang = locale;

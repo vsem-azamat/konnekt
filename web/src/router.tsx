@@ -84,14 +84,16 @@ export const router = createBrowserRouter([
 
 /**
  * What a browser gets: the console beside its menu, and the way to sign in.
- * Only the screens that webapi's session reaches; the catalog's and the
- * partners' wait in the Mini App (see `BrowserShell`).
+ * Every screen is reached through webapi's session, the catalog's too.
  */
 const browserScreens: Record<BrowserPath, ReactElement> = {
   '': <ConsoleSummaryPage />,
   audience: <ConsoleAudiencePage />,
   'audience/people': <ConsoleAudiencePeoplePage />,
   'audience/:id': <ConsoleAudiencePersonPage />,
+  catalog: <ConsoleCatalogPage />,
+  partners: <ConsolePartnersPage />,
+  'partners/new': <ConsolePartnerNewPage />,
   chats: <ConsoleChatsPage />,
   'chats/:id': <ConsoleChatPage />,
   spam: <ConsoleSpamPage />,
