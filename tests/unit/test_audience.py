@@ -147,3 +147,14 @@ async def test_opting_out_is_kept_and_a_new_visit_does_not_undo_it(session_maker
         await db.commit()
 
     assert (await _member(session_maker)).opted_out_at == T0
+
+
+async def test_a_replayed_older_visit_does_not_lift_a_newer_block(session_maker):
+    async with session_maker() as db:
+        await record.blocked(db, ANNA.id, Touchpoint.MAIN_BOT, at=T1)
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=T0, started=Touchpoint.MAIN_BOT, replay=True)
+        await record.started(db, ANNA.id, Touchpoint.MAIN_BOT, at=T0)
+        await db.commit()
+
+    reach = await _reach(session_maker, Touchpoint.MAIN_BOT)
+    assert (reach.started_at, reach.blocked_at) == (T0, T1)

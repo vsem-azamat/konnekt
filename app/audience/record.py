@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from aiogram.types import User
     from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["Person", "Touchpoint", "blocked", "opted_out", "seen"]
+__all__ = ["Person", "Touchpoint", "blocked", "opted_out", "seen", "started"]
 
 
 @dataclass(frozen=True)
@@ -79,11 +79,14 @@ async def seen(
     at: datetime.datetime,
     source: str | None = None,
     started: Touchpoint | None = None,
+    replay: bool = False,
 ) -> None:
     """Record that `person` used `touchpoint` at `at`.
 
     `started` names the bot whose private chat this shows to be open, when it
-    does: writing to a bot, or allowing the Mini App's bot to write.
+    does: writing to a bot, or allowing the Mini App's bot to write. A
+    `replay` of something recorded elsewhere earlier, as the backfill does,
+    does not count as another visit, so running it again changes nothing.
     """
     if person.is_bot:
         return
@@ -125,13 +128,18 @@ async def seen(
             set_={
                 "first_at": _earlier(touches.c.first_at, insert.excluded.first_at),
                 "last_at": _later(touches.c.last_at, insert.excluded.last_at),
-                "count": touches.c.count + 1,
+                "count": touches.c.count + (0 if replay else 1),
             },
         )
     )
 
     if started is not None:
         await _reach(db, person.id, started, started_at=at, blocked_at=None)
+
+
+async def started(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime) -> None:
+    """Record that `bot` may write to `user_id` from `at`, when that is known without a visit."""
+    await _reach(db, user_id, bot, started_at=at, blocked_at=None)
 
 
 async def blocked(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime) -> None:
@@ -149,14 +157,14 @@ async def _reach(
 ) -> None:
     reach = AudienceReach.__table__
     insert = insert_for(db, reach).values(user_id=user_id, bot=bot, started_at=started_at, blocked_at=blocked_at)
-    if blocked_at is None:
-        # Open again: the chat was used, so whatever block came before is over.
+    if started_at is not None:
+        # The chat was used at `started_at`: a block from before then is over, a later one stands.
         changes = {
-            "started_at": func.coalesce(reach.c.started_at, insert.excluded.started_at),
-            "blocked_at": None,
+            "started_at": _earlier(reach.c.started_at, started_at),
+            "blocked_at": case((reach.c.blocked_at <= started_at, None), else_=reach.c.blocked_at),
         }
     else:
-        changes = {"blocked_at": insert.excluded.blocked_at}
+        changes = {"blocked_at": _later(reach.c.blocked_at, blocked_at)}
     await db.execute(insert.on_conflict_do_update(index_elements=[reach.c.user_id, reach.c.bot], set_=changes))
 
 
