@@ -26,4 +26,5 @@ DEFAULT_ADMIN_RIGHTS = ChatAdministratorRights(
     can_pin_messages=True,
     can_manage_topics=True,
     can_manage_tags=True,
+    can_send_welcome_messages=True,
 )
