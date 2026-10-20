@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.core.time import utc_now
-from app.db.models import Chat, ChatMemberSnapshot, Message
+from app.db.models import Chat, Message
 from app.webapi.deps import get_session
 from app.webapi.schemas import PublicCatalogItem, PublicReach, PublicReachGroup
 from app.webapi.services import member_counts, public_answers
@@ -199,42 +199,21 @@ async def get_public_reach(
     that reaches into the account behind it is a public URL somebody can point
     at the account. The newest snapshot per chat is the answer — the loop writes
     a row per poll, and summing all of them would count the same people once per
-    observation.
+    observation — and, as on the catalogue, none older than
+    MEMBER_COUNT_FRESH_FOR: a chat the bot stopped counting is unmeasured.
     """
     if (cached := public_answers.remembered("reach")) is not None:
         return cast("PublicReach", cached)
-    newest = (
-        select(
-            ChatMemberSnapshot.chat_id,
-            func.max(ChatMemberSnapshot.captured_at).label("captured_at"),
-        )
-        .group_by(ChatMemberSnapshot.chat_id)
-        .subquery()
-    )
-    latest = (
-        select(ChatMemberSnapshot.chat_id, ChatMemberSnapshot.member_count)
-        .join(
-            newest,
-            (newest.c.chat_id == ChatMemberSnapshot.chat_id) & (newest.c.captured_at == ChatMemberSnapshot.captured_at),
-        )
-        .subquery()
-    )
-
     parent = aliased(Chat)
     rows = (
         await session.execute(
-            select(_section(parent), latest.c.member_count)
-            # Explicit, because the first column named here belongs to the
-            # aliased parent and the second to a subquery — left to infer it,
-            # SQLAlchemy starts the FROM from the wrong one and joins `chats`
-            # in twice.
-            .select_from(Chat)
+            select(Chat.id, _section(parent))
             .outerjoin(parent, parent.id == Chat.parent_chat_id)
-            .outerjoin(latest, latest.c.chat_id == Chat.id)
             .where(Chat.resource_status == Chat.STATUS_APPROVED)
             .where(Chat.public_link.is_not(None))
         )
     ).all()
+    counts = await member_counts.latest_for(session, [row.id for row in rows], since=utc_now() - MEMBER_COUNT_FRESH_FOR)
 
     groups: dict[str, PublicReachGroup] = {}
     measured = 0
@@ -242,8 +221,8 @@ async def get_public_reach(
         name = row.group_title or UNGROUPED_LABEL
         group = groups.setdefault(name, PublicReachGroup(name=name, chats=0, members=0))
         group.chats += 1
-        if row.member_count is not None:
-            group.members += row.member_count
+        if (count := counts.get(row.id)) is not None:
+            group.members += count
             measured += 1
 
     # Largest first: the table is read as "where would this post land", and the

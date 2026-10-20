@@ -38,9 +38,9 @@ async def latest_for(
 
     Per chat asked about, the newest row through the (chat_id, captured_at)
     index, rather than the newest of every chat grouped out of the whole
-    table: on 1.5M snapshots the grouping took 1.18 s and this takes under a
-    millisecond. The ids go in as a CTE of VALUES, which PostgreSQL and the
-    unit tests' SQLite both read.
+    table: on a synthetic 1.5M snapshots over 300 chats the grouping took
+    1.18 s and this 0.55 ms. The ids go in as a CTE of VALUES, which
+    PostgreSQL and the unit tests' SQLite both read.
 
     Chats with no snapshot are absent from the result rather than present as
     zero. "Not measured" and "empty" are different claims, and the caller has

@@ -1,8 +1,8 @@
 """The newest member count per chat, read on PostgreSQL.
 
 The query walks the (chat_id, captured_at) index once per chat asked about
-instead of grouping the whole table, which on production's million and a half
-snapshots was the difference between a second and a millisecond. SQLite runs
+instead of grouping the whole table: on a synthetic table of 1.5M snapshots
+over 300 chats, 1.18 s for the grouping against 0.55 ms for this. SQLite runs
 the same statement in the unit tests; this pins that PostgreSQL agrees.
 """
 

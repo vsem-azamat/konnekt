@@ -123,6 +123,22 @@ class TestWhatIsCounted:
 
         assert body["members"] == 1200
 
+    async def test_a_count_older_than_three_days_is_not_reach(self, client_factory, db_session_maker) -> None:
+        """The same window as the catalogue: a chat the bot stopped counting is
+        unmeasured, not as large as it was a week ago."""
+        await _seed(
+            db_session_maker,
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"),
+            _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs"),
+        )
+        await _snapshot(db_session_maker, FIT, 1200, hours_ago=1)
+        await _snapshot(db_session_maker, FS, 800, hours_ago=100)
+
+        body = await _reach(client_factory)
+
+        assert body["members"] == 1200
+        assert body["measured_chats"] == 1
+
 
 class TestHowMuchItMeasured:
     async def test_a_chat_without_a_snapshot_counts_as_unmeasured(self, client_factory, db_session_maker) -> None:
