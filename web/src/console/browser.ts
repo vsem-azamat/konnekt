@@ -6,7 +6,7 @@
  * what that decision needs and nothing that draws.
  */
 
-import { CatalogSessionEnded } from '../lib/catalogDoor.ts';
+import { SessionEndedError } from '../lib/sessionEnded.ts';
 
 import { ConsoleError } from './session.ts';
 
@@ -21,7 +21,7 @@ export function loginProblem(search: string): LoginProblem | null {
 /**
  * The screens a browser reaches, below `/console`; `''` is the summary. The
  * catalog's and the partners' are asked of webapi, which asks the catalog for
- * the signed-in super admin (#293, lib/catalogDoor.ts).
+ * the signed-in super admin (#293, catalogDoor.ts).
  */
 export const BROWSER_PATHS = [
   '',
@@ -47,7 +47,7 @@ export type BrowserPath = (typeof BROWSER_PATHS)[number];
 export function endsSession(error: unknown): boolean {
   return (
     (error instanceof ConsoleError && error.reason === 'stale') ||
-    error instanceof CatalogSessionEnded
+    error instanceof SessionEndedError
   );
 }
 

@@ -8,7 +8,7 @@ import {
   loginProblem,
 } from '../src/console/browser.ts';
 import { ConsoleError } from '../src/console/session.ts';
-import { CatalogSessionEnded } from '../src/lib/catalogDoor.ts';
+import { SessionEndedError } from '../src/lib/sessionEnded.ts';
 
 test('the sign-in page names a failure only when the server did', () => {
   assert.equal(loginProblem(''), null);
@@ -48,7 +48,7 @@ test('the browser reaches the catalog and the partners too (#293)', () => {
 test('a missing session sends the browser to sign in, and a failed request does not', () => {
   assert.equal(endsSession(new ConsoleError(401, 'stale')), true);
   // The catalog's screens, asked through webapi, end the same way (#293).
-  assert.equal(endsSession(new CatalogSessionEnded()), true);
+  assert.equal(endsSession(new SessionEndedError()), true);
   assert.equal(endsSession(new ConsoleError(401, 'not-kept')), false);
   assert.equal(endsSession(new ConsoleError(500)), false);
   assert.equal(endsSession(new Error('network')), false);

@@ -21,10 +21,11 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { endsSession, isBrowserConsolePath } from '@/console/browser';
 import { BrowserConsoleContext } from '@/console/browserContext';
+import { catalogThroughConsole } from '@/console/catalogDoor';
 import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
-import { ApiError, api, askCatalogThroughConsole, rawInitData } from '@/lib/api';
+import { ApiError, api, rawInitData, routeCatalogCalls } from '@/lib/api';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -119,7 +120,7 @@ let browserMode = false;
 async function renderBrowserConsole(): Promise<void> {
   browserMode = true;
   // No initData here: the catalog's screens are asked of webapi (#293).
-  askCatalogThroughConsole();
+  routeCatalogCalls(catalogThroughConsole);
   const locale = resolveLocale(navigator.language);
   await activateLocale(locale);
   document.documentElement.lang = locale;
