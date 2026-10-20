@@ -7,7 +7,7 @@ difference between a Ukrainian speaker seeing the Czech name of their faculty
 and seeing a blank row, and nothing above this level would notice which.
 """
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
@@ -23,7 +23,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @contextmanager
-def statements(session: AsyncSession) -> Iterator[list[tuple[str, Any]]]:
+def statements(session: AsyncSession) -> Generator[list[tuple[str, Any]]]:
     """Every statement the session sends while the block runs, with its values.
 
     Two of `rows_by_id`'s promises are about the query it does *not* send —
