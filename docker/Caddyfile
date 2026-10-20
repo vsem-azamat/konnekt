@@ -53,6 +53,14 @@
 		respond 404
 	}
 
+	# The catalog's console screens through webapi are for the console's own
+	# host. Here the console is the Mini App's and asks the catalog itself,
+	# with initData; a session cookie of this host never reaches them.
+	@consoleCatalog path /api/catalog/*
+	handle @consoleCatalog {
+		respond 404
+	}
+
 	handle /api/* {
 		reverse_proxy webapi:8787 {
 			# One address, the one this proxy believes, rather than the chain.

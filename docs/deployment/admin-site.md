@@ -17,6 +17,19 @@ the others would match no request. The sign-in routes are 404 on the Mini App's
 host, which sits behind Cloudflare, where the client address a rate limit
 needs is not the client's.
 
+## The catalog's screens
+
+The catalog and the partners, and a chat's university, are the catalog's,
+which takes initData from a person and a browser has none. In a browser the
+console asks webapi's `/api/catalog/*` under its session, and webapi asks the
+catalog for the signed-in super admin over the containers' own network, with
+the repository secret `CATALOG_SERVICE_TOKEN` (the catalog's `SERVICE_TOKEN`,
+webapi's `WEBAPI_CATALOG_SERVICE_TOKEN`; 32 characters or more, made with
+`openssl rand -hex 32 | gh secret set CATALOG_SERVICE_TOKEN`). Unset, those
+screens answer 503 in a browser and work as before in Telegram. `/api/catalog/*`
+is 404 on the Mini App's host, so only this host's session reaches it. How the
+catalog takes the call is in catalog/docs/architecture.md.
+
 ## Outside this repository
 
 - **BotFather**: the bot's Login Widget settings hold the Allowed URLs, the

@@ -2027,6 +2027,7 @@ msgstr "per lesson"
 msgid "страховка, виза, банк, переводы"
 msgstr "insurance, visa, bank, transfers"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Partners.tsx
 #: src/console/pages/Summary.tsx
 msgid "Партнёры"
@@ -2366,6 +2367,7 @@ msgstr "New by week"
 msgid "Подтверждение"
 msgstr "Confirmation"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Summary.tsx
 msgid "Каталог"

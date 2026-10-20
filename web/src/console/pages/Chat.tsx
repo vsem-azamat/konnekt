@@ -22,8 +22,6 @@ import {
 import { parentChoices } from '@/console/activity';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
 import { type BanOutcome, banOutcome } from '@/console/ban';
-import { catalogReachable } from '@/console/browser';
-import { useBrowserConsole } from '@/console/browserContext';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
@@ -105,12 +103,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
   const detail = useQuery(chatDetailQuery(chatId));
   const chats = useQuery(consoleChatsQuery);
-  // The institutions are the catalog's, which a browser cannot ask (#293).
-  const inBrowser = useBrowserConsole();
-  const institutions = useQuery({
-    ...institutionsQuery,
-    enabled: catalogReachable(inBrowser),
-  });
+  const institutions = useQuery(institutionsQuery);
   const system = useQuery(consoleSystemQuery);
   const [sheet, setSheet] = useState<Sheets>(null);
   const [error, setError] = useState<unknown>(null);
@@ -467,7 +460,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
             if (!busy) open({ kind: 'parent' });
           }}
         />
-        {!catalogReachable(inBrowser) ? null : chat.parent_chat_id === null ? (
+        {chat.parent_chat_id === null ? (
           <Row
             title={<Trans>Вуз</Trans>}
             hint={
