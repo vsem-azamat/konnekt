@@ -1,7 +1,8 @@
-"""spam_pings: a moderator's verdict in the console's ads queue.
+"""spam_pings: a moderator's verdict, for the console's ads queue.
 
-Three nullable columns and nothing else, so the previous release runs
-unchanged beside it.
+Three nullable columns, a check on the verdict and a partial index for the
+queue, so the previous release runs unchanged beside it. The hits of people
+already on the blacklist are answered «ad», as a ban from now on answers them.
 
 Revision ID: b5e1d8c3a7f2
 Revises: a9c4e2d7f610
@@ -23,9 +24,22 @@ def upgrade() -> None:
     op.add_column("spam_pings", sa.Column("verdict", sa.String(length=16), nullable=True))
     op.add_column("spam_pings", sa.Column("reviewed_at", sa.DateTime(), nullable=True))
     op.add_column("spam_pings", sa.Column("reviewed_by", sa.BigInteger(), nullable=True))
+    op.create_check_constraint("ck_spam_pings_verdict", "spam_pings", "verdict IN ('done', 'not_ad', 'ad')")
+    op.create_index(
+        "ix_spam_pings_unreviewed",
+        "spam_pings",
+        ["detected_at", "id"],
+        postgresql_where=sa.text("verdict IS NULL"),
+    )
+    op.execute(
+        "UPDATE spam_pings SET verdict = 'ad' "
+        "WHERE verdict IS NULL AND user_id IN (SELECT id FROM users WHERE blocked)"
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_spam_pings_unreviewed", table_name="spam_pings")
+    op.drop_constraint("ck_spam_pings_verdict", "spam_pings", type_="check")
     op.drop_column("spam_pings", "reviewed_by")
     op.drop_column("spam_pings", "reviewed_at")
     op.drop_column("spam_pings", "verdict")

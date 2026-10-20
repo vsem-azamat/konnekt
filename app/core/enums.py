@@ -91,11 +91,13 @@ class Touchpoint(StrEnum):
 
 
 class SpamVerdict(StrEnum):
-    """What a moderator said about an ad-detector hit in the console.
+    """What a moderator said about an ad-detector hit.
 
-    A ban says the rest: a banned author's hits are answered without a row
-    saying so. ``NOT_AD`` is a false alarm, kept to tune the detector by.
+    ``DONE`` and ``NOT_AD`` are answered in the console; ``NOT_AD`` is a false
+    alarm, kept to tune the detector by. ``AD`` is written by a ban, on every
+    hit of the author still waiting, once the ban took in some chat.
     """
 
     DONE = "done"
     NOT_AD = "not_ad"
+    AD = "ad"

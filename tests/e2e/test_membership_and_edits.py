@@ -143,6 +143,43 @@ async def test_editing_a_message_again_and_again_counts_its_ad_once(
     assert len(pings) == 1
 
 
+async def _answer(db_session_maker, message_id: int, verdict: str) -> None:
+    async with db_session_maker() as session:
+        for ping in await session.scalars(select(SpamPing).where(SpamPing.message_id == message_id)):
+            ping.verdict = verdict
+        await session.commit()
+
+
+async def test_a_typo_fix_keeps_the_moderators_answer(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    """The same links after an edit are the same hit, already answered."""
+    original = Message(message_id=82, date=datetime.now(UTC), chat=GROUP, from_user=PERSON, text="t.me/cheap_diplomas")
+    await production_dispatcher.feed_update(bot, Update(update_id=30, message=original))
+    await _answer(db_session_maker, 82, "not_ad")
+
+    await production_dispatcher.feed_update(bot, _edit(original, "t.me/cheap_diplomas, пишите", 31))
+
+    async with db_session_maker() as session:
+        pings = (await session.scalars(select(SpamPing).where(SpamPing.message_id == 82))).all()
+    assert [(ping.verdict, ping.snippet) for ping in pings] == [("not_ad", "t.me/cheap_diplomas, пишите")]
+
+
+async def test_an_edit_to_other_links_asks_again(
+    production_dispatcher: Dispatcher, bot: Bot, db_session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    """An answered hit edited into a different ad is a new question."""
+    original = Message(message_id=83, date=datetime.now(UTC), chat=GROUP, from_user=PERSON, text="t.me/harmless_club")
+    await production_dispatcher.feed_update(bot, Update(update_id=40, message=original))
+    await _answer(db_session_maker, 83, "not_ad")
+
+    await production_dispatcher.feed_update(bot, _edit(original, "t.me/cheap_diplomas", 41))
+
+    async with db_session_maker() as session:
+        pings = (await session.scalars(select(SpamPing).where(SpamPing.message_id == 83))).all()
+    assert [(ping.matches, ping.verdict) for ping in pings] == [(["t.me/cheap_diplomas"], None)]
+
+
 async def test_an_edit_never_raises_the_first_message_warning(
     production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer, db_session_maker
 ) -> None:

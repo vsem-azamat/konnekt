@@ -3,11 +3,15 @@ from collections.abc import Awaitable, Callable
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramRetryAfter
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.enums import SpamVerdict
 from app.core.exceptions import NotAPersonError, ProtectedUserError
 from app.core.logging import get_logger
+from app.core.time import utc_now
+from app.db.models import SpamPing
 from app.db.repositories import (
     ChatRepository,
     MessageRepository,
@@ -107,6 +111,8 @@ async def add_to_blacklist(
         what="blacklist_ban",
         user_id=id_tg,
     )
+    if len(failed) < len(approved):
+        await _answer_ad_hits(db, id_tg)
 
     if not revoke_messages:
         return failed
@@ -129,6 +135,17 @@ async def add_to_blacklist(
             # than it allows. One refusal says nothing about the next.
             logger.warning(f"Failed to delete message {message.message_id} in chat {message.chat_id}.\nError: {err}")
     return failed
+
+
+async def _answer_ad_hits(db: AsyncSession, id_tg: int) -> None:
+    """A ban that took somewhere is the verdict on every hit of theirs still
+    waiting in the console's queue. Lifting it later leaves them answered."""
+    await db.execute(
+        update(SpamPing)
+        .where(SpamPing.user_id == id_tg, SpamPing.verdict.is_(None))
+        .values(verdict=SpamVerdict.AD, reviewed_at=utc_now())
+    )
+    await db.commit()
 
 
 async def remove_from_blacklist(db: AsyncSession, bot: Bot, id_tg: int) -> list[int]:

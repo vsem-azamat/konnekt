@@ -57,7 +57,7 @@ async def block_user(
     admin_id: Annotated[int, Depends(require_super_admin)],
 ) -> UserBlockResponse:
     try:
-        await add_to_blacklist(session, bot, user_id, revoke_messages=payload.revoke_messages or None)
+        failed = await add_to_blacklist(session, bot, user_id, revoke_messages=payload.revoke_messages or None)
     except ProtectedUserError as err:
         raise HTTPException(status_code=400, detail="A super admin cannot be banned") from err
     except NotAPersonError as err:
@@ -75,6 +75,7 @@ async def block_user(
         user_id=user_id,
         blocked=True,
         message="User blocked across all managed chats." + (" Messages revoked." if payload.revoke_messages else ""),
+        failed_chats=failed,
     )
 
 

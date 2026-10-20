@@ -272,6 +272,8 @@ class UserBlockResponse(BaseModel):
     user_id: int
     blocked: bool
     message: str
+    # The approved chats where Telegram refused; the ban stands in the rest.
+    failed_chats: list[int] = []
 
 
 class AdminSessionRead(BaseModel):
@@ -357,9 +359,13 @@ class SpamPingRead(BaseModel):
 
 
 class SpamReviewRequest(BaseModel):
-    """Body for POST /api/spam/pings/{id}/review."""
+    """Body for POST /api/spam/pings/{id}/review. «ad» is a ban's to write."""
 
-    verdict: SpamVerdict
+    verdict: Literal[SpamVerdict.DONE, SpamVerdict.NOT_AD]
+
+
+class SpamQueueCount(BaseModel):
+    count: int
 
 
 class SpamPingsSummary(BaseModel):

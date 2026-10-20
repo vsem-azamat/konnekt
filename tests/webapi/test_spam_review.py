@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
 
 import pytest
 from app.core.config import settings
@@ -19,14 +20,18 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
-    from app.webapi.deps import get_session
+def client_factory(db_session_maker: async_sessionmaker[AsyncSession], fake_bot: AsyncMock):
+    from app.webapi.deps import get_publish_bot, get_session
 
     async def _override_get_session():
         async with db_session_maker() as session:
             yield session
 
+    async def _override_publish_bot():
+        return fake_bot
+
     app.dependency_overrides[get_session] = _override_get_session
+    app.dependency_overrides[get_publish_bot] = _override_publish_bot
     settings.admin.super_admins = [1]
     transport = ASGITransport(app=app)
 
@@ -35,11 +40,17 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
 
     yield make
     app.dependency_overrides.pop(get_session, None)
+    app.dependency_overrides.pop(get_publish_bot, None)
+
+
+@pytest.fixture
+def fake_bot() -> AsyncMock:
+    return AsyncMock()
 
 
 async def _seed(session_maker, *pings: SpamPing, chats=(-1001,), users: tuple[User, ...] = ()) -> list[int]:
     async with session_maker() as session:
-        session.add_all([Chat(id=chat_id, title=f"Chat {chat_id}") for chat_id in chats])
+        session.add_all([Chat(id=chat_id, title=f"Chat {chat_id}", resource_status="approved") for chat_id in chats])
         session.add_all(users)
         session.add_all(pings)
         await session.commit()
@@ -105,19 +116,70 @@ async def test_the_review_records_who_marked_it_and_when(client_factory, db_sess
         assert row.reviewed_at is not None
 
 
-async def test_a_banned_authors_hits_are_answered_already(client_factory, db_session_maker) -> None:
-    """A ban is the moderator's verdict on every hit of theirs: none of them
-    waits in the queue, and nothing has to be written to each to say so."""
-    banned, kept = await _seed(
+async def test_a_ban_answers_every_hit_of_the_author(client_factory, db_session_maker) -> None:
+    """A ban is the moderator's verdict on all of theirs: «ad», written once the
+    ban took somewhere, and kept when the ban is lifted."""
+    first, second, other = await _seed(db_session_maker, _ping(user_id=7), _ping(user_id=7), _ping(user_id=8))
+
+    async with client_factory() as client:
+        banned = await client.post("/api/users/7/block", json={"revoke_messages": False})
+        assert banned.status_code == 200, banned.text
+        assert banned.json()["failed_chats"] == []
+        assert await _ids(client, status="unreviewed") == [other]
+        await client.delete("/api/users/7/block")
+        assert await _ids(client, status="unreviewed") == [other]
+
+    async with db_session_maker() as session:
+        for ping_id in (first, second):
+            row = await session.get(SpamPing, ping_id)
+            assert row is not None
+            assert row.verdict == "ad"
+
+
+async def test_a_ban_that_took_nowhere_answers_nothing(client_factory, db_session_maker, fake_bot) -> None:
+    (ping,) = await _seed(db_session_maker, _ping(user_id=7))
+    fake_bot.ban_chat_member.side_effect = RuntimeError("Telegram refused")
+
+    async with client_factory() as client:
+        banned = await client.post("/api/users/7/block", json={"revoke_messages": False})
+        queue = await _ids(client, status="unreviewed")
+
+    assert banned.status_code == 200, banned.text
+    assert banned.json()["failed_chats"] == [-1001]
+    assert queue == [ping]
+
+
+async def test_an_answered_hit_is_not_answered_again(client_factory, db_session_maker) -> None:
+    """Two moderators on one hit: the first answer stands, the second is told."""
+    (ping,) = await _seed(db_session_maker, _ping())
+
+    async with client_factory() as client:
+        first = await client.post(f"/api/spam/pings/{ping}/review", json={"verdict": "not_ad"})
+        second = await client.post(f"/api/spam/pings/{ping}/review", json={"verdict": "done"})
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert second.json()["detail"]["verdict"] == "not_ad"
+    async with db_session_maker() as session:
+        row = await session.get(SpamPing, ping)
+        assert row is not None
+        assert row.verdict == "not_ad"
+
+
+async def test_the_queue_counts_what_its_filters_show(client_factory, db_session_maker) -> None:
+    await _seed(
         db_session_maker,
-        _ping(user_id=7),
-        _ping(user_id=8),
-        users=(User(id=7, blocked=True), User(id=8)),
+        _ping(chat_id=-1001),
+        _ping(chat_id=-1002),
+        _ping(chat_id=-1002, ago=datetime.timedelta(days=10)),
+        chats=(-1001, -1002),
     )
 
     async with client_factory() as client:
-        assert await _ids(client, status="unreviewed") == [kept]
-        assert banned in await _ids(client, status="all")
+        count = lambda **params: client.get("/api/spam/pings/unreviewed", params=params)  # noqa: E731
+        assert (await count()).json() == {"count": 3}
+        assert (await count(chat_id=-1002)).json() == {"count": 2}
+        assert (await count(chat_id=-1002, days=7)).json() == {"count": 1}
 
 
 async def test_reviewing_an_unknown_hit_is_404(client_factory) -> None:
@@ -155,6 +217,15 @@ async def test_the_chat_filter_and_the_queue_combine(client_factory, db_session_
         assert here not in await _ids(client, status="unreviewed", chat_id=-1002)
 
 
+async def _page(client: AsyncClient, after: dict | None, limit: int = 2) -> list[dict]:
+    params: dict = {"limit": limit}
+    if after is not None:
+        params |= {"before_at": after["detected_at"], "before_id": after["id"]}
+    resp = await client.get("/api/spam/pings", params=params)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
 async def test_pages_follow_one_another_without_a_gap_or_a_repeat(client_factory, db_session_maker) -> None:
     # Two hits in the same second: the page boundary must not split or drop them.
     same = utc_now() - datetime.timedelta(hours=1)
@@ -163,24 +234,36 @@ async def test_pages_follow_one_another_without_a_gap_or_a_repeat(client_factory
     ids = await _seed(db_session_maker, *pings)
 
     async with client_factory() as client:
-        first = await _ids(client, limit=2)
-        second = await _ids(client, limit=2, before_id=first[-1])
-        third = await _ids(client, limit=2, before_id=second[-1])
+        first = await _page(client, None)
+        second = await _page(client, first[-1])
+        third = await _page(client, second[-1])
 
-    seen = first + second + third
+    seen = [ping["id"] for ping in first + second + third]
     assert sorted(seen) == sorted(ids)
     assert len(seen) == len(set(seen))
     assert len(third) == 1
 
 
+async def test_a_page_continues_after_a_hit_that_is_gone(client_factory, db_session_maker) -> None:
+    """The retention purge, or an edit, can take the row the cursor names."""
+    ids = await _seed(db_session_maker, *[_ping(ago=datetime.timedelta(minutes=minutes)) for minutes in range(3)])
+
+    async with client_factory() as client:
+        first = await _page(client, None, limit=1)
+        async with db_session_maker() as session:
+            gone = await session.get(SpamPing, first[0]["id"])
+            await session.delete(gone)
+            await session.commit()
+        rest = await _page(client, first[0])
+
+    assert [ping["id"] for ping in rest] == ids[1:]
+
+
 async def test_the_summary_counts_what_waits_in_the_queue(client_factory, db_session_maker) -> None:
+    banned = _ping(user_id=7)
+    banned.verdict = "ad"
     reviewed, _waiting, _also_waiting, _banned = await _seed(
-        db_session_maker,
-        _ping(),
-        _ping(),
-        _ping(ago=datetime.timedelta(days=30)),
-        _ping(user_id=7),
-        users=(User(id=7, blocked=True),),
+        db_session_maker, _ping(), _ping(), _ping(ago=datetime.timedelta(days=30)), banned
     )
 
     async with client_factory() as client:
