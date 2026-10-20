@@ -22,6 +22,8 @@ import {
 import { parentChoices } from '@/console/activity';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
 import { type BanOutcome, banOutcome } from '@/console/ban';
+import { catalogReachable } from '@/console/browser';
+import { useBrowserConsole } from '@/console/browserContext';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
@@ -103,7 +105,12 @@ function ChatScreen({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
   const detail = useQuery(chatDetailQuery(chatId));
   const chats = useQuery(consoleChatsQuery);
-  const institutions = useQuery(institutionsQuery);
+  // The institutions are the catalog's, which a browser cannot ask (#293).
+  const inBrowser = useBrowserConsole();
+  const institutions = useQuery({
+    ...institutionsQuery,
+    enabled: catalogReachable(inBrowser),
+  });
   const system = useQuery(consoleSystemQuery);
   const [sheet, setSheet] = useState<Sheets>(null);
   const [error, setError] = useState<unknown>(null);
@@ -460,33 +467,39 @@ function ChatScreen({ chatId }: { chatId: number }) {
             if (!busy) open({ kind: 'parent' });
           }}
         />
-        {chat.parent_chat_id === null ? (
-          <Row
-            title={<Trans>Вуз</Trans>}
-            hint={
-              chat.institution_code ? (
-                universityName(chat.institution_code)
-              ) : (
-                <Trans>не указан: чаты под ним его студентам не поднимутся</Trans>
-              )
-            }
-            trailing={<Chevron />}
-            onClick={() => {
-              if (!busy) open({ kind: 'institution' });
-            }}
-          />
-        ) : (
-          <Row
-            title={<Trans>Вуз</Trans>}
-            hint={
-              parent?.institution_code ? (
-                <Trans>как у родителя: {universityName(parent.institution_code)}</Trans>
-              ) : (
-                <Trans>задаётся у родителя</Trans>
-              )
-            }
-          />
-        )}
+        {catalogReachable(inBrowser) ? (
+          <>
+            {chat.parent_chat_id === null ? (
+              <Row
+                title={<Trans>Вуз</Trans>}
+                hint={
+                  chat.institution_code ? (
+                    universityName(chat.institution_code)
+                  ) : (
+                    <Trans>не указан: чаты под ним его студентам не поднимутся</Trans>
+                  )
+                }
+                trailing={<Chevron />}
+                onClick={() => {
+                  if (!busy) open({ kind: 'institution' });
+                }}
+              />
+            ) : (
+              <Row
+                title={<Trans>Вуз</Trans>}
+                hint={
+                  parent?.institution_code ? (
+                    <Trans>
+                      как у родителя: {universityName(parent.institution_code)}
+                    </Trans>
+                  ) : (
+                    <Trans>задаётся у родителя</Trans>
+                  )
+                }
+              />
+            )}
+          </>
+        ) : null}
         {chat.children.map((child) => (
           <Row
             key={child.id}

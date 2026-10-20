@@ -21,6 +21,7 @@ import {
   type ChatUpdate,
   type ConsoleChat,
   type ConsoleChatDetail,
+  ConsoleError,
   consoleRequester,
   type HomeStats,
   type SpamPing,
@@ -152,6 +153,22 @@ export const consoleChanges = {
     consoleGet<BanAnswer>(`/api/users/${userId}/block`, {
       method: 'DELETE',
     }),
+};
+
+/**
+ * Who this browser is signed in as. The Mini App never asks: Telegram says who
+ * it is on every request. A missing session is the same `stale` a console
+ * request meets, which the browser answers by going to the sign-in page.
+ */
+export const browserSessionQuery = {
+  queryKey: ['console', 'session'] as const,
+  queryFn: async ({ signal }: { signal: AbortSignal }) => {
+    const response = await fetch('/api/auth/me', { credentials: 'same-origin', signal });
+    if (response.status === 401) throw new ConsoleError(401, 'stale');
+    if (!response.ok) throw new ConsoleError(response.status);
+    return (await response.json()) as { user_id: number };
+  },
+  staleTime: 5 * 60 * 1000,
 };
 
 /** Who the super admins are, among webapi's operational facts. */

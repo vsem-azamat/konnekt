@@ -126,6 +126,10 @@ msgstr "{0, plural, one {нова анкета} few {нові анкети} many
 msgid "Детектор ничего не находил."
 msgstr "Детектор нічого не знаходив."
 
+#: src/console/Login.tsx
+msgid "Откроется страница Telegram, где нужно подтвердить вход. Пароль мы не просим и не храним. В приложении Telegram консоль открывается без этого шага."
+msgstr "Відкриється сторінка Telegram, де потрібно підтвердити вхід. Пароль ми не просимо й не зберігаємо. У застосунку Telegram консоль відкривається без цього кроку."
+
 #: src/pages/Results.tsx
 msgid "Похоже, речь о"
 msgstr "Схоже, йдеться про"
@@ -175,6 +179,10 @@ msgstr "Вимкнути чат?"
 #: src/console/pages/System.tsx
 msgid "вкл."
 msgstr "увімк."
+
+#: src/console/BrowserShell.tsx
+msgid "Обзор"
+msgstr "Огляд"
 
 #: src/console/pages/Catalog.tsx
 msgid "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
@@ -305,6 +313,10 @@ msgstr "цей пристрій"
 msgid "оживлённый"
 msgstr "жвавий"
 
+#: src/console/Login.tsx
+msgid "Вход в консоль"
+msgstr "Вхід до консолі"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -396,6 +408,10 @@ msgstr "перший рік"
 msgid "Эта проверка открывается кнопкой из заявки на вступление в чат."
 msgstr "Ця перевірка відкривається кнопкою із заявки на вступ до чату."
 
+#: src/console/Login.tsx
+msgid "Войти не получилось. Попробуйте ещё раз."
+msgstr "Увійти не вийшло. Спробуйте ще раз."
+
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
 msgstr "{failed, plural, one {У # чаті Telegram відмовив: перевірте там права бота.} few {У # чатах Telegram відмовив: перевірте там права бота.} many {У # чатах Telegram відмовив: перевірте там права бота.} other {У # чату Telegram відмовив: перевірте там права бота.}}"
@@ -474,6 +490,10 @@ msgstr "Напиши інакше — або залиш заявку, і зна�
 #: src/components/RequestSheet.tsx
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "Не надіслалося — спробуй ще раз."
+
+#: src/console/BrowserShell.tsx
+msgid "Модерация"
+msgstr "Модерація"
 
 #: src/pages/Chats.tsx
 msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
@@ -812,6 +832,7 @@ msgid "Всё, что искали, нашлось."
 msgstr "Усе, що шукали, знайшлося."
 
 #: src/components/TabBar.tsx
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чаты"
@@ -887,6 +908,7 @@ msgstr "Поки без відгуків"
 msgid "администратор"
 msgstr "адміністратор"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
 #: src/console/pages/System.tsx
 msgid "Система"
@@ -1554,6 +1576,7 @@ msgstr "У всіх чатах, за весь час. Скасувати не м
 msgid "Снять"
 msgstr "Зняти"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
 msgid "Люди"
 msgstr "Люди"
@@ -1591,6 +1614,7 @@ msgstr "можна написати"
 msgid "черновик — не видна в каталоге"
 msgstr "чернетка — не видно в каталозі"
 
+#: src/console/BrowserNotFound.tsx
 #: src/pages/NotFound.tsx
 msgid "Ссылка устарела или в ней опечатка."
 msgstr "Посилання застаріле або в ньому одрук."
@@ -1759,6 +1783,11 @@ msgstr "оновіть його з Telegram"
 msgid "Чем помогает"
 msgstr "Чим допомагає"
 
+#: src/console/BrowserNotFound.tsx
+msgid "В консоль"
+msgstr "До консолі"
+
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Spam.tsx
 #: src/console/pages/Summary.tsx
@@ -1857,6 +1886,10 @@ msgstr "Забанені в усіх чатах. Банять командою /
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram відмовив у всіх чатах: перевірте права бота й забаньте ще раз."
+
+#: src/console/Login.tsx
+msgid "Войти через Telegram"
+msgstr "Увійти через Telegram"
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -1963,6 +1996,10 @@ msgstr "з’явиться після схвалення"
 msgid "Автор забанен"
 msgstr "Автора забанено"
 
+#: src/console/BrowserShell.tsx
+msgid "консоль"
+msgstr "консоль"
+
 #: src/console/pages/Summary.tsx
 msgid "детектор, все чаты"
 msgstr "детектор, усі чати"
@@ -2008,6 +2045,7 @@ msgstr "Такого чату немає."
 msgid "ČVUT FEL, 3 курс"
 msgstr "ČVUT FEL, 3 курс"
 
+#: src/console/BrowserNotFound.tsx
 #: src/pages/NotFound.tsx
 msgid "Такой страницы нет"
 msgstr "Такої сторінки немає"
@@ -2267,6 +2305,7 @@ msgid "Аудитория за неделю"
 msgstr "Аудиторія за тиждень"
 
 #: src/components/AppHeader.tsx
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
 msgid "Консоль"
 msgstr "Консоль"
@@ -2274,6 +2313,10 @@ msgstr "Консоль"
 #: src/console/pages/Audience.tsx
 msgid "первое касание"
 msgstr "перший контакт"
+
+#: src/console/BrowserShell.tsx
+msgid "Суперадмин"
+msgstr "Суперадмін"
 
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
@@ -2399,6 +2442,7 @@ msgstr "Необов'язково. Порожнє поле означає «до
 msgid "Написать"
 msgstr "Написати"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/System.tsx
 msgid "Выйти"
 msgstr "Вийти"
@@ -2415,6 +2459,10 @@ msgstr "Забанити {name}?"
 #: src/console/pages/Chat.tsx
 msgid "Не показан"
 msgstr "Не показано"
+
+#: src/console/Login.tsx
+msgid "Этого аккаунта нет среди администраторов. Войдите другим аккаунтом Telegram или попросите владельца добавить вас."
+msgstr "Цього акаунта немає серед адміністраторів. Увійдіть іншим акаунтом Telegram або попросіть власника додати вас."
 
 #: src/console/pages/Chats.tsx
 msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
@@ -2711,6 +2759,7 @@ msgstr "Оновлено щойно"
 msgid "Все"
 msgstr "Усі"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Audience.tsx
 #: src/console/pages/Summary.tsx
 msgid "Аудитория"
@@ -2720,6 +2769,7 @@ msgstr "Аудиторія"
 msgid "Сначала заполни профиль"
 msgstr "Спершу заповни профіль"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"

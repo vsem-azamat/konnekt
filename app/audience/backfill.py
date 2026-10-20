@@ -1,13 +1,21 @@
 """Fill the audience from what was recorded before it existed. Run once after the deploy; safe to run again.
 
-    python -m app.audience.backfill [--catalog-dsn postgresql+asyncpg://...]
+    python -m app.audience.backfill [--catalog-from-stdin] < catalog-dsn
+
+The catalog's address carries its password, so it is read from stdin and
+never taken as an argument, where `ps` and shell history would keep it. In
+production, from the webapi container, which reaches both databases (the bot
+container is on a network of its own):
+
+    docker exec supervisor-telegram-catalog-api printenv DATABASE_URL \
+      | docker exec -i supervisor-telegram-webapi python -m app.audience.backfill --catalog-from-stdin
 
 Three sources, each only as good as what it kept:
 
 - ``ads_topics``: everybody who ever wrote to the contact bot, since its start.
 - the catalog's ``users``: everybody who opened the Mini App, and whether
   they opted out. Read only, in a read-only transaction; skipped without
-  ``--catalog-dsn``. Its ``bot_started_at`` was set by the retired bots'
+  ``--catalog-from-stdin``. Its ``bot_started_at`` was set by the retired bots'
   Mini App, so it is a visit to a retired bot, not leave for the main bot to
   write. Its ``bot_can_message`` is not taken: the only time it carries is
   when the row last changed for any reason, too unreliable to order a block by.
@@ -30,6 +38,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import datetime
+import sys
 from dataclasses import dataclass
 from itertools import batched
 from typing import TYPE_CHECKING
@@ -45,6 +54,7 @@ from app.db.models import AdsTopic, AudienceMember, Message, ModerationEvent, Sp
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import TextIO
 
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker
 
@@ -175,7 +185,24 @@ async def main(catalog_dsn: str | None) -> None:
     logger.info("audience_backfilled", contact_bot=desk, mini_app=catalog, main_bot_estimate=estimated)
 
 
-if __name__ == "__main__":
+def arguments(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--catalog-dsn", help="the catalog database, read only; without it the catalog is skipped")
-    asyncio.run(main(parser.parse_args().catalog_dsn))
+    parser.add_argument(
+        "--catalog-from-stdin",
+        action="store_true",
+        help="read the catalog's database address from stdin; without it the catalog is skipped",
+    )
+    return parser.parse_args(argv)
+
+
+def catalog_dsn(stream: TextIO) -> str:
+    """The catalog's address, the first line of `stream`; never echoed, since it holds a password."""
+    dsn = stream.readline().strip()
+    if not dsn:
+        raise SystemExit("no catalog address on stdin")
+    return dsn
+
+
+if __name__ == "__main__":
+    args = arguments(sys.argv[1:])
+    asyncio.run(main(catalog_dsn(sys.stdin) if args.catalog_from_stdin else None))
