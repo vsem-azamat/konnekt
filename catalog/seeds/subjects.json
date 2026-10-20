@@ -437,6 +437,9 @@
         "informatik",
         "informatic"
       ],
+      "holds": [
+        "prijimacky-technicke-vs"
+      ],
       "children": [
         {
           "slug": "algoritmizace-a-datove-struktury",
@@ -686,6 +689,9 @@
         "економіц",
         "ekonomi",
         "economics"
+      ],
+      "holds": [
+        "prijimacky-ekonomicke-vs"
       ],
       "children": [
         {

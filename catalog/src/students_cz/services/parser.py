@@ -114,6 +114,9 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "приемные экз",
         "приемный экз",
         "приемных экз",
+        "приемным экз",
+        "приемными экз",
+        "приемном экз",
         "приемная комис",
         "приемной комис",
         "поступлен",
@@ -461,6 +464,7 @@ async def parse(
     # sit on another shelf: entrance exams and nostrification beside the maths
     # shelf would match nobody, where the leaf «Přijímací zkouška z matematiky»
     # matches them.
+    shelf_spoke = False
     if not (subjects and _is_named(subjects[0])):
         shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
         # The synonyms themselves, not the match's kind: the query has to hold a
@@ -498,6 +502,10 @@ async def parse(
             # or was named, stays. Only here — a plain query naming two shelves,
             # «математика и физика», keeps the guess it had.
             subjects = await _within_shelf(session, subjects, shelves[0].id)
+            # Emptied by it, the list must stay empty: the embedder would only
+            # bring another guess from somewhere else — it answered «Chemie –
+            # střední škola» beside entrance exams, which matches nobody.
+            shelf_spoke = not subjects
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -541,7 +549,12 @@ async def parse(
     # school is already a field and what is left is a word for teaching: the
     # embedder answered «Поступление в технические вузы» at 0.45 and narrowed a
     # list of tutors to the people who prepare for entrance exams.
-    if not subjects and not bare and not _accounted_for(result, norm, keyword):
+    if (
+        not subjects
+        and not bare
+        and not shelf_spoke
+        and not _accounted_for(result, norm, keyword)
+    ):
         proposed, runner_up = await find_by_meaning(session, text, lang)
         if proposed:
             lead = proposed.score - (runner_up.score if runner_up else 0.0)
@@ -904,6 +917,10 @@ ASIDE: tuple[str, ...] = (
     "teacher",
     "rychl",
     "naleh",
+    # A year of study: «математика 1 курс».
+    "курс",
+    "kurz",
+    "course",
 )
 
 

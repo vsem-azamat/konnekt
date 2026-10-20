@@ -546,8 +546,8 @@ ACROSS: dict[str, set[str]] = {
     },
     "physics": {"prijimacky-fyzika", "prijimacky-technicke-vs"},
     "chemistry": set(),
-    "it-programming": set(),
-    "economics-finance": set(),
+    "it-programming": {"prijimacky-technicke-vs"},
+    "economics-finance": {"prijimacky-ekonomicke-vs"},
 }
 
 
@@ -631,7 +631,16 @@ async def test_a_guess_from_another_shelf_is_dropped(session) -> None:
 
 @pytest.mark.parametrize(
     ("text", "lang"),
-    [("přijímací řízení", "cs"), ("приемные экзамены", "ru")],
+    [
+        ("přijímací řízení", "cs"),
+        ("příprava na přijímací řízení", "cs"),
+        ("приемные экзамены", "ru"),
+        ("подготовка к приемным экзаменам", "ru"),
+        ("помощь с приемными экзаменами", "ru"),
+        ("о приемном экзамене", "ru"),
+        ("приемный экзамен", "ru"),
+        ("приемная комиссия", "ru"),
+    ],
 )
 async def test_other_names_for_admissions_name_the_kind_of_help(
     session, text, lang
@@ -711,3 +720,44 @@ async def test_ukrainian_and_czech_asides_too(session, text, lang) -> None:
 async def test_a_receiver_is_not_an_entrance_exam(session, text, lang) -> None:
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.service_type != "entrance_prep"
+
+
+async def test_a_dropped_guess_is_not_replaced_by_the_embedder(session) -> None:
+    """Dropping the wrong shelf's guess left the list empty, and the embedder
+    was then asked and answered «Chemie – střední škola» at 0.69 — beside
+    entrance exams, which matches nobody. The shelf has spoken; nothing is left
+    for the embedder to explain."""
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .test_embedding import PointedEmbedder
+
+    query = "вступительные по химии"
+    pointed = PointedEmbedder({query: "Chemie – střední škola"})
+    await rebuild(session, embedder=pointed)
+    embedding.set_embedder(pointed)
+    try:
+        parsed = await parse(session, query, "ru", today=TODAY)
+    finally:
+        embedding.set_embedder(None)
+
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+    assert parsed.vector is None, "the embedder was asked"
+
+
+async def test_a_listed_leaf_survives_the_wrong_shelf_drop(session) -> None:
+    """Economics lists the economics admissions, so beside entrance exams that
+    is the answer to keep, not to throw away with the guess."""
+    parsed = await parse(session, "entrance exam economics", "en", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-ekonomicke-vs"), (
+        parsed.subject
+    )
+
+
+async def test_a_year_of_study_is_said_aside(session) -> None:
+    parsed = await parse(session, "математика 1 курс", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "math"), parsed.subject

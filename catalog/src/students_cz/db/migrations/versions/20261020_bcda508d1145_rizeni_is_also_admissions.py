@@ -1,4 +1,4 @@
-"""«řízení» alone is not control theory
+"""«řízení» alone is not control theory; economics and programming list their admissions
 
 `rizeni` was a synonym of «Automatizace a teorie řízení», and a synonym scores
 1.00 — so «přijímací řízení», the admission procedure, came back as control
@@ -27,17 +27,31 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-# Declared under these names so the tests hold the seed to them. No shelf's
-# holds change; the name is there so the shelf-migration tests run this one too.
+# Declared under these names so the tests hold the seed to them.
 SYNONYM_REMOVES: dict[str, tuple[str, ...]] = {"automatizace-a-rizeni": ("rizeni",)}
 SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
     "automatizace-a-rizeni": ("automaticke rizeni", "rizeni procesu")
 }
-HOLDS: dict[str, tuple[str, ...]] = {}
+# And two shelves list the admissions to their own kind of school: beside
+# entrance exams, «entrance exam economics» is the economics admissions, which
+# the guess-from-another-shelf rule would otherwise throw away.
+HOLDS: dict[str, tuple[str, ...]] = {
+    "economics-finance": ("prijimacky-ekonomicke-vs",),
+    "it-programming": ("prijimacky-technicke-vs",),
+}
+
+
+def _set_holds(bind, holds: dict[str, tuple[str, ...]]) -> None:
+    for slug, slugs in holds.items():
+        bind.execute(
+            sa.text("UPDATE subjects SET holds = :slugs WHERE slug = :slug"),
+            {"slugs": list(slugs), "slug": slug},
+        )
 
 
 def upgrade() -> None:
     bind = op.get_bind()
+    _set_holds(bind, HOLDS)
     for slug, words in SYNONYM_ADDS.items():
         for word in words:
             # Appended only when it is not already there.
@@ -61,6 +75,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
+    _set_holds(bind, {slug: () for slug in HOLDS})
     for slug, words in SYNONYM_ADDS.items():
         for word in words:
             bind.execute(
