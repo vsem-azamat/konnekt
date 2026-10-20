@@ -168,9 +168,3 @@ the bot's own health check.
 A person who opens the app from the bot is recorded with `bot_can_message`
 true, from Telegram's `allows_write_to_pm`; nobody can be notified otherwise.
 After a change to sign-in, check one fresh row in `users`.
-
-`tutors.azamat.io`, the catalog's old address, answers 301 to the same path on
-konnekt.azamat.io from the host's edge Caddy. That was set by hand after the
-first deploy from here, which had to succeed first: until then the app's
-router still proxied to it. The edge Caddyfile is shared, so change it with a
-backup, `caddy validate` and a reload.
