@@ -11,10 +11,15 @@
       "synonyms": [
         "математик",
         "matematik",
+        "matematic",
         "math"
       ],
       "holds": [
-        "maturita"
+        "maturita",
+        "matematika-pro-ekonomy",
+        "financni-matematika",
+        "prijimacky-technicke-vs",
+        "prijimacky-matematika"
       ],
       "children": [
         {
@@ -254,6 +259,18 @@
         "ru": "Физика",
         "uk": "Фізика"
       },
+      "synonyms": [
+        "физик",
+        "фізик",
+        "фізиц",
+        "fyzik",
+        "fyzice",
+        "physics"
+      ],
+      "holds": [
+        "prijimacky-fyzika",
+        "prijimacky-technicke-vs"
+      ],
       "children": [
         {
           "slug": "fyzika-1",
@@ -409,6 +426,17 @@
         "ru": "Информатика и программирование",
         "uk": "Інформатика і програмування"
       },
+      "synonyms": [
+        "программир",
+        "програмуван",
+        "programov",
+        "programming",
+        "информатик",
+        "інформатик",
+        "інформатиц",
+        "informatik",
+        "informatic"
+      ],
       "children": [
         {
           "slug": "algoritmizace-a-datove-struktury",
@@ -652,6 +680,13 @@
         "ru": "Экономика и финансы",
         "uk": "Економіка і фінанси"
       },
+      "synonyms": [
+        "экономик",
+        "економік",
+        "економіц",
+        "ekonomi",
+        "economics"
+      ],
       "children": [
         {
           "slug": "mikroekonomie",
@@ -862,6 +897,11 @@
         "ru": "Химия",
         "uk": "Хімія"
       },
+      "synonyms": [
+        "хими",
+        "хімі",
+        "chemi"
+      ],
       "children": [
         {
           "slug": "obecna-chemie",
@@ -877,8 +917,7 @@
             "general chemistry",
             "химия основы",
             "загальна хімія",
-            "chemie zaklady",
-            "хімія"
+            "chemie zaklady"
           ]
         },
         {

@@ -202,33 +202,17 @@ _SUBJECT_SQL = text(
     """
 )
 
-# What a shelf holds: everything under it, the leaves elsewhere whose names its
-# synonyms reach, and the ones it lists in `holds`. The tree files «Математика
-# для экономистов» under economics and the maths entrance exam under
-# admissions, and both are maths to somebody who typed «математика». A leaf
-# belongs when a word of one of its names, in any language, starts with one of
-# the shelf's synonyms. Names and not synonyms: a synonym can mention maths on
-# a leaf that is not about it — «нострификация математика» is one of a dozen on
-# nostrification — and a nostrification-only helper is no answer to
-# «математика». What the names miss, like maturita, is listed by hand. Only
-# live leaves, in both directions. A leaf holds itself, whatever its synonyms,
-# and — as a plain filter by its id always did — active or not.
-_LEAF_NAMES = _TOKENS.format(
-    expr=_NORM.format(
-        expr="COALESCE((SELECT string_agg(i.name, ' ') FROM subject_i18n i"
-        " WHERE i.subject_id = s.id), '')"
-    )
-)
-_HOLDS = f"""s.is_active AND (
+# What a shelf holds: everything under it, and the leaves elsewhere that it
+# lists by slug in `holds`. The tree files «Математика для экономистов» under
+# economics and the physics entrance exam under admissions, and both belong to
+# the shelf somebody names by one word. Listed by hand, not guessed from names
+# or synonyms: «Fyzikální chemie» starts with physics and is chemistry, and the
+# medicine admissions name chemistry without being it. Only live leaves, in
+# both directions. A leaf holds itself and nothing else — and, as a plain filter
+# by its id always did, active or not.
+_HOLDS = """s.is_active AND (
     s.path LIKE shelf.path || '%'
-    OR (shelf.kind = 'group' AND s.kind = 'leaf' AND (
-        s.slug = ANY(shelf.holds)
-        OR EXISTS (
-            SELECT 1 FROM unnest(shelf.synonyms) stem
-             WHERE btrim(stem) <> ''
-               AND strpos({_LEAF_NAMES}, ' ' || {_NORM.format(expr="btrim(stem)")}) > 0
-        )
-    ))
+    OR (shelf.kind = 'group' AND s.kind = 'leaf' AND s.slug = ANY(shelf.holds))
 )"""
 
 _HELD_BY_SQL = text(

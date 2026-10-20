@@ -296,24 +296,26 @@ something else:
   no other: «матан» is calculus, «приемка математика» is the maths entrance exam.
 - **A word for a whole shelf of subjects names the shelf.** «математика» names
   no single leaf, and answered with the best-scoring one it narrowed the search
-  to «Математика для экономистов». A group may carry synonyms of its own — the
-  maths group has the stems `математик`, `matematik`, `math` — and the parser
-  answers with the group when one of them hits, no leaf was named, and the maths
-  word is all the query says about a subject: the kind of help's words, asking,
-  prepositions, «высшая»/«vyšší»/"higher" and what is already a field (school,
-  date, price) may surround it, nothing else. «matematiky pro ekonomy» stays the economists' leaf. Nor
-  beside a kind of help whose offers sit on another shelf — entrance exams,
-  nostrification — because that pair would match nobody. Through synonyms
-  only, never a group's name: «příprava na přijímací zkoušky» is the name of a
-  group and the kind of help in full.
-- **A shelf holds its subtree, the leaves its synonyms name, and what it
-  lists.** The tree files «Математика для экономистов» under economics and the
-  maths entrance exam under admissions; both are maths to somebody who typed
-  «математика». A leaf on another shelf belongs to a group when a word of one of
-  its names, in any language, starts with one of the group's synonyms — names,
-  not the leaf's synonyms, because a synonym can mention maths on a leaf that is
-  not about it («нострификация математика» on nostrification). What names miss
-  is listed by slug in `subjects.holds`: the maths group holds maturita. The
+  to «Математика для экономистов». A group may carry synonyms of its own, stems
+  such as `математик` or `fyzik`, and the parser answers with the group when one
+  of them hits, no leaf was named, and the shelf's word is all the query says
+  about a subject: the kind of help's words, asking, prepositions,
+  «высшая»/«vyšší»/"higher" and what is already a field (school, date, price)
+  may surround it, nothing else. «matematiky pro ekonomy» stays the economists'
+  leaf, and «fyziky 2» stays Fyzika 2 — a number beside the word names a
+  course numbered that way, and says nothing where none is («математика 1»). Nor beside a kind of help whose offers sit on another shelf —
+  entrance exams, nostrification — because that pair would match nobody.
+  Through synonyms only, never a group's name: «příprava na přijímací zkoušky»
+  is the name of a group and the kind of help in full. And not as a leaf's
+  synonym either: a word for the whole shelf on one of its leaves («хімія» on
+  general chemistry) answers that leaf at 1.00 and the shelf is never reached.
+- **A shelf holds its subtree and what it lists.** The tree files «Математика
+  для экономистов» under economics and the physics entrance exam under
+  admissions; both belong to the shelf somebody names by one word, and
+  `subjects.holds` lists such leaves by slug. Listed by hand rather than guessed
+  from names or synonyms: «Fyzikální chemie» starts with physics and is
+  chemistry, the medicine admissions name chemistry and are not it, and
+  «нострификация математика» is one synonym of a dozen on nostrification. The
   search filters by what a subject holds (`lookup.held_by`), and the request
   feed counts a helper's offer on a leaf as an offer on every shelf that holds
   it (`lookup.shelves_of`) — upwards only. A leaf holds itself and nothing
