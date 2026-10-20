@@ -88,3 +88,14 @@ class Touchpoint(StrEnum):
     CONTACT_BOT = "contact_bot"
     MINI_APP = "mini_app"
     MOVED_BOT = "moved_bot"
+
+
+class SpamVerdict(StrEnum):
+    """What a moderator said about an ad-detector hit in the console.
+
+    A ban says the rest: a banned author's hits are answered without a row
+    saying so. ``NOT_AD`` is a false alarm, kept to tune the detector by.
+    """
+
+    DONE = "done"
+    NOT_AD = "not_ad"

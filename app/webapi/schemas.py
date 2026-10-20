@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.enums import SpamVerdict
+
 ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 
 # What may be stored as a chat's public link.
@@ -351,6 +353,13 @@ class SpamPingRead(BaseModel):
     matches: list[str]
     snippet: str | None
     detected_at: datetime.datetime
+    verdict: SpamVerdict | None = None
+
+
+class SpamReviewRequest(BaseModel):
+    """Body for POST /api/spam/pings/{id}/review."""
+
+    verdict: SpamVerdict
 
 
 class SpamPingsSummary(BaseModel):
@@ -358,6 +367,8 @@ class SpamPingsSummary(BaseModel):
 
     count_24h: int
     count_7d: int
+    # Hits nobody answered yet, of any age: the console's ads queue.
+    unreviewed: int = 0
     recent: list[SpamPingRead] = []
 
 
