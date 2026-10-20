@@ -63,12 +63,27 @@ received field except `hash`, `signature` included: only Telegram's third-party
 Ed25519 check leaves `signature` out, and leaving it out here refused every
 real launch.
 
-**The console has one door, and it opens from inside Telegram.** A session is
-issued for a verified `initData` payload and nothing else. What was removed
-should stay removed: the Login Widget asked a browser to re-prove an identity
-Telegram had already proven, and a magic link was a password-less bearer token
-sent through a chat, forwardable by whoever received it. Any new way in has to
-carry a signature the bot token can check, or it is not a way in.
+**The console has two doors, and each carries a proof Telegram made.** Inside
+Telegram a session is issued for a verified `initData` payload. In a browser it
+is issued for an OpenID Connect `id_token` that Telegram signed for this client
+(code flow, PKCE S256, `state` and `nonce`), checked against Telegram's
+published keys with the algorithm fixed here rather than read from the token.
+What was removed should stay removed: the Login Widget asked a browser to
+re-prove an identity Telegram had already proven, and a magic link was a
+password-less bearer token sent through a chat, forwardable by whoever received
+it. The browser door differs from the widget in that nothing reusable reaches
+the browser: its `code` is worthless without the verifier in its own cookie and
+the client secret held server-side. Any further way in has to carry a signature
+that can be checked, or it is not a way in. The browser door exists only while
+`WEBAPI_ADMIN_URL`, `WEBAPI_OIDC_CLIENT_ID` and `WEBAPI_OIDC_CLIENT_SECRET` are
+all set.
+
+**An OIDC callback finishes only the sign-in its own browser started.** The
+`state`, `nonce` and PKCE verifier wait in an httpOnly cookie scoped to the two
+sign-in routes; a callback without it is refused, so somebody else's valid
+`code` cannot sign the admin's browser in to their account. The identity is the
+numeric `id` claim (scope `profile`), not `sub`, because that is what the
+super-admin list holds.
 
 **A signature is not an authorisation.** `initData` says who is asking; the
 super-admin list says whether they may. The check against
