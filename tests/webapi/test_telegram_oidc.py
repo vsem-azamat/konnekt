@@ -68,6 +68,23 @@ def test_a_genuine_token_names_the_telegram_user(key) -> None:
     assert _verify(_token(key), _jwks(key)) == USER_ID
 
 
+def test_an_id_sent_as_a_string_of_digits_is_the_same_user(key) -> None:
+    """Telegram's page documents `id` without a type; a live token carried it as text."""
+    assert _verify(_token(key, id="268388996"), _jwks(key)) == USER_ID
+
+
+def test_a_refused_id_names_the_claims_and_their_types_but_never_their_values(key) -> None:
+    with pytest.raises(OidcError) as refused:
+        _verify(_token(key, id=None, name="Secret Person", preferred_username="secret_handle"), _jwks(key))
+
+    message = str(refused.value)
+    for claim in ("iss", "aud", "sub", "name", "preferred_username", "nonce"):
+        assert claim in message
+    assert "str" in message
+    for value in ("Secret Person", "secret_handle", "opaque-subject", NONCE, CLIENT_ID):
+        assert value not in message
+
+
 def test_an_ec_key_telegram_may_be_switched_to_is_accepted() -> None:
     ec_key = ec.generate_private_key(ec.SECP256R1())
     token = _token(ec_key, alg="ES256")
@@ -82,10 +99,34 @@ def test_an_ec_key_telegram_may_be_switched_to_is_accepted() -> None:
         {"nonce": "another-login"},
         {"exp": int(time.time()) - 600},
         {"id": None},
-        {"id": "268388996"},
         {"id": True},
+        {"id": ""},
+        {"id": "-5"},
+        {"id": "12 34"},
+        {"id": "١٢٣"},
+        {"id": "²"},
+        {"id": 12.5},
+        {"id": 0},
+        {"id": "0"},
+        {"id": [268388996]},
     ],
-    ids=["issuer", "audience", "nonce", "expired", "no-id", "id-as-string", "id-as-bool"],
+    ids=[
+        "issuer",
+        "audience",
+        "nonce",
+        "expired",
+        "no-id",
+        "id-as-bool",
+        "id-empty",
+        "id-negative-string",
+        "id-with-space",
+        "id-arabic-digits",
+        "id-superscript",
+        "id-float",
+        "id-zero",
+        "id-zero-string",
+        "id-list",
+    ],
 )
 def test_a_token_that_proves_the_wrong_thing_is_refused(key, overrides) -> None:
     with pytest.raises(OidcError):
