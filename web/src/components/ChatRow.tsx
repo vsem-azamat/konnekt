@@ -44,6 +44,9 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
   const preview = chatPreview(chat.link, useLocation(), {
     navigate: useNavigate(),
     openLink: openTelegramLink,
+    // react-router keeps a location's state under `usr` in the history entry,
+    // and writes it there synchronously on navigate.
+    stateNow: () => (window.history.state as { usr?: unknown } | null)?.usr,
   });
   return (
     <>
