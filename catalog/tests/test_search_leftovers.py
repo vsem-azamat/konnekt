@@ -458,7 +458,8 @@ async def test_maturita_is_not_an_entrance_exam(session) -> None:
         ("admissions CTU physics", "en", "prijimacky-fyzika"),
         ("university admissions maths", "en", "prijimacky-matematika"),
         ("admissions", "en", None),
-        ("admission to CTU", "en", None),
+        # The school is the subject, as «přijímačky na ČVUT» (#306).
+        ("admission to CTU", "en", "prijimacky-technicke-vs"),
         ("entrance exam programming", "en", "prijimacky-technicke-vs"),
     ],
 )
@@ -961,3 +962,85 @@ async def test_a_second_entrance_word_tells_no_leaf(session) -> None:
     assert parsed.subject.id == await _id(session, "prijimacky-technicke-vs"), (
         parsed.subject
     )
+
+
+# #306: what the #305 review left open.
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # The faculty's own words before its university's: LF MU is medicine,
+        # though MUNI as a whole is its TSP.
+        ("přijímačky na LF MU", "cs"),
+        ("přijímačky na 1. LF UK", "cs"),
+    ],
+)
+async def test_a_faculty_speaks_before_its_university(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-medicina"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # As «přijímačky z biologie»: the admissions named for chemistry.
+        ("přijímačky z chemie", "cs"),
+        ("přijímačky na chemii", "cs"),
+        ("вступительные по химии", "ru"),
+        ("chemistry entrance exam", "en"),
+        ("přijímačky z biologie", "cs"),
+    ],
+)
+async def test_chemistry_entrance_is_as_biology(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-medicina"), parsed.subject
+
+
+async def test_a_leaf_told_apart_is_a_choice_not_a_certainty(session) -> None:
+    """The rule chooses; it does not say the query named the leaf."""
+    from students_cz.services.parser import _is_named
+
+    parsed = await parse(session, "поступление в технический вуз", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-technicke-vs")
+    assert not _is_named(parsed.subject)
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # Study is what admission is to; it names no test.
+        ("admission to study in czechia", "en"),
+        ("admission to study", "en"),
+        ("přijímačky ke studiu", "cs"),
+        ("admission to studies", "en"),
+        ("přijímačky studium", "cs"),
+        # «ze» is «z» before some consonants, a preposition like «ve».
+        ("přijímačky ze školy", "cs"),
+    ],
+)
+async def test_study_restates_admission(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("one", "other", "same"),
+    [
+        ("техническии", "технические", True),
+        ("медицину", "медицина", True),
+        ("cvut", "cvut", True),
+        # Five letters shared, but more than three of the shorter word left:
+        # economics is not econometrics.
+        ("ekonomicka", "ekonometrie", False),
+        ("techn", "technologie", True),
+        ("bio", "biologie", False),
+    ],
+)
+async def test_the_same_word_inflected(one, other, same) -> None:
+    from students_cz.services.parser import _same_word
+
+    assert _same_word(one, other) is same
