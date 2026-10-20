@@ -107,9 +107,7 @@ Mini App call only its own origin, so the router in front of the app
 (`docker/Caddyfile`) sends `/api/v1/*` and `/healthz` to the catalog inside
 the stack. For the browser it is one host.
 
-The catalog has no host of its own. Its old one, `tutors.azamat.io`, answers
-301 to the same path under `PUBLIC_BASE_URL`, so a link shared before the move lands
-on the app. The bot's buttons open `PUBLIC_BASE_URL` too.
+The catalog has no host of its own; the bot's buttons open `PUBLIC_BASE_URL`.
 
 The rules below about the app's screens, and «The web shell scrolls in exactly
 one place», govern that `web/` directory. They stay here because the product
