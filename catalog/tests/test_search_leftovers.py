@@ -445,3 +445,153 @@ async def test_maturita_is_not_an_entrance_exam(session) -> None:
     assert parsed.subject is None or parsed.subject.id != await _id(
         session, "maturita"
     ), parsed.subject
+
+
+# #261: the Ukrainian and English words for entrance exams.
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        ("вступ до ЧВУТ фізика", "uk", "prijimacky-fyzika"),
+        ("вступ з математики", "uk", "prijimacky-matematika"),
+        ("вступ на медицину", "uk", "prijimacky-medicina"),
+        ("вступ до університету", "uk", None),
+        ("admissions CTU physics", "en", "prijimacky-fyzika"),
+        ("university admissions maths", "en", "prijimacky-matematika"),
+        ("admissions", "en", None),
+        ("admission to CTU", "en", None),
+        ("entrance exam programming", "en", "prijimacky-technicke-vs"),
+    ],
+)
+async def test_other_languages_say_entrance_exams(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    if slug is None:
+        assert parsed.subject is None, parsed.subject
+    else:
+        assert parsed.subject is not None
+        assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # «вступ до» a subject is an introduction to it.
+        ("вступ до програмування", "uk"),
+        ("вступ до економіки", "uk"),
+        ("introduction to programming", "en"),
+    ],
+)
+async def test_an_introduction_is_not_an_entrance_exam(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "kind"),
+    [
+        # «вступ» is also a paper's introduction, and admission is what a
+        # translation or a nostrification is for: the other kinds come first.
+        ("написати вступ на 2 сторінки", "uk", "writing"),
+        ("потрібно написати вступ на курсову", "uk", "writing"),
+        ("nostrification for university admission", "en", "nostrification"),
+        ("нострифікація атестату, вступ у ВНЗ", "uk", "nostrification"),
+        ("translation of diploma for admission", "en", "translation"),
+    ],
+)
+async def test_entrance_words_give_way_to_a_named_kind(session, text, lang, kind) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == kind
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # «вступ до» a subject at a school is an introduction taught there.
+        ("вступ до математичного аналізу ЧВУТ", "uk"),
+        ("вступ до мікроекономіки VŠE", "uk"),
+        ("вступ до програмування ЧВУТ", "uk"),
+        # And «вступ у X» is the calque of «введение в».
+        ("вступ у програмування", "uk"),
+        ("вступ у психологію", "uk"),
+    ],
+)
+async def test_an_introduction_at_a_school_is_not_entrance(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("поступление в вуз", "ru"),
+        ("поступление в вузы", "ru"),
+        ("přijímačky na univerzitu", "cs"),
+        ("вступ у ВНЗ", "uk"),
+        ("university admissions", "en"),
+    ],
+)
+async def test_a_university_beside_entrance_exams_is_bare(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "hospital admission",
+        "admission fee",
+        "admission of evidence law",
+        "admission control networking",
+    ],
+)
+async def test_other_admissions_are_not_entrance(session, text) -> None:
+    parsed = await parse(session, text, "en", today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # The commonest Ukrainian phrasings (#262 review).
+        ("підготовка до вступу", "uk"),
+        ("підготовки до вступу", "uk"),
+        ("підготовку до вступу", "uk"),
+        ("допомога зі вступом", "uk"),
+        ("питання щодо вступу", "uk"),
+        ("вступ у ЧВУТ", "uk"),
+        ("вступ в ЧВУТ", "uk"),
+        ("вступ у Карлів університет", "uk"),
+        ("вступ до технічного університету", "uk"),
+        ("Вступ до технічних ВНЗ", "uk"),
+        ("вступ у університет", "uk"),
+        ("вступ в університет", "uk"),
+        ("вступ до внз", "uk"),
+        ("вступ у виш", "uk"),
+        # Each English phrase on its own.
+        ("university admission", "en"),
+        ("college admission", "en"),
+        ("admission test", "en"),
+        ("admission exam", "en"),
+        ("admission to medicine", "en"),
+    ],
+)
+async def test_each_entrance_phrase_on_its_own(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+
+
+async def test_a_named_kind_keeps_its_school_aside(session) -> None:
+    """With a comma and a school after «вступ до», nostrification is still
+    what is asked; the school only says where."""
+    parsed = await parse(session, "нострифікація, вступ до ЧВУТ", "uk", today=TODAY)
+    assert parsed.service_type == "nostrification"
+
+
+@pytest.mark.parametrize(
+    "text", ["поступление в университет", "вступительные в университет"]
+)
+async def test_a_russian_university_restates_entrance_exams(session, text) -> None:
+    parsed = await parse(session, text, "ru", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
