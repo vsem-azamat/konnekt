@@ -121,11 +121,11 @@ async def test_the_shelf_is_not_chosen_beside_what_it_cannot_go_with(
     )
 
 
-@pytest.mark.parametrize(("text", "lang"), [("физика", "ru"), ("fyzika", "cs")])
+@pytest.mark.parametrize(("text", "lang"), [("биология", "ru"), ("biologie", "cs")])
 async def test_a_shelf_is_reached_by_its_synonyms_never_its_name(
     session, text, lang
 ) -> None:
-    """Physics has no synonyms, so its name alone does not make a shelf of it.
+    """Biology has no synonyms, so its name alone does not make a shelf of it.
 
     A shelf's name can be a whole phrase people type for something else:
     «příprava na přijímací zkoušky» names the admissions group and is the kind
@@ -133,7 +133,7 @@ async def test_a_shelf_is_reached_by_its_synonyms_never_its_name(
     """
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None
-    assert parsed.subject.id != await _id(session, "physics"), parsed.subject
+    assert parsed.subject.id != await _id(session, "biology-medicine"), parsed.subject
 
 
 async def test_searching_a_shelf_finds_every_leaf_on_it(
@@ -343,10 +343,10 @@ async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
 
 
 async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) -> None:
-    """The deploy runs the migration and never the seed, so its UPDATEs are
-    what production gets. Take the seeded database back to what production
-    held, run the migration up inside the test's transaction, and compare with
-    the seed file.
+    """The deploy runs the migrations and never the seed, so their UPDATEs are
+    what production gets. Take the seeded database back to what production held
+    before the first of them, run them up in order inside the test's
+    transaction, and compare with the seed file.
     """
     import importlib.util
     import json
@@ -356,22 +356,30 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
     from alembic.operations import Operations
 
     root = Path(__file__).resolve().parents[1]
-    [path] = (root / "src/students_cz/db/migrations/versions").glob("*_65e02593516e_*.py")
-    spec = importlib.util.spec_from_file_location("_m_shelf", path)
-    assert spec is not None and spec.loader is not None
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
+    # Every migration that writes a shelf's words or what it holds, from the one
+    # that introduced them (65e02593516e, which also adds the column) on.
+    migrations = []
+    for path in sorted((root / "src/students_cz/db/migrations/versions").glob("*.py")):
+        spec = importlib.util.spec_from_file_location(f"_m_{path.stem}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if hasattr(module, "HOLDS"):
+            migrations.append(module)
+    assert migrations[0].revision == "65e02593516e"
 
     def run(connection) -> None:
         with Operations.context(MigrationContext.configure(connection)):
-            migration.downgrade()
-            # What production held before: no group had synonyms. The downgrade
-            # only removes the words it names, so a word missing from the
+            for migration in reversed(migrations):
+                migration.downgrade()
+            # What production held before: no group had synonyms. A downgrade
+            # only removes the words it names, so a word missing from a
             # migration would otherwise survive here from the seed.
             connection.execute(
                 text("UPDATE subjects SET synonyms = '{}' WHERE kind = 'group'")
             )
-            migration.upgrade()
+            for migration in migrations:
+                migration.upgrade()
 
     await session.run_sync(lambda sync: run(sync.connection()))
 
@@ -388,3 +396,82 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
     for slug, synonyms, holds in rows:
         assert set(synonyms) == set(seeded[slug].get("synonyms", [])), slug
         assert set(holds) == set(seeded[slug].get("holds", [])), slug
+
+
+# The other shelves people name by one word, written the same way as maths:
+# synonyms for the word, and `holds` for what sits elsewhere.
+@pytest.mark.parametrize(
+    ("text", "lang", "shelf"),
+    [
+        ("физика", "ru", "physics"),
+        ("репетитор по физике", "ru", "physics"),
+        ("fyzika", "cs", "physics"),
+        # The genitive answered «Fyziologie» by trigram.
+        ("fyziky", "cs", "physics"),
+        ("pomoc u zkoušky z fyziky", "cs", "physics"),
+        ("physics", "en", "physics"),
+        ("фізика", "uk", "physics"),
+        ("химия", "ru", "chemistry"),
+        ("помощь по химии", "ru", "chemistry"),
+        ("chemie", "cs", "chemistry"),
+        ("chemistry tutor", "en", "chemistry"),
+        ("хімія", "uk", "chemistry"),
+        ("программирование", "ru", "it-programming"),
+        ("информатика", "ru", "it-programming"),
+        ("programování", "cs", "it-programming"),
+        ("programming", "en", "it-programming"),
+        ("програмування", "uk", "it-programming"),
+        ("экономика", "ru", "economics-finance"),
+        ("репетитор по экономике", "ru", "economics-finance"),
+        ("ekonomie", "cs", "economics-finance"),
+        ("economics", "en", "economics-finance"),
+        ("економіка", "uk", "economics-finance"),
+    ],
+)
+async def test_other_words_for_a_shelf_name_their_shelf(
+    session, text, lang, shelf
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, shelf), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        ("физика 1", "ru", "fyzika-1"),
+        ("fyzikální chemie", "cs", "fyzikalni-chemie"),
+        ("физическая химия", "ru", "fyzikalni-chemie"),
+        ("organická chemie", "cs", "organicka-chemie"),
+        ("programování v C", "cs", "programovani-v-c"),
+        ("теоретическая информатика", "ru", "teoreticka-informatika"),
+        ("mikroekonomie", "cs", "mikroekonomie"),
+        ("математика для экономистов", "ru", "matematika-pro-ekonomy"),
+    ],
+)
+async def test_a_named_leaf_beats_the_other_shelves(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("shelf", "held", "not_held"),
+    [
+        # The physics entrance exam is physics; physical chemistry is chemistry.
+        ("physics", "prijimacky-fyzika", "fyzikalni-chemie"),
+        # Medicine admissions test chemistry, and are not chemistry.
+        ("chemistry", "obecna-chemie", "prijimacky-medicina"),
+        # VŠE admissions are admissions, not economics.
+        ("economics-finance", "mikroekonomie", "prijimacky-ekonomicke-vs"),
+    ],
+)
+async def test_a_shelf_holds_what_it_lists_and_nothing_it_only_mentions(
+    session, shelf, held, not_held
+) -> None:
+    from students_cz.services.lookup import held_by
+
+    holds = set(await held_by(session, await _id(session, shelf)))
+    assert await _id(session, held) in holds
+    other = await session.scalar(select(Subject.id).where(Subject.slug == not_held))
+    assert other is None or other not in holds
