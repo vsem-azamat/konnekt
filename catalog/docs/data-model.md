@@ -300,8 +300,14 @@ something else:
   such as `математик` or `fyzik`, and the parser answers with the group when one
   of them hits, no leaf was named, and the shelf's word is all the query says
   about a subject: the kind of help's words, asking, prepositions,
-  «высшая»/«vyšší»/"higher" and what is already a field (school, date, price)
-  may surround it, nothing else. «matematiky pro ekonomy» stays the economists'
+  «высшая»/«vyšší»/"higher", hurry and politeness, a school year, a word for a
+  teacher, and what is already a field may surround it, nothing else. A school
+  counts by any of its names, its university's, and its faculties' codes, so
+  «matematika Univerzita Karlova» and «informatika FIT ČVUT» are the shelf. A
+  school found by trigram from the shelf's own word is dropped: «informatiky»
+  is not «Fakulta informatiky». Where the shelf cannot be the answer, a guess
+  from another named shelf goes: «вступительные по химии» is not the physics
+  entrance exam. «matematiky pro ekonomy» stays the economists'
   leaf, and «fyziky 2» stays Fyzika 2 — a number beside the word names a
   course numbered that way, and says nothing where none is («математика 1»). Nor beside a kind of help whose offers sit on another shelf —
   entrance exams, nostrification — because that pair would match nobody.
