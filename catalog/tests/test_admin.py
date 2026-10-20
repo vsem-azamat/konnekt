@@ -70,6 +70,10 @@ async def test_me_says_who_is_an_operator(session: AsyncSession) -> None:
         ("GET", "/api/v1/admin/partners"),
         ("POST", "/api/v1/admin/placements"),
         ("PATCH", "/api/v1/admin/placements/1"),
+        ("GET", "/api/v1/admin/profiles/1"),
+        ("POST", "/api/v1/admin/profiles/1/review"),
+        ("POST", "/api/v1/admin/profiles/1/hide"),
+        ("POST", "/api/v1/admin/profiles/1/restore"),
     ],
 )
 async def test_everybody_else_is_refused(
@@ -332,9 +336,147 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
             await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
         ).json()
 
-    assert (len(body["profiles"]), body["counts"]["profiles_week"]) == (1, 2)
+    assert (len(body["profiles"]), body["counts"]["profiles_to_review"]) == (1, 2)
     assert (len(body["unanswered"]), body["counts"]["unanswered"]) == (1, 2)
     assert (len(body["failed_searches"]), body["counts"]["failed_searches"]) == (1, 2)
+
+
+# ── moderating a profile ────────────────────────────────────────────────
+
+
+async def _fresh_helper(helper_factory, session: AsyncSession, tg_id: int) -> User:
+    user = await helper_factory(tg_id=tg_id, first_name="Ekaterina", last_name="Kova")
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.published_at = datetime.now(UTC) - timedelta(days=1)
+    profile.about = "Помогу подготовиться к зачёту по матанализу"
+    await session.flush()
+    return user
+
+
+async def test_a_profile_opens_for_the_operator_as_the_catalog_names_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97601)
+
+    async with _client(session) as http:
+        response = await http.get(
+            f"/api/v1/admin/profiles/{user.id}", headers=auth_header(OPERATOR)
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["name"] == "Ekaterina K."
+    assert body["status"] == "published"
+    assert body["about"] == "Помогу подготовиться к зачёту по матанализу"
+    assert body["services"], "what they offer"
+    assert body["reviewed_at"] is None
+    # Nothing to reach them by: the console moderates, it does not contact.
+    assert not {"tg_id", "tg_username", "photo_url"} & set(body)
+
+
+async def test_an_unknown_profile_is_404(session: AsyncSession) -> None:
+    async with _client(session) as http:
+        response = await http.get(
+            "/api/v1/admin/profiles/999999999", headers=auth_header(OPERATOR)
+        )
+    assert response.status_code == 404
+
+
+async def test_keeping_a_profile_takes_it_off_the_new_list_and_leaves_it_listed(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97602)
+
+    async with _client(session) as http:
+        kept = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/review", headers=auth_header(OPERATOR)
+        )
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+
+    assert kept.status_code == 200, kept.text
+    assert kept.json()["reviewed_at"] is not None
+    assert kept.json()["status"] == "published"
+    assert user.id not in [row["user_id"] for row in body["profiles"]]
+    # Still one of the week's new profiles: reviewing it does not unpublish it.
+    assert body["counts"]["profiles_week"] >= 1
+
+
+async def test_hiding_a_profile_bans_it_so_its_owner_cannot_publish_it_again(
+    session: AsyncSession, helper_factory
+) -> None:
+    user_id = (await _fresh_helper(helper_factory, session, 97603)).id
+
+    async with _client(session) as http:
+        hidden = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/hide", headers=auth_header(OPERATOR)
+        )
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+        again = await http.put(
+            "/api/v1/helper", headers=auth_header(97603), json={"publish": True}
+        )
+
+    assert hidden.status_code == 200, hidden.text
+    assert hidden.json()["status"] == "banned"
+    assert user_id not in [row["user_id"] for row in body["profiles"]]
+    assert [row["user_id"] for row in body["hidden"]] == [user_id]
+    assert again.status_code == 403
+
+
+async def test_a_hidden_profile_comes_back_as_it_was(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97604)
+
+    async with _client(session) as http:
+        await http.post(
+            f"/api/v1/admin/profiles/{user.id}/hide", headers=auth_header(OPERATOR)
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["status"] == "published"
+    assert body["hidden"] == []
+
+
+@pytest.mark.parametrize("status", [PublishStatus.DRAFT, PublishStatus.HIDDEN])
+async def test_only_a_listed_profile_can_be_hidden(
+    session: AsyncSession, helper_factory, status: PublishStatus
+) -> None:
+    """A ban is lifted back to «published», so it may only be put on one: a
+    profile its owner took down must not come back listed by «Вернуть»."""
+    user = await _fresh_helper(helper_factory, session, 97605)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = status
+    await session.flush()
+
+    async with _client(session) as http:
+        response = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/hide", headers=auth_header(OPERATOR)
+        )
+
+    assert response.status_code == 409
+
+
+async def test_only_a_hidden_profile_can_be_restored(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97606)
+    async with _client(session) as http:
+        response = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+    assert response.status_code == 409
 
 
 # ── partner cards ───────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ from sqlalchemy import ColumnElement, and_, case, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import QueryableAttribute, selectinload
 
-from students_cz.db.models import HelperProfile, Offer, ServiceType, User
+from students_cz.db.models import HelperProfile, Institution, Offer, ServiceType, User
 from students_cz.db.models.enums import (
     PlacementEventKind,
     PlacementSlot,
@@ -33,11 +33,12 @@ from students_cz.schemas import (
     AdminPlacement,
     AdminPlacementIn,
     AdminProfile,
+    AdminProfileDetail,
     AdminRequest,
     AdminSearch,
 )
 from students_cz.services.catalog import display_name
-from students_cz.services.errors import NotFound
+from students_cz.services.errors import Conflict, NotFound
 from students_cz.services.naming import names_by_id
 from students_cz.services.placements import offer_text
 from students_cz.services.requests import live
@@ -55,6 +56,7 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         HelperProfile.status == PublishStatus.PUBLISHED,
         HelperProfile.published_at >= now - WEEK,
     )
+    to_review = and_(new_profile, HelperProfile.reviewed_at.is_(None))
     unanswered = and_(
         live(now), ~exists().where(RequestResponse.request_id == HelpRequest.id)
     )
@@ -62,11 +64,18 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         SearchQuery.results_count == 0, SearchQuery.created_at >= now - MONTH
     )
     return AdminCatalog(
-        profiles=await _new_profiles(session, lang, new_profile),
+        profiles=await _new_profiles(session, lang, to_review),
+        hidden=await _new_profiles(
+            session,
+            lang,
+            HelperProfile.status == PublishStatus.BANNED,
+            newest=HelperProfile.updated_at,
+        ),
         unanswered=await _unanswered(session, unanswered),
         failed_searches=await _failed_searches(session, failed_search),
         counts=AdminCounts(
             profiles_week=await _count(session, HelperProfile.user_id, new_profile),
+            profiles_to_review=await _count(session, HelperProfile.user_id, to_review),
             requests_week=await _count(
                 session,
                 HelpRequest.id,
@@ -92,18 +101,41 @@ async def _count(
 
 
 async def _new_profiles(
-    session: AsyncSession, lang: UiLang, where: ColumnElement[bool]
+    session: AsyncSession,
+    lang: UiLang,
+    where: ColumnElement[bool],
+    *,
+    newest: QueryableAttribute[Any] = HelperProfile.published_at,
 ) -> list[AdminProfile]:
     rows = (
         await session.execute(
             select(HelperProfile.published_at, User)
             .join(User, User.id == HelperProfile.user_id)
             .where(where)
-            .order_by(HelperProfile.published_at.desc())
+            .order_by(newest.desc())
             .limit(LIST_CAP)
         )
     ).all()
     ids = [user.id for _, user in rows]
+    services = await _services(session, lang, ids)
+    return [
+        AdminProfile(
+            user_id=user.id,
+            # As the catalog shows people, since the operator reads them the
+            # way anybody browsing does.
+            name=display_name(user),
+            services=services.get(user.id, []),
+            # A hidden profile was listed once, so it has one; a ban from before
+            # the console might not.
+            published_at=published_at or user.created_at,
+        )
+        for published_at, user in rows
+    ]
+
+
+async def _services(
+    session: AsyncSession, lang: UiLang, ids: list[int]
+) -> dict[int, list[str]]:
     # What the catalog lists for them: a service switched off is not offered.
     offered = (
         await session.execute(
@@ -120,17 +152,7 @@ async def _new_profiles(
         listed = services.setdefault(helper_id, [])
         if names.get(service_id) and names[service_id] not in listed:
             listed.append(names[service_id])
-    return [
-        AdminProfile(
-            user_id=user.id,
-            # As the catalog shows people, since the operator reads them the
-            # way anybody browsing does.
-            name=display_name(user),
-            services=services.get(user.id, []),
-            published_at=published_at,
-        )
-        for published_at, user in rows
-    ]
+    return services
 
 
 async def _unanswered(
@@ -166,6 +188,81 @@ async def _failed_searches(
         )
     ).all()
     return [AdminSearch(text=text, times=n, last_at=at) for text, n, at in rows]
+
+
+async def profile(
+    session: AsyncSession, lang: UiLang, user_id: int
+) -> AdminProfileDetail:
+    """One profile, as the console's sheet shows it before an operator acts."""
+    helper, user = await _helper(session, user_id)
+    services = await _services(session, lang, [user.id])
+    institution = None
+    if user.institution_id is not None:
+        names = await names_by_id(session, Institution, {user.institution_id}, lang)
+        institution = names.get(user.institution_id) or None
+    return AdminProfileDetail(
+        user_id=user.id,
+        name=display_name(user),
+        status=helper.status,
+        headline=helper.headline,
+        about=helper.about,
+        services=services.get(user.id, []),
+        institution=institution,
+        published_at=helper.published_at,
+        reviewed_at=helper.reviewed_at,
+    )
+
+
+async def keep_profile(
+    session: AsyncSession, lang: UiLang, user_id: int
+) -> AdminProfileDetail:
+    """An operator looked and left it as it is: off «Новые анкеты», still listed."""
+    helper, _ = await _helper(session, user_id)
+    helper.reviewed_at = datetime.now(UTC)
+    await session.flush()
+    return await profile(session, lang, user_id)
+
+
+async def hide_profile(
+    session: AsyncSession, lang: UiLang, user_id: int
+) -> AdminProfileDetail:
+    """Out of the catalog, and its owner cannot list it again; see helpers.py.
+
+    Only a listed profile: «Вернуть» lists it again, which must not undo an
+    owner's own «hide me» or publish a draft nobody finished.
+    """
+    helper, _ = await _helper(session, user_id)
+    if helper.status != PublishStatus.PUBLISHED:
+        raise Conflict("only a listed profile can be hidden")
+    helper.status = PublishStatus.BANNED
+    helper.reviewed_at = datetime.now(UTC)
+    await session.flush()
+    return await profile(session, lang, user_id)
+
+
+async def restore_profile(
+    session: AsyncSession, lang: UiLang, user_id: int
+) -> AdminProfileDetail:
+    """Listed again, as it was when it was hidden."""
+    helper, _ = await _helper(session, user_id)
+    if helper.status != PublishStatus.BANNED:
+        raise Conflict("only a hidden profile can be restored")
+    helper.status = PublishStatus.PUBLISHED
+    await session.flush()
+    return await profile(session, lang, user_id)
+
+
+async def _helper(session: AsyncSession, user_id: int) -> tuple[HelperProfile, User]:
+    row = (
+        await session.execute(
+            select(HelperProfile, User)
+            .join(User, User.id == HelperProfile.user_id)
+            .where(HelperProfile.user_id == user_id)
+        )
+    ).first()
+    if row is None:
+        raise NotFound("no such profile")
+    return row[0], row[1]
 
 
 async def partners(session: AsyncSession, lang: UiLang) -> list[AdminPlacement]:
