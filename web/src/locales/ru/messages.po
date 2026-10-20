@@ -148,6 +148,10 @@ msgstr "Помощь"
 msgid "Видимость"
 msgstr "Видимость"
 
+#: src/console/BanSheet.tsx
+msgid "Забанить и стереть"
+msgstr "Забанить и стереть"
+
 #: src/console/pages/System.tsx
 msgid "Главные администраторы"
 msgstr "Главные администраторы"
@@ -182,10 +186,6 @@ msgstr "Не сейчас"
 msgid "активный"
 msgstr "активный"
 
-#: src/console/pages/Chat.tsx
-msgid "Забанить во всех чатах?"
-msgstr "Забанить во всех чатах?"
-
 #: src/pages/MyHelper.tsx
 msgid "Kč"
 msgstr "Kč"
@@ -193,11 +193,6 @@ msgstr "Kč"
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Отключить"
-
-#: src/console/pages/Chat.tsx
-#: src/console/Pings.tsx
-msgid "Забанить везде"
-msgstr "Забанить везде"
 
 #: src/pages/MyHelper.tsx
 msgid "Скрыть"
@@ -567,6 +562,7 @@ msgstr "Написать нам"
 msgid "Сохранить"
 msgstr "Сохранить"
 
+#: src/console/BanSheet.tsx
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Partners.tsx
@@ -741,6 +737,10 @@ msgstr "Форматы"
 msgid "Тебя видят в поиске и могут написать."
 msgstr "Тебя видят в поиске и могут написать."
 
+#: src/console/BanSheet.tsx
+msgid "Сообщения останутся."
+msgstr "Сообщения останутся."
+
 #: src/pages/AdsChats.tsx
 msgid "Пишете, что хотите разместить."
 msgstr "Пишете, что хотите разместить."
@@ -765,8 +765,7 @@ msgstr "в каталоге"
 msgid "И то, и другое"
 msgstr "И то, и другое"
 
-#: src/console/pages/Chat.tsx
-#: src/console/Pings.tsx
+#: src/console/BanSheet.tsx
 msgid "Забанить и стереть все его сообщения"
 msgstr "Забанить и стереть все его сообщения"
 
@@ -1200,6 +1199,10 @@ msgstr "Также"
 msgid "Добавить предмет — математика, čeština, физика"
 msgstr "Добавить предмет — математика, čeština, физика"
 
+#: src/console/BanSheet.tsx
+msgid "Во всех чатах, за всё время. Отменить нельзя."
+msgstr "Во всех чатах, за всё время. Отменить нельзя."
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Снять"
@@ -1302,6 +1305,10 @@ msgstr "Такая заявка уже открыта — она в раздел
 msgid "Загружаем"
 msgstr "Загружаем"
 
+#: src/console/BanSheet.tsx
+msgid "Для стирания: введите <0>{word}</0>, чтобы подтвердить."
+msgstr "Для стирания: введите <0>{word}</0>, чтобы подтвердить."
+
 #. placeholder {0}: data.total
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
@@ -1337,6 +1344,10 @@ msgstr "Выбери, чем можешь помочь"
 #: src/pages/Offer.tsx
 msgid "Чем ты можешь помочь?"
 msgstr "Чем ты можешь помочь?"
+
+#: src/console/BanSheet.tsx
+msgid "Только забанить"
+msgstr "Только забанить"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -1419,6 +1430,10 @@ msgstr "Нострификация"
 #: src/pages/Request.tsx
 msgid "до {0}"
 msgstr "до {0}"
+
+#: src/console/BanSheet.tsx
+msgid "Забанить"
+msgstr "Забанить"
 
 #: src/lib/turnaround.tsx
 msgid "{days} дн."
@@ -1554,11 +1569,6 @@ msgstr "страховка, виза, банк, переводы"
 #: src/console/pages/Summary.tsx
 msgid "Партнёры"
 msgstr "Партнёры"
-
-#. placeholder {0}: sheet.sender.message_count
-#: src/console/pages/Chat.tsx
-msgid "здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}. «Стереть» удаляет все его сообщения, которые видел бот, во всех чатах."
-msgstr "здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}. «Стереть» удаляет все его сообщения, которые видел бот, во всех чатах."
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -1729,6 +1739,10 @@ msgstr "Открыть в Telegram"
 msgid "Проверь соединение и попробуй ещё раз."
 msgstr "Проверь соединение и попробуй ещё раз."
 
+#: src/console/BanSheet.tsx
+msgid "стереть"
+msgstr "стереть"
+
 #: src/console/ConsoleGate.tsx
 msgid "Консоль только для администраторов"
 msgstr "Консоль только для администраторов"
@@ -1824,6 +1838,10 @@ msgstr "Дешевле остальных, но этот экзамен не в�
 msgid "Язык приложения"
 msgstr "Язык приложения"
 
+#: src/console/BanSheet.tsx
+msgid "Подтверждение"
+msgstr "Подтверждение"
+
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Summary.tsx
 msgid "Каталог"
@@ -1897,6 +1915,10 @@ msgstr "Выйти"
 msgid "на проверке"
 msgstr "на проверке"
 
+#: src/console/BanSheet.tsx
+msgid "Забанить {name}?"
+msgstr "Забанить {name}?"
+
 #: src/console/pages/Chat.tsx
 msgid "Не показан"
 msgstr "Не показан"
@@ -1921,6 +1943,10 @@ msgstr "Одобрены"
 msgid "За неделю новых анкет не было."
 msgstr "За неделю новых анкет не было."
 
+#: src/console/Pings.tsx
+msgid "Забанить…"
+msgstr "Забанить…"
+
 #: src/components/Incoming.tsx
 msgid "Цена за час, Kč — необязательно"
 msgstr "Цена за час, Kč — необязательно"
@@ -1928,6 +1954,11 @@ msgstr "Цена за час, Kč — необязательно"
 #: src/pages/Request.tsx
 msgid "Откликов пока нет"
 msgstr "Откликов пока нет"
+
+#. placeholder {0}: sheet.sender.message_count
+#: src/console/pages/Chat.tsx
+msgid "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
+msgstr "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
 
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
@@ -2124,6 +2155,10 @@ msgstr "Сначала заполни профиль"
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"
 msgstr "Чёрный список"
+
+#: src/console/BanSheet.tsx
+msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."
+msgstr "Бан во всех наших чатах. Снять можно в «Чёрном списке»."
 
 #: src/pages/Join.tsx
 msgid "Заявка устарела или открыта не тем аккаунтом. Подай её заново."
