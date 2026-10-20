@@ -1,10 +1,11 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
-import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import { hapticSelection } from '@/hooks/useTelegram';
 import { institutionsQuery } from '@/lib/api';
+import { chatPreview } from '@/lib/chatPreview';
 import { type Activity, chipFor, initials, type PublicChat, placeOf } from '@/lib/chats';
 
 import { Sheet } from './Sheet';
@@ -36,10 +37,14 @@ export function ActivityChip({ activity }: { activity: Activity }) {
  * The app holds no conversations, only the way in, and the way in used to be
  * the tap itself: a reader who touched a row to see what it was found
  * themselves outside the app. The preview is a sheet rather than a screen so
- * the list, and where it was scrolled to, is still there when it closes.
+ * the list, and where it was scrolled to, is still there when it closes. It
+ * lives in the history, so Back closes it: see `lib/chatPreview.ts`.
  */
 export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
-  const [open, setOpen] = useState(false);
+  const preview = chatPreview(chat.link, useLocation(), {
+    navigate: useNavigate(),
+    openLink: openTelegramLink,
+  });
   return (
     <>
       <Row
@@ -55,11 +60,16 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
         trailing={<Chevron />}
         onClick={() => {
           hapticSelection();
-          setOpen(true);
+          preview.show();
         }}
       />
-      {open ? (
-        <ChatPreview chat={chat} tone={tone} onClose={() => setOpen(false)} />
+      {preview.open ? (
+        <ChatPreview
+          chat={chat}
+          tone={tone}
+          onClose={preview.close}
+          onJoin={preview.join}
+        />
       ) : null}
     </>
   );
@@ -69,10 +79,12 @@ function ChatPreview({
   chat,
   tone,
   onClose,
+  onJoin,
 }: {
   chat: PublicChat;
   tone: number;
   onClose: () => void;
+  onJoin: () => void;
 }) {
   const { t } = useLingui();
   // Already loaded by the Chats tab for its search; a section's screen asks for
@@ -120,12 +132,7 @@ function ChatPreview({
         </div>
       ) : null}
       <div className={css.actions}>
-        <Action
-          onClick={() => {
-            onClose();
-            openTelegramLink(chat.link);
-          }}
-        >
+        <Action onClick={onJoin}>
           <Trans>Открыть чат</Trans>
         </Action>
       </div>
