@@ -59,7 +59,7 @@ jobs:
       id: lanes
       run: |
         if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-          git diff --name-only HEAD^1 HEAD | .githooks/lanes >> "$GITHUB_OUTPUT"
+          .githooks/lanes HEAD^1 HEAD >> "$GITHUB_OUTPUT"
         else
           printf 'python=true\nweb=true\ncatalog=true\n' >> "$GITHUB_OUTPUT"
         fi
@@ -262,7 +262,7 @@ jobs:
       id: lanes
       run: |
         if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-          git diff --name-only HEAD^1 HEAD | ../.githooks/lanes >> "$GITHUB_OUTPUT"
+          ../.githooks/lanes HEAD^1 HEAD >> "$GITHUB_OUTPUT"
         else
           printf 'python=true\nweb=true\ncatalog=true\n' >> "$GITHUB_OUTPUT"
         fi

@@ -13,7 +13,7 @@ install: ## Install dependencies
 
 # The value is relative, so every worktree runs its own branch's hooks, and it
 # lives in the shared .git/config, so one run covers every worktree.
-hooks: ## Run .githooks/ on commit and push (pnpm install in web/ does it too)
+hooks: ## Run .githooks/ on commit and push
 	git config core.hooksPath .githooks
 
 setup-dev: install hooks ## Setup development environment

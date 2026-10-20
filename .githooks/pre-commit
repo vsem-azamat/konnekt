@@ -1,43 +1,60 @@
 #!/usr/bin/env bash
 # The fast checks, on what is staged; the slower ones wait for pre-push.
-# Enabled by `make hooks`. They read the working tree, so stage whole files.
+# Enabled by `make hooks`.
 set -uo pipefail
 [ -z "${SKIP_HOOKS:-}" ] || exit 0
 cd "$(git rev-parse --show-toplevel)" || exit 1
 . .githooks/_lib.sh
 
-staged=$(git diff --cached --name-only --diff-filter=ACMR)
-lanes=$(.githooks/lanes <<<"$staged")
+# Deletions too: removing a file can break what imports it.
+staged=$(changed --cached) || exit 1
+lanes=$(.githooks/lanes <<<"$staged") || exit 1
+# The files that will be in the commit, to lint.
+present=$(changed --cached --diff-filter=d) || exit 1
+# Staged with unstaged edits on top: what ty, biome and lingui see is not
+# what will be committed.
+partly=$(grep -Fxf <(changed) <<<"$present")
+
+# ty, biome and lingui read the working tree; say so when it differs.
+working_tree_note() {
+  local files
+  files=$(grep -E "$1" <<<"$partly" | paste -sd' ' -)
+  [ -z "$files" ] || printf 'note  %s read the working tree; unstaged edits in: %s\n' "$2" "$files"
+}
 
 if on python; then
   # The directories CI lints.
-  mapfile -t py < <(grep -E '^(app|tests|scripts)/.*\.py$' <<<"$staged")
+  mapfile -t py < <(grep -E '^(app|tests|scripts)/.*\.py$' <<<"$present")
   if [ ${#py[@]} -gt 0 ]; then
-    check "ruff check" "uv run ruff check --fix ${py[*]}" uv run ruff check -q "${py[@]}"
-    check "ruff format" "uv run ruff format ${py[*]}" uv run ruff format --check -q "${py[@]}"
+    check "ruff check" "uv run ruff check --fix $(quoted "${py[@]}")" ruff_staged . check "${py[@]}"
+    check "ruff format" "uv run ruff format $(quoted "${py[@]}")" ruff_staged . format "${py[@]}"
   fi
-  check "ty" "" uv run ty check app tests
+  check "ty" "" uv run --locked ty check app tests
+  working_tree_note '\.py$' ty
 fi
 
 if on catalog; then
-  mapfile -t cpy < <(grep -E '^catalog/(src|tests)/.*\.py$' <<<"$staged" | sed 's#^catalog/##')
+  mapfile -t cpy < <(grep -E '^catalog/(src|tests)/.*\.py$' <<<"$present")
   if [ ${#cpy[@]} -gt 0 ]; then
-    check "catalog ruff check" "uv run --directory catalog ruff check --fix ${cpy[*]}" \
-      uv run --locked --directory catalog ruff check -q "${cpy[@]}"
-    check "catalog ruff format" "uv run --directory catalog ruff format ${cpy[*]}" \
-      uv run --locked --directory catalog ruff format --check -q "${cpy[@]}"
+    cfix=$(quoted "${cpy[@]#catalog/}")
+    check "catalog ruff check" "uv run --directory catalog ruff check --fix $cfix" ruff_staged catalog check "${cpy[@]}"
+    check "catalog ruff format" "uv run --directory catalog ruff format $cfix" ruff_staged catalog format "${cpy[@]}"
   fi
   check "catalog ty" "" uv run --locked --directory catalog ty check src tests
+  working_tree_note '^catalog/.*\.py$' "catalog ty"
 fi
 
 if on web && web_ready; then
-  mapfile -t wf < <(grep -E '^web/' <<<"$staged" | sed 's#^web/##')
-  check "biome" "pnpm --dir web exec biome check --write ${wf[*]}" \
-    pnpm --dir web exec biome check --no-errors-on-unmatched --files-ignore-unknown=true "${wf[@]}"
+  mapfile -t wf < <(grep -E '^web/' <<<"$present" | sed 's#^web/##')
+  if [ ${#wf[@]} -gt 0 ]; then
+    check "biome" "pnpm --dir web exec biome check --write $(quoted "${wf[@]}")" \
+      pnpm --dir web exec biome check --no-errors-on-unmatched --files-ignore-unknown=true "${wf[@]}"
+  fi
   if grep -q '^web/src/' <<<"$staged"; then
     check "lingui extract" "translate the new entries in web/src/locales/*/messages.po, then git add web/src/locales" \
       locales_current
   fi
+  working_tree_note '^web/' "biome and lingui"
 fi
 
 if grep -q true <<<"$lanes"; then

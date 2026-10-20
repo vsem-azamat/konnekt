@@ -96,6 +96,7 @@ def test_the_required_check_always_runs() -> None:
 def repo(tmp_path: Path) -> Path:
     shutil.copytree(HOOKS, tmp_path / ".githooks")
     shutil.copy(ROOT / "pyproject.toml", tmp_path)
+    shutil.copy(ROOT / "uv.lock", tmp_path)
     (tmp_path / "app").mkdir()
     (tmp_path / "tests").mkdir()
     (tmp_path / "app" / "__init__.py").write_text("")
@@ -182,3 +183,156 @@ def test_pre_push_checks_what_the_branch_changed_since_main(repo: Path) -> None:
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "skip" in result.stdout + result.stderr
+
+
+def _commit(repo: Path, message: str = "change") -> str:
+    _git(repo, "commit", "-q", "-m", message)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_lanes_counts_a_renamed_file_where_it_was(repo: Path) -> None:
+    (repo / "docs").mkdir()
+    _git(repo, "mv", "app/__init__.py", "docs/init.md")
+    _commit(repo)
+
+    assert "python=true" in _run(repo / ".githooks" / "lanes", "HEAD^", "HEAD", cwd=repo, check=True).stdout
+
+
+def test_lanes_reads_a_non_ascii_name_as_it_is(repo: Path) -> None:
+    _stage(repo, "docs/заметка.md", "notes\n")
+    _commit(repo)
+
+    result = _run(repo / ".githooks" / "lanes", "HEAD^", "HEAD", cwd=repo, check=True)
+
+    assert "=true" not in result.stdout
+
+
+# The lanes step of each job in test.yml, run as Actions runs it.
+
+
+def _lanes_steps() -> list[Any]:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    steps = []
+    for job in workflow["jobs"].values():
+        for step in job["steps"]:
+            if step.get("id") == "lanes":
+                workdir = job.get("defaults", {}).get("run", {}).get("working-directory", ".")
+                steps.append(pytest.param(workdir, step["run"], id=workdir))
+    return steps
+
+
+def _ci_step(repo: Path, workdir: str, script: str) -> tuple[int, str]:
+    (repo / workdir).mkdir(exist_ok=True)
+    output = repo / "github_output"
+    output.write_text("")
+    env = {**_env(), "GITHUB_EVENT_NAME": "pull_request", "GITHUB_OUTPUT": str(output)}
+    result = _run("bash", "-e", "-c", script, cwd=repo / workdir, env=env)
+    return result.returncode, output.read_text()
+
+
+def test_both_jobs_have_a_lanes_step() -> None:
+    assert [param.id for param in _lanes_steps()] == [".", "catalog"]
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_the_ci_lanes_step_fails_when_it_cannot_diff(tmp_path: Path, workdir: str, script: str) -> None:
+    """Every lane off would pass the required check with nothing checked."""
+    shutil.copytree(HOOKS, tmp_path / ".githooks")
+
+    code, output = _ci_step(tmp_path, workdir, script)
+
+    assert code != 0
+    assert "=false" not in output
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_the_ci_lanes_step_reads_the_pull_requests_change(repo: Path, workdir: str, script: str) -> None:
+    (repo / "docs").mkdir()
+    _git(repo, "mv", "app/__init__.py", "docs/init.md")
+    _commit(repo)
+
+    code, output = _ci_step(repo, workdir, script)
+
+    assert code == 0
+    assert "python=true" in output.split()
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_a_change_to_the_checks_runs_every_lane_in_ci(repo: Path, workdir: str, script: str) -> None:
+    _stage(repo, ".github/workflows/test.yml", "on: push\n")
+    _commit(repo)
+
+    _, output = _ci_step(repo, workdir, script)
+
+    assert sorted(output.split()) == ["catalog=true", "python=true", "web=true"]
+
+
+def test_pre_commit_checks_the_staged_content_not_the_working_tree(repo: Path) -> None:
+    _stage(repo, "app/bad.py", "x = {  'a':1 }\n")
+    (repo / "app" / "bad.py").write_text('x = {"a": 1}\n')
+
+    result = _hook(repo, "pre-commit")
+
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert "would reformat: app/bad.py" in result.stdout
+
+
+def test_pre_commit_passes_staged_content_that_is_clean(repo: Path) -> None:
+    _stage(repo, "app/good.py", 'x = {"a": 1}\n')
+    (repo / "app" / "good.py").write_text("x = {  'a':1 }\n")
+
+    result = _hook(repo, "pre-commit")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "unstaged edits in: app/good.py" in result.stdout
+
+
+def test_pre_commit_runs_the_lane_a_file_was_moved_out_of(repo: Path) -> None:
+    (repo / "docs").mkdir()
+    _git(repo, "mv", "app/__init__.py", "docs/init.md")
+
+    result = _hook(repo, "pre-commit")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok    ty" in result.stdout
+
+
+def test_pre_commit_reads_a_non_ascii_name_as_it_is(repo: Path) -> None:
+    _stage(repo, "docs/заметка.md", "notes\n")
+
+    result = _hook(repo, "pre-commit")
+
+    assert result.stdout.strip().splitlines() == [
+        "skip  all checks: nothing staged that python, web or catalog read"
+    ], result.stdout + result.stderr
+
+
+def test_the_fix_quotes_a_path_for_the_shell(repo: Path) -> None:
+    _stage(repo, "app/my module.py", "x = {  'a':1 }\n")
+
+    result = _hook(repo, "pre-commit")
+
+    assert "uv run ruff format app/my\\ module.py" in result.stdout
+
+
+def test_pre_push_refuses_while_uncommitted_edits_would_be_checked(repo: Path) -> None:
+    _stage(repo, "app/x.py", "x = 1\n")
+    head = _commit(repo)
+    (repo / "app" / "x.py").write_text("x = 2\n")
+
+    result = _hook(repo, "pre-push", f"refs/heads/b {head} refs/heads/b {ZERO}\n")
+
+    assert result.returncode != 0
+    assert "app/x.py" in result.stdout
+    assert "pytest" not in result.stdout
+
+
+def test_pre_push_of_a_commit_not_checked_out_says_it_checked_nothing(repo: Path) -> None:
+    _stage(repo, "app/x.py", "x = 1\n")
+    _commit(repo)
+    base = _git(repo, "rev-parse", "HEAD^")
+
+    result = _hook(repo, "pre-push", f"refs/heads/b {base} refs/heads/b {ZERO}\n")
+
+    assert result.returncode == 0
+    assert result.stdout.startswith("skip  all checks")

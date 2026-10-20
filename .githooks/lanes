@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
-# Changed paths on stdin, one per line; prints which lanes they touch as
-# name=true|false. The hooks and the PR jobs in test.yml both read this, so a
-# path is classified once. tests/unit/test_githooks.py has the cases.
+# Prints which lanes a change touches as name=true|false: the change between
+# the two commits given, or the paths on stdin, one per line. The hooks and
+# the PR jobs in test.yml both read this, so a path is classified once.
+# tests/unit/test_githooks.py has the cases.
 set -euo pipefail
+
+if [ $# -gt 0 ]; then
+  . "$(dirname "$0")/_lib.sh"
+  # Fails, rather than printing every lane off, when there is nothing to diff.
+  paths=$(changed "$@")
+else
+  paths=$(cat)
+fi
 
 python=false web=false catalog=false
 while IFS= read -r path; do
@@ -20,6 +29,6 @@ while IFS= read -r path; do
     catalog/*) catalog=true ;;
     *) python=true ;;
   esac
-done
+done <<<"$paths"
 
 printf 'python=%s\nweb=%s\ncatalog=%s\n' "$python" "$web" "$catalog"

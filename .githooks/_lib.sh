@@ -1,9 +1,18 @@
-# Sourced by the hooks. A check that runs prints one line; a failing one
-# prints its output and the command that fixes it; skipped lanes share one line.
+# Sourced by the hooks and by lanes. A check that runs prints one line; a
+# failing one prints its output and the command that fixes it; skipped lanes
+# share one line.
 
 failed=0
 
+# Paths a diff touches. A rename is its old path and its new one, or moving a
+# file out of a lane would hide it from that lane; and names stay unquoted, or
+# a non-ASCII one would start with a quote and match no lane.
+changed() { git -c core.quotePath=false diff --no-renames --name-only "$@"; }
+
 on() { grep -qx "$1=true" <<<"$lanes"; }
+
+# Arguments quoted to paste back into a shell.
+quoted() { local q; q=$(printf '%q ' "$@"); printf '%s' "${q% }"; }
 
 skipped_lanes() {
   local off
@@ -18,11 +27,27 @@ check() {
   if out=$("$@" 2>&1); then
     printf 'ok    %s (%ss)\n' "$name" $((SECONDS - start))
   else
-    printf '%s\n' "$out"
+    [ -z "$out" ] || printf '%s\n' "$out"
     printf 'FAIL  %s\n' "$name"
     [ -z "$fix" ] || printf '      fix: %s\n' "$fix"
     failed=1
   fi
+}
+
+# ruff on what is staged rather than on the working tree, so a partly staged
+# file is checked as it will be committed: ruff_staged <project dir> check|format <paths...>
+ruff_staged() {
+  local dir=$1 mode=$2 path rc=0
+  shift 2
+  for path in "$@"; do
+    if [ "$mode" = format ]; then
+      git show ":$path" | uv run --locked --directory "$dir" ruff format --check -q --stdin-filename "${path#"$dir"/}" - \
+        >/dev/null 2>&1 || { printf 'would reformat: %s\n' "$path"; rc=1; }
+    else
+      git show ":$path" | uv run --locked --directory "$dir" ruff check -q --stdin-filename "${path#"$dir"/}" - || rc=1
+    fi
+  done
+  return "$rc"
 }
 
 # Generators the checks run rewrite files in place; what they leave behind
