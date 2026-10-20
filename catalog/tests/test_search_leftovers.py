@@ -308,3 +308,61 @@ async def test_czech_tests_ask_no_embedder(session, text) -> None:
         embedding.set_embedder(None)
     assert parsed.service_type == "entrance_prep"
     assert parsed.vector is None, "the embedder was asked"
+
+
+@pytest.mark.parametrize("text", ["Právnická fakulta", "Filozofická fakulta"])
+async def test_a_school_alone_names_no_subject(session, text) -> None:
+    """Nothing is left once the school's words go, so nothing is guessed — and
+    the embedder is not asked either: it answered «Přijímačky na medicínu»."""
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .test_embedding import PointedEmbedder
+
+    pointed = PointedEmbedder({text: "Přijímačky na medicínu (biologie + chemie)"})
+    await rebuild(session, embedder=pointed)
+    embedding.set_embedder(pointed)
+    try:
+        parsed = await parse(session, text, "cs", today=TODAY)
+    finally:
+        embedding.set_embedder(None)
+    assert parsed.institution is not None
+    assert parsed.subject is None, parsed.subject
+    assert parsed.vector is None, "the embedder was asked"
+
+
+async def test_for_entrance_exams_the_school_is_the_subject(session) -> None:
+    """«přijímačky na VŠE» names the economics admissions by the school; without
+    the school's words the guess went to the technical admissions."""
+    parsed = await parse(session, "přijímačky na VŠE", "cs", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-ekonomicke-vs"), (
+        parsed.subject
+    )
+
+
+@pytest.mark.parametrize(
+    ("word", "stem", "shares"),
+    [
+        ("chemii", "chemie", True),
+        ("chemie", "chemie", True),
+        ("matematiky", "matematik", True),
+        ("chemicko", "chemie", False),
+        ("physical", "physics", False),
+        # Too short for the last-letter rule.
+        ("chem", "chemi", False),
+    ],
+)
+async def test_a_shelf_word_differs_from_its_forms_in_the_last_letter_only(
+    word, stem, shares
+) -> None:
+    from students_cz.services.parser import _shares_a_stem
+
+    assert _shares_a_stem(word, stem) is shares
+
+
+async def test_ukrainian_classical_is_the_kind(session) -> None:
+    parsed = await parse(session, "класична фізика", "uk", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "physics"), parsed.subject

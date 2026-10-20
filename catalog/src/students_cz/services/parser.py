@@ -480,11 +480,22 @@ async def parse(
     subjects = await find_subjects(session, text, lang, limit=4)
     # A school named in full lends its words to the scorer: "Faculty of
     # Physical Education" guessed «Physics 1» from the school's own name. Where
-    # nothing was named, guess again from the query without the school's words.
-    if result.institution and not (subjects and _is_named(subjects[0])):
+    # nothing was named, guess again from the query without the school's words;
+    # where nothing is left, the query was the school and names no subject —
+    # and the embedder is not asked to find one in it either.
+    #
+    # Not for entrance exams, where the school is the subject: «přijímačky na
+    # VŠE» is the economics admissions because of «VŠE».
+    school_only = False
+    if (
+        result.institution
+        and result.service_type != "entrance_prep"
+        and not (subjects and _is_named(subjects[0]))
+    ):
         school = await _school_words(session, result.institution)
         tokens = tokenise(norm).split()
         kept = [token for token in tokens if not _is_school_word(token, school)]
+        school_only = not kept
         if len(kept) < len(tokens):
             subjects = (
                 await find_subjects(session, " ".join(kept), lang, limit=4)
@@ -594,6 +605,7 @@ async def parse(
         not subjects
         and not bare
         and not shelf_spoke
+        and not school_only
         and not _accounted_for(result, norm, keyword)
     ):
         proposed, runner_up = await find_by_meaning(session, text, lang)

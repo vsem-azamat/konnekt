@@ -330,7 +330,8 @@ _INSTITUTION_SQL = text(
                   q.raw, q.latin, q.tokens, q.latin_tokens
       ) n
      WHERE n.score >= :threshold
-     ORDER BY n.score DESC
+     -- Total, so the same query always names the same school.
+     ORDER BY n.score DESC, n.id
      LIMIT :limit
     """
 )
