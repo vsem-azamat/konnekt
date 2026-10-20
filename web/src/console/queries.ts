@@ -71,6 +71,13 @@ export const consoleChanges = {
       body: JSON.stringify(update),
     }),
 
+  /** A chat the bot is not in, listed by its public link and marked as not ours. */
+  addExternalChat: (publicLink: string) =>
+    consoleGet<ConsoleChat>('/api/chats/external', {
+      method: 'POST',
+      body: JSON.stringify({ public_link: publicLink }),
+    }),
+
   /** Title, photo and member count, read again from Telegram. */
   refreshChat: (id: number) =>
     consoleGet<ConsoleChat>(`/api/chats/${id}/refresh`, { method: 'POST' }),

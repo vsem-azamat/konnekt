@@ -83,17 +83,22 @@ export function statusCounts(chats: ConsoleChat[]): Record<StatusFilter, number>
     all: chats.length,
     discovered: count('discovered'),
     approved: count('approved'),
+    observed: count('observed'),
+    external: count('external'),
     disabled: count('disabled'),
   };
 }
 
+/** The statuses the public catalogue lists; the others await or ended a decision. */
+const LISTABLE: readonly ChatStatus[] = ['approved', 'observed', 'external'];
+
 /**
  * Whether students see the chat on the public tab, by the same rule the
- * public catalogue applies: approved, with a title and a link.
+ * public catalogue applies: decided on, with a title and a link.
  */
 export function isListed(chat: ConsoleChat): boolean {
   return (
-    chat.resource_status === 'approved' &&
+    LISTABLE.includes(chat.resource_status) &&
     Boolean(chat.title) &&
     Boolean(chat.public_link)
   );

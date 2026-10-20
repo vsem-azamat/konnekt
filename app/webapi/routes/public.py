@@ -78,9 +78,10 @@ def _section(parent: type[Chat]):
     child = aliased(Chat)
     leads_a_section = select(1).where(child.parent_chat_id == Chat.id).exists()
 
-    # A parent names the section only once its owner agreed: an unapproved
-    # chat's Telegram title is not for a public page, whatever sits under it.
-    named_parent = parent.title.is_not(None) & (parent.resource_status == Chat.STATUS_APPROVED)
+    # A parent names the section only once it was decided to list it: an
+    # undecided chat's Telegram title is not for a public page, whatever sits
+    # under it.
+    named_parent = parent.title.is_not(None) & parent.resource_status.in_(Chat.LISTABLE_STATUSES)
     return case((named_parent, parent.title), (leads_a_section, Chat.title)).label("group_title")
 
 
@@ -113,10 +114,11 @@ async def get_public_catalog(
 ) -> list[PublicCatalogItem]:
     """Every chat a stranger may join, under the university above it.
 
-    A chat is here when it is approved *and* has a public link. The link is the
-    decision — there is no separate flag that could disagree with it — so a
-    private faculty group without one cannot appear by accident, and taking a
-    chat down means clearing one column.
+    A chat is here when it was decided to list it (approved, observed or
+    external) *and* has a public link. The link is the decision — there is no
+    separate flag that could disagree with it — so a private faculty group
+    without one cannot appear by accident, and taking a chat down means
+    clearing one column.
     """
     if (cached := public_answers.remembered("catalog")) is not None:
         return cast("list[PublicCatalogItem]", cached)
@@ -138,6 +140,7 @@ async def get_public_catalog(
                 Chat.title,
                 Chat.public_link,
                 Chat.is_forum,
+                Chat.resource_status,
                 _section(parent),
                 # The group's university: the parent's under one, the chat's own
                 # at the top. Never a child's own: one left from when it stood at
@@ -149,7 +152,7 @@ async def get_public_catalog(
             )
             .outerjoin(parent, parent.id == Chat.parent_chat_id)
             .outerjoin(recent_messages, recent_messages.c.chat_id == Chat.id)
-            .where(Chat.resource_status == Chat.STATUS_APPROVED)
+            .where(Chat.resource_status.in_(Chat.LISTABLE_STATUSES))
             .where(Chat.public_link.is_not(None))
         )
     ).all()
@@ -164,6 +167,7 @@ async def get_public_catalog(
             activity=_activity(row.messages, grounded=grounded),
             member_count=counts.get(row.id),
             is_forum=bool(row.is_forum),
+            external=row.resource_status == Chat.STATUS_EXTERNAL,
         )
         for row in rows
         if row.title and row.public_link
@@ -190,9 +194,11 @@ async def get_public_reach(
 ) -> PublicReach:
     """How far a post across the published catalogue would carry.
 
-    Counted over the same rows `/catalog` returns and no others. Reach summed
-    across private chats would be a claim about rooms nobody being quoted a
-    price can see, and publishing their size is not ours to do.
+    Counted over the chats in `/catalog` that the bot moderates, and no others.
+    Reach summed across private chats would be a claim about rooms nobody being
+    quoted a price can see, and publishing their size is not ours to do; summed
+    across chats we only observe or are not in, it would sell an audience no
+    post of ours can reach.
 
     Member counts come from the snapshots the userbot writes, never from
     Telethon at request time: this endpoint answers strangers, and a public URL

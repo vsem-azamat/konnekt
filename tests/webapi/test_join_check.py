@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 
 import pytest
 from app.core.config import settings
-from app.db.models import JoinCheck
+from app.db.models import Chat, JoinCheck
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -79,10 +79,14 @@ def client(db_session_maker, join_bot):
     app.dependency_overrides.pop(get_publish_bot, None)
 
 
-async def _seed(session_maker, *, minutes: int = 10, user_id: int = APPLICANT_ID) -> None:
+async def _seed(
+    session_maker, *, minutes: int = 10, user_id: int = APPLICANT_ID, chat_status: str = Chat.STATUS_APPROVED
+) -> None:
     from app.core.time import utc_now
 
     async with session_maker() as session:
+        # A check is only ever issued in a chat the bot moderates.
+        session.add(Chat(id=CHAT_ID, title="Moderated", resource_status=chat_status))
         session.add(
             JoinCheck(
                 query_id=QUERY_ID,
@@ -203,3 +207,16 @@ async def test_a_query_telegram_refuses_stays_spent(client, db_session_maker, bo
     assert first.status_code == 409
     assert second.status_code == 403
     assert join_bot.answer_chat_join_request_query.await_count == 1
+
+
+@pytest.mark.parametrize("chat_status", [Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED])
+async def test_a_chat_no_longer_moderated_lets_nobody_in(
+    client, db_session_maker, bot_token, join_bot, chat_status
+) -> None:
+    """Issued while the bot ran the door; passed after it stopped: the door is its owner's again."""
+    await _seed(db_session_maker, chat_status=chat_status)
+
+    response = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+
+    assert response.status_code == 403
+    join_bot.answer_chat_join_request_query.assert_not_awaited()

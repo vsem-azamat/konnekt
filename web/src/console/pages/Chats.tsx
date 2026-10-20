@@ -1,10 +1,13 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { SearchIcon } from '@/components/icons';
+import { Sheet } from '@/components/Sheet';
 import {
+  Action,
+  Actions,
   Chevron,
   Chips,
   ChipView,
@@ -14,6 +17,7 @@ import {
   Row,
   Rows,
   SkeletonRows,
+  Sub,
   Tile,
   Title,
   ui,
@@ -25,12 +29,20 @@ import {
   type StatusFilter,
   statusCounts,
 } from '@/console/chats';
-import { consoleChatsQuery } from '@/console/queries';
-import type { ConsoleChat } from '@/console/session';
+import { FailureText } from '@/console/FailureText';
+import { consoleChanges, consoleChatsQuery } from '@/console/queries';
+import { type ConsoleChat, ConsoleError } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { initials } from '@/lib/chats';
 
-const FILTERS: StatusFilter[] = ['all', 'discovered', 'approved', 'disabled'];
+const FILTERS: StatusFilter[] = [
+  'all',
+  'discovered',
+  'approved',
+  'observed',
+  'external',
+  'disabled',
+];
 
 function isFilter(value: string | null): value is StatusFilter {
   return FILTERS.includes(value as StatusFilter);
@@ -58,6 +70,7 @@ function ChatList() {
   const status = params.get('status');
   const filter: StatusFilter = isFilter(status) ? status : 'all';
   const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState(false);
   const { data, isPending, error, refetch } = useQuery(consoleChatsQuery);
 
   if (isPending) {
@@ -81,6 +94,8 @@ function ChatList() {
     all: t`Все`,
     discovered: t`На проверке`,
     approved: t`Одобрены`,
+    observed: t`Наблюдаем`,
+    external: t`Внешние`,
     disabled: t`Откл.`,
   };
 
@@ -119,6 +134,20 @@ function ChatList() {
           style={{ all: 'unset', flex: 1, minWidth: 0 }}
         />
       </div>
+
+      <div style={{ marginTop: 12 }}>
+        <Actions>
+          <Action quiet onClick={() => setAdding(true)}>
+            <Trans>+ Внешний чат</Trans>
+          </Action>
+        </Actions>
+      </div>
+      {adding ? (
+        <AddExternalSheet
+          onClose={() => setAdding(false)}
+          onAdded={(chat) => navigate(`/console/chats/${chat.id}`)}
+        />
+      ) : null}
 
       {sections.length === 0 ? (
         <div style={{ marginTop: 16 }}>
@@ -173,10 +202,16 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
           guards.length ? guards.join(', ') : t`без защиты`,
           isListed(chat) ? t`на сайте` : t`не на сайте`,
         ]
-      : [
-          chat.member_count !== null ? i18n.number(chat.member_count) : null,
-          chat.resource_status === 'discovered' ? t`на проверке` : t`отключён`,
-        ];
+      : chat.resource_status === 'observed' || chat.resource_status === 'external'
+        ? [
+            chat.member_count !== null ? i18n.number(chat.member_count) : null,
+            chat.resource_status === 'observed' ? t`наблюдаем` : t`внешний`,
+            isListed(chat) ? t`на сайте` : t`не на сайте`,
+          ]
+        : [
+            chat.member_count !== null ? i18n.number(chat.member_count) : null,
+            chat.resource_status === 'discovered' ? t`на проверке` : t`отключён`,
+          ];
   const tone =
     chat.resource_status === 'discovered'
       ? 1
@@ -197,4 +232,86 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
       onClick={onOpen}
     />
   );
+}
+
+/**
+ * A chat the bot is not in, named by its public link. The server asks
+ * Telegram for the rest, so a Telegram id is never typed here.
+ */
+function AddExternalSheet({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded: (chat: ConsoleChat) => void;
+}) {
+  const { t } = useLingui();
+  const queryClient = useQueryClient();
+  const [link, setLink] = useState('');
+  const add = useMutation({
+    mutationFn: (value: string) => consoleChanges.addExternalChat(value),
+    onSuccess: (chat) => {
+      void queryClient.invalidateQueries({ queryKey: consoleChatsQuery.queryKey });
+      onAdded(chat);
+    },
+  });
+  const value = link.trim();
+  return (
+    <Sheet title={t`Внешний чат`} closeLabel={t`Отмена`} onClose={onClose}>
+      <Sub>
+        <Trans>
+          Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат
+          попадёт в каталог с пометкой «не наш».
+        </Trans>
+      </Sub>
+      <div className={ui.field}>
+        <input
+          value={link}
+          onChange={(event) => setLink(event.target.value)}
+          placeholder="https://t.me/cvut_fjfi"
+          aria-label={t`Публичная ссылка`}
+          maxLength={200}
+          inputMode="url"
+          style={{ all: 'unset', flex: 1, minWidth: 0 }}
+        />
+      </div>
+      {add.error ? (
+        <Hint>
+          <AddFailure error={add.error} />
+        </Hint>
+      ) : null}
+      <Actions>
+        <Action
+          disabled={add.isPending || value.length === 0}
+          onClick={() => add.mutate(value)}
+        >
+          <Trans>Добавить в каталог</Trans>
+        </Action>
+      </Actions>
+    </Sheet>
+  );
+}
+
+/** Each refusal of `POST /api/chats/external` in words, by webapi's code for it. */
+function AddFailure({ error }: { error: unknown }) {
+  const detail = error instanceof ConsoleError ? error.detail : null;
+  switch (detail) {
+    case 'not_public':
+      return (
+        <Trans>
+          Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат
+          не найти.
+        </Trans>
+      );
+    case 'not_found':
+      return <Trans>Telegram не знает публичного чата с таким именем.</Trans>;
+    case 'not_a_group':
+      return <Trans>Это канал или человек, а не чат.</Trans>;
+    case 'already_known':
+      return <Trans>Этот чат уже есть в списке: режим меняется на его странице.</Trans>;
+    case 'telegram_unavailable':
+      return <Trans>Telegram сейчас не ответил. Попробуйте через минуту.</Trans>;
+    default:
+      return <FailureText error={error} />;
+  }
 }
