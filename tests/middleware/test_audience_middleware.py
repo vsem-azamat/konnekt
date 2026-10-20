@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import ChatMemberBanned, ChatMemberMember, Message, Update
+from aiogram.types import CallbackQuery, ChatMemberBanned, ChatMemberMember, Message, Update
 from app.core.enums import Touchpoint
 from app.db.models import AudienceMember, AudienceReach, AudienceTouch
 from app.presentation.telegram.middlewares.audience import AudienceMiddleware
@@ -116,3 +116,52 @@ async def test_a_database_failure_never_stops_the_update(session_maker):
     middleware = AudienceMiddleware(broken, Touchpoint.MAIN_BOT)
 
     await _run(middleware, Update(update_id=1, message=_message()))
+
+
+async def test_a_bot_added_to_a_group_is_not_a_person_blocking_it(session_maker):
+    middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)
+    banned = ChatMemberBanned(user=PERSON, status=ChatMemberStatus.KICKED, until_date=datetime.datetime(1970, 1, 1))
+    old = ChatMemberMember(user=PERSON, status=ChatMemberStatus.MEMBER)
+    in_group = tg.create_chat_member_updated(
+        chat=tg.create_chat(), user=PERSON, old_chat_member=old, new_chat_member=banned
+    )
+
+    await _run(middleware, Update(update_id=1, my_chat_member=in_group))
+
+    assert await _rows(session_maker, AudienceReach) == []
+
+
+async def test_a_button_pressed_in_private_is_a_visit(session_maker):
+    middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)
+    press = CallbackQuery(id="1", from_user=PERSON, chat_instance="c", message=_message(), data="x")
+
+    await _run(middleware, Update(update_id=1, callback_query=press))
+
+    [touch] = await _rows(session_maker, AudienceTouch)
+    assert (touch.user_id, touch.touchpoint) == (PERSON.id, Touchpoint.MAIN_BOT)
+
+
+@pytest.mark.parametrize("payload", ["a" * 65, "drop table", "привет"])
+async def test_a_payload_that_none_of_our_links_carry_is_not_kept(session_maker, payload):
+    middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)
+
+    await _run(middleware, Update(update_id=1, message=_message(f"/start {payload}")))
+
+    [member] = await _rows(session_maker, AudienceMember)
+    assert member.source is None
+
+
+async def test_a_slow_database_costs_the_record_not_the_answer(session_maker, monkeypatch):
+    import asyncio
+
+    from app.presentation.telegram.middlewares import audience
+
+    monkeypatch.setattr(audience, "RECORD_TIMEOUT", 0.05)
+
+    async def stuck(*_args, **_kwargs):
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr(audience.record, "seen", stuck)
+    middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)
+
+    await asyncio.wait_for(_run(middleware, Update(update_id=1, message=_message())), 1)

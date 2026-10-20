@@ -61,10 +61,13 @@ test('languages past the first few are summed as the rest', () => {
 
 test('the list address carries only the filters that are set', () => {
   const none: AudienceFilters = {};
-  assert.equal(audiencePath(none, 0), '/api/audience?limit=50&offset=0');
+  assert.equal(audiencePath(none, null), '/api/audience?limit=50');
   assert.equal(
-    audiencePath({ touchpoint: 'mini_app', status: 'reachable', q: ' @anna ' }, 50),
-    '/api/audience?touchpoint=mini_app&status=reachable&q=%40anna&limit=50&offset=50',
+    audiencePath(
+      { touchpoint: 'mini_app', status: 'reachable', q: ' @anna ', new_days: 7 },
+      'c1',
+    ),
+    '/api/audience?touchpoint=mini_app&status=reachable&q=%40anna&new_days=7&limit=50&cursor=c1',
   );
 });
 

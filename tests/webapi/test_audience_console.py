@@ -109,8 +109,10 @@ async def test_the_list_is_newest_activity_first_with_each_persons_status(client
         ("q=%40jans", [3]),
         ("q=4", [4]),
         ("q=Тара", [2]),
-        (f"first_seen_after={(NOW - 5 * DAY).isoformat()}", [2, 3, 4]),
-        ("limit=2&offset=2", [3, 4]),
+        ("new_days=7", [2, 3, 4]),
+        # Searched for as typed: % is not a wildcard, and a long number is not an id.
+        ("q=%25", []),
+        (f"q={'9' * 30}", []),
     ],
 )
 async def test_the_list_filters(client, audience, query, expected) -> None:
@@ -132,3 +134,22 @@ async def test_one_persons_card(client, audience) -> None:
 
 async def test_someone_never_seen_has_no_card(client, audience) -> None:
     assert (await client.get("/api/audience/999")).status_code == 404
+
+
+async def test_the_list_pages_by_cursor_without_repeating_anyone(client, audience) -> None:
+    seen: list[int] = []
+    cursor = None
+    for _ in range(3):
+        query = "limit=2" + (f"&cursor={cursor}" if cursor else "")
+        page = (await client.get(f"/api/audience?{query}")).json()
+        seen += [p["user_id"] for p in page["items"]]
+        cursor = page["next"]
+        if cursor is None:
+            break
+
+    assert seen == [1, 2, 3, 4, 5]
+    assert cursor is None
+
+
+async def test_a_cursor_that_names_nothing_is_refused(client, audience) -> None:
+    assert (await client.get("/api/audience?cursor=nonsense")).status_code == 422

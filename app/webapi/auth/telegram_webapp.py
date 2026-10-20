@@ -60,6 +60,9 @@ class WebAppUser:
     query_id: str | None
     start_param: str | None
     raw_user: dict[str, Any]
+    # When Telegram signed this payload, naive UTC: the same for every request
+    # one launch makes, so it names the launch.
+    auth_date: datetime.datetime
 
 
 def verify_init_data(
@@ -135,4 +138,6 @@ def _read_user(fields: dict[str, str]) -> WebAppUser:
         query_id=fields.get("query_id"),
         start_param=fields.get("start_param"),
         raw_user=user,
+        # Checked to be an integer by _check_freshness before this runs.
+        auth_date=datetime.datetime.fromtimestamp(int(fields["auth_date"]), tz=datetime.UTC).replace(tzinfo=None),
     )

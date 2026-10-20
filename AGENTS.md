@@ -51,7 +51,9 @@ no interface layer without a real second implementation.
 ## Security
 
 - The admin/public boundary in the web API is a security boundary. Public
-  endpoints are intentionally read-only and must not leak admin fields.
+  endpoints are intentionally read-only and must not leak admin fields. The
+  exceptions write only for the caller Telegram signed, and are listed in
+  `docs/invariants.md` under «Mini App».
 - Admin mutations require authenticated admin sessions. No bypass paths for
   convenience.
 - Make dangerous things unreachable by construction rather than guarded by a

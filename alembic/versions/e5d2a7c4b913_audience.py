@@ -53,7 +53,9 @@ def upgrade() -> None:
         sa.Column("bot", sa.String(length=16), nullable=False),
         sa.Column("started_at", sa.DateTime(), nullable=True),
         sa.Column("blocked_at", sa.DateTime(), nullable=True),
+        sa.Column("known_at", sa.DateTime(), nullable=False),
         sa.CheckConstraint("bot IN ('main_bot', 'contact_bot')", name="ck_audience_reach_bot"),
+        sa.ForeignKeyConstraint(["user_id"], ["audience_members.user_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "bot"),
     )
 

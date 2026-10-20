@@ -802,15 +802,18 @@ class AudienceReach(Base):
 
     A bot may write to whoever has opened a chat with it (``started_at``) and
     has not blocked it since (``blocked_at``). Telegram reports a block as a
-    membership change of the private chat, or as a 403 on the next send. Not
-    tied to ``audience_members``: a 403 can arrive for someone whose first
-    visit predates this table.
+    membership change of the private chat, or as a 403 on the next send.
+    ``known_at`` is the time of the latest event that set this state: events
+    arrive late and are replayed, and one older than that changes nothing.
     """
 
     __tablename__ = "audience_reach"
     __table_args__ = (sa.CheckConstraint("bot IN ('main_bot', 'contact_bot')", name="ck_audience_reach_bot"),)
 
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audience_members.user_id", ondelete="CASCADE"), primary_key=True
+    )
     bot: Mapped[str] = mapped_column(String(16), primary_key=True)
     started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     blocked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    known_at: Mapped[datetime.datetime] = mapped_column(DateTime)

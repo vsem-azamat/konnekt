@@ -51,6 +51,8 @@ export interface AudienceMember {
 export interface AudiencePage {
   total: number;
   items: AudienceMember[];
+  /** The cursor for the next page; null on the last. */
+  next: string | null;
 }
 
 export interface AudienceReach {
@@ -71,7 +73,8 @@ export interface AudienceFilters {
   touchpoint?: Touchpoint;
   status?: AudienceStatus;
   q?: string;
-  first_seen_after?: string;
+  /** Only people first seen within this many days: the summary's window. */
+  new_days?: number;
 }
 
 /** The statuses that have anyone in them, in the bar's order. */
@@ -103,15 +106,15 @@ export function topLanguages(
   };
 }
 
-export function audiencePath(filters: AudienceFilters, offset: number): string {
+export function audiencePath(filters: AudienceFilters, cursor: string | null): string {
   const params = new URLSearchParams();
   if (filters.touchpoint) params.set('touchpoint', filters.touchpoint);
   if (filters.status) params.set('status', filters.status);
   const q = filters.q?.trim();
   if (q) params.set('q', q);
-  if (filters.first_seen_after) params.set('first_seen_after', filters.first_seen_after);
+  if (filters.new_days) params.set('new_days', String(filters.new_days));
   params.set('limit', String(PAGE_SIZE));
-  params.set('offset', String(offset));
+  if (cursor) params.set('cursor', cursor);
   return `/api/audience?${params.toString()}`;
 }
 

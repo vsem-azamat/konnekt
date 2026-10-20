@@ -168,13 +168,10 @@ export const audienceSummaryQuery = {
 /** The audience list, a page at a time, newest activity first. */
 export const audiencePeopleQuery = (filters: AudienceFilters) => ({
   queryKey: ['console', 'audience', 'people', filters] as const,
-  queryFn: ({ signal, pageParam }: { signal: AbortSignal; pageParam: number }) =>
+  queryFn: ({ signal, pageParam }: { signal: AbortSignal; pageParam: string | null }) =>
     consoleGet<AudiencePage>(audiencePath(filters, pageParam), { signal }),
-  initialPageParam: 0,
-  getNextPageParam: (last: AudiencePage, pages: AudiencePage[]) => {
-    const seen = pages.reduce((sum, page) => sum + page.items.length, 0);
-    return seen < last.total ? seen : undefined;
-  },
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: AudiencePage) => last.next ?? undefined,
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 });

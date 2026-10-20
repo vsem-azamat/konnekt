@@ -427,6 +427,8 @@ class AudienceMemberRead(BaseModel):
 class AudiencePage(BaseModel):
     total: int
     items: list[AudienceMemberRead]
+    # Pass as `cursor` for the next page; None on the last one.
+    next: str | None
 
 
 class AudienceTouchRead(BaseModel):

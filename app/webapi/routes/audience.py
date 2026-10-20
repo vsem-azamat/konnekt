@@ -5,7 +5,6 @@ Read only. Nothing here writes to anyone: announcements do not exist yet.
 
 from __future__ import annotations
 
-import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -32,23 +31,24 @@ async def audience_page(
     status: AudienceStatus | None = None,
     language: Annotated[str | None, Query(max_length=16)] = None,
     q: Annotated[str | None, Query(max_length=64)] = None,
-    first_seen_after: datetime.datetime | None = None,
+    new_days: Annotated[int | None, Query(ge=1, le=365)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    cursor: Annotated[str | None, Query(max_length=64)] = None,
 ) -> AudiencePage:
-    if first_seen_after is not None and first_seen_after.tzinfo is not None:
-        # Stored naive, in UTC.
-        first_seen_after = first_seen_after.astimezone(datetime.UTC).replace(tzinfo=None)
+    after = views.parse_cursor(cursor) if cursor else None
+    if cursor and after is None:
+        raise HTTPException(status_code=422, detail="bad_cursor")
     return AudiencePage.model_validate(
         await views.page(
             session,
+            now=utc_now(),
             touchpoint=touchpoint,
             status=status,
             language=language,
             query=q,
-            first_seen_after=first_seen_after,
+            new_days=new_days,
             limit=limit,
-            offset=offset,
+            after=after,
         )
     )
 

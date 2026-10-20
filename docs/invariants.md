@@ -75,6 +75,19 @@ super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram
 signed rather than any id the payload volunteers elsewhere.
 
+**Two public endpoints write, and only about the caller.** The join check and
+`/api/public/seen` take a signed `initData` and act on the id Telegram signed,
+never on one the body names. `/seen` is idempotent: the visit is dated by
+`auth_date`, which names one launch, so a payload sent again counts once; and
+it writes a person at most once per half minute. A new public endpoint that
+writes joins this list or is not public.
+
+**The audience holds what Telegram tells us, never what people wrote.** Names,
+username, language and when somebody came, per bot and the Mini App; no
+message text, and no ids or names in the logs. Being in a moderated group is
+not being in the audience: a bot cannot write to someone who never opened a
+chat with it.
+
 **A join check belongs to one applicant, and that binding is stored.** Holding
 the query id is not the same as being the person it was issued to. Carrying the
 applicant in the Mini App's URL would let anyone with the link pass the check

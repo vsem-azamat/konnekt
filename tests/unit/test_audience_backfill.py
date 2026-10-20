@@ -37,9 +37,7 @@ async def test_everyone_who_wrote_to_the_contact_bot(session_maker):
         db.add(topic)
         await db.commit()
 
-    async with session_maker() as db:
-        assert await backfill.from_contact_desk(db) == 1
-        await db.commit()
+    assert await backfill.from_contact_desk(session_maker) == 1
 
     assert await _touches(session_maker) == {(21, Touchpoint.CONTACT_BOT)}
     async with session_maker() as db:
@@ -50,7 +48,7 @@ async def test_everyone_who_wrote_to_the_contact_bot(session_maker):
 
 
 async def test_catalog_users_with_their_reach_and_opt_out(session_maker):
-    reachable = CatalogUser(
+    olena_row = CatalogUser(
         tg_id=31,
         username="olena",
         first_name="Olena",
@@ -59,11 +57,9 @@ async def test_catalog_users_with_their_reach_and_opt_out(session_maker):
         created_at=T0.replace(tzinfo=UTC),
         last_seen_at=T1.replace(tzinfo=UTC),
         bot_started_at=T0.replace(tzinfo=UTC),
-        bot_can_message=True,
         unsubscribed_at=None,
-        updated_at=T1.replace(tzinfo=UTC),
     )
-    blocked = CatalogUser(
+    petr_row = CatalogUser(
         tg_id=32,
         username=None,
         first_name="Petr",
@@ -71,26 +67,25 @@ async def test_catalog_users_with_their_reach_and_opt_out(session_maker):
         source=None,
         created_at=T0.replace(tzinfo=UTC),
         last_seen_at=None,
-        bot_started_at=T0.replace(tzinfo=UTC),
-        bot_can_message=False,
+        bot_started_at=None,
         unsubscribed_at=T1.replace(tzinfo=UTC),
-        updated_at=T1.replace(tzinfo=UTC),
     )
 
-    async with session_maker() as db:
-        assert await backfill.from_catalog(db, [reachable, blocked]) == 2
-        await db.commit()
+    assert await backfill.from_catalog(session_maker, [olena_row, petr_row]) == 2
 
-    assert await _touches(session_maker) == {(31, Touchpoint.MINI_APP), (32, Touchpoint.MINI_APP)}
+    assert await _touches(session_maker) == {
+        (31, Touchpoint.MINI_APP),
+        # The catalog's bot_started_at came from the retired bots' Mini App.
+        (31, Touchpoint.MOVED_BOT),
+        (32, Touchpoint.MINI_APP),
+    }
     async with session_maker() as db:
         olena = await db.get(AudienceMember, 31)
         petr = await db.get(AudienceMember, 32)
-        olena_reach = await db.get(AudienceReach, (31, Touchpoint.MAIN_BOT))
-        petr_reach = await db.get(AudienceReach, (32, Touchpoint.MAIN_BOT))
+        reach = list(await db.scalars(select(AudienceReach)))
     assert (olena.username, olena.source, olena.first_seen_at, olena.last_seen_at) == ("olena", "matfyz", T0, T1)
-    assert (olena_reach.started_at, olena_reach.blocked_at) == (T0, None)
-    # Telegram refused a send: the catalog only knows when the row last changed.
-    assert petr_reach.blocked_at == T1
+    # Neither says anything about the main bot.
+    assert reach == []
     assert petr.opted_out_at == T1
     assert petr.last_seen_at == T0
 
@@ -113,9 +108,7 @@ async def test_a_private_contact_with_the_main_bot_is_estimated_and_labelled(ses
         db.add(ModerationEvent(action="ban", source="command", actor_id=1, target_user_id=45, chat_id=-100777))
         await db.commit()
 
-    async with session_maker() as db:
-        assert await backfill.from_bot_users(db) == 1
-        await db.commit()
+    assert await backfill.from_bot_users(session_maker) == 1
 
     assert await _touches(session_maker) == {(41, Touchpoint.MAIN_BOT)}
     async with session_maker() as db:
@@ -132,10 +125,42 @@ async def test_running_it_twice_adds_nothing(session_maker):
         await db.commit()
 
     for _ in range(2):
-        async with session_maker() as db:
-            await backfill.from_contact_desk(db)
-            await db.commit()
+        await backfill.from_contact_desk(session_maker)
 
     async with session_maker() as db:
         touch = await db.get(AudienceTouch, (21, Touchpoint.CONTACT_BOT))
     assert touch.count == 1
+
+
+async def test_the_estimate_never_touches_someone_already_known(session_maker):
+    from app.audience import record
+    from app.audience.record import Person
+
+    async with session_maker() as db:
+        db.add(User(id=41, first_name="Known"))
+        await record.seen(db, Person(id=41, first_name="Known"), Touchpoint.MINI_APP, at=T1)
+        await db.commit()
+
+    assert await backfill.from_bot_users(session_maker) == 0
+
+    async with session_maker() as db:
+        member = await db.get(AudienceMember, 41)
+    assert (member.source, member.first_seen_at) == (None, T1)
+
+
+async def test_live_profile_survives_the_backfill(session_maker):
+    from app.audience import record
+    from app.audience.record import Person
+
+    async with session_maker() as db:
+        await record.seen(
+            db, Person(id=21, first_name="Live", language_code="uk", is_premium=True), Touchpoint.MAIN_BOT, at=T0
+        )
+        db.add(AdsTopic(group_id=-100555, user_id=21, thread_id=7))
+        await db.commit()
+
+    await backfill.from_contact_desk(session_maker)
+
+    async with session_maker() as db:
+        member = await db.get(AudienceMember, 21)
+    assert (member.first_name, member.language_code, member.is_premium) == ("Live", "uk", True)

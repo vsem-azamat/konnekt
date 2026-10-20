@@ -5,19 +5,24 @@
 Three sources, each only as good as what it kept:
 
 - ``ads_topics``: everybody who ever wrote to the contact bot, since its start.
-- the catalog's ``users``: everybody who opened the Mini App, with whether
-  the main bot may write to them and whether they opted out. Read only, in a
-  read-only transaction; skipped without ``--catalog-dsn``.
+- the catalog's ``users``: everybody who opened the Mini App, and whether
+  they opted out. Read only, in a read-only transaction; skipped without
+  ``--catalog-dsn``. Its ``bot_started_at`` was set by the retired bots'
+  Mini App, so it is a visit to a retired bot, not leave for the main bot to
+  write. Its ``bot_can_message`` is not taken: the only time it carries is
+  when the row last changed for any reason, too unreliable to order a block by.
 - the bot's ``users``, as an estimate. It holds group members as well as
   people who wrote to the bot in private, and never told the two apart. Who
-  left no trace in a group (no recorded message, ad ping or moderation) is
-  taken for a private contact and labelled ``ESTIMATE`` as their source; the
-  bot is not marked as able to write to them until they write again. Group
-  messages are kept 180 days, so someone who only wrote in a group before
-  that is among the estimate.
+  left no trace in a group (no recorded message, ad ping or moderation) and
+  is not in the audience already is taken for a private contact and labelled
+  ``ESTIMATE`` as their source; the bot is not marked as able to write to
+  them until they write again. Group messages are kept 180 days, so someone
+  who only wrote in a group before that is among the estimate.
 
-Replayed events never pull a last-seen time back or add to a visit count,
-so the order against live traffic does not matter.
+Committed every `BATCH` people, so live traffic writing the same rows never
+waits on the whole run. Replayed events never pull a time back, add to a
+visit count or overrule a newer block, so the order against live traffic
+does not matter.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ import argparse
 import asyncio
 import datetime
 from dataclasses import dataclass
+from itertools import batched
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select, text
@@ -35,21 +41,22 @@ from app.audience import record
 from app.audience.record import Person
 from app.core.enums import Touchpoint
 from app.core.logging import get_logger
-from app.db.models import AdsTopic, Message, ModerationEvent, SpamPing, User
+from app.db.models import AdsTopic, AudienceMember, Message, ModerationEvent, SpamPing, User
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = get_logger("audience.backfill")
 
 ESTIMATE = "backfill:dm_estimate"
+BATCH = 200
 
 
 @dataclass(frozen=True)
 class CatalogUser:
-    """The columns of the catalog's ``users`` that say who someone is and whether we may write."""
+    """The columns of the catalog's ``users`` that say who someone is and how they came."""
 
     tg_id: int
     username: str | None
@@ -59,61 +66,72 @@ class CatalogUser:
     created_at: datetime.datetime
     last_seen_at: datetime.datetime | None
     bot_started_at: datetime.datetime | None
-    bot_can_message: bool
     unsubscribed_at: datetime.datetime | None
-    updated_at: datetime.datetime
 
 
-async def from_contact_desk(db: AsyncSession) -> int:
-    topics = list(await db.scalars(select(AdsTopic)))
-    for topic in topics:
-        await record.seen(
-            db,
-            Person(id=topic.user_id),
-            Touchpoint.CONTACT_BOT,
-            at=topic.created_at,
-            started=Touchpoint.CONTACT_BOT,
-            replay=True,
-        )
-    return len({topic.user_id for topic in topics})
+async def from_contact_desk(session_maker: async_sessionmaker[AsyncSession]) -> int:
+    async with session_maker() as db:
+        topics = list(await db.execute(select(AdsTopic.user_id, AdsTopic.created_at)))
+    for chunk in batched(topics, BATCH):
+        async with session_maker() as db:
+            for user_id, created_at in chunk:
+                await record.seen(
+                    db,
+                    Person(id=user_id, partial=True),
+                    Touchpoint.CONTACT_BOT,
+                    at=created_at,
+                    started=Touchpoint.CONTACT_BOT,
+                    replay=True,
+                )
+            await db.commit()
+    return len({user_id for user_id, _ in topics})
 
 
-async def from_catalog(db: AsyncSession, users: Iterable[CatalogUser]) -> int:
+async def from_catalog(session_maker: async_sessionmaker[AsyncSession], users: Iterable[CatalogUser]) -> int:
     count = 0
-    for user in users:
-        person = Person(id=user.tg_id, username=user.username, first_name=user.first_name, last_name=user.last_name)
-        first = _naive(user.created_at)
-        await record.seen(db, person, Touchpoint.MINI_APP, at=first, source=user.source, replay=True)
-        if user.last_seen_at is not None:
-            await record.seen(db, person, Touchpoint.MINI_APP, at=_naive(user.last_seen_at), replay=True)
-        if user.bot_started_at is not None:
-            await record.started(db, user.tg_id, Touchpoint.MAIN_BOT, at=_naive(user.bot_started_at))
-        if not user.bot_can_message:
-            await record.blocked(db, user.tg_id, Touchpoint.MAIN_BOT, at=_naive(user.updated_at))
-        if user.unsubscribed_at is not None:
-            await record.opted_out(db, user.tg_id, at=_naive(user.unsubscribed_at))
-        count += 1
+    for chunk in batched(users, BATCH):
+        async with session_maker() as db:
+            for user in chunk:
+                await _catalog_user(db, user)
+            await db.commit()
+        count += len(chunk)
     return count
 
 
-async def from_bot_users(db: AsyncSession) -> int:
-    in_groups = select(Message.user_id).where(Message.chat_id < 0)
-    pinged = select(SpamPing.user_id)
-    moderated = select(ModerationEvent.target_user_id)
-    users = list(
-        await db.scalars(
-            select(User).where(
-                User.id > 0,
-                User.blocked.is_(False),
-                User.id.not_in(in_groups),
-                User.id.not_in(pinged),
-                User.id.not_in(moderated),
+async def _catalog_user(db: AsyncSession, user: CatalogUser) -> None:
+    person = Person(
+        id=user.tg_id, username=user.username, first_name=user.first_name, last_name=user.last_name, partial=True
+    )
+    await record.seen(db, person, Touchpoint.MINI_APP, at=_naive(user.created_at), source=user.source, replay=True)
+    if user.last_seen_at is not None:
+        await record.seen(db, person, Touchpoint.MINI_APP, at=_naive(user.last_seen_at), replay=True)
+    if user.bot_started_at is not None:
+        await record.seen(db, person, Touchpoint.MOVED_BOT, at=_naive(user.bot_started_at), replay=True)
+    if user.unsubscribed_at is not None:
+        await record.opted_out(db, user.tg_id, at=_naive(user.unsubscribed_at))
+
+
+async def from_bot_users(session_maker: async_sessionmaker[AsyncSession]) -> int:
+    async with session_maker() as db:
+        users = list(
+            await db.execute(
+                select(User.id, User.username, User.first_name, User.last_name, User.created_at).where(
+                    User.id > 0,
+                    User.blocked.is_(False),
+                    User.id.not_in(select(Message.user_id).where(Message.chat_id < 0)),
+                    User.id.not_in(select(SpamPing.user_id)),
+                    User.id.not_in(select(ModerationEvent.target_user_id)),
+                    # An estimate never moves what is known about somebody already here.
+                    User.id.not_in(select(AudienceMember.user_id)),
+                )
             )
         )
-    )
-    for user in users:
-        person = Person(id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
-        await record.seen(db, person, Touchpoint.MAIN_BOT, at=user.created_at, source=ESTIMATE, replay=True)
+    for chunk in batched(users, BATCH):
+        async with session_maker() as db:
+            for user_id, username, first_name, last_name, created_at in chunk:
+                person = Person(id=user_id, username=username, first_name=first_name, last_name=last_name, partial=True)
+                await record.seen(db, person, Touchpoint.MAIN_BOT, at=created_at, source=ESTIMATE, replay=True)
+            await db.commit()
     return len(users)
 
 
@@ -125,7 +143,7 @@ async def read_catalog(dsn: str) -> list[CatalogUser]:
             rows = await conn.execute(
                 text(
                     "SELECT tg_id, tg_username, first_name, last_name, source, created_at, last_seen_at,"
-                    " bot_started_at, bot_can_message, unsubscribed_at, updated_at FROM users"
+                    " bot_started_at, unsubscribed_at FROM users"
                 )
             )
             return [CatalogUser(*row) for row in rows]
@@ -144,11 +162,10 @@ async def main(catalog_dsn: str | None) -> None:
     from app.db.session import get_session_maker
 
     session_maker = get_session_maker()
-    async with session_maker() as db:
-        desk = await from_contact_desk(db)
-        catalog = await from_catalog(db, await read_catalog(catalog_dsn)) if catalog_dsn else 0
-        estimated = await from_bot_users(db)
-        await db.commit()
+    desk = await from_contact_desk(session_maker)
+    catalog = await from_catalog(session_maker, await read_catalog(catalog_dsn)) if catalog_dsn else 0
+    # Last, so whoever the other sources know is no longer an estimate.
+    estimated = await from_bot_users(session_maker)
     # Counts only: never who.
     logger.info("audience_backfilled", contact_bot=desk, mini_app=catalog, main_bot_estimate=estimated)
 

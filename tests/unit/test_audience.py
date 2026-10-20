@@ -158,3 +158,52 @@ async def test_a_replayed_older_visit_does_not_lift_a_newer_block(session_maker)
 
     reach = await _reach(session_maker, Touchpoint.MAIN_BOT)
     assert (reach.started_at, reach.blocked_at) == (T0, T1)
+
+
+async def test_block_and_unblock_apply_in_the_order_they_happened(session_maker):
+    later = T1 + datetime.timedelta(days=1)
+    async with session_maker() as db:
+        await record.blocked(db, ANNA.id, Touchpoint.MAIN_BOT, at=T1)
+        await record.started(db, ANNA.id, Touchpoint.MAIN_BOT, at=later)
+        # An older block, delivered late or replayed, does not undo the unblock.
+        await record.blocked(db, ANNA.id, Touchpoint.MAIN_BOT, at=T0)
+        await db.commit()
+
+    reach = await _reach(session_maker, Touchpoint.MAIN_BOT)
+    assert (reach.blocked_at, reach.known_at) == (None, later)
+
+
+async def test_an_unblock_is_not_a_visit(session_maker):
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=T0)
+        await record.started(db, ANNA.id, Touchpoint.MAIN_BOT, at=T1)
+        await db.commit()
+
+    assert (await _member(session_maker)).last_seen_at == T0
+    assert (await _touches(session_maker))[Touchpoint.MAIN_BOT].count == 1
+
+
+async def test_the_same_visit_delivered_twice_counts_once(session_maker):
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MINI_APP, at=T0)
+        await record.seen(db, ANNA, Touchpoint.MINI_APP, at=T0)
+        await db.commit()
+
+    assert (await _touches(session_maker))[Touchpoint.MINI_APP].count == 1
+
+
+async def test_what_a_source_does_not_know_never_erases_the_profile(session_maker):
+    bare = Person(id=ANNA.id, partial=True)
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=T0)
+        await record.seen(db, bare, Touchpoint.MINI_APP, at=T1, replay=True)
+        await db.commit()
+
+    member = await _member(session_maker)
+    assert (member.username, member.first_name, member.language_code, member.is_premium) == (
+        "anna_n",
+        "Anna",
+        "ru",
+        True,
+    )
+    assert member.last_seen_at == T1

@@ -32,8 +32,6 @@ import { personName, utc } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { initials } from '@/lib/chats';
 
-const WEEK = 7 * 24 * 3600 * 1000;
-
 /** Everybody in the audience, newest activity first, filtered by where they came and whether the bot may write. */
 export default function ConsoleAudiencePeoplePage() {
   return (
@@ -56,15 +54,11 @@ function People() {
   const touchpoint = TOUCHPOINTS.find((key) => key === params.get('touchpoint'));
   const status = STATUSES.find((key) => key === params.get('status'));
   const newThisWeek = params.get('new') === 'week';
-  // Rounded to the hour, so the query key stays the same while the screen is open.
-  const [weekAgo] = useState(() =>
-    new Date(Math.floor((Date.now() - WEEK) / 3_600_000) * 3_600_000).toISOString(),
-  );
   const filters: AudienceFilters = {
     touchpoint,
     status,
     q: params.get('q') ?? undefined,
-    first_seen_after: newThisWeek ? weekAgo : undefined,
+    new_days: newThisWeek ? 7 : undefined,
   };
   const {
     data,
