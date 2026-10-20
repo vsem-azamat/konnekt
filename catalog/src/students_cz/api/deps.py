@@ -1,4 +1,6 @@
+import hmac
 import logging
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Path, Query, Request, status
@@ -108,17 +110,126 @@ def is_operator(user: User, settings: Settings) -> bool:
     return user.tg_id in settings.admin_tg_ids
 
 
-async def current_admin(user: UserDep, settings: SettingsDep) -> User:
+@dataclass(frozen=True)
+class Operator:
+    """One of the console's operators, and the language the console reads in."""
+
+    tg_id: int
+    lang: UiLang
+
+
+# The console's server, asking for an operator it signed in: a browser has no
+# initData. Hidden from the schema, because no client of the contract sends
+# them; the Mini App's proxy strips them from what a browser sends.
+ServiceHeader = Annotated[
+    str | None, Header(alias="X-Catalog-Service", include_in_schema=False)
+]
+OperatorHeader = Annotated[
+    str | None, Header(alias="X-Catalog-Operator", include_in_schema=False)
+]
+LangHeader = Annotated[
+    str | None, Header(alias="X-Catalog-Lang", include_in_schema=False)
+]
+
+
+# A Telegram id in digits: 20 is more than any has and fewer than `int()`
+# refuses, so a long header is a refusal, not a 500.
+_MAX_ID_DIGITS = 20
+
+
+def _service_operator(
+    request: Request,
+    settings: Settings,
+    token: str,
+    operator: str | None,
+    lang: str | None,
+) -> Operator:
+    """Who the console's server asks for, if it showed the token.
+
+    The token says the call comes from webapi; the operator still has to be on
+    `ADMIN_TG_IDS`, because who is an operator is this service's rule. See
+    docs/architecture.md, «The operator reads the catalog and runs the partner
+    cards».
+    """
+    expected = settings.service_token.get_secret_value()
+    # Unset is off: an empty header must never match an empty setting.
+    if not expected or not hmac.compare_digest(token.encode(), expected.encode()):
+        log.info("service_call_rejected: token")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "service call rejected")
+    if (
+        not operator
+        or len(operator) > _MAX_ID_DIGITS
+        or not (operator.isascii() and operator.isdigit())
+        or int(operator) < 1
+    ):
+        log.info("service_call_rejected: operator")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "service call rejected")
+    tg_id = int(operator)
+    if tg_id not in settings.admin_tg_ids:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not an operator")
+    try:
+        ui_lang = UiLang(lang) if lang else UiLang(settings.default_ui_lang)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown language"
+        ) from exc
+    # What was done, and as whom: the console's server acts for an operator,
+    # and this is the catalog's own record of it.
+    log.info("service_call operator=%s %s %s", tg_id, request.method, request.url.path)
+    return Operator(tg_id=tg_id, lang=ui_lang)
+
+
+async def current_operator(
+    request: Request,
+    settings: SettingsDep,
+    session: SessionDep,
+    service: ServiceHeader = None,
+    operator: OperatorHeader = None,
+    lang: LangHeader = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> Operator:
     """The caller, if they are one of the console's operators; 403 otherwise.
 
-    See docs/architecture.md, «The operator reads the catalog and runs the partner cards».
+    Inside Telegram by initData, like anybody else; from a browser through
+    webapi, which shows the service token. A call that shows a token is judged
+    by it alone and never falls back to initData.
     """
+    if service is not None:
+        return _service_operator(request, settings, service, operator, lang)
+    user = await current_user(
+        await current_identity(settings, authorization), session, settings
+    )
     if not is_operator(user, settings):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not an operator")
-    return user
+    return Operator(tg_id=user.tg_id, lang=user.ui_lang)
 
 
-AdminDep = Annotated[User, Depends(current_admin)]
+OperatorDep = Annotated[Operator, Depends(current_operator)]
+
+
+async def reader_lang(
+    request: Request,
+    settings: SettingsDep,
+    session: SessionDep,
+    service: ServiceHeader = None,
+    operator: OperatorHeader = None,
+    lang: LangHeader = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> UiLang:
+    """The language of a read anybody may make, the console's server included.
+
+    For reference data the console shows next to its own (the universities on
+    a chat's page). Anybody else is registered on first sight, as `UserDep` does.
+    """
+    if service is not None:
+        return _service_operator(request, settings, service, operator, lang).lang
+    user = await current_user(
+        await current_identity(settings, authorization), session, settings
+    )
+    return user.ui_lang
+
+
+ReaderLangDep = Annotated[UiLang, Depends(reader_lang)]
 
 
 async def current_notifier(http: Request, settings: SettingsDep) -> Notifier:

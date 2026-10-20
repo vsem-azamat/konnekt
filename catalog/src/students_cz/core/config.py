@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # supervisor's ADMIN_SUPER_ADMINS. See docs/architecture.md. NoDecode: the
     # deploy writes "1,2", which is not the JSON list pydantic would expect.
     admin_tg_ids: Annotated[list[int], NoDecode] = Field(default_factory=list)
+    # What supervisor's webapi shows when it asks for an operator it signed in
+    # (the console in a browser has no initData). Shared by the two containers
+    # alone, never sent by a browser. Unset turns that way in off. See
+    # docs/architecture.md.
+    service_token: SecretStr = SecretStr("")
     # Who a business writes to about advertising: a Telegram username. Unset
     # means the ads page offers no contact. See docs/architecture.md.
     ads_contact: str | None = None
@@ -113,6 +118,22 @@ class Settings(BaseSettings):
         if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{3,31}", username):
             raise ValueError("ADS_CONTACT must be a Telegram username, without a link")
         return username
+
+    @field_validator("service_token", mode="before")
+    @classmethod
+    def _strong_or_off(cls, value: object) -> object:
+        """Spaces around it dropped, blank is off, and a short one refuses to start.
+
+        A token pasted with a newline would otherwise never match, and a short
+        one is a guess away from acting as an operator.
+        """
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str):
+            return value
+        raw = raw.strip()
+        if raw and len(raw) < 32:
+            raise ValueError("SERVICE_TOKEN must be at least 32 characters, or unset")
+        return SecretStr(raw)
 
     @field_validator("admin_tg_ids", mode="before")
     @classmethod

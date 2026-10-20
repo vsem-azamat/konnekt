@@ -148,6 +148,9 @@ services:
       WEBAPI_ADMIN_URL:
       WEBAPI_OIDC_CLIENT_ID:
       WEBAPI_OIDC_CLIENT_SECRET:
+      # How the console in a browser reads the catalog's screens: the catalog's
+      # SERVICE_TOKEN, shared by these two containers alone.
+      WEBAPI_CATALOG_SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
     volumes:
       - bot-logs:/app/logs
     healthcheck:
@@ -285,6 +288,10 @@ services:
       # Empty means nobody is told when a profile or a request appears.
       OWNER_TG_ID: ${CATALOG_OWNER_TG_ID:-}
       ADS_CONTACT: ${CATALOG_ADS_CONTACT:-}
+      # What webapi shows when it asks for the operator it signed in, the
+      # console in a browser having no initData. Empty turns that off. See
+      # catalog/docs/architecture.md.
+      SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
       # Never true here. It would let anyone claim to be anyone.
       ALLOW_UNSIGNED_INIT_DATA: "false"
       LOG_LEVEL: INFO

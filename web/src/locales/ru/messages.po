@@ -2027,6 +2027,7 @@ msgstr "за занятие"
 msgid "страховка, виза, банк, переводы"
 msgstr "страховка, виза, банк, переводы"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Partners.tsx
 #: src/console/pages/Summary.tsx
 msgid "Партнёры"
@@ -2366,6 +2367,7 @@ msgstr "Новые по неделям"
 msgid "Подтверждение"
 msgstr "Подтверждение"
 
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Summary.tsx
 msgid "Каталог"

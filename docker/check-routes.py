@@ -5,8 +5,8 @@ stdin), walks the routes the way Caddy picks them, and checks where a sample
 path of each kind lands. By behaviour rather than by matcher shape: a path
 sent to the wrong place comes back 404 or as the wrong app, and nothing else
 in CI would notice. The same goes for a route that falls back to the page
-where it must not, or the other way round, and for a cookie leaving for the
-catalog.
+where it must not, or the other way round, for a cookie leaving for the
+catalog, and for a browser's X-Catalog-* headers reaching it.
 
 The Caddyfile serves two hosts: the Mini App's, which answers anything, and
 the console's, named by ADMIN_HOST, which answers only the console and its API.
@@ -51,6 +51,8 @@ def console() -> dict[str, str]:
         "/api/auth/telegram/login": WEBAPI,
         "/api/auth/me": WEBAPI,
         "/api/stats/home": WEBAPI,
+        # The catalog's screens, asked of the catalog by webapi for this host's session.
+        "/api/catalog/admin/catalog": WEBAPI,
         # Not this host's: the catalog's API, the public half, the catalog's health.
         "/api/v1/me": "404",
         "/api/public/catalog": "404",
@@ -79,6 +81,10 @@ def mini_app() -> dict[str, str]:
         # The browser's sign-in is the console host's: here the client address is Cloudflare's.
         "/api/auth/telegram/login": "404",
         "/api/auth/telegram/callback": "404",
+        # So are the catalog's screens through webapi: only a session of the
+        # console's own host may ask for them.
+        "/api/catalog/admin/catalog": "404",
+        "/api/catalog/taxonomy/institutions": "404",
         # The console is the app's now; the old console's addresses lead there.
         "/console": APP,
         "/console/chats/-100123": APP,
@@ -178,6 +184,38 @@ def falls_back(route: dict) -> bool:
     ) or any(h.get("handler") == "rewrite" and h.get("uri") == "/index.html" for h in handlers(route))
 
 
+# What only the console's server may tell the catalog: it signs an operator in
+# with them over the containers' own network. From a browser they are a guess
+# at the token, and the catalog must never see one.
+SERVICE_HEADERS = ("X-Catalog-Service", "X-Catalog-Operator", "X-Catalog-Lang")
+
+
+def service_headers_kept(proxy: dict) -> list[str]:
+    """The service headers a proxy would pass on from the client."""
+    deleted = proxy.get("headers", {}).get("request", {}).get("delete", [])
+    return [name for name in SERVICE_HEADERS if name not in deleted]
+
+
+def catalog_proxies(node: object) -> list[dict]:
+    """Every reverse_proxy in the config that dials the catalog, wherever it sits.
+
+    Not only the ones a sample path reaches: a second route to the catalog,
+    on any host, must strip the same headers.
+    """
+    found: list[dict] = []
+    if isinstance(node, dict):
+        if node.get("handler") == "reverse_proxy" and any(
+            u.get("dial") == CATALOG for u in node.get("upstreams", [])
+        ):
+            found.append(node)
+        for value in node.values():
+            found.extend(catalog_proxies(value))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(catalog_proxies(item))
+    return found
+
+
 def cookie_free(proxy: dict) -> bool:
     """Whether a proxy drops cookies in both directions."""
     headers = proxy.get("headers", {})
@@ -213,6 +251,8 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
         # The console's session is valid on this whole origin, and the
         # catalog authenticates by initData alone: not its to receive.
         out.append("is proxied with cookies")
+    if expected == CATALOG and (kept := service_headers_kept(proxy)):
+        out.append(f"passes on {', '.join(kept)} from the client")
     if not proxy and falls_back(route) != (path in FALLS_BACK):
         out.append("falls back to the page" if falls_back(route) else "does not fall back to the page")
     return out
@@ -221,6 +261,18 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
 def main() -> int:
     config = json.load(sys.stdin)
     failed = False
+    proxies = catalog_proxies(config)
+    if not proxies:
+        print("no proxy to the catalog found: the walk is looking in the wrong place")
+        failed = True
+    for index, proxy in enumerate(proxies, start=1):
+        kept = service_headers_kept(proxy)
+        if kept:
+            print(f"catalog proxy #{index} passes on {', '.join(kept)} from the client")
+            failed = True
+        if not cookie_free(proxy):
+            print(f"catalog proxy #{index} is proxied with cookies")
+            failed = True
     for host, samples in expectations().items():
         label = host or "mini app"
         # `handle` blocks share a group and exactly one of them runs: the

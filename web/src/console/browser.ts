@@ -6,6 +6,8 @@
  * what that decision needs and nothing that draws.
  */
 
+import { SessionEndedError } from '../lib/sessionEnded.ts';
+
 import { ConsoleError } from './session.ts';
 
 /** What webapi's callback sends back as `?error=`; anything else is not ours to show. */
@@ -18,14 +20,17 @@ export function loginProblem(search: string): LoginProblem | null {
 
 /**
  * The screens a browser reaches, below `/console`; `''` is the summary. The
- * catalog's and the partners' are absent on purpose: they ask the catalog API,
- * which takes a Telegram signature and nothing else (#293).
+ * catalog's and the partners' are asked of webapi, which asks the catalog for
+ * the signed-in super admin (#293, catalogDoor.ts).
  */
 export const BROWSER_PATHS = [
   '',
   'audience',
   'audience/people',
   'audience/:id',
+  'catalog',
+  'partners',
+  'partners/new',
   'chats',
   'chats/:id',
   'spam',
@@ -35,17 +40,15 @@ export const BROWSER_PATHS = [
 
 export type BrowserPath = (typeof BROWSER_PATHS)[number];
 
-/** Whether the catalog's API can be asked: not from a browser. */
-export function catalogReachable(inBrowser: boolean): boolean {
-  return !inBrowser;
-}
-
 /**
  * Whether a failure means the session is gone, so the way on is signing in.
  * A request that merely failed is not that.
  */
 export function endsSession(error: unknown): boolean {
-  return error instanceof ConsoleError && error.reason === 'stale';
+  return (
+    (error instanceof ConsoleError && error.reason === 'stale') ||
+    error instanceof SessionEndedError
+  );
 }
 
 /**

@@ -216,10 +216,33 @@ class WebApiSettings(Settings):
         default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
     )
     oidc_client_secret: SecretStr = Field(default=SecretStr(""), description="Client Secret from the same place")
+    # The catalog's console screens, for the console in a browser: it has no
+    # initData, so webapi asks for the super admin it signed in. Over the
+    # containers' own network, with the token both are started with; unset
+    # leaves those screens to Telegram. See catalog/docs/architecture.md.
+    catalog_url: str = Field(
+        default="http://catalog-api:8000", description="The catalog's API on the containers' network"
+    )
+    catalog_service_token: SecretStr = Field(
+        default=SecretStr(""), description="The catalog's SERVICE_TOKEN; unset turns the catalog's screens off here"
+    )
     # Not "none". Lax is same-site, not same-origin: a sibling host under the
     # same domain still sends the cookie, which is why writes also check Origin
     # (app/webapi/origin_guard.py).
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
+
+    @field_validator("catalog_service_token", mode="before")
+    @classmethod
+    def _strong_or_off(cls, value: object) -> object:
+        """As the catalog reads its SERVICE_TOKEN: spaces dropped, blank is off,
+        and a short one refuses to start (catalog/src/students_cz/core/config.py)."""
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str):
+            return value
+        raw = raw.strip()
+        if raw and len(raw) < 32:
+            raise ValueError("WEBAPI_CATALOG_SERVICE_TOKEN must be at least 32 characters, or unset")
+        return SecretStr(raw)
 
     @field_validator("session_cookie_samesite", mode="before")
     @classmethod

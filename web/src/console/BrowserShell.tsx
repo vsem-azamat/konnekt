@@ -8,9 +8,8 @@ import { browserSessionQuery, consoleChanges } from './queries';
 /**
  * The menu and the room for a screen, for the console opened in a browser.
  *
- * The menu lists only what a browser can reach: the catalog and the partners
- * ask the catalog API, which takes a Telegram signature and nothing else, so
- * they stay in the Mini App until that API learns another way in.
+ * The menu lists the console's screens, the catalog's among them: webapi asks
+ * the catalog for the signed-in super admin (#293).
  *
  * Whether the viewer is signed in is the screens' business (`ConsoleGate`), as
  * it is in the Mini App; this frame only offers the way out when there is a
@@ -52,6 +51,15 @@ export default function BrowserShell() {
           </Item>
           <Item to="/console/blacklist">
             <Trans>Чёрный список</Trans>
+          </Item>
+          <div className={css.group}>
+            <Trans>Каталог</Trans>
+          </div>
+          <Item to="/console/catalog">
+            <Trans>Каталог</Trans>
+          </Item>
+          <Item to="/console/partners">
+            <Trans>Партнёры</Trans>
           </Item>
           <div className={css.group}>
             <Trans>Люди</Trans>

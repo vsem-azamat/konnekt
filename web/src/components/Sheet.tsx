@@ -8,9 +8,10 @@
  * than the choice is worth.
  */
 
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useId, useRef } from 'react';
 
 import { CheckIcon } from './icons';
+import { focusInto, giveFocusBack } from './sheetFocus';
 import css from './ui.module.css';
 
 export function Sheet({
@@ -25,9 +26,21 @@ export function Sheet({
   closeLabel: string;
   children: ReactNode;
 }) {
-  // Escape closes it. Bound to the document rather than to the panel because
-  // nothing inside it is focused when it opens, so a key handler on the panel
-  // would never hear anything.
+  const titleId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+
+  // Focus moves into the sheet when it opens and back to what opened it when
+  // it closes. Its own effect, run once: tied to `onClose`, whose identity
+  // changes with every render of the screen behind, it would take focus back
+  // from whatever the person had just focused inside.
+  useEffect(() => {
+    const opener = document.activeElement;
+    focusInto(panel.current);
+    return () => giveFocusBack(opener instanceof HTMLElement ? opener : null);
+  }, []);
+
+  // Escape closes it, from anywhere in the page rather than from the panel: a
+  // key handler on the panel would hear nothing once focus is on the scrim.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -44,9 +57,18 @@ export function Sheet({
         aria-label={closeLabel}
         onClick={onClose}
       />
-      <div className={css.sheet} role="dialog" aria-modal="true">
+      <div
+        ref={panel}
+        className={css.sheet}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+      >
         <span className={css.grabber} />
-        <span className={css.sheetTitle}>{title}</span>
+        <span id={titleId} className={css.sheetTitle}>
+          {title}
+        </span>
         {children}
       </div>
     </>

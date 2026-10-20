@@ -19,6 +19,7 @@ from app.webapi.routes import (
     audience,
     auth,
     auth_telegram,
+    catalog,
     chats,
     health,
     join_check,
@@ -61,6 +62,7 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         yield
     finally:
         await auth_telegram.close_oidc_http()
+        await catalog.close_catalog_http()
         purge.cancel()
         await asyncio.gather(purge, return_exceptions=True)
         await alerts.stop()
@@ -118,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix="/api", dependencies=console)
     app.include_router(admin.router, prefix="/api", dependencies=console)
     app.include_router(audience.router, prefix="/api", dependencies=console)
+    app.include_router(catalog.router, prefix="/api", dependencies=console)
 
     # Default no-op singleton for test environments (ASGITransport bypasses
     # lifespan). _lifespan replaces this with the real instance at startup.

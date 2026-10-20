@@ -24,8 +24,6 @@ import {
   ui,
 } from '@/components/Ui';
 import { dayCells, memberChange, signed } from '@/console/activity';
-import { catalogReachable } from '@/console/browser';
-import { useBrowserConsole } from '@/console/browserContext';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   adminCatalogQuery,
@@ -63,16 +61,8 @@ function Summary() {
     refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
   });
   const chats = useQuery(consoleChatsQuery);
-  // The catalog's API takes a Telegram signature only, which a browser does not have.
-  const inBrowser = useBrowserConsole();
-  const catalog = useQuery({
-    ...adminCatalogQuery,
-    enabled: catalogReachable(inBrowser),
-  });
-  const partners = useQuery({
-    ...adminPartnersQuery,
-    enabled: catalogReachable(inBrowser),
-  });
+  const catalog = useQuery(adminCatalogQuery);
+  const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
 
@@ -85,8 +75,7 @@ function Summary() {
   // catalog said, and the other way round.
   const webapiError = stats.error ?? chats.error;
   const loading =
-    (catalogReachable(inBrowser) && catalog.isPending) ||
-    (!webapiError && (stats.isPending || chats.isPending));
+    catalog.isPending || (!webapiError && (stats.isPending || chats.isPending));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
     chats: chats.data ?? [],
@@ -284,47 +273,43 @@ function Summary() {
           trailing={<Chevron />}
           onClick={() => open('/console/audience')}
         />
-        {catalogReachable(inBrowser) ? (
-          <>
-            <Row
-              leading={
-                <Tile tone={0}>
-                  <DocumentIcon size={19} />
-                </Tile>
-              }
-              title={<Trans>Каталог</Trans>}
-              hint={<Trans>анкеты, заявки, поиски без ответа</Trans>}
-              trailing={<Chevron />}
-              onClick={() => open('/console/catalog')}
-            />
-            <Row
-              leading={
-                <Tile tone={2}>
-                  <BagIcon size={19} />
-                </Tile>
-              }
-              title={<Trans>Партнёры</Trans>}
-              hint={
-                activePlacements !== undefined ? (
-                  <Trans>
-                    <Plural
-                      value={activePlacements}
-                      one="# карточка"
-                      few="# карточки"
-                      many="# карточек"
-                      other="# карточки"
-                    />{' '}
-                    · показы и клики
-                  </Trans>
-                ) : (
-                  <Trans>показы и клики</Trans>
-                )
-              }
-              trailing={<Chevron />}
-              onClick={() => open('/console/partners')}
-            />
-          </>
-        ) : null}
+        <Row
+          leading={
+            <Tile tone={0}>
+              <DocumentIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Каталог</Trans>}
+          hint={<Trans>анкеты, заявки, поиски без ответа</Trans>}
+          trailing={<Chevron />}
+          onClick={() => open('/console/catalog')}
+        />
+        <Row
+          leading={
+            <Tile tone={2}>
+              <BagIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Партнёры</Trans>}
+          hint={
+            activePlacements !== undefined ? (
+              <Trans>
+                <Plural
+                  value={activePlacements}
+                  one="# карточка"
+                  few="# карточки"
+                  many="# карточек"
+                  other="# карточки"
+                />{' '}
+                · показы и клики
+              </Trans>
+            ) : (
+              <Trans>показы и клики</Trans>
+            )
+          }
+          trailing={<Chevron />}
+          onClick={() => open('/console/partners')}
+        />
         <Row
           leading={
             <Tile tone={1}>

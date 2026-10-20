@@ -202,6 +202,7 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "TELETHON_API_HASH",
         "MCP_TOKEN",
         "WEBAPI_OIDC_CLIENT_SECRET",
+        "CATALOG_SERVICE_TOKEN",
     }
 
     for name, expression in step["env"].items():
@@ -771,3 +772,17 @@ def test_a_bad_console_url_stops_the_deploy_instead_of_passing_an_empty_host(
 
     assert (done.returncode == 0) is ok, done.stderr
     assert output.read_text() == (f"host={host}\n" if ok else "")
+
+
+def test_the_catalog_service_token_reaches_webapi_and_the_catalog_alone() -> None:
+    """Its own variable in each of the two, not the shared runtime block: the
+    bot and the migrations have no use for a key that acts as an operator."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    holders = {
+        name
+        for name, service in services.items()
+        if any("CATALOG_SERVICE_TOKEN" in str(value) for value in (service.get("environment") or {}).values())
+    }
+
+    # The bot and migrate merge the runtime block, so it being there shows here.
+    assert holders == {"webapi", "catalog-api"}

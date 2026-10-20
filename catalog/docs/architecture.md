@@ -251,7 +251,26 @@ version does.
 console (in `supervisor-telegram`'s app) shows the catalog to the people named
 in `ADMIN_TG_IDS`, the same Telegram ids as supervisor's `ADMIN_SUPER_ADMINS`.
 They sign in with the same init data as anybody else; `/me` says `is_admin`,
-and `/admin/*` answers 403 to everybody not on the list. The console writes two
+and `/admin/*` answers 403 to everybody not on the list.
+
+The console opened in a browser has no init data: webapi signs its super admin
+in with Telegram's OpenID Connect and asks here on their behalf, over the
+containers' own network. Such a call carries `X-Catalog-Service`, the
+`SERVICE_TOKEN` both containers are started with, and `X-Catalog-Operator`,
+the Telegram id webapi signed in; `X-Catalog-Lang` names the console's
+language, `ru` when absent. The token says who is calling and nothing more:
+the id must still be on `ADMIN_TG_IDS`, so who is an operator stays this
+service's rule. It opens `/admin/*` and the list of universities, which a chat's
+page shows, and nothing else; a person's own screens never accept it, so it
+cannot act as anyone. A call that shows a token is judged by it alone and
+never falls back to init data, and it registers nobody; each one is logged
+with the operator and what was asked, never the token. Unset, `SERVICE_TOKEN`
+turns this off, and one shorter than 32 characters refuses to start. The Mini App's proxy strips the three headers from whatever a
+browser sends (`docker/Caddyfile`; `docker/check-routes.py` checks every
+proxy to the catalog), so
+from outside they reach nothing.
+
+The console writes two
 things: a profile's moderation (kept or hidden) and the partner cards, because
 otherwise the only way to do either is the database.
 
