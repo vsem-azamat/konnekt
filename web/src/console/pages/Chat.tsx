@@ -80,6 +80,7 @@ type Sheets =
   | { kind: 'publish' }
   | { kind: 'unpublish' }
   | { kind: 'disable' }
+  | { kind: 'moderate' }
   | { kind: 'welcome'; enable: boolean }
   | { kind: 'ban'; sender: ChatSender }
   | { kind: 'unban'; sender: ChatSender }
@@ -186,8 +187,18 @@ function ChatScreen({ chatId }: { chatId: number }) {
     update.mutate(change, { onSuccess: after });
   };
   const approved = chat.resource_status === 'approved';
-  // What students see: the public tab lists approved chats with a link.
+  // A decision was made about it, so the public tab may list it.
+  const decided =
+    chat.resource_status !== 'discovered' && chat.resource_status !== 'disabled';
+  // What students see: the public tab lists decided chats with a link.
   const listed = isListed(chat);
+  const pickMode = (mode: 'approved' | 'observed' | 'external') => {
+    if (mode === chat.resource_status) return;
+    // Switching a watched chat to moderation makes the bot speak where another
+    // bot is in charge, so that one step asks first.
+    if (mode === 'approved' && decided) open({ kind: 'moderate' });
+    else save({ resource_status: mode });
+  };
   const admins = new Set(system.data?.super_admin_ids ?? []);
   const total = chat.recent_senders.reduce((sum, row) => sum + row.message_count, 0);
   const sheetError = sheet && error ? <FailureText error={error} /> : null;
@@ -225,6 +236,10 @@ function ChatScreen({ chatId }: { chatId: number }) {
           ) : null}
           {approved ? (
             <Trans>одобрен</Trans>
+          ) : chat.resource_status === 'observed' ? (
+            <Trans>наблюдаем</Trans>
+          ) : chat.resource_status === 'external' ? (
+            <Trans>внешний</Trans>
           ) : chat.resource_status === 'discovered' ? (
             <Trans>на проверке</Trans>
           ) : (
@@ -241,28 +256,71 @@ function ChatScreen({ chatId }: { chatId: number }) {
         </div>
       ) : null}
 
-      {!approved ? (
+      {chat.resource_status === 'discovered' ? (
         <div style={{ marginTop: 16 }}>
           <Actions>
             <Action onClick={() => save({ resource_status: 'approved' })} disabled={busy}>
-              {chat.resource_status === 'discovered' ? (
-                <Trans>Одобрить</Trans>
-              ) : (
-                <Trans>Включить снова</Trans>
-              )}
+              <Trans>Одобрить</Trans>
             </Action>
-            {chat.resource_status === 'discovered' ? (
-              <Action
-                quiet
-                onClick={() => save({ resource_status: 'disabled' })}
-                disabled={busy}
-              >
-                <Trans>Отключить</Trans>
-              </Action>
-            ) : null}
+            <Action
+              quiet
+              onClick={() => save({ resource_status: 'observed' })}
+              disabled={busy}
+            >
+              <Trans>Только наблюдать</Trans>
+            </Action>
+            <Action
+              quiet
+              onClick={() => save({ resource_status: 'disabled' })}
+              disabled={busy}
+            >
+              <Trans>Отключить</Trans>
+            </Action>
           </Actions>
         </div>
-      ) : null}
+      ) : (
+        <>
+          <Label>
+            <Trans>Что бот делает в чате</Trans>
+          </Label>
+          <div className={ui.sheetList}>
+            <Pick
+              name={<Trans>Модерирует</Trans>}
+              hint={
+                <Trans>
+                  Команды, чёрный список, приветствие, уборка, спам и реклама.
+                </Trans>
+              }
+              selected={approved}
+              disabled={busy}
+              onClick={() => pickMode('approved')}
+            />
+            <Pick
+              name={<Trans>Только наблюдает</Trans>}
+              hint={
+                <Trans>
+                  Записывает историю и считает участников. Ничего не пишет, ни на что не
+                  отвечает.
+                </Trans>
+              }
+              selected={chat.resource_status === 'observed'}
+              disabled={busy}
+              onClick={() => pickMode('observed')}
+            />
+            <Pick
+              name={<Trans>Внешний чат</Trans>}
+              hint={
+                <Trans>
+                  Бота там нет. Только ссылка в каталоге, с пометкой «не наш».
+                </Trans>
+              }
+              selected={chat.resource_status === 'external'}
+              disabled={busy}
+              onClick={() => pickMode('external')}
+            />
+          </div>
+        </>
+      )}
 
       <Label>
         <Trans>На публичной вкладке</Trans>
@@ -272,7 +330,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
           title={
             listed ? (
               <Trans>Показан в «Чатах»</Trans>
-            ) : chat.public_link && !approved ? (
+            ) : chat.public_link && !decided ? (
               <Trans>Не виден: чат не одобрен</Trans>
             ) : chat.public_link ? (
               <Trans>Не виден: у чата нет названия</Trans>
@@ -281,7 +339,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
             )
           }
           hint={
-            chat.public_link && !approved ? (
+            chat.public_link && !decided ? (
               <Trans>появится после одобрения</Trans>
             ) : chat.public_link && !listed ? (
               <Trans>обновите его из Telegram</Trans>
@@ -522,7 +580,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
         </Rows>
       </div>
 
-      {approved ? (
+      {decided ? (
         <div style={{ marginTop: 16 }}>
           <Actions>
             <Action quiet onClick={() => open({ kind: 'disable' })} disabled={busy}>
@@ -544,6 +602,28 @@ function ChatScreen({ chatId }: { chatId: number }) {
           canSave={(link) => link.length > 0}
           onSave={(link) => save({ public_link: link }, close)}
         />
+      ) : null}
+      {sheet?.kind === 'moderate' ? (
+        <Sheet title={t`Включить модерацию?`} closeLabel={t`Отмена`} onClose={close}>
+          <Sub>
+            <Trans>
+              Бот начнёт отвечать на команды и удалять сообщения в этом чате. Если здесь
+              порядок держит другой бот, они будут мешать друг другу.
+            </Trans>
+          </Sub>
+          {sheetError ? <Hint>{sheetError}</Hint> : null}
+          <div className={ui.actionsStacked}>
+            <Action
+              disabled={busy}
+              onClick={() => save({ resource_status: 'approved' }, close)}
+            >
+              <Trans>Модерировать</Trans>
+            </Action>
+            <Action quiet onClick={close}>
+              <Trans>Отмена</Trans>
+            </Action>
+          </div>
+        </Sheet>
       ) : null}
       {sheet?.kind === 'disable' ? (
         <Sheet title={t`Отключить чат?`} closeLabel={t`Отмена`} onClose={close}>

@@ -102,7 +102,12 @@ export function consoleRequester(
 
 // ── webapi's shapes, as far as the console reads them ─────────────────────
 
-export type ChatStatus = 'discovered' | 'approved' | 'disabled';
+/**
+ * How far the bot's hand reaches in a chat. Approved: it moderates. Observed:
+ * it records and stays silent, since the owner's own bot is in charge.
+ * External: it is not there; the chat is only listed, marked as not ours.
+ */
+export type ChatStatus = 'discovered' | 'approved' | 'observed' | 'external' | 'disabled';
 
 export interface ConsoleChat {
   id: number;
