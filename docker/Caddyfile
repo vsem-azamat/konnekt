@@ -37,6 +37,15 @@
 		}
 	}
 
+	# The browser's sign-in belongs to the console's host. Here the client
+	# address is whatever Cloudflare shows, so the sign-in's rate limits would
+	# count Cloudflare's and a loop of callbacks would reach Telegram with our
+	# secret.
+	@signIn path /api/auth/telegram/*
+	handle @signIn {
+		respond 404
+	}
+
 	handle /api/* {
 		reverse_proxy webapi:8787 {
 			# One address, the one this proxy believes, rather than the chain.

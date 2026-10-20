@@ -207,6 +207,9 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
     for name, expression in step["env"].items():
         if name in sensitive:
             assert "secrets." in expression, f"{name} must come from secrets"
+        elif name == "ADMIN_HOST":
+            # Worked out from a variable by scripts/admin_host.sh, which refuses a bad one.
+            assert "steps." in expression
         elif name not in _DEPLOY_ONLY:
             assert "vars." in expression, f"{name} should come from variables, not {expression}"
 
@@ -703,19 +706,24 @@ def test_the_sign_in_secret_reaches_the_webapi_and_nothing_else() -> None:
     assert name not in _compose_passthrough()
     assert name not in _webui_passthrough()
     assert "WEBAPI_ADMIN_URL" in _service_passthrough("webapi")
-    assert "WEBAPI_ADMIN_URL" in _webui_passthrough()
 
 
-def test_the_webui_is_told_the_admin_host_by_the_url_and_has_a_fallback_nobody_can_send() -> None:
-    """Caddy needs a host, the webapi a URL; one variable gives both.
+def test_the_webui_is_told_the_admin_host_by_the_deploy_and_has_a_fallback_nobody_can_send() -> None:
+    """Caddy needs a host, the webapi a URL; the deploy works the host out once.
 
-    Empty would make the console's site address `http://`, which answers every
-    request. Unset must name a host no request carries, here and in the file.
+    In the container's environment rather than a shell wrapper, so a reload or
+    the image's own `caddy validate` sees what the running server saw. Empty
+    would make the console's site address `http://`, which answers every
+    request: the script never prints one, and Caddy's own fallback is a host
+    nobody carries.
     """
-    command = "\n".join(yaml.safe_load(COMPOSE.read_text())["services"]["webui"]["command"])
+    webui = yaml.safe_load(COMPOSE.read_text())["services"]["webui"]
+    step = next(
+        s for s in yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]["steps"] if "admin_host.sh" in s.get("run", "")
+    )
     caddyfile = (ROOT / "docker" / "Caddyfile").read_text()
 
-    assert "WEBAPI_ADMIN_URL" in command
-    assert "ADMIN_HOST=" in command
-    assert "admin.invalid" in command
+    assert "ADMIN_HOST" in _webui_passthrough()
+    assert "command" not in webui
+    assert _deploy_step()["env"]["ADMIN_HOST"] == f"${{{{ steps.{step['id']}.outputs.host }}}}"
     assert "{$ADMIN_HOST:admin.invalid}" in caddyfile

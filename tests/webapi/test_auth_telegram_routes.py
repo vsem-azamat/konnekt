@@ -22,6 +22,7 @@ from app.webapi.auth import telegram_oidc
 from app.webapi.main import app
 from app.webapi.routes import auth_telegram
 from cryptography.hazmat.primitives.asymmetric import rsa
+from pydantic import SecretStr
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -107,7 +108,7 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession], telegram:
     )
     settings.admin.super_admins = [SUPER_ADMIN_ID]
     settings.webapi.oidc_client_id = CLIENT_ID
-    settings.webapi.oidc_client_secret = CLIENT_SECRET
+    settings.webapi.oidc_client_secret = SecretStr(CLIENT_SECRET)
     settings.webapi.admin_url = ADMIN_URL
     settings.webapi.session_cookie_secure = False
     telegram_oidc.forget()
@@ -257,7 +258,7 @@ async def test_the_keys_are_fetched_once_and_remembered(client_factory, telegram
 
 
 async def test_the_door_is_absent_until_it_is_configured(client_factory, telegram) -> None:
-    settings.webapi.oidc_client_secret = ""
+    settings.webapi.oidc_client_secret = SecretStr("")
     async with client_factory() as client:
         login = await client.get("/api/auth/telegram/login")
         callback = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
@@ -385,3 +386,30 @@ async def test_a_full_table_forgets_the_oldest_caller_and_keeps_the_rest(client_
             await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
 
     assert set(auth_telegram._callbacks) == {"192.0.2.2", "192.0.2.3", "192.0.2.4"}
+
+
+async def test_an_ipv4_mapped_ipv6_caller_is_counted_as_its_ipv4_address(client_factory) -> None:
+    """The same machine, written two ways, must not get two allowances."""
+    answers = []
+    for index in range(auth_telegram.CALLBACKS_PER_MINUTE + 1):
+        address = "192.0.2.77" if index % 2 else "::ffff:192.0.2.77"
+        async with _from(address) as client:
+            answers.append(
+                (await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})).status_code
+            )
+
+    assert answers[-1] == 429
+
+
+async def test_token_exchanges_have_a_ceiling_whoever_asks(client_factory, telegram, monkeypatch) -> None:
+    """Many callers, each within their own allowance, still must not turn this into a stream to Telegram."""
+    monkeypatch.setattr(auth_telegram, "EXCHANGES_PER_MINUTE", 3)
+    answers = []
+    for index in range(5):
+        async with _from(f"192.0.2.{index + 1}") as client:
+            query = await _begin(client, telegram)
+            resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+            answers.append(resp.status_code)
+
+    assert answers == [302, 302, 302, 429, 429]
+    assert len(telegram.token_requests) == 3

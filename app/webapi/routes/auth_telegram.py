@@ -36,8 +36,12 @@ router = APIRouter(prefix="/auth/telegram", tags=["auth"])
 
 _FLOW_TTL_SECONDS = 600
 CALLBACKS_PER_MINUTE = 10
+# Across every caller: each is within its own allowance and the sum is still a
+# stream of requests to Telegram carrying our client secret.
+EXCHANGES_PER_MINUTE = 30
 # Per process, like the throttles beside it; a forgotten entry only lets one more attempt through.
 _callbacks: dict[str, deque[float]] = {}
+_exchanges: deque[float] = deque()
 _REMEMBERED = 10_000
 _http: httpx.AsyncClient | None = None
 
@@ -45,6 +49,7 @@ _http: httpx.AsyncClient | None = None
 def forget() -> None:
     """For tests: nobody has called back recently."""
     _callbacks.clear()
+    _exchanges.clear()
 
 
 async def get_oidc_http() -> httpx.AsyncClient:
@@ -77,7 +82,20 @@ def _limit_key(request: Request) -> str:
     if address is None:
         return "unknown"
     ip = ipaddress.ip_address(address)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        # The same machine, written the other way.
+        return str(ip.ipv4_mapped)
     return str(ipaddress.ip_network(f"{ip}/64", strict=False)) if ip.version == 6 else address
+
+
+def _exchanges_exhausted() -> bool:
+    now = time.monotonic()
+    while _exchanges and now - _exchanges[0] > 60:
+        _exchanges.popleft()
+    if len(_exchanges) >= EXCHANGES_PER_MINUTE:
+        return True
+    _exchanges.append(now)
+    return False
 
 
 def _limited(request: Request) -> bool:
@@ -155,6 +173,8 @@ async def callback(
         # `error` is whatever the caller put in the URL.
         return _failed(f"telegram returned {(error or 'no code')[:64]!r}")
 
+    if _exchanges_exhausted():
+        raise HTTPException(status_code=429, detail="too many attempts")
     try:
         user_id = await telegram_oidc.complete(
             http,
@@ -162,7 +182,7 @@ async def callback(
             verifier=verifier,
             nonce=nonce,
             client_id=settings.webapi.oidc_client_id,
-            client_secret=settings.webapi.oidc_client_secret,
+            client_secret=settings.webapi.oidc_client_secret.get_secret_value(),
             redirect_uri=_redirect_uri(),
         )
     except telegram_oidc.OidcError as err:

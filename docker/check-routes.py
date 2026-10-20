@@ -27,6 +27,12 @@ CATALOG = "catalog-api:8000"
 APP = "/srv/app"
 ADMIN_HOST = "admin.example.test"
 
+# Who may frame each host: Telegram's clients the Mini App, nobody the console.
+FRAMING = {
+    None: "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org",
+    ADMIN_HOST: "frame-ancestors 'none'",
+}
+
 
 # Paths whose route falls back to the page when no file matches: a client-side
 # route reloaded must get the app, and a missing asset must get a 404, never
@@ -69,7 +75,10 @@ def mini_app() -> dict[str, str]:
         "/healthz": CATALOG,
         # Everything else under /api is this repository's webapi.
         "/api/public/catalog": WEBAPI,
-        "/api/auth/telegram": WEBAPI,
+        "/api/auth/webapp": WEBAPI,
+        # The browser's sign-in is the console host's: here the client address is Cloudflare's.
+        "/api/auth/telegram/login": "404",
+        "/api/auth/telegram/callback": "404",
         # The console is the app's now; the old console's addresses lead there.
         "/console": APP,
         "/console/chats/-100123": APP,
@@ -222,8 +231,9 @@ def main() -> int:
             failed = True
             continue
         terminal = [r for r in site if "group" in r]
-        if host and framing(site) != "frame-ancestors 'none'":
-            print(f"{label}: may be framed ({framing(site)})", file=sys.stderr)
+        wanted = FRAMING[host]
+        if framing(site) != wanted:
+            print(f"{label}: framing is {framing(site)}, not {wanted}", file=sys.stderr)
             failed = True
         for path, expected in samples.items():
             chosen = next((r for r in terminal if matches(r, path)), None)

@@ -175,18 +175,10 @@ services:
     container_name: supervisor-telegram-webui
     logging: *rotated-logs
     environment:
-      WEBAPI_ADMIN_URL:
-    # Caddy wants the console's host and the webapi its URL; the one variable
-    # gives both. Empty would turn the console's site address into `http://`,
-    # which answers every request, so an unset URL becomes a name nobody sends.
-    command:
-      - sh
-      - -c
-      - |
-        host=$${WEBAPI_ADMIN_URL#*://}
-        host=$${host%%/*}
-        export ADMIN_HOST=$${host:-admin.invalid}
-        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+      # The console's host, worked out from WEBAPI_ADMIN_URL by the deploy
+      # (scripts/admin_host.sh). In the environment, where a reload and the
+      # healthcheck see it too; unset, Caddy's own fallback is a host nobody sends.
+      ADMIN_HOST:
     ports:
       - "127.0.0.1:18083:80"
     depends_on:

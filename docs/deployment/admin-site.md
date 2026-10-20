@@ -9,9 +9,13 @@ same webapi; the decision and its reasons are in
 
 `WEBAPI_ADMIN_URL`, `WEBAPI_OIDC_CLIENT_ID` and `WEBAPI_OIDC_CLIENT_SECRET` all
 set. Unset, the sign-in routes answer 404 and the webui's console host matches
-nothing. The URL is the only place the host is written down: the webui derives
-Caddy's host from it, and the webapi derives the redirect and its allowed
-origin.
+nothing. The URL is the only place the host is written down: the deploy works
+Caddy's host out from it (`scripts/admin_host.sh`), and the webapi derives the
+redirect and its allowed origin. Both refuse a URL that is the Mini App's host,
+or has a port, a path or no https: the first would take that site's traffic,
+the others would match no request. The sign-in routes are 404 on the Mini App's
+host, which sits behind Cloudflare, where the client address a rate limit
+needs is not the client's.
 
 ## Outside this repository
 
@@ -29,7 +33,10 @@ origin.
 ## After the first deploy
 
 Opening the console host in a browser lands on the sign-in page; a super admin
-signs in and a stranger is told they have no access. The Mini App opens as
+signs in and a stranger is told they have no access. Eleven callbacks within a
+minute, each with a different forged `X-Forwarded-For`, must still end in a 429
+on the eleventh: it shows the edge replaces what a client sends rather than
+appending to it. The Mini App opens as
 before in Telegram on iOS, Android and Desktop: a write that carries the console's
 cookie must now name our origin, so a client that stops sending `Origin` would
 be refused.
