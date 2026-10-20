@@ -750,3 +750,67 @@ class AdsTopic(Base):
         self.group_id = group_id
         self.user_id = user_id
         self.thread_id = thread_id
+
+
+class AudienceMember(Base):
+    """Somebody who has used one of our bots or the Mini App at least once.
+
+    Kept apart from ``users``, which also holds everybody who ever wrote in a
+    moderated group: being in a group the bot watches is not using Konnekt,
+    and a bot cannot write to someone who has not opened a chat with it.
+    Only what Telegram itself tells us about the person is stored, never what
+    they wrote. ``opted_out_at`` is for announcements that do not exist yet:
+    whoever sets it must never hear from them.
+    """
+
+    __tablename__ = "audience_members"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    language_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    is_premium: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    # The start or startapp payload that first brought them; later ones say less.
+    source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_seen_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    last_seen_at: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
+    opted_out_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AudienceTouch(Base):
+    """When one person first and last used one touchpoint, and how many times."""
+
+    __tablename__ = "audience_touches"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "touchpoint IN ('main_bot', 'contact_bot', 'mini_app', 'moved_bot')", name="ck_audience_touches_touchpoint"
+        ),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audience_members.user_id", ondelete="CASCADE"), primary_key=True
+    )
+    touchpoint: Mapped[str] = mapped_column(String(16), primary_key=True)
+    first_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    last_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    count: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class AudienceReach(Base):
+    """Whether one bot may write to one person.
+
+    A bot may write to whoever has opened a chat with it (``started_at``) and
+    has not blocked it since (``blocked_at``). Telegram reports a block as a
+    membership change of the private chat, or as a 403 on the next send. Not
+    tied to ``audience_members``: a 403 can arrive for someone whose first
+    visit predates this table.
+    """
+
+    __tablename__ = "audience_reach"
+    __table_args__ = (sa.CheckConstraint("bot IN ('main_bot', 'contact_bot')", name="ck_audience_reach_bot"),)
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    bot: Mapped[str] = mapped_column(String(16), primary_key=True)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    blocked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)

@@ -18,7 +18,10 @@ from aiogram.exceptions import (
 )
 from sqlalchemy import select
 
+from app.audience import record
+from app.core.enums import Touchpoint
 from app.core.logging import get_logger
+from app.core.time import utc_now
 from app.db.models import AdsTopic
 
 if TYPE_CHECKING:
@@ -110,6 +113,8 @@ class AdsDesk:
         if person_id is None:
             return
         error = await self._copy(person_id, messages)
+        if isinstance(error, TelegramForbiddenError):
+            await self._blocked(person_id)
         if error is not None:
             reason = "пользователь заблокировал бота" if isinstance(error, TelegramForbiddenError) else error.message
             await self._notice(thread, f"Не доставлено: {reason}", reply_to=first.message_id)
@@ -167,6 +172,15 @@ class AdsDesk:
         except TelegramAPIError as e:
             logger.warning("ads_card_failed", thread_id=thread, error=e.message)
         return thread
+
+    async def _blocked(self, person_id: int) -> None:
+        """Remember that the desk can no longer write to this person; a failure is only logged."""
+        try:
+            async with self.session_maker() as session:
+                await record.blocked(session, person_id, Touchpoint.CONTACT_BOT, at=utc_now())
+                await session.commit()
+        except Exception as e:
+            logger.error("ads_block_not_recorded", error=type(e).__name__)
 
     async def _thread_of(self, person_id: int) -> int | None:
         async with self.session_maker() as session:

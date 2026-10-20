@@ -75,3 +75,16 @@ class PendingActionStatus(StrEnum):
     FAILED = "failed"
     REJECTED = "rejected"
     EXPIRED = "expired"
+
+
+class Touchpoint(StrEnum):
+    """Where a person met us. The bots among them are also who may write back.
+
+    The retired bots count as a place someone came to, but nobody is reached
+    through them: they only point at the main bot.
+    """
+
+    MAIN_BOT = "main_bot"
+    CONTACT_BOT = "contact_bot"
+    MINI_APP = "mini_app"
+    MOVED_BOT = "moved_bot"

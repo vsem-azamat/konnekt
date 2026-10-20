@@ -26,10 +26,14 @@ from aiogram.types import (
 from aiogram.utils.token import TokenValidationError
 
 from app.core.config import settings
+from app.core.enums import Touchpoint
 from app.core.logging import get_logger
+from app.presentation.telegram.middlewares.audience import AudienceMiddleware
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = get_logger("moved")
 
@@ -86,11 +90,12 @@ async def retire_profile(bot: Bot, konnekt_username: str) -> None:
             logger.warning("retired_profile_step_failed", bot=bot.id, step=name, error=str(e))
 
 
-def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
+def build_moved_bots(session_maker: async_sessionmaker[AsyncSession]) -> list[tuple[Bot, Dispatcher]]:
     """Each retired bot with a dispatcher of its own, none when no token is configured.
 
     Of its own because a dispatcher polls one bot at a time, and a router
-    belongs to one dispatcher.
+    belongs to one dispatcher. Whoever still writes to one is kept in the
+    audience, as somebody who came to Konnekt by an old address.
     """
     built = []
     for position, token in enumerate(settings.telegram.retired_tokens, start=1):
@@ -106,6 +111,7 @@ def build_moved_bots() -> list[tuple[Bot, Dispatcher]]:
             logger.error("retired_token_malformed", position=position)
             continue
         dp = Dispatcher()
+        dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.MOVED_BOT, reach=False))
         dp.include_router(build_router())
         dp.startup.register(retire_profile)
         built.append((bot, dp))

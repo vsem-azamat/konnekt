@@ -37,7 +37,7 @@ def services(monkeypatch) -> list[str]:
     main_bot.me.return_value = SimpleNamespace(username="konnekt_cz_bot")
     monkeypatch.setattr(bot_module, "_setup_main_bot", lambda _: (main_bot, AsyncMock()))
     monkeypatch.setattr(bot_module, "setup_container", lambda *_: None)
-    monkeypatch.setattr(moved, "build_moved_bots", lambda: [])
+    monkeypatch.setattr(moved, "build_moved_bots", lambda _sm: [])
 
     async def no_alerts():
         async def close() -> None:
@@ -156,7 +156,7 @@ async def test_a_retired_bot_failing_takes_down_neither_moderation_nor_the_other
 
     monkeypatch.setattr(bot_module, "_run_polling", polling)
     retired = [(SimpleNamespace(id=200), AsyncMock()), (SimpleNamespace(id=300), AsyncMock())]
-    monkeypatch.setattr(moved, "build_moved_bots", lambda: retired)
+    monkeypatch.setattr(moved, "build_moved_bots", lambda _sm: retired)
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
@@ -197,3 +197,17 @@ async def test_polling_asks_for_edits(monkeypatch, services) -> None:
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
     assert "edited_message" in polled["allowed_updates"]
+
+
+async def test_polling_asks_to_hear_when_someone_blocks_the_bot(monkeypatch, services) -> None:
+    """my_chat_member in a private chat is the person blocking or unblocking the bot."""
+    polled: dict = {}
+
+    async def polling(_bot, _dp, *, name, **kwargs):
+        polled.update(kwargs)
+
+    monkeypatch.setattr(bot_module, "_run_polling", polling)
+
+    await asyncio.wait_for(bot_module.main(), timeout=5)
+
+    assert "my_chat_member" in polled["allowed_updates"]

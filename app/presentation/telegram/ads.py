@@ -20,7 +20,9 @@ from aiogram.utils.token import TokenValidationError
 
 from app.ads.desk import AdsDesk
 from app.core.config import settings
+from app.core.enums import Touchpoint
 from app.core.logging import get_logger
+from app.presentation.telegram.middlewares.audience import AudienceMiddleware
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -115,7 +117,13 @@ async def greet(message: Message) -> None:
     await message.answer(GREETING)
 
 
-def build_dispatcher(desk: AdsDesk, group_id: int, *, album_wait: float = ALBUM_WAIT) -> Dispatcher:
+def build_dispatcher(
+    desk: AdsDesk,
+    group_id: int,
+    session_maker: async_sessionmaker[AsyncSession],
+    *,
+    album_wait: float = ALBUM_WAIT,
+) -> Dispatcher:
     async def from_person(_message: Message, messages: list[Message]) -> None:
         await desk.from_person(messages)
 
@@ -135,6 +143,7 @@ def build_dispatcher(desk: AdsDesk, group_id: int, *, album_wait: float = ALBUM_
     )
 
     dp = Dispatcher()
+    dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.CONTACT_BOT))
     dp.message.outer_middleware(Conversations(album_wait))
     dp.include_router(router)
     dp.startup.register(partial(check_group, group_id=group_id))
@@ -213,4 +222,4 @@ def build_ads_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bot,
         # Never the token itself: it is a secret.
         logger.error("ads_token_malformed")
         return None
-    return bot, build_dispatcher(AdsDesk(bot, session_maker, group_id), group_id)
+    return bot, build_dispatcher(AdsDesk(bot, session_maker, group_id), group_id, session_maker)
