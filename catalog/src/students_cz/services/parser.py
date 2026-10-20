@@ -397,7 +397,6 @@ RESTATING: tuple[str, ...] = (
     Word("tests"),
     Word("testy"),
     Word("testu"),
-    Word("testů"),
     Word("testem"),
     Word("testech"),
 )
@@ -479,6 +478,19 @@ async def parse(
     result.budget_max = _match_budget(norm)
 
     subjects = await find_subjects(session, text, lang, limit=4)
+    # A school named in full lends its words to the scorer: "Faculty of
+    # Physical Education" guessed «Physics 1» from the school's own name. Where
+    # nothing was named, guess again from the query without the school's words.
+    if result.institution and not (subjects and _is_named(subjects[0])):
+        school = await _school_words(session, result.institution)
+        tokens = tokenise(norm).split()
+        kept = [token for token in tokens if not _is_school_word(token, school)]
+        if len(kept) < len(tokens):
+            subjects = (
+                await find_subjects(session, " ".join(kept), lang, limit=4)
+                if kept
+                else []
+            )
     # A word for a whole shelf — «математика», "maths" — names the shelf, and the
     # search reads a shelf as what it holds (`lookup.held_by`). Answered with the
     # leaf the scorer liked best it narrowed the search to «Математика для
@@ -919,7 +931,17 @@ SHELF_KINDS: frozenset[str | None] = frozenset(
 
 # Which school's maths, not which maths: «высшая математика» is the whole shelf
 # taught at a university, and the leaf the scorer liked found nobody.
-LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
+LEVEL_OF_SCHOOL: tuple[str, ...] = (
+    "высш",
+    "вищ",
+    "vyss",
+    "higher",
+    # The same kind of word: «učitelství matematiky» is maths for teachers,
+    # «классическая физика» physics before the quantum.
+    "ucitelstv",
+    "классическ",
+    "класичн",
+)
 
 # Said beside a subject without saying which: hurry, politeness, a school year,
 # asking for a teacher rather than a tutor. «математика срочно», «физика 9
@@ -981,6 +1003,11 @@ ASIDE: tuple[str, ...] = (
     Word("ucitelku"),
     Word("ucitelkou"),
     Word("ucitelek"),
+    Word("ucitelum"),
+    Word("ucitelich"),
+    Word("ucitelkam"),
+    Word("ucitelkach"),
+    Word("ucitelkami"),
     "lektor",
     "teacher",
     "rychl",
@@ -1054,10 +1081,12 @@ async def _school_words(session: AsyncSession, institution: Match | None) -> set
 
 
 def _shares_a_stem(word: str, stem: str) -> bool:
-    """Is this the word a shelf is named by, in any form? Some shelves list
-    forms rather than stems (`chemie`, `chemii`), so «chemicko» shares their
-    first five letters without starting with any of them."""
-    return word.startswith(stem) or (len(word) >= 5 and stem.startswith(word[:5]))
+    """Is this the word a shelf is named by, in any form? A stem's forms begin
+    with it; a listed form's siblings differ in the last letter — «chemii» is
+    «chemie». «chemicko» is neither, and stays the school's word."""
+    return word.startswith(stem) or (
+        len(word) >= 5 and len(stem) >= 5 and word[:-1] == stem[:-1]
+    )
 
 
 async def _within_shelf(

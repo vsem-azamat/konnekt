@@ -51,6 +51,8 @@ SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
         "химик",
         "хімік",
         "chemik",
+        # The adjective, as in "chemical engineering".
+        "chemical",
     ),
     "it-programming": (
         "информатика",
@@ -68,6 +70,8 @@ SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
         "informatikou",
         "informatice",
         "informatics",
+        # The Czech adjective: «informatický», «informatické».
+        "informatick",
     ),
 }
 HOLDS: dict[str, tuple[str, ...]] = {}

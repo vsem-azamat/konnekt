@@ -66,9 +66,7 @@ async def test_a_czech_locative_school_is_the_school(session, text, lang) -> Non
         # A person, a treatment and a classic are not the shelf.
         ("химиотерапия", "ru", "chemistry"),
         ("chemist", "en", "chemistry"),
-        ("классическая физика", "ru", "physics"),
         ("třídění matematika", "cs", "math"),
-        ("učitelství matematiky", "cs", "math"),
     ],
 )
 async def test_a_stem_stops_at_the_word_it_means(session, text, lang, shelf) -> None:
@@ -151,8 +149,8 @@ ASIDE_FORMS = [
     (
         "{} matematiky",
         "cs",
-        "učitel učitele učiteli učitelem učitelů"
-        " učitelka učitelky učitelce učitelku učitelkou",
+        "učitel učitele učiteli učitelem učitelů učitelům učitelích"
+        " učitelka učitelky učitelce učitelku učitelkou učitelkám učitelkách učitelkami",
     ),
 ]
 
@@ -262,10 +260,51 @@ async def test_a_school_word_may_change_its_last_letter_and_no_more(
     assert _is_school_word(token, names) is school
 
 
-async def test_a_school_name_does_not_swallow_a_subject_word(session) -> None:
-    """VŠCHT's names say «chemicko-technologická»; beside it «chemická fyzika»
-    still has «chemická» to say, so physics is not the whole answer."""
-    parsed = await parse(session, "chemická fyzika VŠCHT", "cs", today=TODAY)
-    assert parsed.subject is None or parsed.subject.id != await _id(session, "physics"), (
-        parsed.subject
-    )
+@pytest.mark.parametrize(
+    ("text", "lang", "shelf"),
+    [
+        # Which kind of maths, like «высшая», not which corner.
+        ("učitelství matematiky", "cs", "math"),
+        ("učitelství fyziky", "cs", "physics"),
+        ("классическая математика", "ru", "math"),
+        ("классическая физика", "ru", "physics"),
+        # A school's name that shares a shelf's word only by its stem still
+        # counts as the school: «chemicko-technologická» is not «chemie».
+        ("chemie Vysoká škola chemicko-technologická", "cs", "chemistry"),
+        # Adjectives the shelves are named by.
+        ("doučování informatický", "cs", "it-programming"),
+        ("chemical", "en", "chemistry"),
+    ],
+)
+async def test_more_that_names_a_shelf(session, text, lang, shelf) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, shelf), parsed.subject
+
+
+async def test_a_school_word_is_not_a_subject(session) -> None:
+    """ "Faculty of Physical Education" is a school; "physical" in it is not
+    physics, so the query names no physics course."""
+    parsed = await parse(session, "Faculty of Physical Education", "en", today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(
+        session, "fyzika-1"
+    ), parsed.subject
+
+
+@pytest.mark.parametrize("text", ["přijímací testy", "přijímací testech"])
+async def test_czech_tests_ask_no_embedder(session, text) -> None:
+    """Bare, so nothing is left for the embedder to explain."""
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .test_embedding import PointedEmbedder
+
+    pointed = PointedEmbedder({text: "OSP — тест Scio (общие способности)"})
+    await rebuild(session, embedder=pointed)
+    embedding.set_embedder(pointed)
+    try:
+        parsed = await parse(session, text, "cs", today=TODAY)
+    finally:
+        embedding.set_embedder(None)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.vector is None, "the embedder was asked"
