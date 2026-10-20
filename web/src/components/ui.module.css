@@ -1782,3 +1782,151 @@
 .profileHeadline {
   font-size: 14px;
 }
+
+/* A hit in the ads queue: who and where, what they wrote, and the answers.
+   The top part opens the hit; the answers sit below it, not inside it. */
+.pingCard {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.pingCard .actions {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Sized to their words, as in a toolbar: three equal pills squeeze
+   «Не реклама» onto two lines on a phone. */
+.pingCard .action {
+  flex: none;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.pingCard .actionQuiet {
+  background: var(--bg);
+}
+
+.pingCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.pingCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pingCardTop b {
+  color: var(--ink);
+}
+
+.pingCardText {
+  font-size: 14.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pingCardVerdict {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* The console summary's numbers, two to a row, each in its section's tone. */
+.summaryTiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap-row);
+  margin-top: 16px;
+}
+
+.summaryTile {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 12px;
+  border-radius: var(--r-tile);
+  font-size: 12px;
+}
+
+.summaryTile span {
+  font-weight: 650;
+}
+
+.summaryTile b {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.summaryTile[data-tone='0'] {
+  background: var(--tone-0-bg);
+  color: var(--tone-0-fg);
+}
+
+.summaryTile[data-tone='1'] {
+  background: var(--tone-1-bg);
+  color: var(--tone-1-fg);
+}
+
+.summaryTile[data-tone='2'] {
+  background: var(--tone-2-bg);
+  color: var(--tone-2-fg);
+}
+
+.summaryTile[data-tone='3'] {
+  background: var(--tone-3-bg);
+  color: var(--tone-3-fg);
+}
+
+/* A day by three hours per chat: the name, then eight cells. */
+.busyChats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+}
+
+.busyChatRow {
+  display: grid;
+  grid-template-columns: 104px repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
+}
+
+.busyChatRow .heatmapCell {
+  aspect-ratio: auto;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.busyChatName {
+  overflow: hidden;
+  padding-right: 6px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

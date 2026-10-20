@@ -614,6 +614,15 @@ class SpamPing(Base):
     __table_args__ = (
         Index("ix_spam_pings_chat_id_detected_at", "chat_id", "detected_at"),
         Index("ix_spam_pings_detected_at", "detected_at"),
+        # The console's queue: what waits, newest first, a page at a time.
+        Index(
+            "ix_spam_pings_unreviewed",
+            "detected_at",
+            "id",
+            postgresql_where=sa.text("verdict IS NULL"),
+            sqlite_where=sa.text("verdict IS NULL"),
+        ),
+        sa.CheckConstraint("verdict IN ('done', 'not_ad', 'ad')", name="ck_spam_pings_verdict"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -624,6 +633,10 @@ class SpamPing(Base):
     matches: Mapped[list[str]] = mapped_column(JSON)
     snippet: Mapped[str | None] = mapped_column(String, nullable=True)
     detected_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+    # A SpamVerdict from the console; none while the hit waits in the queue.
+    verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reviewed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    reviewed_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     def __init__(
         self,

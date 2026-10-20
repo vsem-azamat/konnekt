@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.enums import SpamVerdict
+
 ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 
 # What may be stored as a chat's public link.
@@ -270,6 +272,10 @@ class UserBlockResponse(BaseModel):
     user_id: int
     blocked: bool
     message: str
+    # The approved chats where Telegram refused, and how many it took in:
+    # none of either means there was no approved chat to act in.
+    failed_chats: list[int] = []
+    banned_in: int = 0
 
 
 class AdminSessionRead(BaseModel):
@@ -307,15 +313,16 @@ ChatNode.model_rebuild()
 
 
 class ChatHeatmapSummary(BaseModel):
-    """Home tile: per-chat total activity over the last 7 days.
+    """Home tile: one of the busiest chats of the last 24 hours.
 
-    We send totals (not the full grid) to keep the home payload small;
-    the full grid lives on /chats/:id.
+    Its messages by UTC hour of day over those 24 hours, not the week's grid,
+    to keep the home payload small; the full grid lives on /chats/:id.
     """
 
     chat_id: int
     title: str | None
     total_messages: int
+    hours: list[int]
 
 
 class MembersDeltaEntry(BaseModel):
@@ -351,6 +358,17 @@ class SpamPingRead(BaseModel):
     matches: list[str]
     snippet: str | None
     detected_at: datetime.datetime
+    verdict: SpamVerdict | None = None
+
+
+class SpamReviewRequest(BaseModel):
+    """Body for POST /api/spam/pings/{id}/review. «ad» is a ban's to write."""
+
+    verdict: Literal[SpamVerdict.DONE, SpamVerdict.NOT_AD]
+
+
+class SpamQueueCount(BaseModel):
+    count: int
 
 
 class SpamPingsSummary(BaseModel):
@@ -358,6 +376,8 @@ class SpamPingsSummary(BaseModel):
 
     count_24h: int
     count_7d: int
+    # Hits nobody answered yet, of any age: the console's ads queue.
+    unreviewed: int = 0
     recent: list[SpamPingRead] = []
 
 

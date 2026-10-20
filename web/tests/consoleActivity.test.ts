@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { localHeatmap, memberTrend, parentChoices } from '../src/console/activity.ts';
+import {
+  dayCells,
+  localHeatmap,
+  memberChange,
+  memberTrend,
+  parentChoices,
+  signed,
+} from '../src/console/activity.ts';
 import type { ConsoleChat } from '../src/console/session.ts';
 
 test('the heatmap is read in local time, so a Prague evening is not UTC afternoon', () => {
@@ -102,4 +109,47 @@ test('a chat under one parent may move under another', () => {
     parentChoices(chats, 2).map((c) => c.id),
     [1, 3],
   );
+});
+
+test('the members moved by what every counted chat moved, where it is known', () => {
+  const entry = (delta_24h: number | null, delta_7d: number | null) => ({
+    chat_id: -1,
+    title: null,
+    current: 100,
+    delta_24h,
+    delta_7d,
+  });
+  assert.deepEqual(memberChange([entry(5, 30), entry(-2, null), entry(null, 4)]), {
+    day: 3,
+    week: 34,
+  });
+  assert.deepEqual(memberChange([entry(null, null)]), { day: null, week: null });
+  assert.deepEqual(memberChange([]), { day: null, week: null });
+});
+
+test('a day by hour folds into eight three-hour cells of the reader’s day', () => {
+  const hours = Array<number>(24).fill(0);
+  hours[0] = 1; // 00 UTC
+  hours[22] = 2; // 22 UTC
+  hours[23] = 3; // 23 UTC
+  // UTC: 00–02 holds 1, 21–23 holds 5.
+  assert.deepEqual(dayCells(hours, 0), [1, 0, 0, 0, 0, 0, 0, 5]);
+  // Prague in summer, UTC+2: 22 and 23 UTC are 00 and 01, 00 UTC is 02.
+  assert.deepEqual(dayCells(hours, 120), [6, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+test('west of Greenwich a day folds back, and a half-hour zone moves by its whole hours', () => {
+  const hours = Array<number>(24).fill(0);
+  hours[1] = 4; // 01 UTC
+  // New York in winter, UTC−5: 01 UTC is 20 the evening before.
+  assert.deepEqual(dayCells(hours, -300), [0, 0, 0, 0, 0, 0, 4, 0]);
+  // India, UTC+5:30, moves by five: 01 UTC is 06.
+  assert.deepEqual(dayCells(hours, 330), [0, 0, 4, 0, 0, 0, 0, 0]);
+});
+
+test('a change is written with its sign, a true minus, and ± for none', () => {
+  const format = (n: number) => String(n);
+  assert.equal(signed(37, format), '+37');
+  assert.equal(signed(-5, format), '−5');
+  assert.equal(signed(0, format), '±0');
 });

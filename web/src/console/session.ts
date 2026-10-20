@@ -206,7 +206,12 @@ export interface SpamPing {
   matches: string[];
   snippet: string | null;
   detected_at: string;
+  /** A moderator's answer; none while it waits in the queue. */
+  verdict: SpamVerdict | null;
 }
+
+/** «ad» is written by a ban, the other two in the console. */
+export type SpamVerdict = 'done' | 'not_ad' | 'ad';
 
 export interface ConsoleChatDetail extends ConsoleChat {
   welcome_message: string | null;
@@ -231,27 +236,46 @@ export type ChatUpdate = Partial<
   > & { public_link: string }
 >;
 
+/** One of the busiest chats of the last 24 hours, by UTC hour of day. */
+export interface BusyChat {
+  chat_id: number;
+  title: string | null;
+  total_messages: number;
+  hours: number[];
+}
+
+/** How a chat's member count moved; none where no count is old enough. */
+export interface MemberDelta {
+  chat_id: number;
+  title: string | null;
+  current: number | null;
+  delta_24h: number | null;
+  delta_7d: number | null;
+}
+
 export interface HomeStats {
-  spam_pings: { count_24h: number; count_7d: number };
+  chat_heatmap: BusyChat[];
+  members_delta: MemberDelta[];
+  spam_pings: { count_24h: number; count_7d: number; unreviewed: number };
 }
 
 // ── what the summary says ─────────────────────────────────────────────────
 
-export type AttentionKey = 'ads' | 'review' | 'profiles';
+export type AttentionKey = 'ads' | 'review' | 'requests';
 
 /** What needs a look, in the order the summary lists it; zero is not news. */
 export function attention(input: {
-  adsToday: number;
+  adsUnreviewed: number;
   chats: Pick<ConsoleChat, 'resource_status'>[];
-  profilesWeek: number;
+  requestsUnanswered: number;
 }): { key: AttentionKey; count: number }[] {
   const items: { key: AttentionKey; count: number }[] = [
-    { key: 'ads', count: input.adsToday },
+    { key: 'ads', count: input.adsUnreviewed },
     {
       key: 'review',
       count: input.chats.filter((chat) => chat.resource_status === 'discovered').length,
     },
-    { key: 'profiles', count: input.profilesWeek },
+    { key: 'requests', count: input.requestsUnanswered },
   ];
   return items.filter((item) => item.count > 0);
 }

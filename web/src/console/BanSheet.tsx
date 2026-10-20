@@ -1,9 +1,9 @@
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { type ReactNode, useId, useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
 import { Action, Actions, Hint, Sub, ui } from '@/components/Ui';
-import { type BanChoice, revokeMessages } from '@/console/ban';
+import { type BanChoice, type BanOutcome, revokeMessages } from '@/console/ban';
 
 /**
  * A ban in every chat the bot moderates, as /banall is. Keeping the messages
@@ -117,6 +117,57 @@ export function BanSheet({
           }}
         >
           {wipe ? <Trans>Забанить и стереть</Trans> : <Trans>Забанить</Trans>}
+        </Action>
+      </Actions>
+    </Sheet>
+  );
+}
+
+/**
+ * A ban that did not take everywhere, said rather than hidden: the person can
+ * still write wherever Telegram refused, most often for want of the bot's
+ * rights there. A ban that took nowhere can be pressed again from the hit.
+ */
+export function BanOutcomeSheet({
+  name,
+  outcome,
+  failed,
+  onClose,
+}: {
+  name: string;
+  outcome: Exclude<BanOutcome, 'done'>;
+  failed: number;
+  onClose: () => void;
+}) {
+  const { t } = useLingui();
+  const title =
+    outcome === 'partial'
+      ? t`${name} забанен не везде`
+      : outcome === 'nowhere'
+        ? t`${name} не забанен ни в одном чате`
+        : t`${name} в чёрном списке`;
+  return (
+    <Sheet title={title} closeLabel={t`Готово`} onClose={onClose}>
+      <Sub>
+        {outcome === 'partial' ? (
+          <Plural
+            value={failed}
+            one="В # чате Telegram отказал: проверьте там права бота."
+            few="В # чатах Telegram отказал: проверьте там права бота."
+            many="В # чатах Telegram отказал: проверьте там права бота."
+            other="В # чата Telegram отказал: проверьте там права бота."
+          />
+        ) : outcome === 'nowhere' ? (
+          <Trans>
+            Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз.
+          </Trans>
+        ) : (
+          <Trans>Одобренных чатов нет: банить пока негде.</Trans>
+        )}
+      </Sub>
+      <Actions>
+        <Action onClick={onClose}>
+          <Trans>Готово</Trans>
         </Action>
       </Actions>
     </Sheet>
