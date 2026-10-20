@@ -124,9 +124,21 @@ class TestWhatGetsIn:
 
         assert resp.json() == []
 
+    @pytest.mark.parametrize("status", [Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL])
+    async def test_a_chat_we_do_not_moderate_is_listed_once_decided(
+        self, client_factory, db_session_maker, status: str
+    ) -> None:
+        """Listing and moderating are separate decisions: observing or not being in a chat still lists it."""
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FJFI", status=status, public_link="https://t.me/cvut_fjfi"))
+
+        async with client_factory() as client:
+            resp = await client.get("/api/public/catalog")
+
+        assert [row["title"] for row in resp.json()] == ["ČVUT FJFI"]
+
 
 class TestWhatComesBack:
-    async def test_the_row_carries_seven_fields_and_no_more(self, client_factory, db_session_maker) -> None:
+    async def test_the_row_carries_eight_fields_and_no_more(self, client_factory, db_session_maker) -> None:
         """Whatever a page does with this, it cannot show what is not here."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
 
@@ -141,7 +153,33 @@ class TestWhatComesBack:
             "activity",
             "member_count",
             "is_forum",
+            "external",
         }
+
+    @pytest.mark.parametrize(
+        ("status", "external"),
+        [(Chat.STATUS_APPROVED, False), (Chat.STATUS_OBSERVED, False), (Chat.STATUS_EXTERNAL, True)],
+    )
+    async def test_a_chat_that_is_not_ours_says_so(self, client_factory, db_session_maker, status, external) -> None:
+        """Only external is marked: a chat we observe is still ours, and how we run it is nobody's business."""
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FJFI", status=status, public_link="https://t.me/cvut_fjfi"))
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["external"] is external
+
+    async def test_an_external_university_still_names_its_section(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "VŠE Chat", status=Chat.STATUS_EXTERNAL, public_link="https://t.me/vse_v_praze_chat"),
+            _chat(FIT, "VŠE FIS", status=Chat.STATUS_EXTERNAL, public_link="https://t.me/vse_fis", parent_chat_id=CVUT),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert {row["group"] for row in rows} == {"VŠE Chat"}
 
     async def test_a_chat_says_how_many_people_are_in_it_by_its_newest_snapshot(
         self, client_factory, db_session_maker

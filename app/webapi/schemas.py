@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-ChatResourceStatus = Literal["discovered", "approved", "disabled"]
+ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 
 # What may be stored as a chat's public link.
 #
@@ -54,6 +54,11 @@ class PublicCatalogItem(BaseModel):
     member_count: int | None = None
     # Telegram's topics, so the preview can say the chat is split into them.
     is_forum: bool = False
+    # Somebody else's chat, listed so a student can find it. The one thing a
+    # stranger learns about how a chat is run, because it is the one thing they
+    # need: the rules in there are not ours. A chat we only observe is still
+    # ours and is not marked.
+    external: bool = False
 
 
 class PublicReachGroup(BaseModel):
