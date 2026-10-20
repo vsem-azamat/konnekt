@@ -259,3 +259,17 @@ def test_only_an_address_is_recorded(host: str, recorded: str | None) -> None:
     from app.webapi.auth.login import caller_address
 
     assert caller_address(SimpleNamespace(client=SimpleNamespace(host=host))) == recorded  # ty: ignore[invalid-argument-type]
+
+
+async def test_a_stale_cookie_does_not_stop_a_fresh_sign_in(client_factory) -> None:
+    """An expired session's cookie rides along with the next sign-in; the signed payload decides."""
+    async with client_factory() as client:
+        client.cookies.set(settings.webapi.session_cookie_name, "an-expired-token")
+        resp = await client.post(
+            "/api/auth/webapp",
+            json={"init_data": _init_data(user_id=SUPER_ADMIN_ID)},
+            headers={"Origin": DEV_ORIGIN},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.cookies.get(settings.webapi.session_cookie_name) != "an-expired-token"
+        assert (await client.get("/api/auth/me")).status_code == 200

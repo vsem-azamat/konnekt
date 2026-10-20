@@ -15,6 +15,7 @@ valid code from signing the admin's browser in to their account.
 
 from __future__ import annotations
 
+import ipaddress
 import time
 from collections import deque
 from typing import Annotated
@@ -66,12 +67,27 @@ def _flow_cookie() -> str:
     return "__Host-konnekt_oidc_flow" if settings.webapi.session_cookie_secure else "konnekt_oidc_flow"
 
 
+def _limit_key(request: Request) -> str:
+    """Who an attempt is counted against: an IPv4 address, or an IPv6 /64.
+
+    A /64 is what one subscriber is given; counting single addresses would
+    leave them 2**64 allowances.
+    """
+    address = caller_address(request)
+    if address is None:
+        return "unknown"
+    ip = ipaddress.ip_address(address)
+    return str(ipaddress.ip_network(f"{ip}/64", strict=False)) if ip.version == 6 else address
+
+
 def _limited(request: Request) -> bool:
     now = time.monotonic()
-    key = caller_address(request) or "unknown"
-    if key not in _callbacks and len(_callbacks) >= _REMEMBERED:
-        _callbacks.clear()
-    recent = _callbacks.setdefault(key, deque())
+    key = _limit_key(request)
+    # Re-inserted on every use, so the first key in the table is the one least recently seen.
+    recent = _callbacks.pop(key, None) or deque()
+    _callbacks[key] = recent
+    while len(_callbacks) > _REMEMBERED:
+        del _callbacks[next(iter(_callbacks))]
     while recent and now - recent[0] > 60:
         recent.popleft()
     if len(recent) >= CALLBACKS_PER_MINUTE:

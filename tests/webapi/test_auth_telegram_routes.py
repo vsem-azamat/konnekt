@@ -349,3 +349,39 @@ async def test_callbacks_are_limited_per_address(client_factory, telegram) -> No
 
     assert answers[:-1] == [302] * auth_telegram.CALLBACKS_PER_MINUTE
     assert answers[-1] == 429
+
+
+def _from(address: str) -> httpx.AsyncClient:
+    return httpx.AsyncClient(transport=httpx.ASGITransport(app=app, client=(address, 1234)), base_url="http://test")
+
+
+async def test_an_ipv6_network_shares_one_allowance(client_factory) -> None:
+    """A /64 is one subscriber's to hand out; counting addresses would give them 2**64 allowances."""
+    answers = []
+    for index in range(auth_telegram.CALLBACKS_PER_MINUTE + 1):
+        async with _from(f"2001:db8:1:2::{index + 1:x}") as client:
+            answers.append(
+                (await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})).status_code
+            )
+
+    assert answers[-1] == 429
+
+
+async def test_another_ipv6_network_has_its_own_allowance(client_factory) -> None:
+    for index in range(auth_telegram.CALLBACKS_PER_MINUTE):
+        async with _from(f"2001:db8:1:2::{index + 1:x}") as client:
+            await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
+    async with _from("2001:db8:1:3::1") as client:
+        resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
+
+    assert resp.status_code == 302
+
+
+async def test_a_full_table_forgets_the_oldest_caller_and_keeps_the_rest(client_factory, monkeypatch) -> None:
+    """Clearing it all would hand every address that was at its limit a fresh one."""
+    monkeypatch.setattr(auth_telegram, "_REMEMBERED", 3)
+    for address in ("192.0.2.1", "192.0.2.2", "192.0.2.3", "192.0.2.4"):
+        async with _from(address) as client:
+            await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
+
+    assert set(auth_telegram._callbacks) == {"192.0.2.2", "192.0.2.3", "192.0.2.4"}
