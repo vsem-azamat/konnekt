@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # supervisor's ADMIN_SUPER_ADMINS. See docs/architecture.md. NoDecode: the
     # deploy writes "1,2", which is not the JSON list pydantic would expect.
     admin_tg_ids: Annotated[list[int], NoDecode] = Field(default_factory=list)
+    # What supervisor's webapi shows when it asks for an operator it signed in
+    # (the console in a browser has no initData). Shared by the two containers
+    # alone, never sent by a browser. Unset turns that way in off. See
+    # docs/architecture.md.
+    service_token: SecretStr = SecretStr("")
     # Who a business writes to about advertising: a Telegram username. Unset
     # means the ads page offers no contact. See docs/architecture.md.
     ads_contact: str | None = None
