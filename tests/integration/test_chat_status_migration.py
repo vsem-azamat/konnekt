@@ -16,6 +16,7 @@ import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
 from app.core.config import settings
+from sqlalchemy.exc import IntegrityError
 
 pytestmark = pytest.mark.integration
 
@@ -90,7 +91,7 @@ def test_upgrade_and_downgrade_meet_either_database(database, old_check: bool) -
 
     assert "observed" in (_check(database) or "")
     _chat(database, -2, "observed")
-    with pytest.raises(sa.exc.IntegrityError):
+    with pytest.raises(IntegrityError):
         _chat(database, -3, "bogus")
 
     command.downgrade(config, BEFORE)
