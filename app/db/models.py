@@ -86,10 +86,30 @@ class AdminChat(Base):
 class Chat(Base):
     __tablename__ = "chats"
 
+    # How far the bot's hand reaches here, in one column, so that a check for
+    # "approved" is a check for active moderation and nothing else can mean it.
+    #
+    # Approved is a chat the bot moderates. Observed is one it sits in and
+    # records but never speaks in: its owner's own bot is in charge there.
+    # External is one the bot is not in at all, listed by its public link and
+    # marked as somebody else's. Those three may be listed; discovered awaits a
+    # decision and disabled was taken down.
     STATUS_DISCOVERED = "discovered"
     STATUS_APPROVED = "approved"
+    STATUS_OBSERVED = "observed"
+    STATUS_EXTERNAL = "external"
     STATUS_DISABLED = "disabled"
-    VALID_RESOURCE_STATUSES = frozenset({STATUS_DISCOVERED, STATUS_APPROVED, STATUS_DISABLED})
+    VALID_RESOURCE_STATUSES = frozenset(
+        {STATUS_DISCOVERED, STATUS_APPROVED, STATUS_OBSERVED, STATUS_EXTERNAL, STATUS_DISABLED}
+    )
+    LISTABLE_STATUSES = frozenset({STATUS_APPROVED, STATUS_OBSERVED, STATUS_EXTERNAL})
+
+    __table_args__ = (
+        sa.CheckConstraint(
+            "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
+            name="ck_chats_resource_status",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     title: Mapped[str | None] = mapped_column(String, nullable=True)

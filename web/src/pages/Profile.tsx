@@ -1,8 +1,15 @@
 import { Trans } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { openTelegramLink } from '@tma.js/sdk-react';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
-import { DocumentIcon, LanguageIcon, PersonIcon, SealIcon } from '@/components/icons';
+import {
+  ChatIcon,
+  DocumentIcon,
+  LanguageIcon,
+  PersonIcon,
+  SealIcon,
+} from '@/components/icons';
 import { TabBar } from '@/components/TabBar';
 import {
   AvatarView,
@@ -36,6 +43,15 @@ export default function ProfilePage() {
     queryKey: ['me'],
     queryFn: ({ signal }) => api.getMe(signal),
   });
+
+  // The contact the ads pages offer too (`AdsContact`): the desk answers any
+  // question, so it is here as well. Unset, the row is not drawn.
+  const { data: ads } = useQuery({
+    queryKey: ['ads'],
+    queryFn: ({ signal }) => api.getAds(signal),
+    staleTime: 60 * 60_000,
+  });
+  const contactUrl = ads?.contact_url;
 
   const { data: languages } = useQuery({
     queryKey: ['languages'],
@@ -176,6 +192,18 @@ export default function ProfilePage() {
                 title={<Trans>Реклама для студентов</Trans>}
                 hint={<Trans>для компаний: посты в чатах и карточки</Trans>}
               />
+              {contactUrl ? (
+                <Row
+                  onClick={() => openTelegramLink(contactUrl)}
+                  leading={
+                    <Tile tone={0}>
+                      <ChatIcon size={19} />
+                    </Tile>
+                  }
+                  title={<Trans>Написать нам</Trans>}
+                  hint={<Trans>по любому вопросу</Trans>}
+                />
+              ) : null}
             </Rows>
           </>
         )}

@@ -366,7 +366,10 @@ class TestTheContact:
 
         text = message.answer.call_args[0][0]
         assert f"@{CONTACT}" in text
-        assert "Сотрудничество" in text
+        # Any question, not only cooperation: the contact desk answers them all.
+        assert "Написать нам" in text
+        assert "по любому вопросу" in text
+        assert "Сотрудничество" not in text
 
     async def test_without_a_contact_contacts_leaves_the_line_out(self, telegram_factory, site, monkeypatch):
         monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", "")
@@ -375,4 +378,4 @@ class TestTheContact:
         with patch.object(start_handlers.other, "sleep_and_delete"):
             await start_handlers.get_contacts(message)
 
-        assert "Сотрудничество" not in message.answer.call_args[0][0]
+        assert "Написать нам" not in message.answer.call_args[0][0]

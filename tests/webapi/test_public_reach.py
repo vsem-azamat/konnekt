@@ -112,6 +112,22 @@ class TestWhatIsCounted:
         assert body["chats"] == 1
         assert body["members"] == 1200
 
+    @pytest.mark.parametrize("status", [Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL])
+    async def test_a_listed_chat_we_do_not_run_is_not_reach(self, client_factory, db_session_maker, status) -> None:
+        """Reach is quoted to somebody paying for a post, and nobody posts where the bot stays silent."""
+        await _seed(
+            db_session_maker,
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"),
+            _chat(FS, "ČVUT FJFI", public_link="https://t.me/cvut_fjfi", status=status),
+        )
+        await _snapshot(db_session_maker, FIT, 1200)
+        await _snapshot(db_session_maker, FS, 276)
+
+        body = await _reach(client_factory)
+
+        assert body["chats"] == 1
+        assert body["members"] == 1200
+
     async def test_the_newest_snapshot_wins(self, client_factory, db_session_maker) -> None:
         """The loop writes a row per poll; a sum over all of them counts the
         same people once per observation."""

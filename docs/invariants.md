@@ -92,13 +92,34 @@ taking the other bot out of it.
 
 ## Approval
 
-**Being in a chat is not permission to publish or moderate it.** The bot can
-sync a group it does not own, and legacy `approved` rows are not evidence of
-an agreement with the owner. Until an owner agrees, keep that group's listing
-unpublished and its active moderation disabled. When taking a listing down,
-clear its public link as well as its approval status: restoring approval must
-not silently republish an old link. Future external directory entries need
-consent and a listing lifecycle independent of bot moderation.
+**Being in a chat is not permission to moderate it.** The bot can sync a
+group it does not own, and legacy `approved` rows are not evidence of an
+agreement with the owner. Until somebody decides about a discovered group, its
+listing stays unpublished and its active moderation disabled. When taking a
+listing down, clear its public link as well as its status: restoring a status
+must not silently republish an old link.
+
+**Listing a chat is not claiming it.** A chat run by somebody else may be
+listed so students can find it, as `external`, and the catalogue marks it as
+not ours, because its rules are not ours either. That mark is the whole of the
+consent question: an unmarked listing would vouch for a room we do not run.
+`observed` is a chat of ours where another bot of ours is in charge (NTK's own
+bot in @chat_ntk): ours to list and unmarked, never ours to act in, since a
+second bot answering there competes with the one already running it. Neither
+is reach: nobody buying a post can be sold a room our posts do not go to. The
+price of that honesty is accepted: a group's chat count on the ads page can be
+smaller than in the catalogue, which shows which of its chats are not
+moderated.
+
+**Moderation is the one meaning of `approved`, read when the action runs.**
+Every path that acts in a chat asks whether it is approved at the moment it
+acts — a proposal confirmed later or a join check passed later asks again,
+since the chat may have been switched to watching in between. The statuses
+that only list a chat are other values of the same column rather than a second
+column beside it: a second column would have to be remembered at every one of
+those checks, and the one that forgets it is the bot moderating a chat it was
+told to watch, whereas a new status that nothing checks for is merely a chat
+nobody listed.
 
 **A chat is approved or it is not — that is a property of the chat, not of an
 update type.** The bot records what it observes in unapproved groups but takes

@@ -174,7 +174,7 @@ async def get_chats(message: types.Message, db: AsyncSession) -> None:
 async def get_contacts(message: types.Message) -> None:
     lines = ["📞 <b>Контакты:</b>", ""]
     if contact := settings.ads_bot.contact_username:
-        lines.append(f"• 📧 <b>Сотрудничество:</b> @{contact}")
+        lines.append(f"• ✉️ <b>Написать нам:</b> @{contact} (по любому вопросу)")
     lines.append("• 🧑🏿‍💻 <b>Dev:</b> @vsem_azamat")
     text = "\n".join(lines)
     bot_message = await message.answer(text)

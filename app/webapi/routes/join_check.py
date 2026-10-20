@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import JoinCheck
+from app.db.models import Chat, JoinCheck
 from app.webapi.auth.telegram_webapp import InitDataError, verify_init_data
 from app.webapi.deps import get_publish_bot, get_session
 
@@ -65,6 +65,14 @@ async def pass_join_check(
         # The reason this table exists: holding a query id is not the same as
         # being the person it was issued to.
         logger.warning("join_check_wrong_applicant", user_id=caller.user_id, expected=check.user_id)
+        raise _REFUSED
+
+    # The check was issued while the bot ran this chat's door. If it has since
+    # been switched to watching only or disabled, the door is its owner's again
+    # and the bot must not open it, whatever it promised a few minutes ago.
+    chat_status = await session.scalar(select(Chat.resource_status).where(Chat.id == check.chat_id))
+    if chat_status != Chat.STATUS_APPROVED:
+        logger.info("join_check_chat_not_managed", chat_id=check.chat_id, user_id=caller.user_id)
         raise _REFUSED
 
     # Claimed before the call, in one statement, so a double tap cannot

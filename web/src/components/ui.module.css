@@ -374,6 +374,15 @@
   background: var(--surface-pressed);
 }
 
+/* A chat somebody else runs: drawn, not filled, so a reader can tell at a
+   glance which rows are ours. The padding gives back the border's pixel so the
+   row keeps its height and its text lines up with the filled rows. */
+.rowOutline {
+  padding: 6px 11px 6px 8px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+}
+
 /* flex:1 and min-width:0 together are what let the hint truncate: without the
    min-width a flex child refuses to shrink below its content, so the text runs
    under the avatars instead of ending in an ellipsis. */
@@ -874,6 +883,23 @@
   text-align: center;
 }
 
+/* Said to a screen reader and drawn for nobody: what an outline tells the eye. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sheetNote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
 .pick {
   display: flex;
   align-items: center;
@@ -1315,6 +1341,12 @@
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
+/* What cannot be undone. Red is kept for this so that it means one thing. */
+.actionDanger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
 /* Skeletons rather than a spinner: the layout does not jump when data lands,
    and the shape tells you what is coming. */
 .skeleton {
@@ -1414,6 +1446,64 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+}
+
+/* A ban's two answers, as radio rows; the one that deletes is red. */
+.banChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.banChoices:disabled {
+  opacity: 0.6;
+}
+
+.banOption:focus-within {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
+}
+
+.banOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.banOption input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.banOptionDanger {
+  background: var(--danger-soft);
+}
+
+.banOptionDanger b {
+  color: var(--danger);
+}
+
+.banOptionDanger input {
+  accent-color: var(--danger);
+}
+
+.banOptionHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
 }
 
 /* The message an ad-detector hit came from, as the bot saw it. */

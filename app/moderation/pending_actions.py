@@ -30,11 +30,11 @@ from app.core.enums import (
     PendingActionOrigin,
     PendingActionStatus,
 )
-from app.core.exceptions import ProtectedUserError
+from app.core.exceptions import ChatNotManagedError, ProtectedUserError
 from app.core.logging import get_logger
 from app.core.text import escape_html
 from app.core.time import utc_now
-from app.db.models import PendingAction
+from app.db.models import Chat, PendingAction
 from app.moderation import audit
 from app.moderation.blacklist import is_protected
 
@@ -221,6 +221,16 @@ class PendingActionService:
             await self._mark(pending, PendingActionStatus.REJECTED, admin_id=None)
             logger.warning("pending_action_refused_protected", pending_id=pending_id, admin_id=admin_id)
             raise ProtectedUserError(pending.target_user_id)
+
+        # The chat was moderated when the proposal was made; it may since have
+        # been switched to watching only, or disabled, and the press must not
+        # reach into it. Read now, never from the proposal.
+        if pending.chat_id is not None:
+            status = await self.db.scalar(select(Chat.resource_status).where(Chat.id == pending.chat_id))
+            if status != Chat.STATUS_APPROVED:
+                await self._mark(pending, PendingActionStatus.REJECTED, admin_id=None)
+                logger.warning("pending_action_refused_unmanaged", pending_id=pending_id, chat_id=pending.chat_id)
+                raise ChatNotManagedError(pending.chat_id)
 
         try:
             await self._execute(pending, self.bot, self.db)

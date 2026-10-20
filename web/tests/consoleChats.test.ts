@@ -99,11 +99,37 @@ test('each status is counted, and all of them together', () => {
     all: 6,
     discovered: 2,
     approved: 3,
+    observed: 0,
+    external: 0,
     disabled: 1,
   });
 });
 
-test('listed is what the public tab shows: approved, titled and linked', () => {
+test('a chat we observe or only list is counted under its own status', () => {
+  const counts = statusCounts([
+    chat(1, 'NTK', { resource_status: 'observed' }),
+    chat(2, 'ČVUT FJFI', { resource_status: 'external' }),
+    chat(3, 'PODOLI', { resource_status: 'external' }),
+  ]);
+  assert.equal(counts.observed, 1);
+  assert.equal(counts.external, 2);
+});
+
+test('an observed or external chat with a link is on the public tab', () => {
+  const link = 'https://t.me/x';
+  for (const status of ['observed', 'external'] as const) {
+    assert.equal(
+      isListed(chat(1, 'A', { public_link: link, resource_status: status })),
+      true,
+    );
+  }
+  assert.equal(
+    isListed(chat(1, 'A', { public_link: link, resource_status: 'disabled' })),
+    false,
+  );
+});
+
+test('listed is what the public tab shows: decided, titled and linked', () => {
   const link = 'https://t.me/x';
   assert.equal(isListed(chat(1, 'A', { public_link: link })), true);
   assert.equal(

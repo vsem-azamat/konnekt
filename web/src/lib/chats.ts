@@ -28,6 +28,11 @@ export interface PublicChat {
   member_count: number | null;
   /** Whether the chat is split into Telegram topics. */
   is_forum: boolean;
+  /**
+   * Somebody else's chat, listed so it can be found: Konnekt does not run it,
+   * so its rules are not ours. False for every chat we run.
+   */
+  external: boolean;
 }
 
 const ACTIVITIES: readonly Activity[] = ['unknown', 'quiet', 'active', 'busy'];
@@ -50,8 +55,16 @@ export function sanitize(payload: unknown[]): PublicChat[] {
   const chats: PublicChat[] = [];
   for (const item of payload) {
     if (!item || typeof item !== 'object') continue;
-    const { title, link, group, institution, activity, member_count, is_forum } =
-      item as Record<string, unknown>;
+    const {
+      title,
+      link,
+      group,
+      institution,
+      activity,
+      member_count,
+      is_forum,
+      external,
+    } = item as Record<string, unknown>;
     if (typeof title !== 'string' || !title.trim()) continue;
     if (typeof link !== 'string' || !TELEGRAM_LINK.test(link)) continue;
     chats.push({
@@ -70,6 +83,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
           ? (member_count as number)
           : null,
       is_forum: is_forum === true,
+      external: external === true,
     });
   }
   return chats;
@@ -122,6 +136,20 @@ export function directory(chats: PublicChat[], mine: string | null = null): Dire
     entries.sort((a, b) => Number(own(b)) - Number(own(a)));
   }
   return { entries, rest };
+}
+
+/**
+ * A section's chats split by who runs them, each half in the order given:
+ * ours above, the ones it only lists below under their own heading.
+ */
+export function byOwner(chats: PublicChat[]): {
+  ours: PublicChat[];
+  others: PublicChat[];
+} {
+  return {
+    ours: chats.filter((chat) => !chat.external),
+    others: chats.filter((chat) => chat.external),
+  };
 }
 
 /** How many chat names a section's row lists under its own. */

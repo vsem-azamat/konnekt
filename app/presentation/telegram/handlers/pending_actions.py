@@ -10,7 +10,7 @@ from aiogram import Bot, Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import ProtectedUserError
+from app.core.exceptions import ChatNotManagedError, ProtectedUserError
 from app.core.logging import get_logger
 from app.moderation.pending_actions import PendingActionDecision
 
@@ -47,6 +47,11 @@ async def handle_pending_action(
         )
     except ProtectedUserError:
         note = "Не выполнено: главного администратора забанить нельзя."
+        await callback.answer(note, show_alert=True)
+        await _strip_keyboard(callback, note)
+        return
+    except ChatNotManagedError:
+        note = "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
         await callback.answer(note, show_alert=True)
         await _strip_keyboard(callback, note)
         return
