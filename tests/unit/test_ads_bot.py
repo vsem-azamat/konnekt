@@ -348,6 +348,93 @@ async def test_a_staff_answer_telegram_asks_to_wait_for_is_tried_once_more(sessi
     bot.send_message.assert_not_awaited()
 
 
+@pytest.mark.parametrize("deleted_first", [False, True])
+async def test_a_person_hears_when_no_topic_could_be_opened(session_maker, deleted_first) -> None:
+    """Otherwise the message is lost and nobody knows, the person least of all."""
+    bot = _bot()
+    desk = AdsDesk(bot, session_maker, GROUP)
+    if deleted_first:
+        await desk.from_person([_private(1)])
+        bot.copy_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: TOPIC_DELETED")
+    bot.create_forum_topic.side_effect = TelegramBadRequest(
+        method=MagicMock(), message="Bad Request: not enough rights"
+    )
+
+    await desk.from_person([_private(2)])
+
+    answer = bot.send_message.await_args.kwargs
+    assert answer["chat_id"] == PERSON.id
+    assert answer["text"] == "Не получилось передать сообщение, попробуйте чуть позже"
+
+
+async def test_a_long_wait_telegram_asks_for_is_reported_at_once(session_maker, monkeypatch) -> None:
+    """Waiting holds the person's turn; past half a minute it is better to tell staff."""
+    slept: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    desk, bot = await _desk_with_topic(session_maker)
+    monkeypatch.setattr("app.ads.desk.asyncio.sleep", sleep)
+    bot.copy_message.side_effect = [_flood(31), None]
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert slept == []
+    assert bot.copy_message.await_count == 1
+    assert "не доставлено" in bot.send_message.await_args.kwargs["text"].lower()
+
+
+async def test_a_wait_of_up_to_half_a_minute_is_waited_out(session_maker, monkeypatch) -> None:
+    slept: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    desk, bot = await _desk_with_topic(session_maker)
+    monkeypatch.setattr("app.ads.desk.asyncio.sleep", sleep)
+    bot.copy_message.side_effect = [_flood(30), None]
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    assert slept == [30]
+    bot.send_message.assert_not_awaited()
+
+
+async def test_one_conversation_stuck_does_not_hold_up_another(session_maker) -> None:
+    bot = _bot()
+    stuck = asyncio.Event()
+    other = PERSON.model_copy(update={"id": 556, "username": "other"})
+
+    async def copy(**kw: Any) -> None:
+        if kw["from_chat_id"] == PERSON.id:
+            await stuck.wait()
+
+    bot.copy_message.side_effect = copy
+    desk = AdsDesk(bot, session_maker, GROUP)
+    hanging = asyncio.create_task(desk.from_person([_private(1)]))
+    await asyncio.sleep(0.01)
+
+    other_message = _private(2, from_user=other, chat=Chat(id=other.id, type="private"))
+    await asyncio.wait_for(desk.from_person([other_message]), timeout=1)
+
+    assert any(call.kwargs["from_chat_id"] == other.id for call in bot.copy_message.await_args_list)
+    stuck.set()
+    await hanging
+
+
+async def test_a_notice_that_cannot_be_sent_is_logged_not_raised(session_maker, monkeypatch) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr("app.ads.desk.logger", logger)
+    desk, bot = await _desk_with_topic(session_maker)
+    bot.copy_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was blocked")
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: TOPIC_CLOSED")
+
+    await desk.from_staff([_in_topic(50, 10)])
+
+    logger.warning.assert_called_once_with("ads_notice_failed", thread_id=10, error="Bad Request: TOPIC_CLOSED")
+
+
 # --- Routing ----------------------------------------------------------------
 
 
