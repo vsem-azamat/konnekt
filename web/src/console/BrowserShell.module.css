@@ -121,9 +121,15 @@
   }
 
   .group,
-  .brand small,
-  .foot {
+  .brand small {
     display: none;
+  }
+
+  /* Sign-out stays reachable: it joins the wrapped row of links. */
+  .foot {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border-top: 0;
   }
 
   .brand {

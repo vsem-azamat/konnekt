@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { isBrowserConsolePath, loginProblem } from '../src/console/browser.ts';
+import {
+  BROWSER_PATHS,
+  catalogReachable,
+  endsSession,
+  isBrowserConsolePath,
+  loginProblem,
+} from '../src/console/browser.ts';
+import { ConsoleError } from '../src/console/session.ts';
 
 test('the sign-in page names a failure only when the server did', () => {
   assert.equal(loginProblem(''), null);
@@ -24,4 +31,24 @@ test('a browser gets the console and its sign-in, and the landing page everywher
   assert.equal(isBrowserConsolePath('/chats'), false);
   assert.equal(isBrowserConsolePath('/consoles'), false);
   assert.equal(isBrowserConsolePath('/login/extra'), false);
+});
+
+test('the browser reaches no screen that needs the catalog', () => {
+  for (const path of BROWSER_PATHS) {
+    assert.doesNotMatch(path, /catalog|partners/);
+  }
+  assert.ok(BROWSER_PATHS.includes('chats'));
+  assert.ok(BROWSER_PATHS.includes('system'));
+});
+
+test('the catalog is asked from the Mini App and never from a browser', () => {
+  assert.equal(catalogReachable(false), true);
+  assert.equal(catalogReachable(true), false);
+});
+
+test('a missing session sends the browser to sign in, and a failed request does not', () => {
+  assert.equal(endsSession(new ConsoleError(401, 'stale')), true);
+  assert.equal(endsSession(new ConsoleError(401, 'not-kept')), false);
+  assert.equal(endsSession(new ConsoleError(500)), false);
+  assert.equal(endsSession(new Error('network')), false);
 });

@@ -1614,6 +1614,7 @@ msgstr "можна написати"
 msgid "черновик — не видна в каталоге"
 msgstr "чернетка — не видно в каталозі"
 
+#: src/console/BrowserNotFound.tsx
 #: src/pages/NotFound.tsx
 msgid "Ссылка устарела или в ней опечатка."
 msgstr "Посилання застаріле або в ньому одрук."
@@ -1781,6 +1782,10 @@ msgstr "оновіть його з Telegram"
 #: src/pages/Helper.tsx
 msgid "Чем помогает"
 msgstr "Чим допомагає"
+
+#: src/console/BrowserNotFound.tsx
+msgid "В консоль"
+msgstr "До консолі"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Chat.tsx
@@ -2040,6 +2045,7 @@ msgstr "Такого чату немає."
 msgid "ČVUT FEL, 3 курс"
 msgstr "ČVUT FEL, 3 курс"
 
+#: src/console/BrowserNotFound.tsx
 #: src/pages/NotFound.tsx
 msgid "Такой страницы нет"
 msgstr "Такої сторінки немає"
@@ -2299,6 +2305,7 @@ msgid "Аудитория за неделю"
 msgstr "Аудиторія за тиждень"
 
 #: src/components/AppHeader.tsx
+#: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
 msgid "Консоль"
 msgstr "Консоль"

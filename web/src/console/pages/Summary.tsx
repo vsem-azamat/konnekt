@@ -24,6 +24,7 @@ import {
   ui,
 } from '@/components/Ui';
 import { dayCells, memberChange, signed } from '@/console/activity';
+import { catalogReachable } from '@/console/browser';
 import { useBrowserConsole } from '@/console/browserContext';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
@@ -64,8 +65,14 @@ function Summary() {
   const chats = useQuery(consoleChatsQuery);
   // The catalog's API takes a Telegram signature only, which a browser does not have.
   const inBrowser = useBrowserConsole();
-  const catalog = useQuery({ ...adminCatalogQuery, enabled: !inBrowser });
-  const partners = useQuery({ ...adminPartnersQuery, enabled: !inBrowser });
+  const catalog = useQuery({
+    ...adminCatalogQuery,
+    enabled: catalogReachable(inBrowser),
+  });
+  const partners = useQuery({
+    ...adminPartnersQuery,
+    enabled: catalogReachable(inBrowser),
+  });
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
 
@@ -78,7 +85,7 @@ function Summary() {
   // catalog said, and the other way round.
   const webapiError = stats.error ?? chats.error;
   const loading =
-    (!inBrowser && catalog.isPending) ||
+    (catalogReachable(inBrowser) && catalog.isPending) ||
     (!webapiError && (stats.isPending || chats.isPending));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
@@ -277,7 +284,7 @@ function Summary() {
           trailing={<Chevron />}
           onClick={() => open('/console/audience')}
         />
-        {inBrowser ? null : (
+        {catalogReachable(inBrowser) ? (
           <>
             <Row
               leading={
@@ -317,7 +324,7 @@ function Summary() {
               onClick={() => open('/console/partners')}
             />
           </>
-        )}
+        ) : null}
         <Row
           leading={
             <Tile tone={1}>

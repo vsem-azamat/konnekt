@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router';
 
@@ -17,6 +17,7 @@ import { browserSessionQuery, consoleChanges } from './queries';
  * session to end.
  */
 export default function BrowserShell() {
+  const { t } = useLingui();
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
   const signOut = useMutation({
@@ -36,7 +37,7 @@ export default function BrowserShell() {
             <Trans>консоль</Trans>
           </small>
         </div>
-        <nav aria-label="Консоль" style={{ display: 'contents' }}>
+        <nav aria-label={t`Консоль`} style={{ display: 'contents' }}>
           <Item to="/console" end>
             <Trans>Обзор</Trans>
           </Item>
@@ -58,9 +59,6 @@ export default function BrowserShell() {
           <Item to="/console/audience">
             <Trans>Аудитория</Trans>
           </Item>
-          <div className={css.group}>
-            <Trans>Система</Trans>
-          </div>
           <Item to="/console/system">
             <Trans>Система</Trans>
           </Item>
@@ -82,7 +80,9 @@ export default function BrowserShell() {
         ) : null}
       </aside>
       <main className={css.main}>
-        <Outlet />
+        <div className={css.content}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

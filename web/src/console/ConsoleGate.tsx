@@ -5,6 +5,7 @@ import { Navigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { Empty, Row, Rows, Screen, SkeletonRows } from '@/components/Ui';
+import { endsSession } from '@/console/browser';
 import { useBrowserConsole } from '@/console/browserContext';
 import { browserSessionQuery } from '@/console/queries';
 import { ConsoleError, isFinal } from '@/console/session';
@@ -40,7 +41,7 @@ function BrowserGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (session.error instanceof ConsoleError && session.error.reason === 'stale') {
+  if (endsSession(session.error)) {
     return <Navigate to="/login" replace />;
   }
   return (

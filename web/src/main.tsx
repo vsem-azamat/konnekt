@@ -1,5 +1,10 @@
 import { I18nProvider } from '@lingui/react';
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   backButton,
   init,
@@ -14,9 +19,9 @@ import {
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
-import { isBrowserConsolePath } from '@/console/browser';
+import { endsSession, isBrowserConsolePath } from '@/console/browser';
 import { BrowserConsoleContext } from '@/console/browserContext';
-import { ConsoleError, isFinal } from '@/console/session';
+import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
 import { ApiError, api, rawInitData } from '@/lib/api';
@@ -79,10 +84,11 @@ function reportLaunch(): void {
  */
 function showLanding(): boolean {
   if (import.meta.env.DEV) {
-    // Remembered for the tab, because the router drops the parameter on its first navigation.
-    if (new URLSearchParams(window.location.search).has('landing')) {
-      sessionStorage.setItem('dev-browser', '1');
-    }
+    // Remembered for the tab, because the router drops the parameter on its
+    // first navigation; `?landing=0` forgets it.
+    const landing = new URLSearchParams(window.location.search).get('landing');
+    if (landing === '0') sessionStorage.removeItem('dev-browser');
+    else if (landing !== null) sessionStorage.setItem('dev-browser', '1');
     return sessionStorage.getItem('dev-browser') === '1';
   }
   return !isTMA();
@@ -254,16 +260,16 @@ async function enableMobileConsole(): Promise<void> {
   }
 }
 
+function signInAgain(error: unknown): void {
+  if (browserMode && endsSession(error)) window.location.assign('/login');
+}
+
 const queryClient = new QueryClient({
-  // A session that ended while a screen was open: webapi answers 401, and a
-  // browser has no initData to open another, so the way on is signing in again.
-  queryCache: new QueryCache({
-    onError: (error) => {
-      if (browserMode && error instanceof ConsoleError && error.reason === 'stale') {
-        window.location.assign('/login');
-      }
-    },
-  }),
+  // A session that ended while a screen was open, in a read or in a save:
+  // webapi answers 401, and a browser has no initData to open another, so the
+  // way on is signing in again.
+  queryCache: new QueryCache({ onError: signInAgain }),
+  mutationCache: new MutationCache({ onError: signInAgain }),
   defaultOptions: {
     queries: {
       // Mobile data. Refetching on every window focus is a poor trade here.

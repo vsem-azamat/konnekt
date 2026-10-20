@@ -155,7 +155,6 @@ export const consoleChanges = {
     }),
 };
 
-/** Who the super admins are, among webapi's operational facts. */
 /**
  * Who this browser is signed in as. The Mini App never asks: Telegram says who
  * it is on every request. A missing session is the same `stale` a console
@@ -172,6 +171,7 @@ export const browserSessionQuery = {
   staleTime: 5 * 60 * 1000,
 };
 
+/** Who the super admins are, among webapi's operational facts. */
 export const consoleSystemQuery = {
   queryKey: ['console', 'system'] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>

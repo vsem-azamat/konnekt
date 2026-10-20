@@ -6,12 +6,46 @@
  * what that decision needs and nothing that draws.
  */
 
+import { ConsoleError } from './session.ts';
+
 /** What webapi's callback sends back as `?error=`; anything else is not ours to show. */
 export type LoginProblem = 'failed' | 'not_admin';
 
 export function loginProblem(search: string): LoginProblem | null {
   const error = new URLSearchParams(search).get('error');
   return error === 'failed' || error === 'not_admin' ? error : null;
+}
+
+/**
+ * The screens a browser reaches, below `/console`; `''` is the summary. The
+ * catalog's and the partners' are absent on purpose: they ask the catalog API,
+ * which takes a Telegram signature and nothing else (#293).
+ */
+export const BROWSER_PATHS = [
+  '',
+  'audience',
+  'audience/people',
+  'audience/:id',
+  'chats',
+  'chats/:id',
+  'spam',
+  'blacklist',
+  'system',
+] as const;
+
+export type BrowserPath = (typeof BROWSER_PATHS)[number];
+
+/** Whether the catalog's API can be asked: not from a browser. */
+export function catalogReachable(inBrowser: boolean): boolean {
+  return !inBrowser;
+}
+
+/**
+ * Whether a failure means the session is gone, so the way on is signing in.
+ * A request that merely failed is not that.
+ */
+export function endsSession(error: unknown): boolean {
+  return error instanceof ConsoleError && error.reason === 'stale';
 }
 
 /**
