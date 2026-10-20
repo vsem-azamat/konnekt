@@ -356,7 +356,10 @@ def _shelf_migrations() -> list:
 # away. Written out here rather than read from the downgrades: a migration that
 # forgot to remove a word would restore nothing on the way down and remove
 # nothing on the way up, and the seed would look matched.
-PRODUCTION_HAD: dict[str, set[str]] = {"obecna-chemie": {"хімія"}}
+PRODUCTION_HAD: dict[str, set[str]] = {
+    "obecna-chemie": {"хімія"},
+    "automatizace-a-rizeni": {"rizeni"},
+}
 
 
 async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
@@ -543,8 +546,8 @@ ACROSS: dict[str, set[str]] = {
     },
     "physics": {"prijimacky-fyzika", "prijimacky-technicke-vs"},
     "chemistry": set(),
-    "it-programming": set(),
-    "economics-finance": set(),
+    "it-programming": {"prijimacky-technicke-vs"},
+    "economics-finance": {"prijimacky-ekonomicke-vs"},
 }
 
 
@@ -579,3 +582,182 @@ async def test_every_listed_leaf_is_a_live_leaf_elsewhere(session) -> None:
             assert leaf is not None, f"{shelf.slug} holds a missing {slug}"
             assert leaf.kind == NodeKind.LEAF and leaf.is_active, slug
             assert not leaf.path.startswith(shelf.path), f"{slug} is under {shelf.slug}"
+
+
+# What #252 still had open once the shelves were in.
+@pytest.mark.parametrize(
+    ("text", "lang", "shelf"),
+    [
+        # Asking politely or in a hurry says nothing about which corner.
+        ("математика срочно", "ru", "math"),
+        ("математика пожалуйста", "ru", "math"),
+        ("matematika prosím", "cs", "math"),
+        # Nor does a school year, or asking for a teacher rather than a tutor.
+        ("физика 9 класс", "ru", "physics"),
+        ("учитель математики", "ru", "math"),
+        ("učitel matematiky", "cs", "math"),
+        ("maths teacher", "en", "math"),
+        # A school named in full, or a faculty beside its university.
+        ("matematika Univerzita Karlova", "cs", "math"),
+        ("математика в Карловом университете", "ru", "math"),
+        ("informatika FIT ČVUT", "cs", "it-programming"),
+        ("matematika MFF UK", "cs", "math"),
+    ],
+)
+async def test_what_surrounds_a_shelf_word_can_be_said_aside(
+    session, text, lang, shelf
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, shelf), parsed.subject
+
+
+async def test_a_shelf_word_is_not_also_a_school(session) -> None:
+    """«informatiky» is the programming shelf, and by trigram also «Fakulta
+    informatiky» — the same word read twice, narrowing to one faculty."""
+    parsed = await parse(session, "doučování informatiky", "cs", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "it-programming")
+    assert parsed.institution is None, parsed.institution
+
+
+async def test_a_guess_from_another_shelf_is_dropped(session) -> None:
+    """«вступительные по химии» answered the physics entrance exam: the query
+    names chemistry, and the guess sits on physics."""
+    parsed = await parse(session, "вступительные по химии", "ru", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("přijímací řízení", "cs"),
+        ("příprava na přijímací řízení", "cs"),
+        ("приемные экзамены", "ru"),
+        ("подготовка к приемным экзаменам", "ru"),
+        ("помощь с приемными экзаменами", "ru"),
+        ("о приемном экзамене", "ru"),
+        ("приемный экзамен", "ru"),
+        ("приемная комиссия", "ru"),
+    ],
+)
+async def test_other_names_for_admissions_name_the_kind_of_help(
+    session, text, lang
+) -> None:
+    """«řízení» is the admission procedure here, not control theory; «приемные»
+    is the other Russian word for entrance exams."""
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A plain query naming two shelves keeps what it found: the guess-drop
+        # is for a kind of help the shelf cannot go with, nothing else.
+        ("fyzikální chemii", "cs", "fyzikalni-chemie"),
+        ("maturitu z chemie", "cs", "maturita"),
+        # A number beside a school is still the course's number.
+        ("fyziky 2 UK", "cs", "fyzika-2"),
+        ("репетитор по физике 2 МФФ", "ru", "fyzika-2"),
+        # A school's name carries subject words; they stay the subject's.
+        ("maths for economics VŠE", "en", "matematika-pro-ekonomy"),
+        # Control theory by its other names, now that «řízení» alone is not.
+        ("automatické řízení", "cs", "automatizace-a-rizeni"),
+        ("řízení procesů", "cs", "automatizace-a-rizeni"),
+    ],
+)
+async def test_what_the_leftovers_must_not_take_away(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_two_shelves_named_together_still_find_somebody(session) -> None:
+    """«математика и физика» answered Физика 1 on main; dropping it for not
+    being maths left a guess that matched nobody."""
+    parsed = await parse(session, "математика и физика", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "fyzika-1"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "school"),
+    [
+        ("matematika MFF UK", "cs", True),
+        # An exact school is kept even when the shelf word alone explains the
+        # rest: FI is named here, not guessed from «informatika».
+        ("informatika FI", "cs", True),
+    ],
+)
+async def test_a_school_named_beside_a_shelf_stays(session, text, lang, school) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert (parsed.institution is not None) is school, parsed.institution
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("математика терміново", "uk"),
+        ("математика будь ласка", "uk"),
+        ("вчитель математики", "uk"),
+        ("викладач математики", "uk"),
+        ("matematika rychle", "cs"),
+    ],
+)
+async def test_ukrainian_and_czech_asides_too(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "math"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [("приемник и передатчик", "ru"), ("приемная семья", "ru")],
+)
+async def test_a_receiver_is_not_an_entrance_exam(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+async def test_a_dropped_guess_is_not_replaced_by_the_embedder(session) -> None:
+    """Dropping the wrong shelf's guess left the list empty, and the embedder
+    was then asked and answered «Chemie – střední škola» at 0.69 — beside
+    entrance exams, which matches nobody. The shelf has spoken; nothing is left
+    for the embedder to explain."""
+    from students_cz.db.embed import rebuild
+    from students_cz.services import embedding
+
+    from .test_embedding import PointedEmbedder
+
+    query = "вступительные по химии"
+    pointed = PointedEmbedder({query: "Chemie – střední škola"})
+    await rebuild(session, embedder=pointed)
+    embedding.set_embedder(pointed)
+    try:
+        parsed = await parse(session, query, "ru", today=TODAY)
+    finally:
+        embedding.set_embedder(None)
+
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+    assert parsed.vector is None, "the embedder was asked"
+
+
+async def test_a_listed_leaf_survives_the_wrong_shelf_drop(session) -> None:
+    """Economics lists the economics admissions, so beside entrance exams that
+    is the answer to keep, not to throw away with the guess."""
+    parsed = await parse(session, "entrance exam economics", "en", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-ekonomicke-vs"), (
+        parsed.subject
+    )
+
+
+async def test_a_year_of_study_is_said_aside(session) -> None:
+    parsed = await parse(session, "математика 1 курс", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "math"), parsed.subject

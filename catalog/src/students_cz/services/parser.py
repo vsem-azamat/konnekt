@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.db.models import Subject
@@ -108,6 +108,17 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "entrance_prep": (
         "вступительн",
+        # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
+        # alone begins «приемник» and «приемная семья». Not «приемк», which is
+        # slang and a synonym of subjects.
+        "приемные экз",
+        "приемный экз",
+        "приемных экз",
+        "приемным экз",
+        "приемными экз",
+        "приемном экз",
+        "приемная комис",
+        "приемной комис",
         "поступлен",
         "prijimack",
         "přijímačk",
@@ -362,6 +373,8 @@ RESTATING: tuple[str, ...] = (
     "priprav",
     # Words, not stems: "prep" begins "přepis" and "přeprava" once unaccented.
     Word("prep"),
+    # «přijímací řízení», the admission procedure.
+    Word("rizeni"),
     Word("preparation"),
 )
 
@@ -451,7 +464,8 @@ async def parse(
     # sit on another shelf: entrance exams and nostrification beside the maths
     # shelf would match nobody, where the leaf «Přijímací zkouška z matematiky»
     # matches them.
-    if not (subjects and _is_named(subjects[0])) and result.service_type in SHELF_KINDS:
+    shelf_spoke = False
+    if not (subjects and _is_named(subjects[0])):
         shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
         # The synonyms themselves, not the match's kind: the query has to hold a
         # word starting with one of them, which a hit on the name alone cannot
@@ -463,8 +477,35 @@ async def parse(
             if shelves
             else None
         )
-        if stems and _only_names_shelf(result, norm, keyword, stems, _numbers(subjects)):
-            subjects = [shelves[0], *subjects[:3]]
+        if stems and result.service_type in SHELF_KINDS:
+            school = await _school_words(session, result.institution)
+            numbered = _numbers(subjects)
+            if _only_names_shelf(result, norm, keyword, stems, numbered, school):
+                subjects = [shelves[0], *subjects[:3]]
+                # The same word read twice: «informatiky» is the programming
+                # shelf and, by trigram, «Fakulta informatiky». A school that
+                # only a guess found, with nothing of the query left to it once
+                # the shelf has its word, is that word again. An exact one —
+                # a code or a name typed out — is kept whatever the words say;
+                # no school in the catalog is spelled like a shelf's word today,
+                # and this is what keeps one from being lost if it ever is.
+                if (
+                    result.institution
+                    and result.institution.matched_on != "exact"
+                    and _only_names_shelf(result, norm, keyword, stems, numbered, set())
+                ):
+                    result.institution = None
+        elif stems and subjects:
+            # A kind of help the shelf cannot go with, a shelf named beside it,
+            # and a guess from another shelf: «вступительные по химии» answered
+            # the physics entrance exam. The guess goes; what the shelf holds,
+            # or was named, stays. Only here — a plain query naming two shelves,
+            # «математика и физика», keeps the guess it had.
+            subjects = await _within_shelf(session, subjects, shelves[0].id)
+            # Emptied by it, the list must stay empty: the embedder would only
+            # bring another guess from somewhere else — it answered «Chemie –
+            # střední škola» beside entrance exams, which matches nobody.
+            shelf_spoke = not subjects
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -508,7 +549,12 @@ async def parse(
     # school is already a field and what is left is a word for teaching: the
     # embedder answered «Поступление в технические вузы» at 0.45 and narrowed a
     # list of tutors to the people who prepare for entrance exams.
-    if not subjects and not bare and not _accounted_for(result, norm, keyword):
+    if (
+        not subjects
+        and not bare
+        and not shelf_spoke
+        and not _accounted_for(result, norm, keyword)
+    ):
         proposed, runner_up = await find_by_meaning(session, text, lang)
         if proposed:
             lead = proposed.score - (runner_up.score if runner_up else 0.0)
@@ -846,6 +892,121 @@ SHELF_KINDS: frozenset[str | None] = frozenset(
 # taught at a university, and the leaf the scorer liked found nobody.
 LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
 
+# Said beside a subject without saying which: hurry, politeness, a school year,
+# asking for a teacher rather than a tutor. «математика срочно», «физика 9
+# класс», «učitel matematiky».
+ASIDE: tuple[str, ...] = (
+    "срочн",
+    "терміно",
+    "urgent",
+    "asap",
+    "prosim",
+    "пожалуйст",
+    "будь",
+    "ласка",
+    "клас",
+    "trid",
+    "rocnik",
+    "grade",
+    "учител",
+    "вчител",
+    "преподават",
+    "викладач",
+    "ucitel",
+    "lektor",
+    "teacher",
+    "rychl",
+    "naleh",
+    # A year of study: «математика 1 курс».
+    "курс",
+    "kurz",
+    "course",
+)
+
+
+async def _school_words(session: AsyncSession, institution: Match | None) -> set[str]:
+    """Every word the school was or could have been named by, transliterated.
+
+    Its names and short names in every language and its code, and those of the
+    university it belongs to; of its faculties only the codes and short names —
+    a faculty's full name is made of subject words («Matematicko-fyzikální»),
+    and would explain them away. «Univerzita Karlova», «Карловом университете»
+    and «FIT ČVUT» are then all school, beside the shelf's word.
+
+    Never a number — «1. LF» would make «fyziky 1 na UK» a school's number
+    rather than the course's — and never a word some shelf is named by: VŠE's
+    English name says "economics", which is the subject in "maths for
+    economics VŠE".
+    """
+    if institution is None:
+        return set()
+    from students_cz.db.models import Institution, InstitutionI18n
+
+    row = await session.get(Institution, institution.id)
+    if row is None:
+        return set()
+    full = [row.id] + ([row.parent_id] if row.parent_id else [])
+    texts: list[str | None] = [institution.label]
+    for item in await session.scalars(
+        select(Institution).where(Institution.id.in_(full))
+    ):
+        texts.append(item.code)
+    for name in await session.scalars(
+        select(InstitutionI18n).where(InstitutionI18n.institution_id.in_(full))
+    ):
+        texts += [name.name, name.short_name]
+    children = (
+        await session.scalars(select(Institution).where(Institution.parent_id.in_(full)))
+    ).all()
+    texts += [child.code for child in children]
+    for name in await session.scalars(
+        select(InstitutionI18n).where(
+            InstitutionI18n.institution_id.in_([child.id for child in children])
+        )
+    ):
+        texts.append(name.short_name)
+    stems = [
+        transliterate(normalise(stem))
+        for synonyms in await session.scalars(
+            select(Subject.synonyms).where(Subject.kind == NodeKind.GROUP)
+        )
+        for stem in synonyms
+    ]
+    words = {
+        transliterate(word)
+        for value in texts
+        if value
+        for word in tokenise(normalise(value)).split()
+    }
+    return {
+        word
+        for word in words
+        if not word.isdigit() and not any(word.startswith(stem) for stem in stems)
+    }
+
+
+async def _within_shelf(
+    session: AsyncSession, subjects: list[Match], shelf_id: int
+) -> list[Match]:
+    """These matches, less the guesses that sit on another shelf people name."""
+    from students_cz.services.lookup import held_by, shelves_of
+
+    guess = subjects[0]
+    named_shelves = set(
+        await session.scalars(
+            select(Subject.id).where(
+                Subject.kind == NodeKind.GROUP, func.cardinality(Subject.synonyms) > 0
+            )
+        )
+    )
+    on = (await shelves_of(session, {guess.id})) & named_shelves
+    if not on or shelf_id in on:
+        return subjects
+    held = set(await held_by(session, shelf_id))
+    # Only guesses are here — a named match would have sorted first and kept
+    # this from being asked — so what stays is what the shelf holds.
+    return [match for match in subjects if match.id in held]
+
 
 def _numbers(matches: list[Match]) -> set[str]:
     """The numbers in these subjects' names: «Fyzika 2» has 2."""
@@ -863,6 +1024,7 @@ def _only_names_shelf(
     keyword: str | None,
     stems: list[str],
     numbered: set[str],
+    school: set[str],
 ) -> bool:
     """Is a word for the shelf all the query says about a subject?
 
@@ -874,9 +1036,6 @@ def _only_names_shelf(
     """
     spoken = _spoken(result, norm)
     tokens = tokenise(_without(spoken, keyword) if keyword else spoken).split()
-    school = (
-        transliterate(normalise(result.institution.label)) if result.institution else None
-    )
     named = [
         token
         for token in tokens
@@ -888,7 +1047,8 @@ def _only_names_shelf(
         # «fyziky 2» is Fyzika 2 — and says nothing where none is: «математика 1».
         or (token.isdigit() and token not in numbered)
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
-        or (school is not None and transliterate(token).startswith(school))
+        or _is_school_word(token, school)
+        or any(token.startswith(word) for word in ASIDE)
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
         or any(
@@ -896,6 +1056,18 @@ def _only_names_shelf(
             for word in RESTATING
         )
         for token in tokens
+    )
+
+
+def _is_school_word(token: str, school: set[str]) -> bool:
+    """A word of the school's names, inflected: «карловом» for «Карлов».
+
+    Short words — codes like «uk» — only whole, so «uk» is not every word
+    beginning with it.
+    """
+    word = transliterate(token)
+    return word in school or any(
+        len(name) >= 4 and word.startswith(name) for name in school
     )
 
 
