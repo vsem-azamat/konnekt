@@ -651,10 +651,6 @@ msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a no
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
 msgstr "Přihlášení se neuložilo: otevřete konzoli v aplikaci Telegram."
 
-#: src/pages/Ads.tsx
-msgid "Студенты чешских вузов в чатах и в этом приложении. Спам из чатов мы вычищаем каждый день, поэтому чужой спам не перебивает ваш пост."
-msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Spam z chatů odstraňujeme každý den, takže cizí spam váš příspěvek nepřehluší."
-
 #: src/pages/Ask.tsx
 msgid "Убери что-нибудь из уточнений выше или напиши иначе."
 msgstr "Odeber něco z upřesnění výše, nebo to napiš jinak."
@@ -946,6 +942,10 @@ msgstr "Jak učíš"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Moje služby"
+
+#: src/pages/Ads.tsx
+msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
+msgstr "Studenti českých vysokých škol v chatech i v této aplikaci. Chaty každý den čistíme od spamu, takže cizí reklama váš příspěvek nepřehluší."
 
 #: src/components/TabBar.tsx
 msgid "опиши задачу — придут отклики"

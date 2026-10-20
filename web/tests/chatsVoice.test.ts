@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-const SAID_OF_CHATS = /модер|moderat|moderov/i;
+const SAID_OF_CHATS = /модер|moder/i;
 
 /** Every msgid/msgstr line of the entries that come from one source file. */
 function linesFrom(po: string, source: string): string[] {

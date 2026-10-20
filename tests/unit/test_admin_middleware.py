@@ -251,3 +251,13 @@ class TestRefusalsDoNotStall:
         first.answer.assert_awaited_once()
         second.answer.assert_not_awaited()
         second.delete.assert_awaited_once()
+
+
+def test_the_refusal_names_no_moderators() -> None:
+    """Only those who are not moderators ever read it: members, and Telegram
+    administrators the bot grants nothing to — who are the chat's
+    administration too, so the refusal names neither."""
+    from app.presentation.telegram.middlewares.admin import NOT_ADMIN
+
+    assert "модер" not in NOT_ADMIN.lower()
+    assert "администрац" not in NOT_ADMIN.lower()

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 logger = get_logger("middleware.admin")
 
-NOT_ADMIN = "🚫 Эта команда доступна только администрации чата."
+NOT_ADMIN = "🚫 У вас нет прав на эту команду в этом чате."
 NOT_SUPER_ADMIN = "🚫 Эта команда доступна только главным администраторам."
 
 
