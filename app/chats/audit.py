@@ -40,7 +40,7 @@ from sqlalchemy import select
 from app.chats.metadata import ask
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
 from app.chats.snapshots import PAUSE_BETWEEN_CHATS_SECONDS
-from app.chats.template import expected_description, main_chats
+from app.chats.template import OWN_WORDS, expected_description, main_chats
 from app.db.models import Chat
 
 if TYPE_CHECKING:
@@ -187,6 +187,7 @@ async def inspect_chat(
             bot=bot_username,
             university=university,
             parent=parent,
+            own_words=chat.id in OWN_WORDS,
         )
         if (info.description or "") != expected:
             findings.append("description differs from the template")

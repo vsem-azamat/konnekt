@@ -111,6 +111,40 @@ def test_a_longer_handle_that_starts_the_same_stays(line: str) -> None:
     assert _other(f"Чат по физике\n{line}") == f"Чат по физике\n{line}"
 
 
+def _own_words(current: str, *, university: bool = True) -> str:
+    return template.expected_description(
+        title="Matfyz | Karlova univerzita", current=current, bot=BOT, university=university, own_words=True
+    )
+
+
+@pytest.mark.parametrize("university", [True, False])
+def test_a_chat_in_its_owners_words_only_trades_the_retired_links_for_the_bot(university: bool) -> None:
+    current = (
+        "Чат для студентов и абитуриентов Матфиза\n🔻 Информационный канал: @karlipina\n\n"
+        "📢 Канал сети: @konnekt_cz\n📩 Администрация: @work_azamat"
+    )
+
+    assert _own_words(current, university=university) == (
+        "Чат для студентов и абитуриентов Матфиза\n🔻 Информационный канал: @karlipina\n\n"
+        "Все чаты и помощь с учёбой: @konnekt_cz_bot"
+    )
+
+
+def test_a_chat_in_its_owners_words_that_already_names_the_bot_stays_as_it_is() -> None:
+    current = "Общий чат для студентов VUT\n\nВсе чаты и помощь с учёбой: @konnekt_cz_bot"
+
+    assert _own_words(current) == current
+
+
+def test_a_chat_in_its_owners_words_still_fits_telegram() -> None:
+    assert _utf16(_own_words("X" * 300)) <= template.DESCRIPTION_LIMIT
+
+
+def test_the_chats_in_their_owners_words_are_the_ones_the_owner_chose() -> None:
+    # IT Чехия, Matfyz and VUT, chosen by the owner on 2026-10-20.
+    assert {-1001541760895, -1001283110780, -1001198485843} == template.OWN_WORDS
+
+
 @pytest.mark.parametrize(
     ("title", "parent_title"),
     [("VŠCHT " + "X" * 300, "VUT"), ("😀" * 200, "VUT"), ("FIT", "P" * 300)],

@@ -8,6 +8,10 @@ chat keeps its own words and only loses the links that no longer lead anywhere
 useful: the network channel is not run, contacts go through the bot, and the
 bots Konnekt moved away from only point onwards (#245).
 
+A few chats keep their owner's words even where the shared text would apply
+(`OWN_WORDS`): their description was written by whoever runs the chat, with
+links of their own, so only the retired links go and the bot takes their place.
+
 Titles and the bot's rules pin come later (#202). Until the rules are pinned,
 the description does not promise them.
 """
@@ -32,6 +36,10 @@ _RETIRED = re.compile(
     re.IGNORECASE,
 )
 _LEADING_SYMBOLS = re.compile(r"^[^\w@\s]+")
+
+# Chats whose description stays in their owner's words, chosen by the owner on
+# 2026-10-20: IT Чехия, Matfyz, VUT.
+OWN_WORDS = frozenset({-1001541760895, -1001283110780, -1001198485843})
 
 
 def _utf16_len(text: str) -> int:
@@ -95,12 +103,26 @@ def _without_retired_links(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
-def expected_description(*, title: str, current: str, bot: str, university: bool, parent: Chat | None = None) -> str:
+def _in_own_words(current: str, bot: str) -> str:
+    bot_line = f"Все чаты и помощь с учёбой: @{bot}"
+    text = _without_retired_links(current)
+    if bot_line in text:
+        return text
+    tail = "\n\n" + bot_line
+    return _fit(text, max(0, DESCRIPTION_LIMIT - _utf16_len(tail))).rstrip() + tail
+
+
+def expected_description(
+    *, title: str, current: str, bot: str, university: bool, parent: Chat | None = None, own_words: bool = False
+) -> str:
     """What a chat's description should read, given its title and what it reads now.
 
     `university` is whether the chat is a university's main chat or under one
     (`main_chats`); the caller knows the whole table, this function does not.
+    `own_words` is whether the chat is one of `OWN_WORDS`.
     """
+    if own_words:
+        return _in_own_words(current, bot)
     if not university:
         return _without_retired_links(current)
 

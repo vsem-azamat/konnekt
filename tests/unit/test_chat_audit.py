@@ -356,6 +356,17 @@ async def test_the_university_and_its_faculty_get_the_template(session_maker) ->
     }
 
 
+async def test_a_main_chat_in_its_owners_words_keeps_them(session_maker, monkeypatch) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1}))
+
+    _, states = await _audit(session_maker, chat_ids={-1})
+
+    assert [s.expected_description for s in states] == [
+        "Чат для живущих в ареале Strahov\n\nВсе чаты и помощь с учёбой: @" + BOT_USERNAME
+    ]
+
+
 async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
     await _seed_cvut(session_maker)
 
