@@ -24,7 +24,7 @@ async def open_session(session: AsyncSession, request: Request, response: Respon
         user_id=user_id,
         ttl_days=settings.webapi.session_ttl_days,
         user_agent=request.headers.get("user-agent"),
-        ip=_address(request),
+        ip=caller_address(request),
     )
     response.set_cookie(
         key=settings.webapi.session_cookie_name,
@@ -37,7 +37,7 @@ async def open_session(session: AsyncSession, request: Request, response: Respon
     )
 
 
-def _address(request: Request) -> str | None:
+def caller_address(request: Request) -> str | None:
     """The caller's address if it is one: it arrives through forwarded headers."""
     host = request.client.host if request.client else None
     if host and "%" in host:

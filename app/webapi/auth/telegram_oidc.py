@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import secrets
 import time
 from dataclasses import dataclass
@@ -41,6 +42,15 @@ _LEEWAY_SECONDS = 30
 
 class OidcError(DomainError):
     """The sign-in did not prove who is asking."""
+
+
+class UnknownKeyError(OidcError):
+    """The token was signed by a key this copy of Telegram's key set does not hold."""
+
+
+def constant_time_equal(a: str, b: str) -> bool:
+    """Compare two strings a caller chose without a timing tell, and without raising on non-ASCII."""
+    return hmac.compare_digest(a.encode("utf-8", "surrogatepass"), b.encode("utf-8", "surrogatepass"))
 
 
 @dataclass(frozen=True)
@@ -74,24 +84,43 @@ def start(*, client_id: str, redirect_uri: str) -> AuthRequest:
 
 
 def verify_id_token(id_token: str, *, jwks: dict[str, Any], client_id: str, nonce: str) -> int:
-    """The Telegram user id an id_token vouches for, or `OidcError`."""
+    """The Telegram user id an id_token vouches for, or `OidcError`.
+
+    A `nonce` the token carries must be the one this login sent. One it does not
+    carry is let through: Telegram's discovery document lists neither `nonce`
+    nor `id` among its claims, and PKCE with `state` already bind the token to
+    this browser's login. An empty expected nonce matches nothing, so a flow
+    whose cookie lost its nonce cannot pass by comparing "" with "".
+    """
+    if not nonce:
+        raise OidcError("id_token rejected: no nonce was issued")
     try:
         header = jwt.get_unverified_header(id_token)
         keys = {k.key_id: k for k in jwt.PyJWKSet.from_dict(jwks).keys}
-        key = keys[header["kid"]]
+        key = keys.get(header.get("kid"))
+        if key is None:
+            raise UnknownKeyError("id_token rejected: unknown key")
+        if key.algorithm_name not in _ALGORITHMS:
+            raise OidcError(f"id_token rejected: key algorithm {key.algorithm_name}")
         claims = jwt.decode(
             id_token,
             key=key.key,
-            algorithms=_ALGORITHMS,
+            algorithms=[key.algorithm_name],
             audience=client_id,
             issuer=ISSUER,
             leeway=_LEEWAY_SECONDS,
             options={"require": ["exp", "iss", "aud"]},
         )
+    except OidcError:
+        raise
+    except jwt.InvalidSignatureError as err:
+        # The usual look of a rotated key under a reused key id.
+        raise UnknownKeyError("id_token rejected: signature") from err
     except (jwt.PyJWTError, KeyError, TypeError, ValueError) as err:
         raise OidcError(f"id_token rejected: {type(err).__name__}") from err
 
-    if not secrets.compare_digest(str(claims.get("nonce", "")), nonce):
+    token_nonce = claims.get("nonce")
+    if token_nonce is not None and not (isinstance(token_nonce, str) and constant_time_equal(token_nonce, nonce)):
         raise OidcError("id_token rejected: nonce")
     user_id = claims.get("id")
     if not isinstance(user_id, int) or isinstance(user_id, bool):
@@ -99,9 +128,13 @@ def verify_id_token(id_token: str, *, jwks: dict[str, Any], client_id: str, nonc
     return user_id
 
 
-# Telegram rotates its keys rarely, and a token signed by one this copy has not
-# seen simply fails once and is retried against a fresh copy.
+# Telegram rotates its keys rarely. A copy is kept for an hour; a token it
+# cannot verify earns a fresh copy, but never more often than every few minutes,
+# so tokens made up with unknown key ids cannot turn this server into a client
+# that hammers Telegram.
 _JWKS_TTL_SECONDS = 3600
+REFETCH_AFTER_SECONDS = 300
+_clock = time.monotonic
 _jwks_cache: tuple[float, dict[str, Any]] | None = None
 
 
@@ -111,17 +144,19 @@ def forget() -> None:
     _jwks_cache = None
 
 
-async def _jwks(http: httpx.AsyncClient, *, fresh: bool) -> dict[str, Any]:
+async def _jwks(http: httpx.AsyncClient, *, after_failure: bool = False) -> dict[str, Any]:
     global _jwks_cache  # noqa: PLW0603
-    if not fresh and _jwks_cache and time.monotonic() - _jwks_cache[0] < _JWKS_TTL_SECONDS:
-        return _jwks_cache[1]
+    if _jwks_cache:
+        age = _clock() - _jwks_cache[0]
+        if age < (REFETCH_AFTER_SECONDS if after_failure else _JWKS_TTL_SECONDS):
+            return _jwks_cache[1]
     try:
         resp = await http.get(JWKS_URL)
         resp.raise_for_status()
         keys = resp.json()
     except (httpx.HTTPError, ValueError) as err:
         raise OidcError(f"keys unavailable: {type(err).__name__}") from err
-    _jwks_cache = (time.monotonic(), keys)
+    _jwks_cache = (_clock(), keys)
     return keys
 
 
@@ -155,7 +190,11 @@ async def complete(
     if not isinstance(id_token, str):
         raise OidcError("token exchange failed: no id_token")
 
+    known = await _jwks(http)
     try:
-        return verify_id_token(id_token, jwks=await _jwks(http, fresh=False), client_id=client_id, nonce=nonce)
-    except OidcError:
-        return verify_id_token(id_token, jwks=await _jwks(http, fresh=True), client_id=client_id, nonce=nonce)
+        return verify_id_token(id_token, jwks=known, client_id=client_id, nonce=nonce)
+    except UnknownKeyError:
+        newer = await _jwks(http, after_failure=True)
+        if newer is known:
+            raise
+        return verify_id_token(id_token, jwks=newer, client_id=client_id, nonce=nonce)

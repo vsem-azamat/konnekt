@@ -35,9 +35,9 @@ SUPER_ADMIN_ID = 268388996
 KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
-def _jwks() -> dict:
-    jwk = json.loads(jwt.get_algorithm_by_name("RS256").to_jwk(KEY.public_key()))
-    jwk.update({"kid": "k1", "use": "sig", "alg": "RS256"})
+def _jwks(key: rsa.RSAPrivateKey = KEY, kid: str = "k1") -> dict:
+    jwk = json.loads(jwt.get_algorithm_by_name("RS256").to_jwk(key.public_key()))
+    jwk.update({"kid": kid, "use": "sig", "alg": "RS256"})
     return {"keys": [jwk]}
 
 
@@ -50,12 +50,14 @@ class FakeTelegram:
         self.jwks_requests = 0
         self.token_status = 200
         self.nonce_override: str | None = None
-        self.nonce = ""
+        self.nonce: str | None = ""
+        self.key = KEY
+        self.kid = "k1"
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         if str(request.url) == telegram_oidc.JWKS_URL:
             self.jwks_requests += 1
-            return httpx.Response(200, json=_jwks())
+            return httpx.Response(200, json=_jwks(self.key, self.kid))
         if str(request.url) == telegram_oidc.TOKEN_URL:
             self.token_requests.append(request)
             if self.token_status != 200:
@@ -66,11 +68,12 @@ class FakeTelegram:
                 "aud": CLIENT_ID,
                 "sub": "opaque",
                 "id": self.user_id,
-                "nonce": self.nonce_override or self.nonce,
+                "nonce": self.nonce_override or self.nonce or None,
                 "iat": now,
                 "exp": now + 300,
             }
-            id_token = jwt.encode(claims, KEY, algorithm="RS256", headers={"kid": "k1"})
+            claims = {k: v for k, v in claims.items() if v is not None}
+            id_token = jwt.encode(claims, self.key, algorithm="RS256", headers={"kid": self.kid})
             return httpx.Response(200, json={"access_token": "x", "token_type": "Bearer", "id_token": id_token})
         return httpx.Response(404)
 
@@ -108,6 +111,7 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession], telegram:
     settings.webapi.admin_url = ADMIN_URL
     settings.webapi.session_cookie_secure = False
     telegram_oidc.forget()
+    auth_telegram.forget()
 
     def make() -> httpx.AsyncClient:
         return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
@@ -144,7 +148,7 @@ async def test_the_login_route_sends_the_browser_to_telegram(client_factory, tel
     assert query["redirect_uri"] == [f"{ADMIN_URL}/api/auth/telegram/callback"]
     flow = resp.headers["set-cookie"]
     assert "HttpOnly" in flow
-    assert "Path=/api/auth/telegram" in flow
+    assert "Path=/;" in flow + ";"
 
 
 async def test_a_completed_sign_in_opens_a_session_for_a_super_admin(client_factory, telegram) -> None:
@@ -169,10 +173,12 @@ async def test_a_completed_sign_in_opens_a_session_for_a_super_admin(client_fact
     assert basic == f"{CLIENT_ID}:{CLIENT_SECRET}"
 
 
-async def test_the_flow_cookie_is_spent_by_the_callback(client_factory, telegram) -> None:
+async def test_a_finished_sign_in_cannot_be_replayed_from_the_same_browser(client_factory, telegram) -> None:
+    """The callback clears the flow cookie; a server-side one-shot would need state we do not keep."""
     async with client_factory() as client:
         query = await _begin(client, telegram)
-        await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+        done = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+        assert "konnekt_oidc_flow=;" in done.headers["set-cookie"].replace('""', "")
         replay = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
 
     assert replay.headers["location"] == f"{ADMIN_URL}/login?error=failed"
@@ -258,3 +264,88 @@ async def test_the_door_is_absent_until_it_is_configured(client_factory, telegra
 
     assert login.status_code == 404
     assert callback.status_code == 404
+
+
+async def test_a_state_that_is_not_ascii_is_refused_not_a_server_error(client_factory, telegram) -> None:
+    async with client_factory() as client:
+        await _begin(client, telegram)
+        resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "é"})
+
+    assert resp.status_code == 302
+    assert resp.headers["location"] == f"{ADMIN_URL}/login?error=failed"
+
+
+async def test_a_flow_cookie_without_a_nonce_is_refused(client_factory, telegram) -> None:
+    async with client_factory() as client:
+        client.cookies.set("konnekt_oidc_flow", "s..v")
+        resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})
+
+    assert resp.headers["location"] == f"{ADMIN_URL}/login?error=failed"
+    assert telegram.token_requests == []
+
+
+async def test_a_token_without_a_nonce_still_signs_in(client_factory, telegram) -> None:
+    async with client_factory() as client:
+        query = await _begin(client, telegram)
+        telegram.nonce = None
+        resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+
+    assert resp.headers["location"] == f"{ADMIN_URL}/console"
+
+
+async def test_the_flow_cookie_cannot_be_planted_by_a_sibling_host(client_factory) -> None:
+    """`__Host-` means Secure, no Domain, Path=/: a sibling subdomain cannot set one."""
+    settings.webapi.session_cookie_secure = True
+    async with client_factory() as client:
+        resp = await client.get("/api/auth/telegram/login")
+
+    cookie = resp.headers["set-cookie"]
+    assert cookie.startswith("__Host-konnekt_oidc_flow=")
+    for attribute in ("Secure", "HttpOnly", "Path=/;", "SameSite=lax", "Max-Age=600"):
+        assert attribute in cookie + ";"
+    assert "Domain" not in cookie
+
+
+async def test_a_rotated_key_is_fetched_once_the_remembered_set_is_old_enough(
+    client_factory, telegram, monkeypatch
+) -> None:
+    clock = [1000.0]
+    monkeypatch.setattr(telegram_oidc, "_clock", lambda: clock[0])
+    async with client_factory() as client:
+        query = await _begin(client, telegram)
+        await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+        assert telegram.jwks_requests == 1
+
+        telegram.key, telegram.kid = rsa.generate_private_key(public_exponent=65537, key_size=2048), "k2"
+        clock[0] += telegram_oidc.REFETCH_AFTER_SECONDS + 1
+        query = await _begin(client, telegram)
+        resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+
+    assert resp.headers["location"] == f"{ADMIN_URL}/console"
+    assert telegram.jwks_requests == 2
+
+
+async def test_unknown_keys_do_not_make_us_hammer_telegram(client_factory, telegram, monkeypatch) -> None:
+    clock = [1000.0]
+    monkeypatch.setattr(telegram_oidc, "_clock", lambda: clock[0])
+    async with client_factory() as client:
+        query = await _begin(client, telegram)
+        await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+        telegram.kid = "unknown"
+        for _ in range(3):
+            query = await _begin(client, telegram)
+            resp = await client.get("/api/auth/telegram/callback", params={"code": "c", "state": query["state"]})
+            assert resp.headers["location"] == f"{ADMIN_URL}/login?error=failed"
+
+    assert telegram.jwks_requests == 1
+
+
+async def test_callbacks_are_limited_per_address(client_factory, telegram) -> None:
+    async with client_factory() as client:
+        answers = [
+            (await client.get("/api/auth/telegram/callback", params={"code": "c", "state": "s"})).status_code
+            for _ in range(auth_telegram.CALLBACKS_PER_MINUTE + 1)
+        ]
+
+    assert answers[:-1] == [302] * auth_telegram.CALLBACKS_PER_MINUTE
+    assert answers[-1] == 429

@@ -215,8 +215,9 @@ class WebApiSettings(Settings):
         default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
     )
     oidc_client_secret: str = Field(default="", description="Client Secret from the same place")
-    # Not "none": SameSite is the only defence the console's mutations have
-    # against a request another site makes with the admin's cookie.
+    # Not "none". Lax is same-site, not same-origin: a sibling host under the
+    # same domain still sends the cookie, which is why writes also check Origin
+    # (app/webapi/origin_guard.py).
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
 
     @field_validator("session_cookie_samesite", mode="before")
@@ -248,10 +249,11 @@ class WebApiSettings(Settings):
         fell back to the local development origin, which went unnoticed only
         because the UI and the API share a host and never trigger CORS.
 
-        One origin, derived from the URL already configured, cannot disagree
-        with itself. The trailing slash goes because browsers compare exactly.
+        Origins derived from the URLs already configured cannot disagree with
+        them: the Mini App's, and the admin site's when it has one. The trailing
+        slash goes because browsers compare exactly.
         """
-        return [self.public_url.rstrip("/")] if self.public_url else []
+        return [url.rstrip("/") for url in (self.public_url, self.admin_url) if url]
 
 
 class LoggingSettings(Settings):

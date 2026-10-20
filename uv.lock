@@ -1475,7 +1475,7 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9" },
     { name = "pydantic", specifier = ">=2.5" },
     { name = "pydantic-settings", specifier = ">=2.1" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10.1" },
     { name = "python-dotenv" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "structlog", specifier = ">=23.2" },

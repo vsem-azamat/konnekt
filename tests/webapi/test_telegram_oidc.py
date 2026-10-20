@@ -80,17 +80,63 @@ def test_an_ec_key_telegram_may_be_switched_to_is_accepted() -> None:
         {"iss": "https://evil.example"},
         {"aud": "987654321"},
         {"nonce": "another-login"},
-        {"nonce": None},
         {"exp": int(time.time()) - 600},
         {"id": None},
         {"id": "268388996"},
         {"id": True},
     ],
-    ids=["issuer", "audience", "nonce", "no-nonce", "expired", "no-id", "id-as-string", "id-as-bool"],
+    ids=["issuer", "audience", "nonce", "expired", "no-id", "id-as-string", "id-as-bool"],
 )
 def test_a_token_that_proves_the_wrong_thing_is_refused(key, overrides) -> None:
     with pytest.raises(OidcError):
         _verify(_token(key, **overrides), _jwks(key))
+
+
+def test_a_token_without_a_nonce_is_accepted_because_pkce_and_state_bind_the_login(key) -> None:
+    """Telegram's discovery document does not list `nonce`; a mismatch is refused, an absence is not."""
+    assert _verify(_token(key, nonce=None), _jwks(key)) == USER_ID
+
+
+@pytest.mark.parametrize("token_nonce", [None, ""])
+def test_an_empty_expected_nonce_matches_nothing(key, token_nonce) -> None:
+    """A cookie that carried no nonce must not turn "" == "" into a pass."""
+    with pytest.raises(OidcError):
+        verify_id_token(_token(key, nonce=token_nonce), jwks=_jwks(key), client_id=CLIENT_ID, nonce="")
+
+
+def test_a_nonce_that_is_not_ascii_is_a_refusal_not_a_crash(key) -> None:
+    with pytest.raises(OidcError):
+        verify_id_token(_token(key, nonce="ñ"), jwks=_jwks(key), client_id=CLIENT_ID, nonce="é")
+
+
+def test_an_audience_list_naming_this_client_is_accepted(key) -> None:
+    assert _verify(_token(key, aud=[CLIENT_ID, "another"]), _jwks(key)) == USER_ID
+
+
+def test_an_audience_list_without_this_client_is_refused(key) -> None:
+    with pytest.raises(OidcError):
+        _verify(_token(key, aud=["another"]), _jwks(key))
+
+
+def test_a_token_without_an_expiry_is_refused(key) -> None:
+    claims = {"iss": ISSUER, "aud": CLIENT_ID, "id": USER_ID, "nonce": NONCE}
+    with pytest.raises(OidcError):
+        _verify(jwt.encode(claims, key, algorithm="RS256", headers={"kid": "k1"}), _jwks(key))
+
+
+def test_a_token_without_a_key_id_is_refused(key) -> None:
+    claims = {"iss": ISSUER, "aud": CLIENT_ID, "id": USER_ID, "nonce": NONCE, "exp": int(time.time()) + 300}
+    with pytest.raises(OidcError):
+        _verify(jwt.encode(claims, key, algorithm="RS256"), _jwks(key))
+
+
+def test_a_symmetric_key_in_the_key_set_is_refused() -> None:
+    secret = b"a-shared-secret-of-sufficient-length"
+    jwks = {"keys": [{"kty": "oct", "kid": "k1", "alg": "HS256", "k": base64.urlsafe_b64encode(secret).decode()}]}
+    claims = {"iss": ISSUER, "aud": CLIENT_ID, "id": USER_ID, "nonce": NONCE, "exp": int(time.time()) + 300}
+    token = jwt.encode(claims, secret, algorithm="HS256", headers={"kid": "k1"})
+    with pytest.raises(OidcError):
+        _verify(token, jwks)
 
 
 def test_a_token_signed_by_a_key_telegram_never_published_is_refused(key) -> None:
