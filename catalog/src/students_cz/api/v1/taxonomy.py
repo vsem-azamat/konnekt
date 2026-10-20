@@ -8,7 +8,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from students_cz.api.deps import IdQuery, LangDep, SessionDep, UserDep
+from students_cz.api.deps import IdQuery, LangDep, ReaderLangDep, SessionDep, UserDep
 from students_cz.db.models import (
     HelperProfile,
     Institution,
@@ -200,9 +200,7 @@ async def _offer_counts(session, subject_ids: list[int]) -> dict[int, int]:
 @router.get(
     "/taxonomy/institutions", response_model=list[InstitutionOut], tags=["taxonomy"]
 )
-async def institutions(
-    session: SessionDep, lang: LangDep, user: UserDep
-) -> list[InstitutionOut]:
+async def institutions(session: SessionDep, lang: ReaderLangDep) -> list[InstitutionOut]:
     """The whole list, universities with their faculties nested.
 
     A couple of hundred rows — cheaper to send once than to paginate, and the

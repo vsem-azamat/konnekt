@@ -285,6 +285,10 @@ services:
       # Empty means nobody is told when a profile or a request appears.
       OWNER_TG_ID: ${CATALOG_OWNER_TG_ID:-}
       ADS_CONTACT: ${CATALOG_ADS_CONTACT:-}
+      # What webapi shows when it asks for the operator it signed in, the
+      # console in a browser having no initData. Empty turns that off. See
+      # catalog/docs/architecture.md.
+      SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
       # Never true here. It would let anyone claim to be anyone.
       ALLOW_UNSIGNED_INIT_DATA: "false"
       LOG_LEVEL: INFO

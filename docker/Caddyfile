@@ -29,10 +29,17 @@
 	# Cookies stop here, both ways. The console's session cookie is valid on
 	# this whole origin, and the catalog authenticates by initData alone: it
 	# has no use for an admin session, and no business setting cookies on it.
+	#
+	# The X-Catalog-* headers are how webapi signs an operator in from the
+	# containers' own network (catalog/docs/architecture.md); from a browser
+	# they are a guess at its token, so they never get through here.
 	@catalog path /api/v1/* /healthz
 	handle @catalog {
 		reverse_proxy catalog-api:8000 {
 			header_up -Cookie
+			header_up -X-Catalog-Service
+			header_up -X-Catalog-Operator
+			header_up -X-Catalog-Lang
 			header_down -Set-Cookie
 		}
 	}
