@@ -39,6 +39,10 @@
   --good: #1d5c37;
   --good-soft: #dff0e4;
   --warn: #8a4620;
+  /* Red is for what cannot be undone, and nothing else. */
+  --danger: #8c2f4d;
+  --danger-soft: #fbe9ef;
+  --danger-ink: #fffefc;
 
   /* ── tile tones ─────────────────────────────────────────────────────── */
   --tone-0-bg: #dff0e4;
@@ -96,6 +100,9 @@
   --good: #7fc79c;
   --good-soft: #23372c;
   --warn: #d9a075;
+  --danger: #e096b1;
+  --danger-soft: #382530;
+  --danger-ink: #171614;
 
   --tone-0-bg: #23372c;
   --tone-0-fg: #8fd0aa;

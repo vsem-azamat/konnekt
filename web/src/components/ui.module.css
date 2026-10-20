@@ -1315,6 +1315,12 @@
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
+/* What cannot be undone. Red is kept for this so that it means one thing. */
+.actionDanger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
 /* Skeletons rather than a spinner: the layout does not jump when data lands,
    and the shape tells you what is coming. */
 .skeleton {
@@ -1414,6 +1420,64 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+}
+
+/* A ban's two answers, as radio rows; the one that deletes is red. */
+.banChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.banChoices:disabled {
+  opacity: 0.6;
+}
+
+.banOption:focus-within {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
+}
+
+.banOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.banOption input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.banOptionDanger {
+  background: var(--danger-soft);
+}
+
+.banOptionDanger b {
+  color: var(--danger);
+}
+
+.banOptionDanger input {
+  accent-color: var(--danger);
+}
+
+.banOptionHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
 }
 
 /* The message an ad-detector hit came from, as the bot saw it. */

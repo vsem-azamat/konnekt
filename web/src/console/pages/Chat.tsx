@@ -20,6 +20,7 @@ import {
   ui,
 } from '@/components/Ui';
 import { parentChoices } from '@/console/activity';
+import { BanSheet } from '@/console/BanSheet';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
@@ -146,13 +147,17 @@ function ChatScreen({ chatId }: { chatId: number }) {
         ? consoleChanges.unblock(sender.user_id)
         : consoleChanges.block(sender.user_id, revoke),
     onMutate: () => setError(null),
-    onSuccess: () => {
+    onSuccess: (_, { sender }) => {
       // A ban is every chat's: every chat's sender list and hits may show it.
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
+      // Only the sheet this answer is for: another may have opened meanwhile.
       setSheet((current) =>
-        current?.kind === 'ban' || current?.kind === 'unban' ? null : current,
+        (current?.kind === 'ban' || current?.kind === 'unban') &&
+        current.sender.user_id === sender.user_id
+          ? null
+          : current,
       );
     },
     onError: setError,
@@ -628,11 +633,13 @@ function ChatScreen({ chatId }: { chatId: number }) {
         />
       ) : null}
       {sheet?.kind === 'ban' ? (
-        <Sheet title={t`Забанить во всех чатах?`} closeLabel={t`Отмена`} onClose={close}>
-          <Sub>
-            {personName(sheet.sender)} ·{' '}
+        <BanSheet
+          // One person's choice and typed word are not the next one's.
+          key={sheet.sender.user_id}
+          name={personName(sheet.sender)}
+          note={
             <Trans>
-              здесь за неделю{' '}
+              Здесь за неделю{' '}
               <Plural
                 value={sheet.sender.message_count}
                 one="# сообщение"
@@ -640,31 +647,18 @@ function ChatScreen({ chatId }: { chatId: number }) {
                 many="# сообщений"
                 other="# сообщения"
               />
-              . «Стереть» удаляет все его сообщения, которые видел бот, во всех чатах.
+              .
             </Trans>
-          </Sub>
-          {sheetError ? <Hint>{sheetError}</Hint> : null}
-          <div className={ui.actionsStacked}>
-            <Action
-              disabled={block.isPending}
-              onClick={() => block.mutate({ sender: sheet.sender, revoke: false })}
-            >
-              <Trans>Забанить везде</Trans>
-            </Action>
-            <Action
-              quiet
-              disabled={block.isPending}
-              onClick={() => block.mutate({ sender: sheet.sender, revoke: true })}
-            >
-              <Trans>Забанить и стереть все его сообщения</Trans>
-            </Action>
-            <Action quiet onClick={close}>
-              <Trans>Отмена</Trans>
-            </Action>
-          </div>
-        </Sheet>
+          }
+          busy={block.isPending}
+          error={sheetError}
+          onBan={(revoke) => block.mutate({ sender: sheet.sender, revoke })}
+          onClose={close}
+        />
       ) : null}
-      {sheet?.kind === 'ping' ? <PingSheet ping={sheet.ping} onClose={close} /> : null}
+      {sheet?.kind === 'ping' ? (
+        <PingSheet key={sheet.ping.id} ping={sheet.ping} onClose={close} />
+      ) : null}
       {sheet?.kind === 'institution' ? (
         <InstitutionSheet
           current={chat.institution_code}
