@@ -152,7 +152,10 @@ async def test_new_profiles_wait_for_an_operator_newest_first(
         ).json()
 
     names = [row["name"] for row in body["profiles"]]
-    assert names[:3] == ["Marina K.", "Olga", "Petr"], "first name and an initial"
+    ours = [name for name in names if name in {"Marina K.", "Olga", "Petr"}]
+    assert ours == ["Marina K.", "Olga", "Petr"], (
+        "first name and an initial, newest first"
+    )
     # Older than a week and still nobody looked: it stays until somebody does.
     assert "Irina" not in names, "hidden since"
     assert body["profiles"][0]["services"], "what they offer, by service name"
@@ -318,6 +321,11 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
     monkeypatch.setattr(admin, "LIST_CAP", 1)
     monkeypatch.setattr(admin, "SEARCH_CAP", 1)
     now = datetime.now(UTC)
+    # The database may hold profiles of its own (demo data): count from them.
+    async with _client(session) as http:
+        before = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()["counts"]
     author = await _person(session, 97401, "Vera")
     for tg_id in (97402, 97403, 97404):
         user = await helper_factory(tg_id=tg_id)
@@ -339,8 +347,10 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
             await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
         ).json()
 
-    assert (len(body["profiles"]), body["counts"]["profiles_to_review"]) == (1, 2)
-    assert body["counts"]["profiles_week"] == 3
+    counts = body["counts"]
+    assert len(body["profiles"]) == 1
+    assert counts["profiles_to_review"] - before["profiles_to_review"] == 2
+    assert counts["profiles_week"] - before["profiles_week"] == 3
     assert (len(body["unanswered"]), body["counts"]["unanswered"]) == (1, 2)
     assert (len(body["failed_searches"]), body["counts"]["failed_searches"]) == (1, 2)
 
