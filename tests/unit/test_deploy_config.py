@@ -202,6 +202,7 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "TELETHON_API_HASH",
         "MCP_TOKEN",
         "WEBAPI_OIDC_CLIENT_SECRET",
+        "CATALOG_SERVICE_TOKEN",
     }
 
     for name, expression in step["env"].items():
