@@ -623,10 +623,12 @@ async def test_a_shelf_word_is_not_also_a_school(session) -> None:
 
 async def test_a_guess_from_another_shelf_is_dropped(session) -> None:
     """«вступительные по химии» answered the physics entrance exam: the query
-    names chemistry, and the guess sits on physics."""
+    names chemistry, and the guess sits on physics. The admissions named for
+    chemistry answer it instead (#306), as for biology."""
     parsed = await parse(session, "вступительные по химии", "ru", today=TODAY)
     assert parsed.service_type == "entrance_prep"
-    assert parsed.subject is None, parsed.subject
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-medicina"), parsed.subject
 
 
 @pytest.mark.parametrize(
@@ -742,7 +744,9 @@ async def test_a_dropped_guess_is_not_replaced_by_the_embedder(session) -> None:
         embedding.set_embedder(None)
 
     assert parsed.service_type == "entrance_prep"
-    assert parsed.subject is None, parsed.subject
+    # Not school chemistry: the admissions named for chemistry (#306).
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "prijimacky-medicina"), parsed.subject
     assert parsed.vector is None, "the embedder was asked"
 
 

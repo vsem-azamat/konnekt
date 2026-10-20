@@ -501,6 +501,13 @@ RESTATING_FOR: dict[str, tuple[str, ...]] = {
         "чеськ",
         "czech",
         "cesk",
+        # Study is what admission is to: "admission to study", «přijímačky ke
+        # studiu». Whole words: «studijní» begins the names of the OSP and TSP
+        # tests, which are subjects.
+        Word("study"),
+        Word("studies"),
+        Word("studiu"),
+        Word("studium"),
         # A faculty is a part of one: «přijímačky na fakultu». Which faculty
         # is the school's to say, not the word's.
         "fakult",
@@ -683,18 +690,22 @@ async def parse(
     # физика» guessed «Физика 1». Where the query names a shelf that lists
     # admissions leaves, take the best of those. After the shelves, whose own
     # guess-drop knows nothing of where entrance offers sit.
-    if result.service_type == "entrance_prep" and subjects and not _is_named(subjects[0]):
-        subjects = await _from_admissions(
-            session, norm, lang, subjects, shelf_id, stems, result.institution
-        )
-        # A shelf's word has chosen already: «přijímačky na VŠE z matematiky»
-        # is the maths exam, not VŠE's.
+    named = bool(subjects) and _is_named(subjects[0])
+    if result.service_type == "entrance_prep" and not named:
+        if subjects:
+            subjects = await _from_admissions(
+                session, norm, lang, subjects, shelf_id, stems, result.institution
+            )
+        # A shelf's word has chosen already where the shelf lists admissions:
+        # «přijímačky na VŠE z matematiky» is the maths exam, not VŠE's. A shelf
+        # that lists none («přijímačky z chemie») chose nothing, and the words
+        # tell the leaves apart as for a query with no shelf in it.
         shelf_named = bool(stems) and any(
             token.startswith(normalise(stem))
             for token in tokenise(norm).split()
             for stem in stems or ()
         )
-        if not shelf_named:
+        if not (shelf_named and await _lists_admissions(session, shelf_id)):
             subjects = await _by_what_tells_them_apart(
                 session, norm, lang, subjects, keyword, result.institution
             )
@@ -889,10 +900,14 @@ FILLER_WORDS: frozenset[str] = frozenset(
         "мені",
         # cs
         "z",
+        "ze",
         "s",
         "v",
         "ve",
         "k",
+        # «ke studiu», «ze školy»: the forms «k» and «z» take before some
+        # consonants, as «ve» is of «v».
+        "ke",
         "na",
         "pro",
         "si",
@@ -1348,6 +1363,28 @@ async def _from_admissions(
     return found[:4] or subjects
 
 
+# The score of a leaf the words told apart: above any trigram guess it
+# replaced, below the 1.0 of a name the query gave.
+TOLD_APART = 0.9
+
+
+async def _lists_admissions(session: AsyncSession, shelf_id: int | None) -> bool:
+    """Does this shelf list any entrance exam among what it holds?"""
+    from students_cz.services.lookup import held_by
+
+    if shelf_id is None:
+        return False
+    admissions_id = await session.scalar(
+        select(Subject.id).where(Subject.slug == ADMISSIONS_SHELF)
+    )
+    if admissions_id is None:
+        return False
+    listed = set(await held_by(session, admissions_id)) & set(
+        await held_by(session, shelf_id)
+    )
+    return bool(await _entrance_exams(session, listed))
+
+
 async def _by_what_tells_them_apart(
     session: AsyncSession,
     norm: str,
@@ -1415,20 +1452,28 @@ async def _by_what_tells_them_apart(
         for leaf, names in words.items()
     }
 
-    asked = {
+    said = {
         transliterate(token)
         for token in tokenise(_without(norm, keyword) if keyword else norm).split()
         if not plain(token)
-    } | await _school_words(session, institution)
-    told = {
-        leaf
-        for leaf, names in owned.items()
-        if any(_same_word(said, name) for said in asked for name in names)
     }
+
+    def told_by(asked: set[str]) -> set[int]:
+        return {
+            leaf
+            for leaf, names in owned.items()
+            if any(_same_word(word, name) for word in asked for name in names)
+        }
+
+    # The school's own words first, then its university's: «LF MU» is the
+    # medical faculty, though Masaryk University as a whole sits its TSP.
+    told = told_by(said | await _own_words(session, institution))
+    if len(told) != 1:
+        told = told_by(said | await _school_words(session, institution))
     if len(told) != 1:
         return subjects
     (leaf,) = told
-    if leaf == subjects[0].id:
+    if subjects and leaf == subjects[0].id:
         return subjects
     labels: dict[str, str] = {
         str(row_lang): name
@@ -1439,8 +1484,39 @@ async def _by_what_tells_them_apart(
         )
     }
     label = labels.get(lang) or next(iter(labels.values()), "")
-    chosen = Match(id=leaf, label=label, score=1.0, matched_on="name")
+    # Below certainty (`_is_named`): the words chose among the leaves, the
+    # query did not name one, so a bare query still drops it.
+    chosen = Match(id=leaf, label=label, score=TOLD_APART, matched_on="name")
     return [chosen, *(match for match in subjects if match.id != leaf)][:4]
+
+
+async def _own_words(session: AsyncSession, institution: Match | None) -> set[str]:
+    """The words of this school's own names and code that its university's do
+    not have: a faculty's «lékařská», not the «MUNI» of «LF MUNI»."""
+    from students_cz.db.models import Institution, InstitutionI18n
+
+    if institution is None:
+        return set()
+    row = await session.get(Institution, institution.id)
+    if row is None:
+        return set()
+
+    async def words_of(school: Institution) -> set[str]:
+        texts: list[str | None] = [school.code]
+        for name in await session.scalars(
+            select(InstitutionI18n).where(InstitutionI18n.institution_id == school.id)
+        ):
+            texts += [name.name, name.short_name]
+        return {
+            transliterate(word)
+            for value in texts
+            if value
+            for word in tokenise(normalise(value)).split()
+            if not word.isdigit()
+        }
+
+    parent = await session.get(Institution, row.parent_id) if row.parent_id else None
+    return await words_of(row) - (await words_of(parent) if parent else set())
 
 
 def _same_word(one: str, other: str) -> bool:
