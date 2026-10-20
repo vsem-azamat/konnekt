@@ -206,7 +206,11 @@ export interface SpamPing {
   matches: string[];
   snippet: string | null;
   detected_at: string;
+  /** A moderator's answer; none while it waits in the queue. */
+  verdict: SpamVerdict | null;
 }
+
+export type SpamVerdict = 'done' | 'not_ad';
 
 export interface ConsoleChatDetail extends ConsoleChat {
   welcome_message: string | null;
@@ -232,7 +236,7 @@ export type ChatUpdate = Partial<
 >;
 
 export interface HomeStats {
-  spam_pings: { count_24h: number; count_7d: number };
+  spam_pings: { count_24h: number; count_7d: number; unreviewed: number };
 }
 
 // ── what the summary says ─────────────────────────────────────────────────

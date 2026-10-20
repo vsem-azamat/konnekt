@@ -6,7 +6,12 @@ import { Sheet } from '@/components/Sheet';
 import { Action, Hint, Row, Rows, Sub, ui } from '@/components/Ui';
 import { BanSheet } from '@/console/BanSheet';
 import { FailureText } from '@/console/FailureText';
-import { blockedQuery, consoleChanges, consoleSystemQuery } from '@/console/queries';
+import {
+  blockedQuery,
+  consoleChanges,
+  consoleStatsQuery,
+  consoleSystemQuery,
+} from '@/console/queries';
 import { personName, type SpamPing, utc } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 
@@ -67,10 +72,13 @@ export function PingSheet({
   ping,
   onClose,
   onOpenChat,
+  banFirst = false,
 }: {
   ping: SpamPing;
   onClose: () => void;
   onOpenChat?: () => void;
+  /** Straight to the ban, as a queue card asks; «Отмена» then closes it. */
+  banFirst?: boolean;
 }) {
   const { t } = useLingui();
   const queryClient = useQueryClient();
@@ -82,16 +90,18 @@ export function PingSheet({
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
+      void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
       onClose();
     },
   });
-  const [banning, setBanning] = useState(false);
+  const [banning, setBanning] = useState(banFirst);
   const close = () => {
     ban.reset();
     onClose();
   };
 
-  if (banning) {
+  // Nobody to ban is the hit's own sheet, which says why.
+  if (banning && !ping.blocked && !admin) {
     return (
       <BanSheet
         name={personName(ping)}
@@ -99,10 +109,14 @@ export function PingSheet({
         error={ban.error ? <FailureText error={ban.error} /> : null}
         onBan={(revoke) => ban.mutate(revoke)}
         // Back to the hit it was asked from, not out of both.
-        onClose={() => {
-          ban.reset();
-          setBanning(false);
-        }}
+        onClose={
+          banFirst
+            ? close
+            : () => {
+                ban.reset();
+                setBanning(false);
+              }
+        }
       />
     );
   }

@@ -3,6 +3,8 @@
  * the catalog's are ordinary `/api/v1` calls that only operators may make.
  */
 
+import { infiniteQueryOptions } from '@tanstack/react-query';
+
 import { api, rawInitData } from '@/lib/api';
 
 import {
@@ -22,8 +24,10 @@ import {
   consoleRequester,
   type HomeStats,
   type SpamPing,
+  type SpamVerdict,
   type SystemStatus,
 } from './session';
+import { nextBefore, type PingFilters, pingsPath } from './spam';
 
 /** The console's requester for webapi's session endpoints. See session.ts. */
 export const consoleGet = consoleRequester((...args) => fetch(...args), rawInitData);
@@ -122,6 +126,13 @@ export const consoleChanges = {
       method: 'DELETE',
     }),
 
+  /** A moderator's answer to a hit; the answer is the hit as it now is. */
+  reviewPing: (id: number, verdict: SpamVerdict) =>
+    consoleGet<SpamPing>(`/api/spam/pings/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ verdict }),
+    }),
+
   unblock: (userId: number) =>
     consoleGet<{ blocked: boolean }>(`/api/users/${userId}/block`, { method: 'DELETE' }),
 };
@@ -153,14 +164,17 @@ export const sessionsQuery = {
   retryOnMount: false,
 };
 
-/** The ad detector's latest hits across every chat. */
-export const spamPingsQuery = {
-  queryKey: ['console', 'spam'] as const,
-  queryFn: ({ signal }: { signal: AbortSignal }) =>
-    consoleGet<SpamPing[]>('/api/spam/pings?limit=100', { signal }),
-  staleTime: CONSOLE_STALE,
-  retryOnMount: false,
-};
+/** The ad detector's hits as the filters pick them, a page at a time. */
+export const spamQueueQuery = (filters: PingFilters) =>
+  infiniteQueryOptions({
+    queryKey: ['console', 'spam', filters] as const,
+    queryFn: ({ signal, pageParam }) =>
+      consoleGet<SpamPing[]>(pingsPath(filters, pageParam), { signal }),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: nextBefore,
+    staleTime: CONSOLE_STALE,
+    retryOnMount: false,
+  });
 
 /** The top of the Audience screen: how many, who may be written to, where from. */
 export const audienceSummaryQuery = {

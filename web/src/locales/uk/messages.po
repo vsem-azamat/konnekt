@@ -81,6 +81,10 @@ msgstr "Детектор тут нічого не знаходив."
 msgid "{0, plural, one {человек} few {человека} many {человек} other {человека}}"
 msgstr "{0, plural, one {людина} few {людини} many {людей} other {людини}}"
 
+#: src/console/pages/Spam.tsx
+msgid "Период"
+msgstr "Період"
+
 #: src/console/pages/Chat.tsx
 msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
 msgstr "У каталозі чат буде позначено як не наш. Бот там нічого не робить; якщо він у чаті, видаліть його звідти."
@@ -466,6 +470,10 @@ msgstr "Не зрозуміли запит"
 msgid "Аккаунта нет среди главных администраторов бота."
 msgstr "Цього акаунта немає серед головних адміністраторів бота."
 
+#: src/console/pages/Spam.tsx
+msgid "Чат: все ▾"
+msgstr "Чат: усі ▾"
+
 #: src/components/AppHeader.tsx
 msgid "Язык"
 msgstr "Мова"
@@ -651,6 +659,10 @@ msgstr "Напиши як думаєш. Зрозуміємо предмет, у�
 msgid "заблокирован {0}"
 msgstr "заблоковано {0}"
 
+#: src/console/pages/Spam.tsx
+msgid "Разобрано"
+msgstr "Розібрано"
+
 #: src/pages/Ads.tsx
 msgid "в разделе «Не про учёбу»"
 msgstr "у розділі «Не про навчання»"
@@ -687,6 +699,7 @@ msgstr "Зберегти"
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Partners.tsx
+#: src/console/pages/Spam.tsx
 #: src/console/pages/System.tsx
 #: src/console/Pings.tsx
 #: src/console/ProfileSheet.tsx
@@ -770,9 +783,17 @@ msgstr "Чати"
 msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 msgstr "Репетитори, підготовка до вступних іспитів, допомога на іспиті та нострифікація — від студентів, які це вже пройшли."
 
+#: src/console/pages/Spam.tsx
+msgid "Не реклама"
+msgstr "Не реклама"
+
 #: src/console/FailureText.tsx
 msgid "Вход не сохранился: откройте консоль в приложении Telegram."
 msgstr "Вхід не зберігся: відкрийте консоль у застосунку Telegram."
+
+#: src/console/pages/Spam.tsx
+msgid "Все чаты"
+msgstr "Усі чати"
 
 #: src/console/pages/AudiencePeople.tsx
 msgid "@username, имя или id"
@@ -1073,6 +1094,10 @@ msgstr "Нові люди за тижнями, від найстарішого �
 msgid "договорная"
 msgstr "договірна"
 
+#: src/console/pages/Spam.tsx
+msgid "Не разобрано"
+msgstr "Не розібрано"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Монограмма"
 msgstr "Монограма"
@@ -1080,6 +1105,10 @@ msgstr "Монограма"
 #: src/console/pages/Partners.tsx
 msgid "Студенты перестанут её видеть. Показы и клики сохранятся."
 msgstr "Студенти перестануть її бачити. Покази й кліки збережуться."
+
+#: src/console/pages/Spam.tsx
+msgid "Сегодня"
+msgstr "Сьогодні"
 
 #: src/console/pages/Summary.tsx
 msgid "Разделы"
@@ -1264,6 +1293,10 @@ msgstr "Бот почне відповідати на команди й вида
 msgid "Загружаем анкету…"
 msgstr "Завантажуємо анкету…"
 
+#: src/console/pages/Spam.tsx
+msgid "Что поймал детектор. Разобранное уходит из очереди."
+msgstr "Що впіймав детектор. Розібране зникає з черги."
+
 #: src/pages/MyHelper.tsx
 msgid "Строчка под именем"
 msgstr "Рядок під іменем"
@@ -1431,6 +1464,7 @@ msgid "Что нужно?"
 msgstr "Що потрібно?"
 
 #: src/console/pages/AudiencePeople.tsx
+#: src/console/pages/Spam.tsx
 msgid "Показать ещё"
 msgstr "Показати ще"
 
@@ -1514,6 +1548,10 @@ msgstr "Список порожній."
 #: src/components/RequestSheet.tsx
 msgid "Что нужно"
 msgstr "Що потрібно"
+
+#: src/console/pages/Spam.tsx
+msgid "За 7 дней"
+msgstr "За 7 днів"
 
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
@@ -1724,6 +1762,10 @@ msgstr "до {0}"
 msgid "Автор сам снял анкету или ещё не опубликовал её."
 msgstr "Автор сам зняв анкету або ще не опублікував її."
 
+#: src/console/pages/Spam.tsx
+msgid "Отметок «не реклама» нет."
+msgstr "Позначок «не реклама» немає."
+
 #: src/console/BanSheet.tsx
 msgid "Забанить"
 msgstr "Забанити"
@@ -1852,6 +1894,10 @@ msgstr "не запускали"
 msgid "появится после одобрения"
 msgstr "з’явиться після схвалення"
 
+#: src/console/pages/Spam.tsx
+msgid "Автор забанен"
+msgstr "Автора забанено"
+
 #: src/console/pages/System.tsx
 msgid "Вход действует"
 msgstr "Вхід діє"
@@ -1908,9 +1954,17 @@ msgstr "З твого факультету"
 msgid "Работы"
 msgstr "Роботи"
 
+#: src/console/pages/Spam.tsx
+msgid "Чат"
+msgstr "Чат"
+
 #: src/components/RequestSheet.tsx
 msgid "+ бюджет"
 msgstr "+ бюджет"
+
+#: src/console/pages/Spam.tsx
+msgid "За 30 дней"
+msgstr "За 30 днів"
 
 #: src/pages/Join.tsx
 msgid "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
@@ -1954,9 +2008,17 @@ msgstr "Що не розміщуємо"
 msgid "Работает только в одобренном чате."
 msgstr "Працює лише в схваленому чаті."
 
+#: src/console/pages/Spam.tsx
+msgid "Не разобрано · {unreviewed}"
+msgstr "Не розібрано · {unreviewed}"
+
 #: src/console/pages/Chat.tsx
 msgid "не указан: чаты под ним его студентам не поднимутся"
 msgstr "не вказано: чати під ним його студентам не піднімуться"
+
+#: src/console/pages/Spam.tsx
+msgid "За сутки"
+msgstr "За добу"
 
 #: src/pages/AdsApp.tsx
 msgid "страховка, визы, банк, переводы"
@@ -1985,6 +2047,10 @@ msgstr "для компаній: пости в чатах і картки"
 #: src/console/pages/Chat.tsx
 msgid "Ссылка сотрётся: {0}"
 msgstr "Посилання зітреться: {0}"
+
+#: src/console/pages/Spam.tsx
+msgid "Очередь пуста: всё разобрано."
+msgstr "Черга порожня: усе розібрано."
 
 #: src/console/pages/Summary.tsx
 msgid "бот в них есть, но они не одобрены"
@@ -2215,6 +2281,10 @@ msgstr "Не вдалося порахувати"
 msgid "нужна ссылка t.me"
 msgstr "потрібне посилання t.me"
 
+#: src/console/pages/Spam.tsx
+msgid "Вчера"
+msgstr "Учора"
+
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"
 msgstr "Документи і життя"
@@ -2297,6 +2367,7 @@ msgstr "Схвалені"
 msgid "За неделю новых анкет не было."
 msgstr "За тиждень нових анкет не було."
 
+#: src/console/pages/Spam.tsx
 #: src/console/Pings.tsx
 msgid "Забанить…"
 msgstr "Забанити…"
@@ -2313,6 +2384,11 @@ msgstr "Відгуків поки немає"
 #: src/console/pages/Chat.tsx
 msgid "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
 msgstr "Тут за тиждень {0, plural, one {# повідомлення} few {# повідомлення} many {# повідомлень} other {# повідомлення}}."
+
+#. placeholder {0}: chatName(filters.chatId)
+#: src/console/pages/Spam.tsx
+msgid "Чат: {0} ▾"
+msgstr "Чат: {0} ▾"
 
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
@@ -2404,10 +2480,6 @@ msgstr "Відгуки"
 msgid "Где её видно"
 msgstr "Де її видно"
 
-#: src/console/pages/Spam.tsx
-msgid "Последние"
-msgstr "Останні"
-
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "Ищем…"
@@ -2434,10 +2506,6 @@ msgstr "заявок за 7 днів"
 #: src/pages/OfferPrices.tsx
 msgid "Не получилось загрузить анкету"
 msgstr "Не вдалося завантажити анкету"
-
-#: src/console/pages/Spam.tsx
-msgid "Ссылки и @упоминания, которых нет в белом списке. Детектор только отмечает: решает модератор."
-msgstr "Посилання та @згадки, яких немає в білому списку. Детектор лише позначає: вирішує модератор."
 
 #: src/pages/Results.tsx
 msgid "Никто не подошёл?"
@@ -2527,6 +2595,10 @@ msgstr "Підходять"
 msgid "{0, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
 msgstr "{0, plural, one {# учасник} few {# учасники} many {# учасників} other {# учасника}}"
 
+#: src/console/pages/Spam.tsx
+msgid "За всё время"
+msgstr "За весь час"
+
 #: src/pages/Join.tsx
 msgid "Студенческие чаты"
 msgstr "Студентські чати"
@@ -2541,6 +2613,7 @@ msgstr "Відкрий із заявки"
 
 #: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/pages/Spam.tsx
 msgid "Все"
 msgstr "Усі"
 
