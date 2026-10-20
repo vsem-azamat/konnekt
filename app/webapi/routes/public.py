@@ -46,6 +46,11 @@ ACTIVE_FROM = 10
 # a gap affects all of them at once.
 MIN_OBSERVED_DAYS = 14
 
+# How old a member count may be and still be shown. The bot writes one an hour;
+# a chat it has not counted for three days is one it left or cannot see, and
+# its last number would read as today's.
+MEMBER_COUNT_FRESH_FOR = datetime.timedelta(days=3)
+
 # Sorts after every real title, so ungrouped chats land at the end rather than
 # at the top where an empty string would put them.
 _UNGROUPED = "￿"
@@ -148,7 +153,7 @@ async def get_public_catalog(
             .where(Chat.public_link.is_not(None))
         )
     ).all()
-    counts = await member_counts.latest_for(session, [row.id for row in rows])
+    counts = await member_counts.latest_for(session, [row.id for row in rows], since=utc_now() - MEMBER_COUNT_FRESH_FOR)
 
     items = [
         PublicCatalogItem(

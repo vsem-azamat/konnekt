@@ -163,6 +163,22 @@ class TestWhatComesBack:
 
         assert rows[0]["member_count"] == 1248
 
+    async def test_a_count_older_than_three_days_is_not_shown_as_today_s(
+        self, client_factory, db_session_maker
+    ) -> None:
+        """The bot left a chat or stopped polling it: the last number it saw is history, not size."""
+        await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
+        async with db_session_maker() as session:
+            session.add(
+                ChatMemberSnapshot(chat_id=FIT, member_count=1248, captured_at=utc_now() - datetime.timedelta(days=4))
+            )
+            await session.commit()
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["member_count"] is None
+
     async def test_a_chat_never_measured_has_no_count_rather_than_zero(self, client_factory, db_session_maker) -> None:
         """Empty and unknown are different claims; a preview shows nothing for the second."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
