@@ -164,3 +164,21 @@ async def test_live_profile_survives_the_backfill(session_maker):
     async with session_maker() as db:
         member = await db.get(AudienceMember, 21)
     assert (member.first_name, member.language_code, member.is_premium) == ("Live", "uk", True)
+
+
+def test_the_catalog_address_comes_in_on_stdin_and_never_as_an_argument():
+    """An argument shows in `ps` and in shell history; the address holds the catalog's password."""
+    import io
+
+    assert backfill.catalog_dsn(io.StringIO("postgresql+asyncpg://u:secret@catalog-postgres:5432/db\n")) == (
+        "postgresql+asyncpg://u:secret@catalog-postgres:5432/db"
+    )
+    with pytest.raises(SystemExit):
+        backfill.catalog_dsn(io.StringIO(""))
+
+
+def test_the_command_line_has_no_place_for_the_address():
+    with pytest.raises(SystemExit):
+        backfill.arguments(["--catalog-dsn", "postgresql://x"])
+    assert backfill.arguments(["--catalog-from-stdin"]).catalog_from_stdin is True
+    assert backfill.arguments([]).catalog_from_stdin is False
