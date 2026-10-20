@@ -92,20 +92,8 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "spisyvan",
         "списыв",
     ),
-    "exam_prep": (
-        "к экзамену",
-        "подготовиться к экза",
-        "сдать экзамен",
-        "зачет",
-        "zapocet",
-        "na zkousku",
-        "priprava na zkousku",
-        "exam prep",
-        "до іспиту",
-        "перескладання",
-        "пересдач",
-        "opravny termin",
-    ),
+    # Before exam preparation, whose "exam prep" begins "entrance exam
+    # preparation" no less than "exam preparation".
     "entrance_prep": (
         "вступительн",
         # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
@@ -131,6 +119,20 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "tsp",
         "osp",
         "nastupni",
+    ),
+    "exam_prep": (
+        "к экзамену",
+        "подготовиться к экза",
+        "сдать экзамен",
+        "зачет",
+        "zapocet",
+        "na zkousku",
+        "priprava na zkousku",
+        "exam prep",
+        "до іспиту",
+        "перескладання",
+        "пересдач",
+        "opravny termin",
     ),
     # Above the study kinds, unlike the rest of the non-study block below.
     # "присяжный перевод диплома" was answered as thesis writing on the strength
@@ -361,6 +363,10 @@ EXAM_MENTION: tuple[str, ...] = (
 # query made of a keyword and these names no subject, and the scorer guessing
 # one answered the catalog's own name for entrance exams with «Чешский язык
 # B1», because a synonym of that course mentions an exam.
+# Words that restate one kind of help and not the others. «přijímací řízení»
+# is the admission procedure; beside tutoring «řízení» is control, a subject.
+RESTATING_FOR: dict[str, tuple[str, ...]] = {"entrance_prep": (Word("rizeni"),)}
+
 RESTATING: tuple[str, ...] = (
     "экзамен",
     "екзамен",
@@ -373,9 +379,16 @@ RESTATING: tuple[str, ...] = (
     "priprav",
     # Words, not stems: "prep" begins "přepis" and "přeprava" once unaccented.
     Word("prep"),
-    # «přijímací řízení», the admission procedure.
-    Word("rizeni"),
     Word("preparation"),
+    # Tests, as whole words: «вступительные тесты». Not a stem, since a stem
+    # would also take «тестирование» and "testing", which are subjects.
+    Word("тест"),
+    Word("тесты"),
+    Word("тестов"),
+    Word("тести"),
+    Word("test"),
+    Word("tests"),
+    Word("testy"),
 )
 
 # Month names, unaccented and lowercased, in the order the client will have
@@ -520,12 +533,13 @@ async def parse(
     # A subject whose own name is nothing but those words survives too: it is
     # the kind of help by the same name, not a guess at something unsaid —
     # «нострификационный экзамен» is «Нострификационные экзамены» inflected.
-    bare = keyword is not None and _only_restates(norm, keyword)
+    bare = keyword is not None and _only_restates(norm, keyword, result.service_type)
     if bare:
         subjects = [
             match
             for match in subjects
-            if _is_named(match) or _only_restates(normalise(match.label), keyword)
+            if _is_named(match)
+            or _only_restates(normalise(match.label), keyword, result.service_type)
         ]
 
     # The third mechanism, and the last asked. Only where the first two found
@@ -904,15 +918,30 @@ ASIDE: tuple[str, ...] = (
     "пожалуйст",
     "будь",
     "ласка",
-    "клас",
-    "trid",
+    # A school year, as words: «клас» begins «классическая», «trid» begins
+    # «třídění».
+    Word("класс"),
+    Word("класса"),
+    Word("классе"),
+    Word("клас"),
+    Word("класу"),
+    Word("класі"),
+    Word("trida"),
+    Word("tridy"),
+    Word("tride"),
+    Word("tridu"),
     "rocnik",
     "grade",
     "учител",
     "вчител",
     "преподават",
     "викладач",
-    "ucitel",
+    # «ucitel» would begin «učitelství», which is a subject.
+    Word("ucitel"),
+    Word("ucitele"),
+    Word("ucitelka"),
+    Word("ucitelky"),
+    Word("ucitelku"),
     "lektor",
     "teacher",
     "rychl",
@@ -1048,7 +1077,10 @@ def _only_names_shelf(
         or (token.isdigit() and token not in numbered)
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or _is_school_word(token, school)
-        or any(token.startswith(word) for word in ASIDE)
+        or any(
+            token == word if isinstance(word, Word) else token.startswith(word)
+            for word in ASIDE
+        )
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
         or any(
@@ -1062,30 +1094,35 @@ def _only_names_shelf(
 def _is_school_word(token: str, school: set[str]) -> bool:
     """A word of the school's names, inflected: «карловом» for «Карлов».
 
-    Short words — codes like «uk» — only whole, so «uk» is not every word
-    beginning with it.
+    An ending may be added, and in Czech it may also replace the last letter:
+    «na Univerzitě Karlově» for «Univerzita Karlova». Short words — codes like
+    «uk» — only whole, so «uk» is not every word beginning with it.
     """
     word = transliterate(token)
     return word in school or any(
-        len(name) >= 4 and word.startswith(name) for name in school
+        (len(name) >= 4 and word.startswith(name))
+        or (len(name) >= 5 and word.startswith(name[:-1]))
+        for name in school
     )
 
 
-def _only_restates(norm: str, keyword: str) -> bool:
+def _only_restates(norm: str, keyword: str, kind: str | None = None) -> bool:
     """Is the query its keyword and nothing that could name a subject?
 
     Besides the keyword's own words, only RESTATING words, words of asking and
     prepositions may remain. A language level may not, although FILLER_WORDS
     lists them: «B2» beside an exam is which Czech exam, and that is a subject.
     Nor may the rest of FILLER — the names of languages and the word "course" —
-    since those are how people name subjects.
+    since those are how people name subjects. `kind` adds the words that
+    restate that kind alone (RESTATING_FOR).
     """
+    restating = (*RESTATING, *RESTATING_FOR.get(kind or "", ()))
     return all(
         (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
         or any(
             token == word if isinstance(word, Word) else token.startswith(word)
-            for word in RESTATING
+            for word in restating
         )
         for token in tokenise(_without(norm, keyword)).split()
     )

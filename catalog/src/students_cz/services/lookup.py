@@ -134,6 +134,9 @@ class Match:
 # reaches Postgres with the placeholder still in it.
 # [[:alnum:]] rather than [a-z0-9]: the latter deletes every Cyrillic letter,
 # which turned "матан" into an empty token string that matched everything.
+# A synonym of four letters or more matches the start of a word, so «линал»
+# reaches «линала» — unless it ends in a digit: «физика 1» is not the start
+# of «физика 11 класс».
 _NORM = "immutable_unaccent(lower({expr}))"
 _TOKENS = "' ' || btrim(regexp_replace({expr}, '[^[:alnum:]]+', ' ', 'g')) || ' '"
 
@@ -151,7 +154,8 @@ _SUBJECT_SQL = text(
                     WHERE btrim(syn) <> '' AND strpos(
                         q.tokens,
                         rtrim({_TOKENS.format(expr="immutable_unaccent(lower(syn))")})
-                        || CASE WHEN length(btrim(syn)) >= 4 THEN '' ELSE ' ' END
+                        || CASE WHEN length(btrim(syn)) >= 4 AND btrim(syn) !~ '[0-9]$'
+                           THEN '' ELSE ' ' END
                     ) > 0
                )) AS hit,
                GREATEST(
@@ -160,7 +164,9 @@ _SUBJECT_SQL = text(
                         WHERE btrim(syn) <> '' AND strpos(
                             q.tokens,
                             rtrim({_TOKENS.format(expr="immutable_unaccent(lower(syn))")})
-                            || CASE WHEN length(btrim(syn)) >= 4 THEN '' ELSE ' ' END
+                            || CASE WHEN length(btrim(syn)) >= 4
+                                     AND btrim(syn) !~ '[0-9]$'
+                               THEN '' ELSE ' ' END
                         ) > 0
                    ) THEN 1.0 ELSE 0.0 END,
                    -- Prefix matching handles a changed word *ending* only

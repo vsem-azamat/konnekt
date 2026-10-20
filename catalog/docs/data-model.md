@@ -296,8 +296,10 @@ something else:
   no other: «матан» is calculus, «приемка математика» is the maths entrance exam.
 - **A word for a whole shelf of subjects names the shelf.** «математика» names
   no single leaf, and answered with the best-scoring one it narrowed the search
-  to «Математика для экономистов». A group may carry synonyms of its own, stems
-  such as `математик` or `fyzik`, and the parser answers with the group when one
+  to «Математика для экономистов». A group may carry synonyms of its own —
+  stems such as `математик` or `fyzik` where no other word begins that way, and
+  the forms of the name where one does (`химия`, `химии` rather than `хими`,
+  which begins «химиотерапия») — and the parser answers with the group when one
   of them hits, no leaf was named, and the shelf's word is all the query says
   about a subject: the kind of help's words, asking, prepositions,
   «высшая»/«vyšší»/"higher", hurry and politeness, a school year, a word for a
