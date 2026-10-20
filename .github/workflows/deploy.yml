@@ -187,6 +187,7 @@ jobs:
           # The ads contact desk, @konnekt_ads_bot (app/presentation/telegram/ads.py).
           ADS_BOT_TOKEN: ${{ secrets.ADS_BOT_TOKEN }}
           ADS_BOT_GROUP_ID: ${{ secrets.ADS_BOT_GROUP_ID }}
+          ADS_BOT_NAME: ${{ vars.ADS_BOT_NAME }}
           CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
           CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}
           CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
@@ -199,7 +200,7 @@ jobs:
           # Pull, migrate, embed and wait: more than the default ten minutes
           # on a slow day, and a session cut off midway leaves no catalog.
           command_timeout: 30m
-          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
+          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
           script: |
             set -e
             cd ~/deploy/supervisor-telegram

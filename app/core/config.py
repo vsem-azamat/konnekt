@@ -127,6 +127,7 @@ class AdsBotSettings(Settings):
     # the bot and the site's ads pages send people to one place. Text, for the
     # reason given above; `contact_username` is what is offered.
     contact: str = Field(default="", description="Telegram username advertisers and questions are sent to")
+    name: str = Field(default="Konnekt · Связь", description="The desk's display name, written to Telegram at start")
 
     @property
     def contact_username(self) -> str | None:
