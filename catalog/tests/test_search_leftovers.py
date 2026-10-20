@@ -814,3 +814,52 @@ async def test_preparing_for_an_exam_at_one_is_not_entering(session, text, lang)
 async def test_help_for_admission_is_entrance(session, text, lang) -> None:
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.service_type == "entrance_prep"
+
+
+# #302, second review.
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # An exam taken to get in is an entrance exam.
+        ("сдать экзамен для поступления", "ru"),
+        ("подготовиться к экзаменам для поступления", "ru"),
+        ("зачет для поступления", "ru"),
+        ("příprava na zkoušku pro přijímací řízení", "cs"),
+    ],
+)
+async def test_an_exam_for_admission_is_an_entrance_exam(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Preparing for something taught at a university, not for getting in.
+        "preparation for exams at university",
+        "prep for university math",
+        "preparing for university calculus",
+        # A club or a hospital for students admits no one to study.
+        "admission to a student club",
+        "admission to the club for students",
+        "admission to a hospital for students",
+        # Four words between are no longer one name.
+        "admission to hospital near the Charles university",
+    ],
+)
+async def test_preparing_at_or_admitting_to_else_is_not_entering(session, text) -> None:
+    parsed = await parse(session, text, "en", today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "admission to a good Czech technical university",
+        "admission to study medicine",
+        "admission to studies",
+    ],
+)
+async def test_admission_reaches_a_name_of_up_to_three_words(session, text) -> None:
+    parsed = await parse(session, text, "en", today=TODAY)
+    assert parsed.service_type == "entrance_prep"

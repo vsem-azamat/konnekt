@@ -414,13 +414,16 @@ _ENTERING_A_UNIVERSITY = re.compile(
     r"|(?:^| )(підготовк\S{0,2} до) (?:\S+ )?(?:університет\S{0,2}|внз|виш\S{0,2})(?: |$)"
     r"|(?:^| )(priprav\S{0,2} (?:na|k)) (?:\S+ )?"
     r"(?:vysok\S{0,3} skol\S{0,2}|univerzit\S{0,2})(?: |$)"
-    r"|(?:^| )((?:preparation|prep|preparing) for) (?:the |a )?(?:\S+ ){0,2}"
-    r"(?:universit\S*|college)(?:$| (?!\S*(?:exam|test|course|class)))"
+    # The university ends the query: "prep for university math" prepares for
+    # the maths, and "preparation for exams at university" for the exams.
+    r"|(?:^| )((?:preparation|prep|preparing) for) (?:the |a )?"
+    r"(?:(?!\S*(?:exam|test|course|class))\S+ ){0,2}(?:universit\S*|college) ?$"
     # "admission to" a school or what it teaches, not to a hospital or a club,
     # with its name in up to three words: "the Czech Technical University".
     r"|(?:^| )(admission to) (?:the |a )?(?:\S+ ){0,3}"
     r"(?:universit|college|faculty|school|medic|bachelor|master|programme"
-    r"|econom|law|engineer|stud)"
+    # Study, not a student: a student club admits no one to study.
+    r"|econom|law|engineer|stud(?:y|ies|ying)(?: |$))"
 )
 
 # Words that only restate a kind of help once its keyword has named it: the
@@ -1004,6 +1007,19 @@ def _mentions(norm: str, words: tuple[str, ...]) -> bool:
     return _first(norm, words) is not None
 
 
+def _for_admission(
+    tokens: str, code: str, keyword: str, ignore: frozenset[str]
+) -> tuple[str, str]:
+    """An exam taken to get in is an entrance exam: «сдать экзамен для
+    поступления», «зачет для поступления». The entrance words that wait for the
+    papers (AFTER_PAPERS) would otherwise lose to exam preparation above them."""
+    if code == "exam_prep" and "entrance_prep" not in ignore:
+        for word in AFTER_PAPERS["entrance_prep"]:
+            if starts_a_word(tokens, word):
+                return "entrance_prep", word
+    return code, keyword
+
+
 def _match_service(
     norm: str, *, ignore: frozenset[str] = frozenset()
 ) -> tuple[str | None, str | None]:
@@ -1035,7 +1051,7 @@ def _match_service(
         for keyword in keywords:
             match = is_whole_word if isinstance(keyword, Word) else starts_a_word
             if match(tokens, keyword):
-                return code, keyword
+                return _for_admission(tokens, code, keyword, ignore)
     for code, keywords in LATE_KEYWORDS.items():
         if code in ignore:
             continue
