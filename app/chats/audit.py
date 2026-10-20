@@ -40,12 +40,15 @@ from sqlalchemy import select
 from app.chats.metadata import ask
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
 from app.chats.snapshots import PAUSE_BETWEEN_CHATS_SECONDS
-from app.chats.template import OWN_WORDS, expected_description, main_chats
+from app.chats.template import OWN_WORDS, expected_description, main_chats, own_words_fit
+from app.core.logging import get_logger
 from app.db.models import Chat
 
 if TYPE_CHECKING:
     from aiogram import Bot
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+logger = get_logger("chats.audit")
 
 PINNED_PREVIEW_CHARS = 120
 # Topics exist only in forums; elsewhere Telegram reports the right as off and it means nothing.
@@ -189,7 +192,9 @@ async def inspect_chat(
             parent=parent,
             own_words=chat.id in OWN_WORDS,
         )
-        if (info.description or "") != expected:
+        if chat.id in OWN_WORDS and not own_words_fit(info.description or "", bot_username):
+            findings.append("own words do not fit with the bot line")
+        elif (info.description or "") != expected:
             findings.append("description differs from the template")
 
     return dataclasses.replace(
@@ -242,6 +247,8 @@ async def audit_chats(
     # From the whole table, before --chat narrows it: whether a chat is a
     # university's depends on the others.
     mains = main_chats(list(chats))
+    if stray := sorted(OWN_WORDS - {chat.id for chat in chats if chat.is_approved}):
+        logger.warning("OWN_WORDS names chats that are not approved: %s", ", ".join(map(str, stray)))
     if chat_ids is not None:
         chats = [chat for chat in chats if chat.id in chat_ids]
 

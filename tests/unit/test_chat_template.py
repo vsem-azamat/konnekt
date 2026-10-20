@@ -136,8 +136,32 @@ def test_a_chat_in_its_owners_words_that_already_names_the_bot_stays_as_it_is() 
     assert _own_words(current) == current
 
 
-def test_a_chat_in_its_owners_words_still_fits_telegram() -> None:
-    assert _utf16(_own_words("X" * 300)) <= template.DESCRIPTION_LIMIT
+def test_a_retired_line_in_the_middle_goes_and_the_bot_ends_the_text() -> None:
+    current = "Чат Матфиза\n📢 Канал сети: @konnekt_cz\n🔻 Блог: @matfyzak"
+
+    assert _own_words(current) == "Чат Матфиза\n🔻 Блог: @matfyzak\n\nВсе чаты и помощь с учёбой: @konnekt_cz_bot"
+
+
+@pytest.mark.parametrize(
+    ("line", "kept"),
+    [
+        ("Каналы: @matfyzak, @konnekt_cz", "Каналы: @matfyzak"),
+        ("Каналы: @konnekt_cz, @matfyzak", "Каналы: @matfyzak"),
+        ("Каналы: https://t.me/konnekt_cz, t.me/matfyzak", "Каналы: t.me/matfyzak"),
+    ],
+)
+def test_a_line_with_a_link_of_the_owners_keeps_it(line: str, kept: str) -> None:
+    assert _own_words(f"Чат Матфиза\n{line}") == f"Чат Матфиза\n{kept}\n\nВсе чаты и помощь с учёбой: @konnekt_cz_bot"
+
+
+def test_an_empty_description_gets_only_the_bot_line() -> None:
+    assert _own_words("") == "Все чаты и помощь с учёбой: @konnekt_cz_bot"
+
+
+@pytest.mark.parametrize("current", ["X" * 250, "X" * 240 + "\n📢 Канал сети: @konnekt_cz"])
+def test_the_owners_words_are_never_cut_to_fit_the_bot(current: str) -> None:
+    assert _own_words(current) == current
+    assert not template.own_words_fit(current, BOT)
 
 
 def test_the_chats_in_their_owners_words_are_the_ones_the_owner_chose() -> None:

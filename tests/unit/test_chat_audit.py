@@ -367,6 +367,29 @@ async def test_a_main_chat_in_its_owners_words_keeps_them(session_maker, monkeyp
     ]
 
 
+async def test_own_words_that_do_not_fit_are_a_finding_not_a_change(session_maker, monkeypatch) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1}))
+    bot = _bot(info=_chat_info(title=None, description="X" * 250))
+    bot.me.return_value = SimpleNamespace(username=BOT_USERNAME)
+
+    states = await audit_chats(session_maker=session_maker, bot=bot, pause_seconds=0, apply=True, chat_ids={-1})
+
+    assert states[0].findings == ("own words do not fit with the bot line",)
+    assert states[0].applied == ()
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_an_own_words_id_that_is_not_an_approved_chat_is_reported(session_maker, monkeypatch, caplog) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1, -999}))
+
+    await _audit(session_maker, chat_ids={-2})
+
+    assert "-999" in caplog.text
+    assert "-1," not in caplog.text
+
+
 async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
     await _seed_cvut(session_maker)
 
