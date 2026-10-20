@@ -1,6 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { NavLink, Outlet } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router';
 
 import css from './BrowserShell.module.css';
 import { browserSessionQuery, consoleChanges } from './queries';
@@ -17,6 +18,16 @@ import { browserSessionQuery, consoleChanges } from './queries';
  */
 export default function BrowserShell() {
   const { t } = useLingui();
+  const { pathname } = useLocation();
+  const menu = useRef<HTMLElement>(null);
+  // On a narrow window the menu is a row that scrolls sideways: bring the
+  // current screen's link into view rather than leave it off the edge.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: it re-runs on navigation; the current link is read from the DOM
+  useEffect(() => {
+    menu.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [pathname]);
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
   const signOut = useMutation({
@@ -29,7 +40,7 @@ export default function BrowserShell() {
 
   return (
     <div className={css.frame}>
-      <aside className={css.side}>
+      <aside ref={menu} className={css.side}>
         <div className={css.brand}>
           Konnekt
           <small>

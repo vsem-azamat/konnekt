@@ -108,16 +108,36 @@
 @media (max-width: 760px) {
   .frame {
     grid-template-columns: 1fr;
+    /* The menu is as tall as its one row, and the screen takes the rest. */
+    grid-template-rows: auto 1fr;
   }
 
+  /* One row that scrolls sideways: wrapped, the links took three rows of a
+     phone's height; clipped, they showed their top halves. */
   .side {
     position: static;
     height: auto;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
+    gap: 2px;
+    padding: 8px 10px;
     border-right: 0;
     border-bottom: 1px solid var(--hairline);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .side::-webkit-scrollbar {
+    display: none;
+  }
+
+  .brand,
+  .link,
+  .foot {
+    flex: none;
+    white-space: nowrap;
   }
 
   .group,
@@ -125,14 +145,17 @@
     display: none;
   }
 
-  /* Sign-out stays reachable: it joins the wrapped row of links. */
-  .foot {
-    margin: 0 0 0 auto;
-    padding: 0;
-    border-top: 0;
+  .brand {
+    padding: 0 10px 0 4px;
   }
 
-  .brand {
-    padding-bottom: 2px;
+  /* Sign-out is the last stop in the row. */
+  .foot {
+    margin: 0 0 0 8px;
+    padding: 0;
+    border-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 }
