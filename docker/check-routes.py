@@ -51,6 +51,8 @@ def console() -> dict[str, str]:
         "/api/auth/telegram/login": WEBAPI,
         "/api/auth/me": WEBAPI,
         "/api/stats/home": WEBAPI,
+        # The catalog's screens, asked of the catalog by webapi for this host's session.
+        "/api/catalog/admin/catalog": WEBAPI,
         # Not this host's: the catalog's API, the public half, the catalog's health.
         "/api/v1/me": "404",
         "/api/public/catalog": "404",
@@ -79,6 +81,10 @@ def mini_app() -> dict[str, str]:
         # The browser's sign-in is the console host's: here the client address is Cloudflare's.
         "/api/auth/telegram/login": "404",
         "/api/auth/telegram/callback": "404",
+        # So are the catalog's screens through webapi: only a session of the
+        # console's own host may ask for them.
+        "/api/catalog/admin/catalog": "404",
+        "/api/catalog/taxonomy/institutions": "404",
         # The console is the app's now; the old console's addresses lead there.
         "/console": APP,
         "/console/chats/-100123": APP,
