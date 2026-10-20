@@ -6,6 +6,7 @@ import {
   BagIcon,
   ChatIcon,
   DocumentIcon,
+  PersonIcon,
   ShieldIcon,
   TargetIcon,
 } from '@/components/icons';
@@ -27,6 +28,7 @@ import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   adminCatalogQuery,
   adminPartnersQuery,
+  audienceSummaryQuery,
   blockedQuery,
   consoleChatsQuery,
   consoleStatsQuery,
@@ -51,6 +53,7 @@ export default function ConsoleSummaryPage() {
 
 function Summary() {
   const navigate = useNavigate();
+  const { i18n } = useLingui();
   // Read again every minute while it is open: it says how fresh it is.
   // Not after a failure: a stale sign-in would be sent again every minute.
   const stats = useQuery({
@@ -61,6 +64,7 @@ function Summary() {
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
+  const audience = useQuery(audienceSummaryQuery);
 
   const open = (path: string) => {
     hapticSelection();
@@ -142,6 +146,17 @@ function Summary() {
       {stats.data || catalog.data ? (
         <div className={ui.summaryTiles}>
           {stats.data ? <MembersTile stats={stats.data.members_delta} /> : null}
+          {audience.data ? (
+            <div className={ui.summaryTile} data-tone="0">
+              <span>
+                <Trans>Аудитория за неделю</Trans>
+              </span>
+              <b>+{i18n.number(audience.data.new_this_week)}</b>
+              <small>
+                <Trans>всего {i18n.number(audience.data.total)}</Trans>
+              </small>
+            </div>
+          ) : null}
           {stats.data ? (
             <div className={ui.summaryTile} data-tone="1">
               <span>

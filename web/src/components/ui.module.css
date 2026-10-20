@@ -1880,6 +1880,11 @@
   letter-spacing: -0.01em;
 }
 
+.summaryTile[data-tone='0'] {
+  background: var(--tone-0-bg);
+  color: var(--tone-0-fg);
+}
+
 .summaryTile[data-tone='1'] {
   background: var(--tone-1-bg);
   color: var(--tone-1-fg);

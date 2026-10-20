@@ -1682,8 +1682,10 @@ msgid "Для стирания: введите <0>{word}</0>, чтобы под�
 msgstr "Для стирания: введите <0>{word}</0>, чтобы подтвердить."
 
 #. placeholder {0}: data.total
+#. placeholder {0}: i18n.number(audience.data.total)
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
+#: src/console/pages/Summary.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "всего {0}"
@@ -2259,6 +2261,10 @@ msgstr "не задан"
 #: src/pages/Results.tsx
 msgid "Сверху — кто ведёт «{0}»"
 msgstr "Сверху — кто ведёт «{0}»"
+
+#: src/console/pages/Summary.tsx
+msgid "Аудитория за неделю"
+msgstr "Аудитория за неделю"
 
 #: src/components/AppHeader.tsx
 #: src/console/pages/Summary.tsx
