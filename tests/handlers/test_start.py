@@ -79,6 +79,15 @@ class TestStart:
         assert "/help" in text
         assert len(buttons) >= 2
 
+    async def test_the_greeting_speaks_as_us(self, telegram_factory, admin_repo, site):
+        """A stranger's greeting says what happens to spam, not who does it."""
+        message = _private(telegram_factory, "start", create_normal_user(id=556))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        text, _ = _answered(message)
+        assert "модератор" not in text.lower()
+
     async def test_the_greeting_is_plain_language(self, telegram_factory, admin_repo, site):
         """With the site configured, so the line about who helps is in it."""
         message = _private(telegram_factory, "start", create_normal_user(id=555))
@@ -232,6 +241,9 @@ class TestHelp:
         assert "/report" in text
         assert "/mute" not in text
         assert "/banall" not in text
+        # The section everybody sees speaks as the video does; the moderator's
+        # own section, which they alone see, still says who they are.
+        assert "модератор" not in text.lower()
 
     async def test_a_moderator_sees_the_chat_scoped_commands(self, telegram_factory, admin_repo, site):
         admin_repo.is_admin.return_value = True

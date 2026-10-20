@@ -31,7 +31,7 @@ async def report_user(message: types.Message, bot: Bot) -> None:
     """
     reported = replied_message(message)
     if reported is None:
-        answer = await message.answer("Ответьте этой командой на сообщение, которое нужно показать модераторам.")
+        answer = await message.answer("Ответьте этой командой на сообщение, на которое хотите пожаловаться.")
         await message.delete()
         other.sleep_and_delete(answer, 10)
         return
@@ -58,6 +58,6 @@ async def report_user(message: types.Message, bot: Bot) -> None:
         reported.from_user,
         reported,
     )
-    answer = await message.answer("Спасибо! Жалоба отправлена модераторам.👮")
+    answer = await message.answer("Спасибо! Жалоба отправлена, мы разберёмся.")
     await message.delete()
     other.sleep_and_delete(answer, 10)

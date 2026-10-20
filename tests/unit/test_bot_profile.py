@@ -95,6 +95,14 @@ class TestText:
         assert len(profile.DESCRIPTION) <= 512
         assert len(profile.SHORT_DESCRIPTION) <= 120
 
+    def test_members_hear_about_us_not_moderators(self) -> None:
+        """What every user reads says what happens to spam, not who does it —
+        the same voice as the video."""
+        for text in (profile.DESCRIPTION, profile.SHORT_DESCRIPTION):
+            assert "модератор" not in text.lower(), text
+        for command in profile.PRIVATE_COMMANDS + profile.GROUP_COMMANDS:
+            assert "модератор" not in command.description.lower(), command.command
+
     def test_text_is_plain_language(self) -> None:
         """«Přijímačky» is what students call it; the bot names it properly."""
         for text in (profile.NAME, profile.DESCRIPTION, profile.SHORT_DESCRIPTION):
