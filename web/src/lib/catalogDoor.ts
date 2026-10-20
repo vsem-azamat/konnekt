@@ -13,6 +13,18 @@
 
 export type CatalogDoor = 'init-data' | 'console-session';
 
+/**
+ * webapi said the console's session is gone while asking for the catalog. The
+ * console answers it by signing in again, as it does for its own calls
+ * (console/browser.ts, `endsSession`).
+ */
+export class CatalogSessionEnded extends Error {
+  constructor() {
+    super('the console session behind a catalog call has ended');
+    this.name = 'CatalogSessionEnded';
+  }
+}
+
 const CONSOLE_LANGS = new Set(['ru', 'cs', 'en', 'uk']);
 
 /** `search` is `''` or a query string with its `?`, as api.ts builds it. */

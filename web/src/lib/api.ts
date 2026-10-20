@@ -1,9 +1,7 @@
 import { i18n } from '@lingui/core';
 import { retrieveRawInitData } from '@tma.js/sdk-react';
 
-import { ConsoleError } from '@/console/session';
-
-import { type CatalogDoor, catalogCall } from './catalogDoor';
+import { type CatalogDoor, CatalogSessionEnded, catalogCall } from './catalogDoor';
 
 import { type PublicChat, sanitize } from './chats';
 import type {
@@ -171,7 +169,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (!response.ok) {
     // Through webapi a 401 is the browser's session gone, which the console
     // answers by signing in again (browser.ts, `endsSession`).
-    if (response.status === 401 && !call.initData) throw new ConsoleError(401, 'stale');
+    if (response.status === 401 && !call.initData) throw new CatalogSessionEnded();
     if (response.status === 401) {
       const error = new UnauthorizedError(payload);
       for (const listener of unauthorizedListeners) listener(error);

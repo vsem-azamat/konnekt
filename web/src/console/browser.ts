@@ -6,6 +6,8 @@
  * what that decision needs and nothing that draws.
  */
 
+import { CatalogSessionEnded } from '../lib/catalogDoor.ts';
+
 import { ConsoleError } from './session.ts';
 
 /** What webapi's callback sends back as `?error=`; anything else is not ours to show. */
@@ -43,7 +45,10 @@ export type BrowserPath = (typeof BROWSER_PATHS)[number];
  * A request that merely failed is not that.
  */
 export function endsSession(error: unknown): boolean {
-  return error instanceof ConsoleError && error.reason === 'stale';
+  return (
+    (error instanceof ConsoleError && error.reason === 'stale') ||
+    error instanceof CatalogSessionEnded
+  );
 }
 
 /**
