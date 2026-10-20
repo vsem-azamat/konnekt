@@ -20,7 +20,8 @@ import {
   ui,
 } from '@/components/Ui';
 import { parentChoices } from '@/console/activity';
-import { BanPartialSheet, BanSheet } from '@/console/BanSheet';
+import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
+import { type BanOutcome, banOutcome } from '@/console/ban';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
@@ -84,7 +85,12 @@ type Sheets =
   | { kind: 'mode'; to: 'approved' | 'observed' | 'external' }
   | { kind: 'welcome'; enable: boolean }
   | { kind: 'ban'; sender: ChatSender }
-  | { kind: 'banPartial'; sender: ChatSender; failed: number }
+  | {
+      kind: 'banOutcome';
+      sender: ChatSender;
+      outcome: Exclude<BanOutcome, 'done'>;
+      failed: number;
+    }
   | { kind: 'unban'; sender: ChatSender }
   | { kind: 'ping'; ping: SpamPing }
   | { kind: 'parent' }
@@ -151,7 +157,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
     onMutate: () => setError(null),
     onSuccess: (result, { sender, revoke }) => {
       // An unban's failures are not this sheet's news; a ban's are.
-      const failed = revoke === null ? 0 : result.failed_chats.length;
+      const outcome = revoke === null ? 'done' : banOutcome(result);
       // A ban is every chat's: every chat's sender list and hits may show it.
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
@@ -160,9 +166,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
       setSheet((current) =>
         (current?.kind === 'ban' || current?.kind === 'unban') &&
         current.sender.user_id === sender.user_id
-          ? failed
-            ? { kind: 'banPartial', sender, failed }
-            : null
+          ? outcome === 'done'
+            ? null
+            : { kind: 'banOutcome', sender, outcome, failed: result.failed_chats.length }
           : current,
       );
     },
@@ -783,9 +789,10 @@ function ChatScreen({ chatId }: { chatId: number }) {
           onClose={close}
         />
       ) : null}
-      {sheet?.kind === 'banPartial' ? (
-        <BanPartialSheet
+      {sheet?.kind === 'banOutcome' ? (
+        <BanOutcomeSheet
           name={personName(sheet.sender)}
+          outcome={sheet.outcome}
           failed={sheet.failed}
           onClose={close}
         />

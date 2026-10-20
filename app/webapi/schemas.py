@@ -272,8 +272,10 @@ class UserBlockResponse(BaseModel):
     user_id: int
     blocked: bool
     message: str
-    # The approved chats where Telegram refused; the ban stands in the rest.
+    # The approved chats where Telegram refused, and how many it took in:
+    # none of either means there was no approved chat to act in.
     failed_chats: list[int] = []
+    banned_in: int = 0
 
 
 class AdminSessionRead(BaseModel):

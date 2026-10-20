@@ -20,7 +20,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def client_factory(db_session_maker: async_sessionmaker[AsyncSession], fake_bot: AsyncMock):
+def client_factory(db_session_maker: async_sessionmaker[AsyncSession], fake_bot: AsyncMock, monkeypatch):
     from app.webapi.deps import get_publish_bot, get_session
 
     async def _override_get_session():
@@ -32,7 +32,7 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession], fake_bot:
 
     app.dependency_overrides[get_session] = _override_get_session
     app.dependency_overrides[get_publish_bot] = _override_publish_bot
-    settings.admin.super_admins = [1]
+    monkeypatch.setattr(settings.admin, "super_admins", [1])
     transport = ASGITransport(app=app)
 
     def make() -> AsyncClient:
@@ -145,8 +145,68 @@ async def test_a_ban_that_took_nowhere_answers_nothing(client_factory, db_sessio
         queue = await _ids(client, status="unreviewed")
 
     assert banned.status_code == 200, banned.text
-    assert banned.json()["failed_chats"] == [-1001]
+    assert (banned.json()["failed_chats"], banned.json()["banned_in"]) == ([-1001], 0)
     assert queue == [ping]
+
+
+async def test_a_ban_that_took_in_some_chats_answers_the_hits_and_names_the_rest(
+    client_factory, db_session_maker, fake_bot
+) -> None:
+    (ping,) = await _seed(db_session_maker, _ping(user_id=7), chats=(-1001, -1002))
+
+    async def ban(chat_id, user_id, **_):
+        if chat_id == -1002:
+            raise RuntimeError("Telegram refused")
+
+    fake_bot.ban_chat_member.side_effect = ban
+
+    async with client_factory() as client:
+        banned = await client.post("/api/users/7/block", json={"revoke_messages": False})
+        queue = await _ids(client, status="unreviewed")
+
+    assert banned.status_code == 200, banned.text
+    assert (banned.json()["failed_chats"], banned.json()["banned_in"]) == ([-1002], 1)
+    assert queue == []
+    async with db_session_maker() as session:
+        row = await session.get(SpamPing, ping)
+        assert row is not None
+        # Whoever pressed it in the console: the ban is their answer.
+        assert (row.verdict, row.reviewed_by) == ("ad", 1)
+
+
+async def test_a_ban_with_no_chat_to_act_in_answers_nothing(client_factory, db_session_maker) -> None:
+    async with db_session_maker() as session:
+        session.add(_ping(user_id=7))
+        await session.commit()
+
+    async with client_factory() as client:
+        banned = await client.post("/api/users/7/block", json={"revoke_messages": False})
+        queue = await _ids(client, status="unreviewed")
+
+    assert (banned.json()["failed_chats"], banned.json()["banned_in"]) == ([], 0)
+    assert len(queue) == 1
+
+
+@pytest.mark.parametrize("params", [{"before_id": 5}, {"before_at": "2026-10-20T10:00:00"}])
+async def test_a_cursor_is_both_halves_or_none(client_factory, params) -> None:
+    async with client_factory() as client:
+        resp = await client.get("/api/spam/pings", params=params)
+    assert resp.status_code == 422
+
+
+async def test_a_cursor_with_a_zone_is_read_as_utc(client_factory, db_session_maker) -> None:
+    older, newer = await _seed(
+        db_session_maker, _ping(ago=datetime.timedelta(hours=3)), _ping(ago=datetime.timedelta(hours=1))
+    )
+    async with db_session_maker() as session:
+        at = (await session.get(SpamPing, newer)).detected_at  # type: ignore[union-attr]
+    prague = datetime.timezone(datetime.timedelta(hours=2))
+    stamp = at.replace(tzinfo=datetime.UTC).astimezone(prague).isoformat()
+
+    async with client_factory() as client:
+        resp = await client.get("/api/spam/pings", params={"before_at": stamp, "before_id": newer})
+
+    assert [ping["id"] for ping in resp.json()] == [older]
 
 
 async def test_an_answered_hit_is_not_answered_again(client_factory, db_session_maker) -> None:

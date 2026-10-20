@@ -35,6 +35,13 @@ import {
   unreviewedPath,
 } from './spam';
 
+/** A ban's or an unban's answer: where Telegram refused, and how many took. */
+export interface BanAnswer {
+  blocked: boolean;
+  failed_chats: number[];
+  banned_in: number;
+}
+
 /** The console's requester for webapi's session endpoints. See session.ts. */
 export const consoleGet = consoleRequester((...args) => fetch(...args), rawInitData);
 
@@ -110,13 +117,10 @@ export const consoleChanges = {
    *  with every message of theirs the bot recorded. `failed_chats` are the
    *  approved chats where Telegram refused. */
   block: (userId: number, revokeMessages: boolean) =>
-    consoleGet<{ blocked: boolean; failed_chats: number[] }>(
-      `/api/users/${userId}/block`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ revoke_messages: revokeMessages }),
-      },
-    ),
+    consoleGet<BanAnswer>(`/api/users/${userId}/block`, {
+      method: 'POST',
+      body: JSON.stringify({ revoke_messages: revokeMessages }),
+    }),
 
   /**
    * Signs this browser out. Past the requester on purpose: it would answer a
@@ -145,12 +149,9 @@ export const consoleChanges = {
     }),
 
   unblock: (userId: number) =>
-    consoleGet<{ blocked: boolean; failed_chats: number[] }>(
-      `/api/users/${userId}/block`,
-      {
-        method: 'DELETE',
-      },
-    ),
+    consoleGet<BanAnswer>(`/api/users/${userId}/block`, {
+      method: 'DELETE',
+    }),
 };
 
 /** Who the super admins are, among webapi's operational facts. */

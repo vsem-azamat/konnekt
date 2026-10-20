@@ -105,6 +105,10 @@ msgstr "Те, чим ти займаєшся"
 msgid "Свободны"
 msgstr "Вільні"
 
+#: src/console/BanSheet.tsx
+msgid "Одобренных чатов нет: банить пока негде."
+msgstr "Схвалених чатів немає: банити поки ніде."
+
 #: src/console/pages/Blacklist.tsx
 msgid "Имя, @username или id"
 msgstr "Ім’я, @username або id"
@@ -622,6 +626,10 @@ msgstr "Лише спостерігати?"
 #: src/pages/AdsApp.tsx
 msgid "«Не про учёбу»"
 msgstr "«Не про навчання»"
+
+#: src/console/BanSheet.tsx
+msgid "{name} в чёрном списке"
+msgstr "{name} у чорному списку"
 
 #: src/console/pages/Summary.tsx
 msgid "Сейчас ничего не ждёт."
@@ -1806,6 +1814,10 @@ msgstr "Життя в Чехії"
 msgid "Забанены во всех чатах. Банят командой /banall или с экрана чата."
 msgstr "Забанені в усіх чатах. Банять командою /banall або з екрана чату."
 
+#: src/console/BanSheet.tsx
+msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
+msgstr "Telegram відмовив у всіх чатах: перевірте права бота й забаньте ще раз."
+
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "Пара слів про себе — що береш і чого не береш"
@@ -2154,6 +2166,10 @@ msgstr "Не видно: у чату немає назви"
 #: src/console/pages/AudiencePeople.tsx
 msgid "Последняя активность"
 msgstr "Остання активність"
+
+#: src/console/BanSheet.tsx
+msgid "{name} не забанен ни в одном чате"
+msgstr "{name} не забанено в жодному чаті"
 
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"

@@ -4,7 +4,8 @@ import { useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
 import { Action, Hint, Row, Rows, Sub, ui } from '@/components/Ui';
-import { BanPartialSheet, BanSheet } from '@/console/BanSheet';
+import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
+import { type BanOutcome, banOutcome } from '@/console/ban';
 import { FailureText } from '@/console/FailureText';
 import {
   blockedQuery,
@@ -86,27 +87,33 @@ export function PingSheet({
   const admin = system.data?.super_admin_ids.includes(ping.user_id) ?? false;
   const ban = useMutation({
     mutationFn: (revoke: boolean) => consoleChanges.block(ping.user_id, revoke),
-    onSuccess: ({ failed_chats }) => {
+    onSuccess: (answer) => {
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
       void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
-      if (failed_chats.length) setPartial(failed_chats.length);
-      else onClose();
+      const outcome = banOutcome(answer);
+      if (outcome === 'done') onClose();
+      else setOutcome({ outcome, failed: answer.failed_chats.length });
     },
   });
   const [banning, setBanning] = useState(banFirst);
-  const [partial, setPartial] = useState<number | null>(null);
+  const [outcome, setOutcome] = useState<{
+    outcome: Exclude<BanOutcome, 'done'>;
+    failed: number;
+  } | null>(null);
   const close = () => {
     ban.reset();
     onClose();
   };
 
-  if (partial !== null) {
-    return <BanPartialSheet name={personName(ping)} failed={partial} onClose={close} />;
+  if (outcome !== null) {
+    return <BanOutcomeSheet name={personName(ping)} {...outcome} onClose={close} />;
   }
+  // Listed and the hit still waiting is a ban that took nowhere: on offer again.
+  const bannable = !admin && (!ping.blocked || ping.verdict === null);
   // Nobody to ban is the hit's own sheet, which says why.
-  if (banning && !ping.blocked && !admin) {
+  if (banning && bannable) {
     return (
       <BanSheet
         name={personName(ping)}
@@ -139,7 +146,7 @@ export function PingSheet({
       {ping.snippet ? <blockquote className={ui.quote}>{ping.snippet}</blockquote> : null}
       <Hint>{ping.matches.join(', ')}</Hint>
       <div className={ui.actionsStacked}>
-        {ping.blocked ? (
+        {!bannable && ping.blocked ? (
           <Hint>
             <Trans>Уже в чёрном списке.</Trans>
           </Hint>

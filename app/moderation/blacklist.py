@@ -40,7 +40,7 @@ def is_protected(user_id: int) -> bool:
     return user_id in settings.admin.super_admins
 
 
-async def _approved_chat_ids(db: AsyncSession) -> list[int]:
+async def approved_chat_ids(db: AsyncSession) -> list[int]:
     """The chats a blacklist entry acts in.
 
     The bot records every group it sits in, other people's included; acting in
@@ -94,8 +94,13 @@ async def add_to_blacklist(
     bot: Bot,
     id_tg: int,
     revoke_messages: bool | None = None,
+    *,
+    actor_id: int | None = None,
 ) -> list[int]:
-    """Blacklist somebody and ban them from every approved chat; returns where the ban failed."""
+    """Blacklist somebody and ban them from every approved chat; returns where the ban failed.
+
+    ``actor_id`` is who asked, recorded on the ad hits the ban answers.
+    """
     if is_protected(id_tg):
         raise ProtectedUserError(id_tg)
     if is_stand_in(id_tg):
@@ -103,7 +108,7 @@ async def add_to_blacklist(
     user_repo = UserRepository(db)
     message_repo = MessageRepository(db)
     await user_repo.add_to_blacklist(id_tg)
-    approved = await _approved_chat_ids(db)
+    approved = await approved_chat_ids(db)
 
     failed = await _fan_out(
         approved,
@@ -112,7 +117,7 @@ async def add_to_blacklist(
         user_id=id_tg,
     )
     if len(failed) < len(approved):
-        await _answer_ad_hits(db, id_tg)
+        await _answer_ad_hits(db, id_tg, actor_id)
 
     if not revoke_messages:
         return failed
@@ -137,13 +142,13 @@ async def add_to_blacklist(
     return failed
 
 
-async def _answer_ad_hits(db: AsyncSession, id_tg: int) -> None:
+async def _answer_ad_hits(db: AsyncSession, id_tg: int, actor_id: int | None) -> None:
     """A ban that took somewhere is the verdict on every hit of theirs still
     waiting in the console's queue. Lifting it later leaves them answered."""
     await db.execute(
         update(SpamPing)
         .where(SpamPing.user_id == id_tg, SpamPing.verdict.is_(None))
-        .values(verdict=SpamVerdict.AD, reviewed_at=utc_now())
+        .values(verdict=SpamVerdict.AD, reviewed_at=utc_now(), reviewed_by=actor_id)
     )
     await db.commit()
 
@@ -153,7 +158,7 @@ async def remove_from_blacklist(db: AsyncSession, bot: Bot, id_tg: int) -> list[
     user_repo = UserRepository(db)
 
     await user_repo.remove_from_blacklist(id_tg)
-    approved = await _approved_chat_ids(db)
+    approved = await approved_chat_ids(db)
 
     return await _fan_out(
         approved,
