@@ -54,6 +54,9 @@ async def _id(session: AsyncSession, slug: str) -> int:
         ("maths exam", "en"),
         # The Czech locative turns k into c.
         ("matematice", "cs"),
+        # A number where no maths course is numbered says nothing about which.
+        ("математика 1", "ru"),
+        ("maths 101", "en"),
         # «Higher» says which school level, not which corner of maths.
         ("высшая математика", "ru"),
         ("вища математика", "uk"),
@@ -108,9 +111,6 @@ async def test_a_named_leaf_beats_its_shelf(session, text, lang, slug) -> None:
     [
         # A level says which language exam, not which maths.
         ("математика B2", "ru"),
-        # A number beside a shelf's word names a numbered course where there
-        # is one: «fyziky 2» is Fyzika 2. Not the shelf, for maths either.
-        ("математика 1", "ru"),
         # Kinds of help whose offers carry no maths leaf.
         ("math essay", "en"),
         ("математика общежитие", "ru"),
@@ -323,9 +323,44 @@ async def test_a_request_for_a_leaf_does_not_reach_a_sibling_leaf(
     assert row.on_subject is False
 
 
+def _shelf_migrations() -> list:
+    """Every migration that writes a shelf's words or what it holds, in
+    revision order — which the file names do not promise — from the one that
+    introduced them (65e02593516e, which also adds the column) on."""
+    import importlib.util
+    from pathlib import Path
+
+    versions = (
+        Path(__file__).resolve().parents[1] / "src/students_cz/db/migrations/versions"
+    )
+    migrations = []
+    for path in versions.glob("*.py"):
+        spec = importlib.util.spec_from_file_location(f"_m_{path.stem}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if hasattr(module, "HOLDS"):
+            migrations.append(module)
+    by_parent = {migration.down_revision: migration for migration in migrations}
+    revisions = {migration.revision for migration in migrations}
+    [first] = [m for m in migrations if m.down_revision not in revisions]
+    assert first.revision == "65e02593516e"
+    ordered = [first]
+    while ordered[-1].revision in by_parent:
+        ordered.append(by_parent[ordered[-1].revision])
+    assert len(ordered) == len(migrations)
+    return ordered
+
+
+# Leaf synonyms production held before the shelf migrations, which they take
+# away. Written out here rather than read from the downgrades: a migration that
+# forgot to remove a word would restore nothing on the way down and remove
+# nothing on the way up, and the seed would look matched.
+PRODUCTION_HAD: dict[str, set[str]] = {"obecna-chemie": {"хімія"}}
+
+
 async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
     """`holds` reaches production by migration only, like synonyms."""
-    import importlib.util
     import json
     from pathlib import Path
 
@@ -335,12 +370,8 @@ async def test_seed_and_migrations_agree_about_what_a_shelf_holds() -> None:
         for group in json.loads((root / "seeds/subjects.json").read_text())["groups"]
     }
     migrated: dict[str, set[str]] = {}
-    for path in sorted((root / "src/students_cz/db/migrations/versions").glob("*.py")):
-        spec = importlib.util.spec_from_file_location(f"_m_{path.stem}", path)
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        for slug, slugs in getattr(module, "HOLDS", {}).items():
+    for module in _shelf_migrations():
+        for slug, slugs in module.HOLDS.items():
             migrated[slug] = set(slugs)
     assert migrated, "no migration declares what a shelf holds"
     assert {slug: holds for slug, holds in seeded.items() if holds} == migrated
@@ -352,7 +383,6 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
     before the first of them, run them up in order inside the test's
     transaction, and compare with the seed file.
     """
-    import importlib.util
     import json
     from pathlib import Path
 
@@ -360,27 +390,7 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
     from alembic.operations import Operations
 
     root = Path(__file__).resolve().parents[1]
-    # Every migration that writes a shelf's words or what it holds, from the one
-    # that introduced them (65e02593516e, which also adds the column) on.
-    migrations = []
-    for path in sorted((root / "src/students_cz/db/migrations/versions").glob("*.py")):
-        spec = importlib.util.spec_from_file_location(f"_m_{path.stem}", path)
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        if hasattr(module, "HOLDS"):
-            migrations.append(module)
-    # In revision order, which the file names do not promise.
-    by_parent = {migration.down_revision: migration for migration in migrations}
-    first = next(
-        m for m in migrations if m.down_revision not in {n.revision for n in migrations}
-    )
-    assert first.revision == "65e02593516e"
-    ordered = [first]
-    while ordered[-1].revision in by_parent:
-        ordered.append(by_parent[ordered[-1].revision])
-    assert len(ordered) == len(migrations)
-    migrations = ordered
+    migrations = _shelf_migrations()
 
     def run(connection) -> None:
         with Operations.context(MigrationContext.configure(connection)):
@@ -392,6 +402,14 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
             connection.execute(
                 text("UPDATE subjects SET synonyms = '{}' WHERE kind = 'group'")
             )
+            for slug, words in PRODUCTION_HAD.items():
+                connection.execute(
+                    text(
+                        "UPDATE subjects SET synonyms = ARRAY(SELECT DISTINCT unnest("
+                        "synonyms || CAST(:words AS text[]))) WHERE slug = :slug"
+                    ),
+                    {"words": sorted(words), "slug": slug},
+                )
             for migration in migrations:
                 migration.upgrade()
 
@@ -417,9 +435,7 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         for group in seeded.values()
         for leaf in group.get("children", [])
     }
-    removed = {slug for m in migrations for slug in getattr(m, "SYNONYM_REMOVES", {})}
-    assert removed
-    for slug in removed:
+    for slug in PRODUCTION_HAD:
         synonyms = await session.scalar(
             text("SELECT synonyms FROM subjects WHERE slug = :slug"), {"slug": slug}
         )
@@ -451,6 +467,9 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         ("информатика", "ru", "it-programming"),
         ("programování", "cs", "it-programming"),
         ("programming", "en", "it-programming"),
+        ("informatika", "cs", "it-programming"),
+        ("інформатика", "uk", "it-programming"),
+        ("інформатиці", "uk", "it-programming"),
         ("informatice", "cs", "it-programming"),
         ("програмування", "uk", "it-programming"),
         ("экономика", "ru", "economics-finance"),
@@ -473,8 +492,10 @@ async def test_other_words_for_a_shelf_name_their_shelf(
     ("text", "lang", "slug"),
     [
         ("физика 1", "ru", "fyzika-1"),
-        # Inflected, so no leaf scores 1.00; the number still says which.
+        # Inflected, so no leaf scores 1.00; a number in the name of a course
+        # on the shelf names that course.
         ("fyziky 2", "cs", "fyzika-2"),
+        ("по физике 1", "ru", "fyzika-1"),
         ("репетитор по физике 2", "ru", "fyzika-2"),
         ("фізичної хімії", "uk", "fyzikalni-chemie"),
         ("organické chemie", "cs", "organicka-chemie"),
@@ -493,9 +514,17 @@ async def test_a_named_leaf_beats_the_other_shelves(session, text, lang, slug) -
     assert parsed.subject.id == await _id(session, slug), parsed.subject
 
 
-async def test_a_stem_does_not_reach_another_word(session) -> None:
-    """ "physic" would begin "physician"."""
-    parsed = await parse(session, "physician", "en", today=TODAY)
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # "physic" would begin "physician".
+        ("physician", "en"),
+        # «fyzic» would begin «fyzická příprava», which is fitness.
+        ("fyzická příprava", "cs"),
+    ],
+)
+async def test_a_stem_does_not_reach_another_word(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is None or parsed.subject.id != await _id(session, "physics")
 
 

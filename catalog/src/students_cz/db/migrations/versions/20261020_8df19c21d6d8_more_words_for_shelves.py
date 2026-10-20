@@ -37,10 +37,10 @@ depends_on: str | Sequence[str] | None = None
 # the holds and both together on a seeded database.
 SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
     # Stems, and the Czech and Ukrainian locatives where k turns into c
-    # («ve fyzice», «у фізиці»). "physics" whole, since "physic" begins
-    # "physician".
+    # («ve fyzice», «у фізиці») — «fyzice» whole, since «fyzic» begins
+    # «fyzická příprava». "physics" whole, since "physic" begins "physician".
     "math": ("matematic",),
-    "physics": ("физик", "фізик", "фізиц", "fyzik", "fyzic", "physics"),
+    "physics": ("физик", "фізик", "фізиц", "fyzik", "fyzice", "physics"),
     "chemistry": ("хими", "хімі", "chemi"),
     "it-programming": (
         "программир",

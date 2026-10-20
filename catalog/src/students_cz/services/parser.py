@@ -463,7 +463,7 @@ async def parse(
             if shelves
             else None
         )
-        if stems and _only_names_shelf(result, norm, keyword, stems):
+        if stems and _only_names_shelf(result, norm, keyword, stems, _numbers(subjects)):
             subjects = [shelves[0], *subjects[:3]]
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
@@ -847,8 +847,22 @@ SHELF_KINDS: frozenset[str | None] = frozenset(
 LEVEL_OF_SCHOOL: tuple[str, ...] = ("высш", "вищ", "vyss", "higher")
 
 
+def _numbers(matches: list[Match]) -> set[str]:
+    """The numbers in these subjects' names: «Fyzika 2» has 2."""
+    return {
+        token
+        for match in matches
+        for token in tokenise(normalise(match.label)).split()
+        if token.isdigit()
+    }
+
+
 def _only_names_shelf(
-    result: "ParsedQuery", norm: str, keyword: str | None, stems: list[str]
+    result: "ParsedQuery",
+    norm: str,
+    keyword: str | None,
+    stems: list[str],
+    numbered: set[str],
 ) -> bool:
     """Is a word for the shelf all the query says about a subject?
 
@@ -870,6 +884,9 @@ def _only_names_shelf(
     ]
     return bool(named) and all(
         token in named
+        # A number names a course where one on offer is numbered that way —
+        # «fyziky 2» is Fyzika 2 — and says nothing where none is: «математика 1».
+        or (token.isdigit() and token not in numbered)
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or (school is not None and transliterate(token).startswith(school))
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
