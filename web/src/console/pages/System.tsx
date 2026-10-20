@@ -15,6 +15,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
+import { useBrowserConsole } from '@/console/browserContext';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { consoleChanges, consoleSystemQuery, sessionsQuery } from '@/console/queries';
 import { type AdminSession, utc } from '@/console/session';
@@ -66,10 +67,12 @@ function System() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  const inBrowser = useBrowserConsole();
   const signOut = useMutation({
     mutationFn: consoleChanges.signOut,
-    // Out of the console: it would sign straight back in from Telegram.
-    onSuccess: () => window.location.assign('/'),
+    // Out of the console: in Telegram it would sign straight back in; a browser
+    // goes to the sign-in page.
+    onSuccess: () => window.location.assign(inBrowser ? '/login' : '/'),
   });
   const dismiss = () => {
     closeSession.reset();
