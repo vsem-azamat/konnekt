@@ -27,7 +27,15 @@ HOOKS = ROOT / ".githooks"
 ZERO = "0" * 40
 
 
+def _outside_git() -> dict[str, str]:
+    """The environment without git's: run from a hook, as pre-push runs these
+    tests, GIT_DIR names the pushing worktree, and a `git init` elsewhere
+    would reinitialise that repository as bare."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+
+
 def _run(*args: str | Path, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    kwargs.setdefault("env", _outside_git())
     return subprocess.run(args, capture_output=True, text=True, timeout=120, **kwargs)  # noqa: S603 — our own hooks and git
 
 
@@ -113,7 +121,7 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def _env() -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env = _outside_git()
     env.update({"UV_PROJECT_ENVIRONMENT": sys.prefix, "UV_NO_SYNC": "1", "UV_OFFLINE": "1"})
     env.pop("SKIP_HOOKS", None)
     return env
@@ -336,3 +344,23 @@ def test_pre_push_of_a_commit_not_checked_out_says_it_checked_nothing(repo: Path
 
     assert result.returncode == 0
     assert result.stdout.startswith("skip  all checks")
+
+
+def test_these_tests_leave_the_repository_that_runs_them_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    pushing = tmp_path / "pushing"
+    _run("git", "init", "-q", pushing, check=True)
+    monkeypatch.setenv("GIT_DIR", str(pushing / ".git"))
+
+    _run("git", "init", "-q", tmp_path / "scratch", check=True)
+
+    assert _run("git", "-C", pushing, "config", "core.bare").stdout.strip() == "false"
+
+
+def test_a_check_in_a_subdirectory_reads_this_repository(repo: Path) -> None:
+    """git hands a hook GIT_DIR; with it set, `make -C catalog` would take catalog/ for the top."""
+    script = 'cd "$1" && . .githooks/_lib.sh && cd app && git rev-parse --show-toplevel'
+    env = {**_outside_git(), "GIT_DIR": str(repo / ".git")}
+
+    result = _run("bash", "-c", script, "-", repo, env=env, check=True)
+
+    assert result.stdout.strip() == str(repo)

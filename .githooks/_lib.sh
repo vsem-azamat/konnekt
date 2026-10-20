@@ -4,6 +4,11 @@
 
 failed=0
 
+# git hands a hook GIT_DIR, and with it set and no GIT_WORK_TREE, a git run
+# from a subdirectory (make -C catalog, pnpm --dir web) takes that directory
+# for the top of the tree. Found again from the working directory instead.
+unset GIT_DIR GIT_WORK_TREE
+
 # Paths a diff touches. A rename is its old path and its new one, or moving a
 # file out of a lane would hide it from that lane; and names stay unquoted, or
 # a non-ASCII one would start with a quote and match no lane.
