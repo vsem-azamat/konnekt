@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  byOwner,
   chipFor,
   directory,
   initials,
@@ -26,6 +27,7 @@ function chat(
     activity: 'active',
     member_count: null,
     is_forum: false,
+    external: false,
     ...over,
   };
 }
@@ -257,6 +259,36 @@ test('a chat has topics only when supervisor says so', () => {
     })),
   ).map((c) => c.is_forum);
   assert.deepEqual(forums, [true, false, false, false]);
+});
+
+test("a chat is somebody else's only when supervisor says so", () => {
+  const external = sanitize(
+    [true, false, 'true', undefined].map((value, n) => ({
+      title: `Chat ${n}`,
+      link: `https://t.me/chat_${n}`,
+      group: null,
+      activity: 'quiet',
+      external: value,
+    })),
+  ).map((c) => c.external);
+  assert.deepEqual(external, [true, false, false, false]);
+});
+
+test("a section's own chats come apart from the ones it only lists", () => {
+  const { ours, others } = byOwner([
+    chat('ČVUT | ЧВУТ', CVUT),
+    chat('ČVUT FJFI', CVUT, { external: true }),
+    chat('ČVUT FIT', CVUT),
+    chat('PODOLI', CVUT, { external: true }),
+  ]);
+  assert.deepEqual(
+    ours.map((c) => c.title),
+    ['ČVUT | ЧВУТ', 'ČVUT FIT'],
+  );
+  assert.deepEqual(
+    others.map((c) => c.title),
+    ['ČVUT FJFI', 'PODOLI'],
+  );
 });
 
 test("a chat's place is its university and that university's city", () => {

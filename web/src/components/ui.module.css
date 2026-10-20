@@ -374,6 +374,15 @@
   background: var(--surface-pressed);
 }
 
+/* A chat somebody else runs: drawn, not filled, so a reader can tell at a
+   glance which rows are ours. The padding gives back the border's pixel so the
+   row keeps its height and its text lines up with the filled rows. */
+.rowOutline {
+  padding: 6px 11px 6px 8px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+}
+
 /* flex:1 and min-width:0 together are what let the hint truncate: without the
    min-width a flex child refuses to shrink below its content, so the text runs
    under the avatars instead of ending in an ellipsis. */
@@ -872,6 +881,13 @@
 
 .sheetFoot {
   text-align: center;
+}
+
+.sheetNote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 .pick {

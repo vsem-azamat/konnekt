@@ -290,6 +290,7 @@ export function Row({
   hint,
   trailing,
   badge,
+  outline = false,
   onClick,
 }: {
   leading?: ReactNode;
@@ -297,12 +298,14 @@ export function Row({
   hint?: ReactNode;
   trailing?: ReactNode;
   badge?: ReactNode;
+  /** Drawn rather than filled: a row for something that is not ours. */
+  outline?: boolean;
   onClick?: () => void;
 }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
-      className={`${css.row} ${css.pressable}`}
+      className={`${css.row} ${css.pressable}${outline ? ` ${css.rowOutline}` : ''}`}
       type={onClick ? 'button' : undefined}
       onClick={onClick}
     >

@@ -61,6 +61,7 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
           chipFor(chat.activity) ? <ActivityChip activity={chat.activity} /> : undefined
         }
         trailing={<Chevron />}
+        outline={chat.external}
         onClick={() => {
           hapticSelection();
           preview.show();
@@ -133,6 +134,11 @@ function ChatPreview({
             </span>
           ) : null}
         </div>
+      ) : null}
+      {chat.external ? (
+        <p className={css.sheetNote}>
+          <Trans>Этот чат ведут не Konnekt, и правила там свои.</Trans>
+        </p>
       ) : null}
       <div className={css.actions}>
         <Action onClick={onJoin}>
