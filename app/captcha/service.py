@@ -17,11 +17,11 @@ import html
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.captcha import challenge, waves
-from app.captcha.telegram import already_member, report, request_gone, with_retry
+from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, JoinCaptcha, JoinWave
@@ -32,6 +32,7 @@ SWEEP_INTERVAL_SECONDS = 15
 # As long as what people wrote is kept (#174), and swept as rarely.
 RETENTION_DAYS = 180
 _RETENTION_EVERY = datetime.timedelta(hours=6)
+_UNDELIVERED_EVERY = datetime.timedelta(minutes=10)
 
 
 class Outcome(enum.Enum):
@@ -101,12 +102,9 @@ async def admit(
         row.status = JoinCaptcha.STATUS_UNDELIVERED
         row.resolved_at = now
         await db.commit()
+        # Reported by the sweep, summed up per chat: a second captcha bot in
+        # the chat makes every request land here.
         logger.warning("captcha_not_delivered", chat_id=chat.id, user_id=user_id, error=str(err))
-        await report(
-            bot,
-            f"Капча не дошла до заявителя в {html.escape(_title(chat))} ({user_id}): {html.escape(err.message)}. "
-            f"Заявка ждёт админов чата.",
-        )
         return
     row.message_id = sent.message_id
     await db.commit()
@@ -242,37 +240,46 @@ async def _refused(
         await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.gone_text(title))
         logger.info("captcha_request_gone", captcha_id=row.id)
         return Outcome.GONE
-    # Lost rights, most likely: nothing the applicant can fix, and something the admins must.
+    # Nothing the applicant can fix, and something the admins must know.
     await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
     logger.warning("captcha_request_refused", captcha_id=row.id, chat_id=row.chat_id, error=str(err))
+    advice = "Проверьте права бота в чате." if lacks_rights(err) else "Telegram не ответил, заявка ждёт админов чата."
     await report(
         bot,
-        f"Капча не смогла {verb} заявку в {html.escape(title)} ({row.user_id}): {html.escape(err.message)}. "
-        f"Проверьте права бота в чате.",
+        f"Капча не смогла {verb} заявку в {html.escape(title)} ({row.user_id}): {html.escape(err.message)}. {advice}",
     )
     return Outcome.GONE
 
 
 async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = None) -> int:
-    """Decline every captcha whose time ran out; returns how many were looked at.
+    """Decline every captcha whose time ran out; returns how many were settled.
 
-    Rows a tap is settling right now are locked and skipped: the tap decides
-    them, and the next sweep finds them closed.
+    One row per transaction, each locked and skipped if a tap holds it: the
+    tap decides that one, and a failure halfway leaves the rows before it
+    settled rather than rolled back to be declined a second time.
     """
     now = now or utc_now()
-    stale = (
+    due = (
         await db.scalars(
-            select(JoinCaptcha)
-            .where(JoinCaptcha.status == JoinCaptcha.STATUS_PENDING, JoinCaptcha.expires_at <= now)
-            .with_for_update(skip_locked=True)
+            select(JoinCaptcha.id).where(
+                JoinCaptcha.status == JoinCaptcha.STATUS_PENDING, JoinCaptcha.expires_at <= now
+            )
         )
     ).all()
-    closing: list[tuple[JoinCaptcha, str]] = []
-    for row in stale:
+    settled = 0
+    for captcha_id in due:
+        row = await db.scalar(
+            select(JoinCaptcha)
+            .where(JoinCaptcha.id == captcha_id, JoinCaptcha.status == JoinCaptcha.STATUS_PENDING)
+            .with_for_update(skip_locked=True)
+        )
+        if row is None:
+            await db.rollback()
+            continue
         chat = await db.get(Chat, row.chat_id)
         title = _title(chat) if chat else str(row.chat_id)
         if not _still_checks(chat):
-            row.status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
+            status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
         else:
             try:
                 await with_retry(
@@ -282,20 +289,48 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
                 # Settled by an admin meanwhile, or not ours to settle any more:
                 # either way the applicant must not be told "declined".
                 if request_gone(err):
-                    row.status, note = JoinCaptcha.STATUS_GONE, challenge.gone_text(title)
+                    status, note = JoinCaptcha.STATUS_GONE, challenge.gone_text(title)
                 else:
-                    row.status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
+                    status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
                     logger.warning("captcha_expiry_refused", captcha_id=row.id, error=str(err))
             else:
-                row.status, note = JoinCaptcha.STATUS_EXPIRED, challenge.failed_text(title)
-        row.resolved_at = now
-        closing.append((row, note))
-    await db.commit()
-    for row, note in closing:
-        await _edit(bot, row, note, None)
-    if stale:
-        logger.info("captcha_expired", count=len(stale))
-    return len(stale)
+                status, note = JoinCaptcha.STATUS_EXPIRED, challenge.failed_text(title)
+        await _close(bot, db, row, status, now, note)
+        settled += 1
+    if settled:
+        logger.info("captcha_expired", count=settled)
+    return settled
+
+
+async def report_undelivered(bot: Bot, db: AsyncSession, *, since: datetime.datetime, until: datetime.datetime) -> None:
+    """One summary of the captchas that could not be sent, instead of a line per applicant.
+
+    A captcha that does not arrive is nearly always another bot in the chat
+    writing first, and that happens to every request, not one in a hundred.
+    """
+    rows = (
+        await db.execute(
+            select(JoinCaptcha.chat_id, func.count())
+            .where(
+                JoinCaptcha.status == JoinCaptcha.STATUS_UNDELIVERED,
+                JoinCaptcha.resolved_at > since,
+                JoinCaptcha.resolved_at <= until,
+            )
+            .group_by(JoinCaptcha.chat_id)
+        )
+    ).all()
+    if not rows:
+        return
+    lines = []
+    for chat_id, count in rows:
+        chat = await db.get(Chat, chat_id)
+        lines.append(f"• {html.escape(_title(chat) if chat else str(chat_id))}: {count}")
+    await report(
+        bot,
+        "Капча не дошла до заявителей, их заявки ждут админов чата:\n"
+        + "\n".join(lines)
+        + "\n\nОбычно так бывает, когда в чате есть другой бот с капчей: написать заявителю может только первый.",
+    )
 
 
 async def forget_old(db: AsyncSession, *, now: datetime.datetime | None = None) -> None:
@@ -311,12 +346,17 @@ async def run_sweep(
 ) -> None:
     """Expire unanswered captchas and keep wave alerts current, for as long as the bot runs."""
     forgotten_at: datetime.datetime | None = None
+    reported_at = utc_now()
     while True:
         try:
             await asyncio.sleep(interval_seconds)
             async with session_maker() as session:
                 await expire_stale(bot, session)
                 await waves.refresh_alerts(bot, session, utc_now())
+                if utc_now() - reported_at > _UNDELIVERED_EVERY:
+                    until = utc_now()
+                    await report_undelivered(bot, session, since=reported_at, until=until)
+                    reported_at = until
                 if forgotten_at is None or utc_now() - forgotten_at > _RETENTION_EVERY:
                     await forget_old(session)
                     forgotten_at = utc_now()

@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError, TelegramRetryAfter
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -31,6 +31,13 @@ async def with_retry[T](call: Callable[[], Awaitable[T]]) -> T:
 def request_gone(err: TelegramAPIError) -> bool:
     """Telegram's word for "there is no such request": somebody already settled it."""
     return "HIDE_REQUESTER_MISSING" in err.message
+
+
+def lacks_rights(err: TelegramAPIError) -> bool:
+    """A refusal the chat's admins can fix by giving the bot its rights back."""
+    return isinstance(err, TelegramForbiddenError) or any(
+        sign in err.message for sign in ("CHAT_ADMIN_REQUIRED", "not enough rights", "USER_NOT_PARTICIPANT")
+    )
 
 
 def already_member(err: TelegramAPIError) -> bool:

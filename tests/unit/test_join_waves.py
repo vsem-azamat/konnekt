@@ -13,6 +13,7 @@ import pytest
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, ChatJoinRequest, User
 from app.captcha import service, waves
+from app.captcha.waves import WaveDecision
 from app.core.config import settings
 from app.core.time import utc_now
 from app.db.models import Chat as DbChat
@@ -280,3 +281,15 @@ async def test_declining_a_wave_in_a_chat_that_dropped_captcha_declines_nobody(
 
     bot.decline_chat_join_request.assert_not_awaited()
     assert await _count(session, JoinCaptcha.STATUS_HELD) == 3
+
+
+async def test_after_declining_the_alert_keeps_a_button_to_finish(session: AsyncSession, bot, chat) -> None:
+    await _flood(bot, session, chat, waves.PER_MINUTE + 2)
+    wave = await _the_wave(session)
+
+    await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")
+
+    markup = bot.edit_message_text.await_args.kwargs["reply_markup"]
+    button = markup.inline_keyboard[0][0]
+    assert button.text == "Отклонить оставшиеся"
+    assert WaveDecision.unpack(button.callback_data) == WaveDecision(wave_id=wave.id, action=waves.DECLINE)

@@ -409,7 +409,8 @@ async def test_a_new_request_retires_the_old_captcha(session: AsyncSession, bot)
     bot.approve_chat_join_request.assert_not_awaited()
 
 
-async def test_an_undelivered_captcha_is_reported(session: AsyncSession, bot) -> None:
+async def test_undelivered_captchas_are_summed_up_not_reported_one_by_one(session: AsyncSession, bot) -> None:
+    """A second captcha bot in the chat makes every request fail: one line per chat, not per request."""
     await _seed_chat(session)
     report_chat = settings.admin.default_report_chat_id
 
@@ -419,10 +420,16 @@ async def test_an_undelivered_captcha_is_reported(session: AsyncSession, bot) ->
         return MagicMock(message_id=1)
 
     bot.send_message.side_effect = send
+    start = utc_now() - datetime.timedelta(seconds=1)
+    for user_id in range(USER_ID, USER_ID + 3):
+        await join_requested(_request(user_id), bot, session)
+    assert _report_lines(bot) == []
 
-    await join_requested(_request(), bot, session)
+    await service.report_undelivered(bot, session, since=start, until=utc_now() + datetime.timedelta(seconds=1))
 
-    assert any("не дошла" in line for line in _report_lines(bot))
+    lines = _report_lines(bot)
+    assert len(lines) == 1
+    assert "ČVUT FIT: 3" in lines[0]
 
 
 async def test_the_sweep_does_not_tell_an_admitted_member_they_were_declined(session: AsyncSession, bot) -> None:
@@ -484,3 +491,74 @@ async def test_the_sweep_loop_expires_refreshes_and_forgets(monkeypatch) -> None
         await service.run_sweep(session_maker, MagicMock(), interval_seconds=0)
 
     assert calls == ["expire", "refresh", "forget"]
+
+
+# --- second review -------------------------------------------------------------
+
+
+async def test_the_retired_captcha_says_so(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    await join_requested(_request(), bot, session)
+
+    texts = [c.kwargs["text"] for c in bot.edit_message_text.await_args_list]
+    assert any("больше не действует" in t for t in texts)
+
+
+async def test_a_held_request_is_retired_by_a_new_one_too(session: AsyncSession, bot) -> None:
+    from app.captcha import waves
+
+    await _seed_chat(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    now = utc_now()
+    for user_id in range(1, waves.PER_MINUTE + 2):
+        await service.admit(bot, session, _request(user_id), chat, now=now)
+    last = waves.PER_MINUTE + 1
+    await service.admit(bot, session, _request(last), chat, now=now)
+
+    rows = (
+        await session.scalars(select(JoinCaptcha).where(JoinCaptcha.user_id == last).order_by(JoinCaptcha.id))
+    ).all()
+    assert [r.status for r in rows] == [JoinCaptcha.STATUS_GONE, JoinCaptcha.STATUS_HELD]
+
+
+async def test_retention_keeps_what_is_not_settled(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    long_ago = utc_now() - datetime.timedelta(days=service.RETENTION_DAYS + 1)
+    await service.admit(bot, session, _request(), chat, now=long_ago)
+
+    await service.forget_old(session)
+
+    assert len((await session.scalars(select(JoinCaptcha))).all()) == 1
+
+
+async def test_the_sweep_keeps_what_it_settled_before_a_failure(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(USER_ID), bot, session)
+    await join_requested(_request(USER_ID + 1), bot, session)
+    bot.decline_chat_join_request.side_effect = [None, RuntimeError("connection reset")]
+
+    with pytest.raises(RuntimeError):
+        await service.expire_stale(bot, session, now=utc_now() + datetime.timedelta(minutes=6))
+    await session.rollback()
+
+    statuses = [r.status for r in (await session.scalars(select(JoinCaptcha).order_by(JoinCaptcha.id))).all()]
+    assert statuses == [JoinCaptcha.STATUS_EXPIRED, JoinCaptcha.STATUS_PENDING]
+
+
+async def test_a_refusal_that_is_not_about_rights_is_not_blamed_on_them(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    bot.approve_chat_join_request.side_effect = _bad_request("PEER_ID_INVALID")
+
+    await service.answer(
+        bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=challenge.options.index(challenge.answer)
+    )
+
+    line = _report_lines(bot)[-1]
+    assert "Проверьте права" not in line
+    assert "Telegram не ответил" in line
