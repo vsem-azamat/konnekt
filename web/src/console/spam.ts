@@ -14,22 +14,43 @@ export interface PingFilters {
   days: number | null;
 }
 
-export function pingsPath(filters: PingFilters, beforeId?: number): string {
-  const query = new URLSearchParams({ limit: String(PAGE), status: filters.status });
+/** The last hit of a page, which the next one goes on after. */
+export interface PageCursor {
+  at: string;
+  id: number;
+}
+
+function filterQuery(filters: Pick<PingFilters, 'chatId' | 'days'>): URLSearchParams {
+  const query = new URLSearchParams();
   if (filters.chatId !== null) query.set('chat_id', String(filters.chatId));
   if (filters.days !== null) query.set('days', String(filters.days));
-  if (beforeId !== undefined) query.set('before_id', String(beforeId));
+  return query;
+}
+
+export function pingsPath(filters: PingFilters, before?: PageCursor): string {
+  const query = new URLSearchParams({ limit: String(PAGE), status: filters.status });
+  for (const [key, value] of filterQuery(filters)) query.set(key, value);
+  if (before !== undefined) {
+    query.set('before_at', before.at);
+    query.set('before_id', String(before.id));
+  }
   return `/api/spam/pings?${query}`;
 }
 
-/** Where the next page starts; a short page was the last one. */
-export function nextBefore(page: SpamPing[]): number | undefined {
-  return page.length === PAGE ? page.at(-1)?.id : undefined;
+/** How many wait under the same chat and period as the list. */
+export function unreviewedPath(filters: PingFilters): string {
+  return `/api/spam/pings/unreviewed?${filterQuery(filters)}`;
 }
 
-/** A ban answers every hit of theirs, as webapi's queue counts it. */
+/** Where the next page starts; a short page was the last one. */
+export function nextBefore(page: SpamPing[]): PageCursor | undefined {
+  const last = page.at(-1);
+  return page.length === PAGE && last ? { at: last.detected_at, id: last.id } : undefined;
+}
+
+/** Waiting until answered: in the console, or «ad» by a ban that took. */
 export function awaitsAnswer(ping: SpamPing): boolean {
-  return ping.verdict === null && !ping.blocked;
+  return ping.verdict === null;
 }
 
 /**

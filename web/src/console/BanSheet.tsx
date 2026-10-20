@@ -1,4 +1,4 @@
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { type ReactNode, useId, useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
@@ -117,6 +117,41 @@ export function BanSheet({
           }}
         >
           {wipe ? <Trans>Забанить и стереть</Trans> : <Trans>Забанить</Trans>}
+        </Action>
+      </Actions>
+    </Sheet>
+  );
+}
+
+/**
+ * The ban stands, but not everywhere: Telegram refused in some approved
+ * chats, most often for want of the bot's rights there. Said, not hidden,
+ * since the person can still write in those.
+ */
+export function BanPartialSheet({
+  name,
+  failed,
+  onClose,
+}: {
+  name: string;
+  failed: number;
+  onClose: () => void;
+}) {
+  const { t } = useLingui();
+  return (
+    <Sheet title={t`${name} забанен не везде`} closeLabel={t`Готово`} onClose={onClose}>
+      <Sub>
+        <Plural
+          value={failed}
+          one="В # чате Telegram отказал: проверьте там права бота."
+          few="В # чатах Telegram отказал: проверьте там права бота."
+          many="В # чатах Telegram отказал: проверьте там права бота."
+          other="В # чата Telegram отказал: проверьте там права бота."
+        />
+      </Sub>
+      <Actions>
+        <Action onClick={onClose}>
+          <Trans>Готово</Trans>
         </Action>
       </Actions>
     </Sheet>

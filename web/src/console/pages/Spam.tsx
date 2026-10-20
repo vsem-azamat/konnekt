@@ -28,9 +28,16 @@ import {
   consoleChanges,
   consoleChatsQuery,
   consoleStatsQuery,
+  spamCountQuery,
   spamQueueQuery,
 } from '@/console/queries';
-import { personName, type SpamPing, type SpamVerdict, utc } from '@/console/session';
+import {
+  ConsoleError,
+  personName,
+  type SpamPing,
+  type SpamVerdict,
+  utc,
+} from '@/console/session';
 import { awaitsAnswer, byDay, type PingFilters, type PingStatus } from '@/console/spam';
 import { hapticSelection } from '@/hooks/useTelegram';
 
@@ -69,16 +76,28 @@ function Spam() {
   });
   const [opened, setOpened] = useState<Opened>(null);
   const queue = useInfiniteQuery(spamQueueQuery(filters));
-  const stats = useQuery(consoleStatsQuery);
+  const count = useQuery(spamCountQuery(filters));
   const chats = useQuery(consoleChatsQuery);
 
+  // Held until the lists are read again, so the card answered keeps its
+  // buttons off until it is gone: a second tap would only be refused.
+  const reread = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['console', 'spam'] }),
+      queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey }),
+    ]);
   const review = useMutation({
-    mutationFn: ({ ping, verdict }: { ping: SpamPing; verdict: SpamVerdict }) =>
-      consoleChanges.reviewPing(ping.id, verdict),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
-      void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
-    },
+    mutationFn: ({
+      ping,
+      verdict,
+    }: {
+      ping: SpamPing;
+      verdict: Exclude<SpamVerdict, 'ad'>;
+    }) => consoleChanges.reviewPing(ping.id, verdict),
+    onSuccess: reread,
+    // Answered by somebody else meanwhile: show it as it now is.
+    onError: (error) =>
+      error instanceof ConsoleError && error.status === 409 ? reread() : undefined,
   });
 
   const filter = (change: Partial<PingFilters>) => {
@@ -96,7 +115,7 @@ function Spam() {
           : t`За всё время`;
   const chatName = (id: number) =>
     chats.data?.find((chat) => chat.id === id)?.title ?? String(id);
-  const unreviewed = stats.data?.spam_pings.unreviewed;
+  const unreviewed = count.data?.count;
   const pings = queue.data?.pages.flat() ?? [];
 
   const statusChip = (status: PingStatus, label: ReactNode) => (
@@ -147,7 +166,11 @@ function Spam() {
 
       {review.error ? (
         <Hint>
-          <FailureText error={review.error} />
+          {review.error instanceof ConsoleError && review.error.status === 409 ? (
+            <Trans>Этот случай уже разобрал другой модератор.</Trans>
+          ) : (
+            <FailureText error={review.error} />
+          )}
         </Hint>
       ) : null}
       {queue.isPending ? (
@@ -186,7 +209,7 @@ function Spam() {
                     busy={review.isPending && review.variables?.ping.id === ping.id}
                     onOpen={() => setOpened({ kind: 'ping', ping, ban: false })}
                     onBan={() => setOpened({ kind: 'ping', ping, ban: true })}
-                    onReview={(verdict) => {
+                    onReview={(verdict: Exclude<SpamVerdict, 'ad'>) => {
                       hapticSelection();
                       review.mutate({ ping, verdict });
                     }}
@@ -266,7 +289,18 @@ function DayName({ day }: { day: string }) {
   const { i18n } = useLingui();
   if (day === 'today') return <Trans>Сегодня</Trans>;
   if (day === 'yesterday') return <Trans>Вчера</Trans>;
-  return <>{i18n.date(`${day}T12:00:00`, { day: 'numeric', month: 'long' })}</>;
+  const date = `${day}T12:00:00`;
+  // The year only where it is not this one, as a calendar writes it.
+  const thisYear = day.startsWith(String(new Date().getFullYear()));
+  return (
+    <>
+      {i18n.date(date, {
+        day: 'numeric',
+        month: 'long',
+        ...(thisYear ? {} : { year: 'numeric' }),
+      })}
+    </>
+  );
 }
 
 /**
@@ -286,7 +320,7 @@ function PingCard({
   busy: boolean;
   onOpen: () => void;
   onBan: () => void;
-  onReview: (verdict: SpamVerdict) => void;
+  onReview: (verdict: Exclude<SpamVerdict, 'ad'>) => void;
 }) {
   const { i18n } = useLingui();
   const time = i18n.date(utc(ping.detected_at), { hour: '2-digit', minute: '2-digit' });

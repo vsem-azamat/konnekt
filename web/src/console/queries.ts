@@ -27,7 +27,13 @@ import {
   type SpamVerdict,
   type SystemStatus,
 } from './session';
-import { nextBefore, type PingFilters, pingsPath } from './spam';
+import {
+  nextBefore,
+  type PageCursor,
+  type PingFilters,
+  pingsPath,
+  unreviewedPath,
+} from './spam';
 
 /** The console's requester for webapi's session endpoints. See session.ts. */
 export const consoleGet = consoleRequester((...args) => fetch(...args), rawInitData);
@@ -101,12 +107,16 @@ export const consoleChanges = {
     consoleGet<ConsoleChat>(`/api/chats/${id}/refresh`, { method: 'POST' }),
 
   /** Banned in every chat the bot moderates, as /banall does; optionally
-   *  with every message of theirs the bot recorded. */
+   *  with every message of theirs the bot recorded. `failed_chats` are the
+   *  approved chats where Telegram refused. */
   block: (userId: number, revokeMessages: boolean) =>
-    consoleGet<{ blocked: boolean }>(`/api/users/${userId}/block`, {
-      method: 'POST',
-      body: JSON.stringify({ revoke_messages: revokeMessages }),
-    }),
+    consoleGet<{ blocked: boolean; failed_chats: number[] }>(
+      `/api/users/${userId}/block`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ revoke_messages: revokeMessages }),
+      },
+    ),
 
   /**
    * Signs this browser out. Past the requester on purpose: it would answer a
@@ -126,15 +136,21 @@ export const consoleChanges = {
       method: 'DELETE',
     }),
 
-  /** A moderator's answer to a hit; the answer is the hit as it now is. */
-  reviewPing: (id: number, verdict: SpamVerdict) =>
+  /** A moderator's answer to a hit; the answer is the hit as it now is,
+   *  and a 409 says somebody answered it first. */
+  reviewPing: (id: number, verdict: Exclude<SpamVerdict, 'ad'>) =>
     consoleGet<SpamPing>(`/api/spam/pings/${id}/review`, {
       method: 'POST',
       body: JSON.stringify({ verdict }),
     }),
 
   unblock: (userId: number) =>
-    consoleGet<{ blocked: boolean }>(`/api/users/${userId}/block`, { method: 'DELETE' }),
+    consoleGet<{ blocked: boolean; failed_chats: number[] }>(
+      `/api/users/${userId}/block`,
+      {
+        method: 'DELETE',
+      },
+    ),
 };
 
 /** Who the super admins are, among webapi's operational facts. */
@@ -170,11 +186,20 @@ export const spamQueueQuery = (filters: PingFilters) =>
     queryKey: ['console', 'spam', filters] as const,
     queryFn: ({ signal, pageParam }) =>
       consoleGet<SpamPing[]>(pingsPath(filters, pageParam), { signal }),
-    initialPageParam: undefined as number | undefined,
+    initialPageParam: undefined as PageCursor | undefined,
     getNextPageParam: nextBefore,
     staleTime: CONSOLE_STALE,
     retryOnMount: false,
   });
+
+/** How many hits wait under the queue's chat and period. */
+export const spamCountQuery = (filters: PingFilters) => ({
+  queryKey: ['console', 'spam', 'count', filters.chatId, filters.days] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<{ count: number }>(unreviewedPath(filters), { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
 
 /** The top of the Audience screen: how many, who may be written to, where from. */
 export const audienceSummaryQuery = {

@@ -378,6 +378,10 @@ msgstr "první rok"
 msgid "Эта проверка открывается кнопкой из заявки на вступление в чат."
 msgstr "Tahle kontrola se otevírá tlačítkem v žádosti o vstup do chatu."
 
+#: src/console/BanSheet.tsx
+msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
+msgstr "{failed, plural, one {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} few {Ve # chatech Telegram odmítl: zkontrolujte tam práva bota.} many {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} other {V # chatech Telegram odmítl: zkontrolujte tam práva bota.}}"
+
 #: src/console/pages/Audience.tsx
 msgid "Все люди"
 msgstr "Všichni lidé"
@@ -502,6 +506,10 @@ msgstr "Pro lidi zdarma. Pro firmy je tu <0>reklama pro studenty</0>."
 #: src/pages/Profile.tsx
 msgid "Реклама для студентов"
 msgstr "Reklama pro studenty"
+
+#: src/console/BanSheet.tsx
+msgid "{name} забанен не везде"
+msgstr "{name} není zabanován všude"
 
 #: src/pages/Ask.tsx
 msgid "Оставить заявку"
@@ -693,6 +701,10 @@ msgstr "Napsat nám"
 #: src/pages/OfferPrices.tsx
 msgid "Сохранить"
 msgstr "Uložit"
+
+#: src/console/BanSheet.tsx
+msgid "Готово"
+msgstr "Hotovo"
 
 #: src/console/BanSheet.tsx
 #: src/console/pages/Blacklist.tsx
@@ -1764,7 +1776,7 @@ msgstr "Autor profil sám stáhl nebo ho ještě nezveřejnil."
 
 #: src/console/pages/Spam.tsx
 msgid "Отметок «не реклама» нет."
-msgstr "Nic není označeno «není reklama»."
+msgstr "Nic není označeno „není reklama“."
 
 #: src/console/BanSheet.tsx
 msgid "Забанить"
@@ -1941,6 +1953,10 @@ msgstr "ČVUT FEL, 3. ročník"
 #: src/pages/NotFound.tsx
 msgid "Такой страницы нет"
 msgstr "Taková stránka neexistuje"
+
+#: src/console/pages/Spam.tsx
+msgid "Этот случай уже разобрал другой модератор."
+msgstr "Tohle už vyřídil jiný moderátor."
 
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"
@@ -2633,7 +2649,7 @@ msgstr "Černá listina"
 
 #: src/console/BanSheet.tsx
 msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."
-msgstr "Ban ve všech našich chatech. Zrušit ho lze v «Černé listině»."
+msgstr "Ban ve všech našich chatech. Zrušit ho lze v „Černé listině“."
 
 #: src/pages/Join.tsx
 msgid "Заявка устарела или открыта не тем аккаунтом. Подай её заново."

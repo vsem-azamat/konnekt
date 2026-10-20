@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
 import { Action, Hint, Row, Rows, Sub, ui } from '@/components/Ui';
-import { BanSheet } from '@/console/BanSheet';
+import { BanPartialSheet, BanSheet } from '@/console/BanSheet';
 import { FailureText } from '@/console/FailureText';
 import {
   blockedQuery,
@@ -86,20 +86,25 @@ export function PingSheet({
   const admin = system.data?.super_admin_ids.includes(ping.user_id) ?? false;
   const ban = useMutation({
     mutationFn: (revoke: boolean) => consoleChanges.block(ping.user_id, revoke),
-    onSuccess: () => {
+    onSuccess: ({ failed_chats }) => {
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
       void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
-      onClose();
+      if (failed_chats.length) setPartial(failed_chats.length);
+      else onClose();
     },
   });
   const [banning, setBanning] = useState(banFirst);
+  const [partial, setPartial] = useState<number | null>(null);
   const close = () => {
     ban.reset();
     onClose();
   };
 
+  if (partial !== null) {
+    return <BanPartialSheet name={personName(ping)} failed={partial} onClose={close} />;
+  }
   // Nobody to ban is the hit's own sheet, which says why.
   if (banning && !ping.blocked && !admin) {
     return (

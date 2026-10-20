@@ -378,6 +378,10 @@ msgstr "первый год"
 msgid "Эта проверка открывается кнопкой из заявки на вступление в чат."
 msgstr "Эта проверка открывается кнопкой из заявки на вступление в чат."
 
+#: src/console/BanSheet.tsx
+msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
+msgstr "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
+
 #: src/console/pages/Audience.tsx
 msgid "Все люди"
 msgstr "Все люди"
@@ -502,6 +506,10 @@ msgstr "Людям бесплатно. Компаниям — <0>реклама 
 #: src/pages/Profile.tsx
 msgid "Реклама для студентов"
 msgstr "Реклама для студентов"
+
+#: src/console/BanSheet.tsx
+msgid "{name} забанен не везде"
+msgstr "{name} забанен не везде"
 
 #: src/pages/Ask.tsx
 msgid "Оставить заявку"
@@ -693,6 +701,10 @@ msgstr "Написать нам"
 #: src/pages/OfferPrices.tsx
 msgid "Сохранить"
 msgstr "Сохранить"
+
+#: src/console/BanSheet.tsx
+msgid "Готово"
+msgstr "Готово"
 
 #: src/console/BanSheet.tsx
 #: src/console/pages/Blacklist.tsx
@@ -1941,6 +1953,10 @@ msgstr "ČVUT FEL, 3 курс"
 #: src/pages/NotFound.tsx
 msgid "Такой страницы нет"
 msgstr "Такой страницы нет"
+
+#: src/console/pages/Spam.tsx
+msgid "Этот случай уже разобрал другой модератор."
+msgstr "Этот случай уже разобрал другой модератор."
 
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"

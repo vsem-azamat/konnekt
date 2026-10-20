@@ -210,7 +210,8 @@ export interface SpamPing {
   verdict: SpamVerdict | null;
 }
 
-export type SpamVerdict = 'done' | 'not_ad';
+/** «ad» is written by a ban, the other two in the console. */
+export type SpamVerdict = 'done' | 'not_ad' | 'ad';
 
 export interface ConsoleChatDetail extends ConsoleChat {
   welcome_message: string | null;

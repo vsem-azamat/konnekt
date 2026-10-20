@@ -20,7 +20,7 @@ import {
   ui,
 } from '@/components/Ui';
 import { parentChoices } from '@/console/activity';
-import { BanSheet } from '@/console/BanSheet';
+import { BanPartialSheet, BanSheet } from '@/console/BanSheet';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
@@ -84,6 +84,7 @@ type Sheets =
   | { kind: 'mode'; to: 'approved' | 'observed' | 'external' }
   | { kind: 'welcome'; enable: boolean }
   | { kind: 'ban'; sender: ChatSender }
+  | { kind: 'banPartial'; sender: ChatSender; failed: number }
   | { kind: 'unban'; sender: ChatSender }
   | { kind: 'ping'; ping: SpamPing }
   | { kind: 'parent' }
@@ -148,7 +149,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
         ? consoleChanges.unblock(sender.user_id)
         : consoleChanges.block(sender.user_id, revoke),
     onMutate: () => setError(null),
-    onSuccess: (_, { sender }) => {
+    onSuccess: (result, { sender, revoke }) => {
+      // An unban's failures are not this sheet's news; a ban's are.
+      const failed = revoke === null ? 0 : result.failed_chats.length;
       // A ban is every chat's: every chat's sender list and hits may show it.
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
@@ -157,7 +160,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
       setSheet((current) =>
         (current?.kind === 'ban' || current?.kind === 'unban') &&
         current.sender.user_id === sender.user_id
-          ? null
+          ? failed
+            ? { kind: 'banPartial', sender, failed }
+            : null
           : current,
       );
     },
@@ -775,6 +780,13 @@ function ChatScreen({ chatId }: { chatId: number }) {
           busy={block.isPending}
           error={sheetError}
           onBan={(revoke) => block.mutate({ sender: sheet.sender, revoke })}
+          onClose={close}
+        />
+      ) : null}
+      {sheet?.kind === 'banPartial' ? (
+        <BanPartialSheet
+          name={personName(sheet.sender)}
+          failed={sheet.failed}
           onClose={close}
         />
       ) : null}
