@@ -98,7 +98,11 @@ export function PingSheet({
         busy={ban.isPending}
         error={ban.error ? <FailureText error={ban.error} /> : null}
         onBan={(revoke) => ban.mutate(revoke)}
-        onClose={close}
+        // Back to the hit it was asked from, not out of both.
+        onClose={() => {
+          ban.reset();
+          setBanning(false);
+        }}
       />
     );
   }

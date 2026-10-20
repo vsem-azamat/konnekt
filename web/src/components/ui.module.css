@@ -1423,6 +1423,25 @@
 }
 
 /* A ban's two answers, as radio rows; the one that deletes is red. */
+.banChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.banChoices:disabled {
+  opacity: 0.6;
+}
+
+.banOption:focus-within {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
+}
+
 .banOption {
   display: flex;
   align-items: flex-start;

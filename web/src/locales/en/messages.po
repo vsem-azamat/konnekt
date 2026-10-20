@@ -479,6 +479,10 @@ msgstr "Shown in «Chats»"
 msgid "Загружаем список вузов…"
 msgstr "Loading the list of schools…"
 
+#: src/console/BanSheet.tsx
+msgid "Как забанить"
+msgstr "How to ban"
+
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
 msgstr "tutoring, written work, paperwork"

@@ -479,6 +479,10 @@ msgstr "Zobrazen v «Chatech»"
 msgid "Загружаем список вузов…"
 msgstr "Načítáme seznam škol…"
 
+#: src/console/BanSheet.tsx
+msgid "Как забанить"
+msgstr "Jak zabanovat"
+
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
 msgstr "doučování, práce, dokumenty"

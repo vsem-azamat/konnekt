@@ -147,13 +147,17 @@ function ChatScreen({ chatId }: { chatId: number }) {
         ? consoleChanges.unblock(sender.user_id)
         : consoleChanges.block(sender.user_id, revoke),
     onMutate: () => setError(null),
-    onSuccess: () => {
+    onSuccess: (_, { sender }) => {
       // A ban is every chat's: every chat's sender list and hits may show it.
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
+      // Only the sheet this answer is for: another may have opened meanwhile.
       setSheet((current) =>
-        current?.kind === 'ban' || current?.kind === 'unban' ? null : current,
+        (current?.kind === 'ban' || current?.kind === 'unban') &&
+        current.sender.user_id === sender.user_id
+          ? null
+          : current,
       );
     },
     onError: setError,
@@ -630,6 +634,8 @@ function ChatScreen({ chatId }: { chatId: number }) {
       ) : null}
       {sheet?.kind === 'ban' ? (
         <BanSheet
+          // One person's choice and typed word are not the next one's.
+          key={sheet.sender.user_id}
           name={personName(sheet.sender)}
           note={
             <Trans>
@@ -650,7 +656,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
           onClose={close}
         />
       ) : null}
-      {sheet?.kind === 'ping' ? <PingSheet ping={sheet.ping} onClose={close} /> : null}
+      {sheet?.kind === 'ping' ? (
+        <PingSheet key={sheet.ping.id} ping={sheet.ping} onClose={close} />
+      ) : null}
       {sheet?.kind === 'institution' ? (
         <InstitutionSheet
           current={chat.institution_code}

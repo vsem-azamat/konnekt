@@ -4,11 +4,16 @@
 export type BanChoice = 'ban' | 'wipe';
 
 /**
- * Whether the ban may go. Deleting the messages cannot be undone, so it waits
- * for `word` to be typed; a phone keyboard capitalises and adds a space, and
- * neither is a change of mind.
+ * The `revoke_messages` a ban is sent with, or none while it may not go yet.
+ * Deleting the messages cannot be undone, so it waits for `word` to be typed;
+ * a phone keyboard capitalises and adds a space, and neither is a change of
+ * mind.
  */
-export function canBan(choice: BanChoice, typed: string, word: string): boolean {
-  if (choice === 'ban') return true;
-  return typed.trim().toLocaleLowerCase() === word.toLocaleLowerCase();
+export function revokeMessages(
+  choice: BanChoice,
+  typed: string,
+  word: string,
+): boolean | null {
+  if (choice === 'ban') return false;
+  return typed.trim().toLocaleLowerCase() === word.toLocaleLowerCase() ? true : null;
 }
