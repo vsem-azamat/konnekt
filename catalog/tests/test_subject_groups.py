@@ -626,9 +626,7 @@ async def test_a_guess_from_another_shelf_is_dropped(session) -> None:
     names chemistry, and the guess sits on physics."""
     parsed = await parse(session, "вступительные по химии", "ru", today=TODAY)
     assert parsed.service_type == "entrance_prep"
-    assert parsed.subject is None or parsed.subject.id != await _id(
-        session, "prijimacky-fyzika"
-    ), parsed.subject
+    assert parsed.subject is None, parsed.subject
 
 
 @pytest.mark.parametrize(
@@ -643,3 +641,73 @@ async def test_other_names_for_admissions_name_the_kind_of_help(
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.service_type == "entrance_prep"
     assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A plain query naming two shelves keeps what it found: the guess-drop
+        # is for a kind of help the shelf cannot go with, nothing else.
+        ("fyzikální chemii", "cs", "fyzikalni-chemie"),
+        ("maturitu z chemie", "cs", "maturita"),
+        # A number beside a school is still the course's number.
+        ("fyziky 2 UK", "cs", "fyzika-2"),
+        ("репетитор по физике 2 МФФ", "ru", "fyzika-2"),
+        # A school's name carries subject words; they stay the subject's.
+        ("maths for economics VŠE", "en", "matematika-pro-ekonomy"),
+        # Control theory by its other names, now that «řízení» alone is not.
+        ("automatické řízení", "cs", "automatizace-a-rizeni"),
+        ("řízení procesů", "cs", "automatizace-a-rizeni"),
+    ],
+)
+async def test_what_the_leftovers_must_not_take_away(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_two_shelves_named_together_still_find_somebody(session) -> None:
+    """«математика и физика» answered Физика 1 on main; dropping it for not
+    being maths left a guess that matched nobody."""
+    parsed = await parse(session, "математика и физика", "ru", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "fyzika-1"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "school"),
+    [
+        ("matematika MFF UK", "cs", True),
+        # An exact school is kept even when the shelf word alone explains the
+        # rest: FI is named here, not guessed from «informatika».
+        ("informatika FI", "cs", True),
+    ],
+)
+async def test_a_school_named_beside_a_shelf_stays(session, text, lang, school) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert (parsed.institution is not None) is school, parsed.institution
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("математика терміново", "uk"),
+        ("математика будь ласка", "uk"),
+        ("вчитель математики", "uk"),
+        ("викладач математики", "uk"),
+        ("matematika rychle", "cs"),
+    ],
+)
+async def test_ukrainian_and_czech_asides_too(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, "math"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [("приемник и передатчик", "ru"), ("приемная семья", "ru")],
+)
+async def test_a_receiver_is_not_an_entrance_exam(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"

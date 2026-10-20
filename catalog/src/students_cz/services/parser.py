@@ -108,9 +108,14 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "entrance_prep": (
         "вступительн",
-        # «приемные экзамены», «приемная комиссия». Not «приемк», which is
+        # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
+        # alone begins «приемник» and «приемная семья». Not «приемк», which is
         # slang and a synonym of subjects.
-        "приемн",
+        "приемные экз",
+        "приемный экз",
+        "приемных экз",
+        "приемная комис",
+        "приемной комис",
         "поступлен",
         "prijimack",
         "přijímačk",
@@ -468,28 +473,31 @@ async def parse(
             if shelves
             else None
         )
-        if stems:
+        if stems and result.service_type in SHELF_KINDS:
             school = await _school_words(session, result.institution)
             numbered = _numbers(subjects)
-            if result.service_type in SHELF_KINDS and _only_names_shelf(
-                result, norm, keyword, stems, numbered, school
-            ):
+            if _only_names_shelf(result, norm, keyword, stems, numbered, school):
                 subjects = [shelves[0], *subjects[:3]]
                 # The same word read twice: «informatiky» is the programming
                 # shelf and, by trigram, «Fakulta informatiky». A school that
                 # only a guess found, with nothing of the query left to it once
-                # the shelf has its word, is that word again.
+                # the shelf has its word, is that word again. An exact one —
+                # a code or a name typed out — is kept whatever the words say;
+                # no school in the catalog is spelled like a shelf's word today,
+                # and this is what keeps one from being lost if it ever is.
                 if (
                     result.institution
                     and result.institution.matched_on != "exact"
                     and _only_names_shelf(result, norm, keyword, stems, numbered, set())
                 ):
                     result.institution = None
-            elif subjects:
-                # The query names one shelf and the guess sits on another:
-                # «вступительные по химии» answered the physics entrance exam.
-                # The guess goes; what the shelf holds, or was named, stays.
-                subjects = await _within_shelf(session, subjects, shelves[0].id)
+        elif stems and subjects:
+            # A kind of help the shelf cannot go with, a shelf named beside it,
+            # and a guess from another shelf: «вступительные по химии» answered
+            # the physics entrance exam. The guess goes; what the shelf holds,
+            # or was named, stays. Only here — a plain query naming two shelves,
+            # «математика и физика», keeps the guess it had.
+            subjects = await _within_shelf(session, subjects, shelves[0].id)
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -894,6 +902,8 @@ ASIDE: tuple[str, ...] = (
     "ucitel",
     "lektor",
     "teacher",
+    "rychl",
+    "naleh",
 )
 
 
@@ -905,6 +915,11 @@ async def _school_words(session: AsyncSession, institution: Match | None) -> set
     a faculty's full name is made of subject words («Matematicko-fyzikální»),
     and would explain them away. «Univerzita Karlova», «Карловом университете»
     and «FIT ČVUT» are then all school, beside the shelf's word.
+
+    Never a number — «1. LF» would make «fyziky 1 na UK» a school's number
+    rather than the course's — and never a word some shelf is named by: VŠE's
+    English name says "economics", which is the subject in "maths for
+    economics VŠE".
     """
     if institution is None:
         return set()
@@ -933,11 +948,23 @@ async def _school_words(session: AsyncSession, institution: Match | None) -> set
         )
     ):
         texts.append(name.short_name)
-    return {
+    stems = [
+        transliterate(normalise(stem))
+        for synonyms in await session.scalars(
+            select(Subject.synonyms).where(Subject.kind == NodeKind.GROUP)
+        )
+        for stem in synonyms
+    ]
+    words = {
         transliterate(word)
         for value in texts
         if value
         for word in tokenise(normalise(value)).split()
+    }
+    return {
+        word
+        for word in words
+        if not word.isdigit() and not any(word.startswith(stem) for stem in stems)
     }
 
 
@@ -959,7 +986,9 @@ async def _within_shelf(
     if not on or shelf_id in on:
         return subjects
     held = set(await held_by(session, shelf_id))
-    return [match for match in subjects if _is_named(match) or match.id in held]
+    # Only guesses are here — a named match would have sorted first and kept
+    # this from being asked — so what stays is what the shelf holds.
+    return [match for match in subjects if match.id in held]
 
 
 def _numbers(matches: list[Match]) -> set[str]:

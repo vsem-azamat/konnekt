@@ -302,7 +302,8 @@ something else:
   about a subject: the kind of help's words, asking, prepositions,
   «высшая»/«vyšší»/"higher", hurry and politeness, a school year, a word for a
   teacher, and what is already a field may surround it, nothing else. A school
-  counts by any of its names, its university's, and its faculties' codes, so
+  counts by any of its names, its university's, and its faculties' codes —
+  never by a number or a word some shelf is named by — so
   «matematika Univerzita Karlova» and «informatika FIT ČVUT» are the shelf. A
   school found by trigram from the shelf's own word is dropped: «informatiky»
   is not «Fakulta informatiky». Where the shelf cannot be the answer, a guess
