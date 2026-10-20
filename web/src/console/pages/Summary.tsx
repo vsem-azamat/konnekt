@@ -22,7 +22,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
-import { dayCells, memberChange } from '@/console/activity';
+import { dayCells, memberChange, signed } from '@/console/activity';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   adminCatalogQuery,
@@ -51,7 +51,8 @@ export default function ConsoleSummaryPage() {
 
 function Summary() {
   const navigate = useNavigate();
-  const stats = useQuery(consoleStatsQuery);
+  // Read again every minute while it is open: it says how fresh it is.
+  const stats = useQuery({ ...consoleStatsQuery, refetchInterval: 60_000 });
   const chats = useQuery(consoleChatsQuery);
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
@@ -144,7 +145,7 @@ function Summary() {
               </span>
               <b>{stats.data.spam_pings.count_24h}</b>
               <small>
-                <Trans>{stats.data.spam_pings.unreviewed} не разобрано</Trans>
+                <Trans>{stats.data.spam_pings.unreviewed} всего не разобрано</Trans>
               </small>
             </div>
           ) : null}
@@ -363,19 +364,18 @@ function Updated({ at }: { at: number }) {
 function MembersTile({ stats }: { stats: Parameters<typeof memberChange>[0] }) {
   const { i18n } = useLingui();
   const { day, week } = memberChange(stats);
-  const signed = (n: number) =>
-    `${n > 0 ? '+' : n < 0 ? '−' : '±'}${i18n.number(Math.abs(n))}`;
+  const write = (n: number) => signed(n, (abs) => i18n.number(abs));
   return (
     <div className={ui.summaryTile} data-tone="3">
       <span>
         <Trans>Участники за сутки</Trans>
       </span>
-      <b>{day === null ? '—' : signed(day)}</b>
+      <b>{day === null ? '—' : write(day)}</b>
       <small>
         {week === null ? (
           <Trans>за 7 дней — пока не с чем сравнить</Trans>
         ) : (
-          <Trans>за 7 дней {signed(week)}</Trans>
+          <Trans>за 7 дней {write(week)}</Trans>
         )}
       </small>
     </div>

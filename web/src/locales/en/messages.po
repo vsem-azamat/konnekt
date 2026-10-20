@@ -200,7 +200,7 @@ msgstr "Help"
 msgid "Видимость"
 msgstr "Visibility"
 
-#. placeholder {0}: signed(week)
+#. placeholder {0}: write(week)
 #: src/console/pages/Summary.tsx
 msgid "за 7 дней {0}"
 msgstr "over 7 days {0}"
@@ -1091,11 +1091,6 @@ msgstr "8 weeks"
 #: src/console/pages/Summary.tsx
 msgid "{0, plural, one {# чат} few {# чата} many {# чатов} other {# чата}} · одобрено {approved}"
 msgstr "{0, plural, one {# chat} other {# chats}} · {approved} approved"
-
-#. placeholder {0}: stats.data.spam_pings.unreviewed
-#: src/console/pages/Summary.tsx
-msgid "{0} не разобрано"
-msgstr "{0} to review"
 
 #: src/lib/turnaround.tsx
 msgid "Неделя"
@@ -2563,6 +2558,11 @@ msgstr "Responses"
 #: src/pages/AdsApp.tsx
 msgid "Где её видно"
 msgstr "Where it appears"
+
+#. placeholder {0}: stats.data.spam_pings.unreviewed
+#: src/console/pages/Summary.tsx
+msgid "{0} всего не разобрано"
+msgstr "{0} to review in all"
 
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx

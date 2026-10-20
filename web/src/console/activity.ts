@@ -63,6 +63,11 @@ export function memberChange(entries: MemberDelta[]): {
   };
 }
 
+/** A change as the summary writes it: +37, −5 (a true minus), ±0. */
+export function signed(n: number, format: (n: number) => string): string {
+  return `${n > 0 ? '+' : n < 0 ? '−' : '±'}${format(Math.abs(n))}`;
+}
+
 /**
  * Member counts as a line 100 wide and 32 high, oldest on the left, with how
  * far the count moved. Nothing to draw from fewer than two counts.

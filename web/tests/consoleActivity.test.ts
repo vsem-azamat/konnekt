@@ -7,6 +7,7 @@ import {
   memberChange,
   memberTrend,
   parentChoices,
+  signed,
 } from '../src/console/activity.ts';
 import type { ConsoleChat } from '../src/console/session.ts';
 
@@ -135,4 +136,20 @@ test('a day by hour folds into eight three-hour cells of the reader’s day', ()
   assert.deepEqual(dayCells(hours, 0), [1, 0, 0, 0, 0, 0, 0, 5]);
   // Prague in summer, UTC+2: 22 and 23 UTC are 00 and 01, 00 UTC is 02.
   assert.deepEqual(dayCells(hours, 120), [6, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+test('west of Greenwich a day folds back, and a half-hour zone moves by its whole hours', () => {
+  const hours = Array<number>(24).fill(0);
+  hours[1] = 4; // 01 UTC
+  // New York in winter, UTC−5: 01 UTC is 20 the evening before.
+  assert.deepEqual(dayCells(hours, -300), [0, 0, 0, 0, 0, 0, 4, 0]);
+  // India, UTC+5:30, moves by five: 01 UTC is 06.
+  assert.deepEqual(dayCells(hours, 330), [0, 0, 4, 0, 0, 0, 0, 0]);
+});
+
+test('a change is written with its sign, a true minus, and ± for none', () => {
+  const format = (n: number) => String(n);
+  assert.equal(signed(37, format), '+37');
+  assert.equal(signed(-5, format), '−5');
+  assert.equal(signed(0, format), '±0');
 });

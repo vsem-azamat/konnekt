@@ -200,7 +200,7 @@ msgstr "Допомога"
 msgid "Видимость"
 msgstr "Видимість"
 
-#. placeholder {0}: signed(week)
+#. placeholder {0}: write(week)
 #: src/console/pages/Summary.tsx
 msgid "за 7 дней {0}"
 msgstr "за 7 днів {0}"
@@ -1091,11 +1091,6 @@ msgstr "8 тижнів"
 #: src/console/pages/Summary.tsx
 msgid "{0, plural, one {# чат} few {# чата} many {# чатов} other {# чата}} · одобрено {approved}"
 msgstr "{0, plural, one {# чат} few {# чати} many {# чатів} other {# чату}} · схвалено {approved}"
-
-#. placeholder {0}: stats.data.spam_pings.unreviewed
-#: src/console/pages/Summary.tsx
-msgid "{0} не разобрано"
-msgstr "{0} не розібрано"
 
 #: src/lib/turnaround.tsx
 msgid "Неделя"
@@ -2563,6 +2558,11 @@ msgstr "Відгуки"
 #: src/pages/AdsApp.tsx
 msgid "Где её видно"
 msgstr "Де її видно"
+
+#. placeholder {0}: stats.data.spam_pings.unreviewed
+#: src/console/pages/Summary.tsx
+msgid "{0} всего не разобрано"
+msgstr "{0} усього не розібрано"
 
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx

@@ -24,28 +24,27 @@ from app.webapi.services.spam_pings import count_unreviewed
 router = APIRouter(prefix="/stats", tags=["stats"])
 
 _DELTA_LOOKBACK_DAYS = 30
+# The bot counts members hourly; a newest count older than this is not today's.
+_FRESH = datetime.timedelta(hours=2)
 _CHAT_HEATMAP_TOP_N = 8
 _SPAM_RECENT_LIMIT = 5
 
 
 async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) -> list[MembersDeltaEntry]:
-    """For every chat with ≥1 snapshot: current count + Δ over 24h / 7d.
+    """For every chat we run with a count: its newest count and how far it
+    moved over 24h and over 7 days.
 
-    Baseline = oldest snapshot whose captured_at <= (now - window). If none,
-    delta is None (e.g. a chat whose newest snapshot is older than 24h will
-    have delta_24h=None but still appears with its stale current count).
-
-    We cap the lookback at _DELTA_LOOKBACK_DAYS so old history doesn't
-    accumulate unbounded in the result set. Chats with only stale snapshots
-    (all older than _DELTA_LOOKBACK_DAYS) will not appear; that's an
-    acceptable edge-case for very inactive chats.
+    Each window compares with the newest count taken at or before its start;
+    none taken that early leaves that window unknown. A chat whose newest
+    count is older than _FRESH stopped being counted, so neither window says
+    it moved. Counts older than _DELTA_LOOKBACK_DAYS are not read.
     """
     lookback = now - datetime.timedelta(days=_DELTA_LOOKBACK_DAYS)
     rows = (
         await session.execute(
             select(ChatMemberSnapshot, Chat.title)
-            .join(Chat, Chat.id == ChatMemberSnapshot.chat_id, isouter=True)
-            .where(ChatMemberSnapshot.captured_at >= lookback)
+            .join(Chat, Chat.id == ChatMemberSnapshot.chat_id)
+            .where(ChatMemberSnapshot.captured_at >= lookback, Chat.resource_status == "approved")
             .order_by(ChatMemberSnapshot.captured_at.asc())
         )
     ).all()
@@ -53,33 +52,25 @@ async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) 
     for snap, title in rows:
         by_chat.setdefault(snap.chat_id, []).append((snap.captured_at, snap.member_count, title))
 
-    out: list[MembersDeltaEntry] = []
-    for chat_id, points in by_chat.items():
-        if not points:
-            continue
-        title = points[-1][2]
-        current = points[-1][1]
-        # Search baselines only in snapshots that precede the current one so
-        # a single-snapshot chat doesn't produce a spurious 0-delta.
-        earlier = points[:-1]
-        baseline_24h = next(
-            (c for ts, c, _ in earlier if ts <= now - datetime.timedelta(hours=24)),
-            None,
+    def moved(points: list[tuple[datetime.datetime, int, str | None]], window: datetime.timedelta) -> int | None:
+        newest_at, current, _ = points[-1]
+        if newest_at < now - _FRESH:
+            return None
+        start = now - window
+        # Newest first: the first count at or before the window's start.
+        baseline = next((count for at, count, _ in reversed(points[:-1]) if at <= start), None)
+        return None if baseline is None else current - baseline
+
+    return [
+        MembersDeltaEntry(
+            chat_id=chat_id,
+            title=points[-1][2],
+            current=points[-1][1],
+            delta_24h=moved(points, datetime.timedelta(hours=24)),
+            delta_7d=moved(points, datetime.timedelta(days=7)),
         )
-        baseline_7d = next(
-            (c for ts, c, _ in earlier if ts <= now - datetime.timedelta(days=7)),
-            None,
-        )
-        out.append(
-            MembersDeltaEntry(
-                chat_id=chat_id,
-                title=title,
-                current=current,
-                delta_24h=(current - baseline_24h) if baseline_24h is not None else None,
-                delta_7d=(current - baseline_7d) if baseline_7d is not None else None,
-            )
-        )
-    return out
+        for chat_id, points in by_chat.items()
+    ]
 
 
 async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[ChatHeatmapSummary]:
@@ -96,7 +87,7 @@ async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[
             .join(Chat, Chat.id == Message.chat_id, isouter=True)
             .where(Message.timestamp >= since)
             .group_by(Message.chat_id, Chat.title)
-            .order_by(total.desc())
+            .order_by(total.desc(), Message.chat_id)
             .limit(_CHAT_HEATMAP_TOP_N)
         )
     ).all()
