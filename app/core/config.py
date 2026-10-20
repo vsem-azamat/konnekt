@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -214,7 +215,7 @@ class WebApiSettings(Settings):
     oidc_client_id: str = Field(
         default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
     )
-    oidc_client_secret: str = Field(default="", description="Client Secret from the same place")
+    oidc_client_secret: SecretStr = Field(default=SecretStr(""), description="Client Secret from the same place")
     # Not "none". Lax is same-site, not same-origin: a sibling host under the
     # same domain still sends the cookie, which is why writes also check Origin
     # (app/webapi/origin_guard.py).
@@ -233,10 +234,31 @@ class WebApiSettings(Settings):
         extra="ignore",
     )
 
+    @model_validator(mode="after")
+    def _the_console_has_a_host_of_its_own(self) -> WebApiSettings:
+        """A console host equal to the Mini App's takes that site's traffic.
+
+        One with a port or a path matches no request, so the console would be
+        configured and unreachable. Refused at startup instead; the deploy
+        refuses the same URLs (scripts/admin_host.sh). Local development may
+        name a port on localhost.
+        """
+        if not self.admin_url:
+            return self
+        admin = urlsplit(self.admin_url)
+        local = admin.hostname in {"localhost", "127.0.0.1"}
+        if admin.scheme != ("http" if local else "https") or not admin.hostname:
+            raise ValueError("admin_url must be an https URL")
+        if (admin.port and not local) or admin.path.strip("/") or admin.query or admin.fragment:
+            raise ValueError("admin_url must be a bare origin: no port, no path")
+        if self.public_url and urlsplit(self.public_url).hostname == admin.hostname:
+            raise ValueError("admin_url must not be the Mini App's host")
+        return self
+
     @property
     def oidc_enabled(self) -> bool:
         """On when configured and off otherwise, like the other optional doors."""
-        return bool(self.admin_url and self.oidc_client_id and self.oidc_client_secret)
+        return bool(self.admin_url and self.oidc_client_id and self.oidc_client_secret.get_secret_value())
 
     @property
     def allowed_origins(self) -> list[str]:

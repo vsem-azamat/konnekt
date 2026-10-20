@@ -217,7 +217,7 @@ jobs:
     - name: Each path goes to the backend or build that owns it
       run: |
         set -euo pipefail
-        docker run --rm \
+        docker run --rm -e ADMIN_HOST=admin.example.test \
           -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
           caddy:2.11.2-alpine caddy adapt --config /etc/caddy/Caddyfile \
           | python3 docker/check-routes.py

@@ -8,7 +8,13 @@ in CI would notice. The same goes for a route that falls back to the page
 where it must not, or the other way round, and for a cookie leaving for the
 catalog.
 
+The Caddyfile serves two hosts: the Mini App's, which answers anything, and
+the console's, named by ADMIN_HOST, which answers only the console and its API.
+Each is checked on its own, because a path that is right for one is a leak or
+a dead end for the other.
+
 Usage: caddy adapt ... | python3 docker/check-routes.py
+(run with ADMIN_HOST=admin.example.test in the adapting environment)
 """
 
 import fnmatch
@@ -19,23 +25,60 @@ import sys
 WEBAPI = "webapi:8787"
 CATALOG = "catalog-api:8000"
 APP = "/srv/app"
+ADMIN_HOST = "admin.example.test"
+
+# Who may frame each host: Telegram's clients the Mini App, nobody the console.
+FRAMING = {
+    None: "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org",
+    ADMIN_HOST: "frame-ancestors 'none'",
+}
 
 
 # Paths whose route falls back to the page when no file matches: a client-side
 # route reloaded must get the app, and a missing asset must get a 404, never
 # the page (which would then be cached as that asset).
-FALLS_BACK = {"/", "/chats", "/join", "/console", "/console/chats/-100123", "/administrator"}
+FALLS_BACK = {"/", "/chats", "/join", "/console", "/console/chats/-100123", "/login", "/administrator"}
 
 
-def expectations() -> dict[str, str]:
-    """Sample path → where it must end up: a proxy dial or a file root."""
+def expectations() -> dict[str | None, dict[str, str]]:
+    """Host (None: the Mini App's) → sample path → where it must end up."""
+    return {None: mini_app(), ADMIN_HOST: console()}
+
+
+def console() -> dict[str, str]:
+    """The console's own host: itself and its API, and nothing of the Mini App's."""
+    return {
+        "/api/auth/telegram/login": WEBAPI,
+        "/api/auth/me": WEBAPI,
+        "/api/stats/home": WEBAPI,
+        # Not this host's: the catalog's API, the public half, the catalog's health.
+        "/api/v1/me": "404",
+        "/api/public/catalog": "404",
+        "/healthz": "404",
+        "/console": APP,
+        "/console/chats/-100123": APP,
+        "/login": APP,
+        "/assets/index-abc123.js": APP,
+        # Everything else is the console's front door, never the landing page.
+        "/": "302 /console",
+        "/chats": "302 /console",
+        "/join": "302 /console",
+        "/admin": "302 /console",
+    }
+
+
+def mini_app() -> dict[str, str]:
+    """The Mini App's host: sample path → where it must end up."""
     return {
         # The catalog's API: the help screens, profiles, requests.
         "/api/v1/me": CATALOG,
         "/healthz": CATALOG,
         # Everything else under /api is this repository's webapi.
         "/api/public/catalog": WEBAPI,
-        "/api/auth/telegram": WEBAPI,
+        "/api/auth/webapp": WEBAPI,
+        # The browser's sign-in is the console host's: here the client address is Cloudflare's.
+        "/api/auth/telegram/login": "404",
+        "/api/auth/telegram/callback": "404",
         # The console is the app's now; the old console's addresses lead there.
         "/console": APP,
         "/console/chats/-100123": APP,
@@ -58,10 +101,31 @@ def expectations() -> dict[str, str]:
     }
 
 
-def routes(config: dict) -> list[dict]:
+def site_routes(config: dict, host: str | None) -> list[dict]:
+    """The routes of the site that answers `host`; None is the one with no host.
+
+    Each site is one terminal route holding a subroute, and Caddy tries the
+    named hosts before the catch-all.
+    """
     servers = config["apps"]["http"]["servers"]
     (server,) = servers.values()
-    return server["routes"]
+    for site in server["routes"]:
+        hosts = [h for m in site.get("match", []) for h in m.get("host", [])]
+        if (host in hosts) if host else not hosts:
+            (subroute,) = site["handle"]
+            return subroute["routes"]
+    return []
+
+
+def framing(routes: list[dict]) -> str | None:
+    """The `Content-Security-Policy` a site sets on every response, if it does."""
+    for route in routes:
+        for handler in route.get("handle", []):
+            if handler.get("handler") == "headers":
+                value = handler.get("response", {}).get("set", {}).get("Content-Security-Policy")
+                if value:
+                    return value[0]
+    return None
 
 
 def matches(route: dict, path: str) -> bool:
@@ -105,13 +169,13 @@ def handlers(route: dict) -> list[dict]:
 
 
 def falls_back(route: dict) -> bool:
-    """Whether a route rewrites a missing file to the page (`try_files`)."""
+    """Whether a route rewrites a missing file to the page (`try_files`), or always does."""
     return any(
         "try_files" in match.get("file", {})
         for handler in handlers(route)
         for sub in handler.get("routes", [])
         for match in sub.get("match", [])
-    )
+    ) or any(h.get("handler") == "rewrite" and h.get("uri") == "/index.html" for h in handlers(route))
 
 
 def cookie_free(proxy: dict) -> bool:
@@ -128,8 +192,13 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
     proxy = next((h for h in found if h.get("handler") == "reverse_proxy"), None)
     redirect = next((h for h in found if h.get("handler") == "static_response"), None)
     if redirect and not proxy:
-        location = expand(redirect.get("headers", {}).get("Location", ["?"])[0], route, path)
-        where = f"{redirect.get('status_code')} {location}"
+        given = redirect.get("headers", {}).get("Location")
+        # A response with no Location is a refusal, not a redirect.
+        where = (
+            f"{redirect.get('status_code')} {expand(given[0], route, path)}"
+            if given
+            else str(redirect.get("status_code"))
+        )
         return [] if where == expected else [f"goes to {where}, not {expected}"]
     if proxy:
         where = ",".join(u.get("dial") for u in proxy.get("upstreams", []))
@@ -150,18 +219,30 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
 
 
 def main() -> int:
-    # `handle` blocks share a group and exactly one of them runs: the first
-    # whose matcher fits. Routes outside a group (encode) pass through.
-    terminal = [r for r in routes(json.load(sys.stdin)) if "group" in r]
+    config = json.load(sys.stdin)
     failed = False
-    for path, expected in expectations().items():
-        chosen = next((r for r in terminal if matches(r, path)), None)
-        found = problems(chosen, path, expected) if chosen else ["is handled by nothing"]
-        for problem in found:
-            print(f"{path} {problem}", file=sys.stderr)
-        failed = failed or bool(found)
-        if not found:
-            print(f"{path} → {expected}")
+    for host, samples in expectations().items():
+        label = host or "mini app"
+        # `handle` blocks share a group and exactly one of them runs: the
+        # first whose matcher fits. Routes outside a group (encode) pass through.
+        site = site_routes(config, host)
+        if not site:
+            print(f"{label}: no site answers this host", file=sys.stderr)
+            failed = True
+            continue
+        terminal = [r for r in site if "group" in r]
+        wanted = FRAMING[host]
+        if framing(site) != wanted:
+            print(f"{label}: framing is {framing(site)}, not {wanted}", file=sys.stderr)
+            failed = True
+        for path, expected in samples.items():
+            chosen = next((r for r in terminal if matches(r, path)), None)
+            found = problems(chosen, path, expected) if chosen else ["is handled by nothing"]
+            for problem in found:
+                print(f"{label} {path} {problem}", file=sys.stderr)
+            failed = failed or bool(found)
+            if not found:
+                print(f"{label} {path} → {expected}")
     return 1 if failed else 0
 
 

@@ -54,6 +54,12 @@ def _webui_passthrough() -> set[str]:
     return {name for name, value in (webui.get("environment") or {}).items() if value is None}
 
 
+def _service_passthrough(service: str) -> set[str]:
+    """Names one service inherits on top of the shared block."""
+    env = yaml.safe_load(COMPOSE.read_text())["services"][service].get("environment") or {}
+    return {name for name, value in env.items() if value is None}
+
+
 def _deploy_step() -> dict:
     workflow = yaml.safe_load(DEPLOY.read_text())
     for step in workflow["jobs"]["deploy"]["steps"]:
@@ -74,7 +80,11 @@ def test_every_forwarded_name_is_declared_in_both_places() -> None:
     step = _deploy_step()
     forwarded = {name.strip() for name in step["with"]["envs"].split(",") if name.strip()}
 
-    assert forwarded - _DEPLOY_ONLY == (_compose_passthrough() | _webui_passthrough() | _interpolated()) - _DEPLOY_ONLY
+    assert (
+        forwarded - _DEPLOY_ONLY
+        == (_compose_passthrough() | _webui_passthrough() | _service_passthrough("webapi") | _interpolated())
+        - _DEPLOY_ONLY
+    )
 
 
 def test_the_catalog_runs_here_on_the_database_it_already_has() -> None:
@@ -191,11 +201,15 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "TELETHON_API_ID",
         "TELETHON_API_HASH",
         "MCP_TOKEN",
+        "WEBAPI_OIDC_CLIENT_SECRET",
     }
 
     for name, expression in step["env"].items():
         if name in sensitive:
             assert "secrets." in expression, f"{name} must come from secrets"
+        elif name == "ADMIN_HOST":
+            # Worked out from a variable by scripts/admin_host.sh, which refuses a bad one.
+            assert "steps." in expression
         elif name not in _DEPLOY_ONLY:
             assert "vars." in expression, f"{name} should come from variables, not {expression}"
 
@@ -682,3 +696,78 @@ def test_the_bot_and_the_ads_pages_offer_the_same_contact() -> None:
 
     assert services["bot"]["environment"]["ADS_BOT_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"
     assert services["catalog-api"]["environment"]["ADS_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"
+
+
+def test_the_sign_in_secret_reaches_the_webapi_and_nothing_else() -> None:
+    """The bot shares most of its environment with the webapi; this is not shared."""
+    name = "WEBAPI_OIDC_CLIENT_SECRET"
+
+    assert name in _service_passthrough("webapi")
+    assert name not in _compose_passthrough()
+    assert name not in _webui_passthrough()
+    assert "WEBAPI_ADMIN_URL" in _service_passthrough("webapi")
+
+
+def test_the_webui_is_told_the_admin_host_by_the_deploy_and_has_a_fallback_nobody_can_send() -> None:
+    """Caddy needs a host, the webapi a URL; the deploy works the host out once.
+
+    In the container's environment rather than a shell wrapper, so a reload or
+    the image's own `caddy validate` sees what the running server saw. Empty
+    would make the console's site address `http://`, which answers every
+    request: the script never prints one, and Caddy's own fallback is a host
+    nobody carries.
+    """
+    webui = yaml.safe_load(COMPOSE.read_text())["services"]["webui"]
+    step = next(
+        s for s in yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]["steps"] if "admin_host.sh" in s.get("run", "")
+    )
+    caddyfile = (ROOT / "docker" / "Caddyfile").read_text()
+
+    assert "ADMIN_HOST" in _webui_passthrough()
+    assert "command" not in webui
+    assert _deploy_step()["env"]["ADMIN_HOST"] == f"${{{{ steps.{step['id']}.outputs.host }}}}"
+    assert "{$ADMIN_HOST:admin.invalid}" in caddyfile
+
+
+def _admin_host_step() -> dict:
+    return next(
+        s for s in yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]["steps"] if "admin_host.sh" in s.get("run", "")
+    )
+
+
+@pytest.mark.parametrize(
+    ("admin_url", "ok", "host"),
+    [
+        ("https://admin.example.test", True, "admin.example.test"),
+        ("", True, "admin.invalid"),
+        ("https://app.example.test", False, None),
+        ("https://admin.example.test:8443", False, None),
+    ],
+)
+def test_a_bad_console_url_stops_the_deploy_instead_of_passing_an_empty_host(
+    tmp_path: Path, admin_url: str, ok: bool, host: str | None
+) -> None:
+    """The step is run as Actions runs it (`bash -e`), against its own output file.
+
+    A refusal swallowed inside `echo "$(...)"` left ADMIN_HOST empty, and the
+    webapi, which refuses the same URL, then failed to start with the Mini App's
+    API behind it.
+    """
+    output = tmp_path / "output"
+    output.touch()
+    done = subprocess.run(  # noqa: S603
+        ["bash", "-e", "-c", _admin_host_step()["run"]],  # noqa: S607
+        cwd=ROOT,
+        env={
+            "PATH": os.environ["PATH"],
+            "WEBAPI_ADMIN_URL": admin_url,
+            "WEBAPI_PUBLIC_URL": "https://app.example.test",
+            "GITHUB_OUTPUT": str(output),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert (done.returncode == 0) is ok, done.stderr
+    assert output.read_text() == (f"host={host}\n" if ok else "")
