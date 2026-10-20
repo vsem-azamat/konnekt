@@ -56,7 +56,19 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
             <Letters text={initials(chat.title)} />
           </Tile>
         }
-        title={chat.title}
+        title={
+          chat.external ? (
+            <>
+              {chat.title}
+              <span className={css.srOnly}>
+                {', '}
+                <Trans>не наш чат</Trans>
+              </span>
+            </>
+          ) : (
+            chat.title
+          )
+        }
         hint={
           chipFor(chat.activity) ? <ActivityChip activity={chat.activity} /> : undefined
         }
@@ -137,7 +149,7 @@ function ChatPreview({
       ) : null}
       {chat.external ? (
         <p className={css.sheetNote}>
-          <Trans>Этот чат ведут не Konnekt, и правила там свои.</Trans>
+          <Trans>Этот чат ведёт не Konnekt, и правила там свои.</Trans>
         </p>
       ) : null}
       <div className={css.actions}>

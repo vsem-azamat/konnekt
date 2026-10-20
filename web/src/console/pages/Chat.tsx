@@ -80,7 +80,7 @@ type Sheets =
   | { kind: 'publish' }
   | { kind: 'unpublish' }
   | { kind: 'disable' }
-  | { kind: 'moderate' }
+  | { kind: 'mode'; to: 'approved' | 'observed' | 'external' }
   | { kind: 'welcome'; enable: boolean }
   | { kind: 'ban'; sender: ChatSender }
   | { kind: 'unban'; sender: ChatSender }
@@ -194,9 +194,11 @@ function ChatScreen({ chatId }: { chatId: number }) {
   const listed = isListed(chat);
   const pickMode = (mode: 'approved' | 'observed' | 'external') => {
     if (mode === chat.resource_status) return;
-    // Switching a watched chat to moderation makes the bot speak where another
-    // bot is in charge, so that one step asks first.
-    if (mode === 'approved' && decided) open({ kind: 'moderate' });
+    // Every change between decided modes asks first: into moderation the bot
+    // starts acting where another bot may be in charge, out of it a chat loses
+    // its protection, and into external it is marked as not ours in public.
+    // Bringing a disabled chat back asks only when it would be marked.
+    if (decided || mode === 'external') open({ kind: 'mode', to: mode });
     else save({ resource_status: mode });
   };
   const admins = new Set(system.data?.super_admin_ids ?? []);
@@ -603,21 +605,57 @@ function ChatScreen({ chatId }: { chatId: number }) {
           onSave={(link) => save({ public_link: link }, close)}
         />
       ) : null}
-      {sheet?.kind === 'moderate' ? (
-        <Sheet title={t`Включить модерацию?`} closeLabel={t`Отмена`} onClose={close}>
+      {sheet?.kind === 'mode' ? (
+        <Sheet
+          title={
+            sheet.to === 'approved'
+              ? t`Включить модерацию?`
+              : sheet.to === 'observed'
+                ? t`Только наблюдать?`
+                : t`Отметить чат как внешний?`
+          }
+          closeLabel={t`Отмена`}
+          onClose={close}
+        >
           <Sub>
-            <Trans>
-              Бот начнёт отвечать на команды и удалять сообщения в этом чате. Если здесь
-              порядок держит другой бот, они будут мешать друг другу.
-            </Trans>
+            {sheet.to === 'approved' ? (
+              <Trans>
+                Бот начнёт отвечать на команды и удалять сообщения в этом чате. Если здесь
+                порядок держит другой бот, они будут мешать друг другу.
+              </Trans>
+            ) : sheet.to === 'observed' ? (
+              <Trans>
+                Бот будет только записывать историю: ничего не пишет и ни на что не
+                отвечает. В каталоге чат показан как наш.
+              </Trans>
+            ) : (
+              <Trans>
+                В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он
+                в чате, удалите его оттуда.
+              </Trans>
+            )}
+            {approved ? (
+              <>
+                {' '}
+                <Trans>
+                  Капча, приветствие и чёрный список здесь перестанут работать.
+                </Trans>
+              </>
+            ) : null}
           </Sub>
           {sheetError ? <Hint>{sheetError}</Hint> : null}
           <div className={ui.actionsStacked}>
             <Action
               disabled={busy}
-              onClick={() => save({ resource_status: 'approved' }, close)}
+              onClick={() => save({ resource_status: sheet.to }, close)}
             >
-              <Trans>Модерировать</Trans>
+              {sheet.to === 'approved' ? (
+                <Trans>Модерировать</Trans>
+              ) : sheet.to === 'observed' ? (
+                <Trans>Только наблюдать</Trans>
+              ) : (
+                <Trans>Отметить внешним</Trans>
+              )}
             </Action>
             <Action quiet onClick={close}>
               <Trans>Отмена</Trans>
@@ -628,10 +666,14 @@ function ChatScreen({ chatId }: { chatId: number }) {
       {sheet?.kind === 'disable' ? (
         <Sheet title={t`Отключить чат?`} closeLabel={t`Отмена`} onClose={close}>
           <Sub>
-            <Trans>
-              Бот перестанет его модерировать: капча, приветствие и чёрный список там
-              работать не будут. Включить можно здесь же.
-            </Trans>
+            {approved ? (
+              <Trans>
+                Бот перестанет его модерировать: капча, приветствие и чёрный список там
+                работать не будут. Включить можно здесь же.
+              </Trans>
+            ) : (
+              <Trans>Чат будет отключён. Вернуть режим можно здесь же.</Trans>
+            )}
             {listed ? (
               <>
                 {' '}

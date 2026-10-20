@@ -30,6 +30,10 @@ msgstr "{0, plural, one {# людина} few {# людини} many {# людей
 msgid "Консоль снова откроется из Telegram."
 msgstr "Консоль знову відкриється з Telegram."
 
+#: src/console/pages/Chat.tsx
+msgid "Отметить чат как внешний?"
+msgstr "Позначити чат як зовнішній?"
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Увімкнути"
@@ -65,6 +69,10 @@ msgstr "Знайшлося"
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
 msgstr "Детектор тут нічого не знаходив."
+
+#: src/console/pages/Chat.tsx
+msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
+msgstr "У каталозі чат буде позначено як не наш. Бот там нічого не робить; якщо він у чаті, видаліть його звідти."
 
 #: src/console/pages/Chat.tsx
 msgid "На публичной вкладке"
@@ -106,6 +114,10 @@ msgstr "Повернеться на своє місце за пріоритет�
 msgid "Входит в"
 msgstr "Входить до"
 
+#: src/components/ChatRow.tsx
+msgid "не наш чат"
+msgstr "не наш чат"
+
 #: src/pages/Offer.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Проверь связь и попробуй ещё раз."
@@ -115,6 +127,10 @@ msgstr "Перевір з'єднання і спробуй ще раз."
 #: src/lib/workFormat.tsx
 msgid "Онлайн"
 msgstr "Онлайн"
+
+#: src/console/pages/Chat.tsx
+msgid "Отметить внешним"
+msgstr "Позначити зовнішнім"
 
 #: src/pages/Request.tsx
 msgid "Такой заявки нет"
@@ -270,6 +286,10 @@ msgstr "Додати послугу"
 msgid "Ср"
 msgstr "Ср"
 
+#: src/console/pages/Chat.tsx
+msgid "Чат будет отключён. Вернуть режим можно здесь же."
+msgstr "Чат буде вимкнено. Повернути режим можна тут же."
+
 #: src/pages/Life.tsx
 msgid "Это не наши услуги. Мы получаем комиссию с партнёра, со студента — ничего."
 msgstr "Це не наші послуги. Комісію ми отримуємо від партнера, зі студента — нічого."
@@ -277,6 +297,10 @@ msgstr "Це не наші послуги. Комісію ми отримуєм�
 #: src/pages/AdsApp.tsx
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Показуємо тому, кому вона потрібна зараз, а не всім підряд."
+
+#: src/pages/ChatSection.tsx
+msgid "Их ведёт не Konnekt, и правила там свои."
+msgstr "Їх веде не Konnekt, і правила там свої."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -484,10 +508,6 @@ msgstr "{0, plural, one {учасник} few {учасники} many {учасн
 msgid "факультеты, общежития, общие"
 msgstr "факультети, гуртожитки, загальні"
 
-#: src/components/ChatRow.tsx
-msgid "Этот чат ведут не Konnekt, и правила там свои."
-msgstr "Цей чат веде не Konnekt, і правила там свої."
-
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
 msgstr "Пост виходить, ви отримуєте посилання на нього."
@@ -515,6 +535,10 @@ msgstr "розкажи своїми словами, анкету складем�
 #: src/components/Incoming.tsx
 msgid "Заявку уже закрыли"
 msgstr "Заявку вже закрили"
+
+#: src/console/pages/Chat.tsx
+msgid "Только наблюдать?"
+msgstr "Лише спостерігати?"
 
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
@@ -822,6 +846,10 @@ msgstr "На всі відкриті заявки хтось відгукнув�
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "Стане першою в розділі «Не про навчання». Там видно три картки: найнижча зникне, доки іншу не вимкнуть."
 
+#: src/console/pages/Chats.tsx
+msgid "Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
+msgstr "Публічне посилання вигляду https://t.me/ім'я або @ім'я. Бота туди не додаємо: чат потрапить до каталогу з позначкою «не наш»."
+
 #: src/console/pages/Chat.tsx
 msgid "Защита"
 msgstr "Захист"
@@ -1003,6 +1031,10 @@ msgstr "Не вийшло. Спробуйте ще раз."
 msgid "в профиле"
 msgstr "у профілі"
 
+#: src/console/pages/Chat.tsx
+msgid "Бот будет только записывать историю: ничего не пишет и ни на что не отвечает. В каталоге чат показан как наш."
+msgstr "Бот лише записуватиме історію: нічого не пише й ні на що не відповідає. У каталозі чат показано як наш."
+
 #: src/console/pages/System.tsx
 msgid "на месте: баны и обновления из Telegram работают"
 msgstr "на місці: бани й оновлення з Telegram працюють"
@@ -1042,10 +1074,6 @@ msgstr "не налаштовано: бани й оновлення з Telegram 
 #: src/pages/AdsChats.tsx
 msgid "Куда попадёт"
 msgstr "Куди потрапить"
-
-#: src/pages/ChatSection.tsx
-msgid "Их ведут не Konnekt, и правила там свои."
-msgstr "Їх веде не Konnekt, і правила там свої."
 
 #: src/pages/Chats.tsx
 msgid "ČVUT, FIT, Strahov…"
@@ -1340,8 +1368,8 @@ msgid "Дешевле"
 msgstr "Дешевше"
 
 #: src/console/pages/Chats.tsx
-msgid "Публичная ссылка вида https://t.me/имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
-msgstr "Публічне посилання вигляду https://t.me/ім'я. Бота туди не додаємо: чат потрапить до каталогу з позначкою «не наш»."
+msgid "Telegram не знает публичного чата с таким именем."
+msgstr "Telegram не знає публічного чату з таким ім'ям."
 
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
@@ -1404,6 +1432,10 @@ msgstr "Обери, чим можеш допомогти"
 #: src/pages/Offer.tsx
 msgid "Чем ты можешь помочь?"
 msgstr "Чим ти можеш допомогти?"
+
+#: src/console/pages/Chats.tsx
+msgid "Telegram сейчас не ответил. Попробуйте через минуту."
+msgstr "Telegram зараз не відповів. Спробуйте за хвилину."
 
 #: src/console/pages/Chat.tsx
 msgid "Только наблюдать"
@@ -1494,6 +1526,10 @@ msgstr "Бота там немає. Лише посилання в катало�
 #: src/pages/Request.tsx
 msgid "до {0}"
 msgstr "до {0}"
+
+#: src/components/ChatRow.tsx
+msgid "Этот чат ведёт не Konnekt, и правила там свои."
+msgstr "Цей чат веде не Konnekt, і правила там свої."
 
 #: src/lib/turnaround.tsx
 msgid "{days} дн."
@@ -1958,10 +1994,6 @@ msgstr "Увімкнути картку?"
 msgid "математический анализ, čeština B2…"
 msgstr "математичний аналіз, čeština B2…"
 
-#: src/console/pages/Chats.tsx
-msgid "Telegram не нашёл такой публичный чат. По ссылке-приглашению чат не найти."
-msgstr "Telegram не знайшов такого публічного чату. За посиланням-запрошенням чат не знайти."
-
 #: src/pages/OfferPrices.tsx
 msgid "Необязательно. Пустое поле значит «договоримся»."
 msgstr "Необов'язково. Порожнє поле означає «домовимося»."
@@ -1984,6 +2016,10 @@ msgstr "на перевірці"
 msgid "Не показан"
 msgstr "Не показано"
 
+#: src/console/pages/Chats.tsx
+msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
+msgstr "Потрібне публічне посилання вигляду https://t.me/ім'я або @ім'я. За посиланням-запрошенням чат не знайти."
+
 #: src/console/pages/Chat.tsx
 msgid "Не указан"
 msgstr "Не вказано"
@@ -1991,6 +2027,10 @@ msgstr "Не вказано"
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "анкет за 7 днів"
+
+#: src/console/pages/Chats.tsx
+msgid "Это канал или человек, а не чат."
+msgstr "Це канал або людина, а не чат."
 
 #: src/pages/MyHelper.tsx
 msgid "Моя анкета"
@@ -2031,6 +2071,10 @@ msgstr "Нікого не знайшлося."
 #: src/pages/Chats.tsx
 msgid "Найди свой чат"
 msgstr "Знайди свій чат"
+
+#: src/console/pages/Chat.tsx
+msgid "Капча, приветствие и чёрный список здесь перестанут работать."
+msgstr "Капча, привітання й чорний список тут перестануть працювати."
 
 #: src/console/pages/Chat.tsx
 msgid "Включить модерацию?"

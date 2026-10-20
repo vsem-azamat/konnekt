@@ -169,3 +169,25 @@ test('webapi times without a zone are read as UTC, the zone they were written in
   assert.equal(utc('2026-09-30T15:40:00+02:00'), '2026-09-30T15:40:00+02:00');
   assert.equal(utc('2026-09-30T15:40:00Z'), '2026-09-30T15:40:00Z');
 });
+
+test("a refusal carries webapi's code for it, and none when the detail is not one", async () => {
+  const answers = [
+    new Response(JSON.stringify({ detail: 'already_known' }), { status: 409 }),
+    new Response(JSON.stringify({ detail: [{ msg: 'field required' }] }), {
+      status: 422,
+    }),
+    new Response('<html>502</html>', { status: 502 }),
+  ];
+  const fetcher = (async () => answers.shift() as Response) as typeof fetch;
+  const get = consoleRequester(fetcher, () => 'user=1&hash=x');
+
+  const details: (string | null)[] = [];
+  for (let n = 0; n < 3; n++) {
+    await assert.rejects(get('/api/chats/external'), (error: unknown) => {
+      assert.ok(error instanceof ConsoleError);
+      details.push(error.detail);
+      return true;
+    });
+  }
+  assert.deepEqual(details, ['already_known', null, null]);
+});

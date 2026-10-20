@@ -247,7 +247,7 @@ function AddExternalSheet({
 }) {
   const { t } = useLingui();
   const queryClient = useQueryClient();
-  const [link, setLink] = useState('https://t.me/');
+  const [link, setLink] = useState('');
   const add = useMutation({
     mutationFn: (value: string) => consoleChanges.addExternalChat(value),
     onSuccess: (chat) => {
@@ -260,8 +260,8 @@ function AddExternalSheet({
     <Sheet title={t`Внешний чат`} closeLabel={t`Отмена`} onClose={onClose}>
       <Sub>
         <Trans>
-          Публичная ссылка вида https://t.me/имя. Бота туда не добавляем: чат попадёт в
-          каталог с пометкой «не наш».
+          Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат
+          попадёт в каталог с пометкой «не наш».
         </Trans>
       </Sub>
       <div className={ui.field}>
@@ -277,20 +277,12 @@ function AddExternalSheet({
       </div>
       {add.error ? (
         <Hint>
-          {add.error instanceof ConsoleError && add.error.status === 409 ? (
-            <Trans>Этот чат уже есть в списке: режим меняется на его странице.</Trans>
-          ) : add.error instanceof ConsoleError && add.error.status === 422 ? (
-            <Trans>
-              Telegram не нашёл такой публичный чат. По ссылке-приглашению чат не найти.
-            </Trans>
-          ) : (
-            <FailureText error={add.error} />
-          )}
+          <AddFailure error={add.error} />
         </Hint>
       ) : null}
       <Actions>
         <Action
-          disabled={add.isPending || value.length <= 'https://t.me/'.length}
+          disabled={add.isPending || value.length === 0}
           onClick={() => add.mutate(value)}
         >
           <Trans>Добавить в каталог</Trans>
@@ -298,4 +290,28 @@ function AddExternalSheet({
       </Actions>
     </Sheet>
   );
+}
+
+/** Each refusal of `POST /api/chats/external` in words, by webapi's code for it. */
+function AddFailure({ error }: { error: unknown }) {
+  const detail = error instanceof ConsoleError ? error.detail : null;
+  switch (detail) {
+    case 'not_public':
+      return (
+        <Trans>
+          Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат
+          не найти.
+        </Trans>
+      );
+    case 'not_found':
+      return <Trans>Telegram не знает публичного чата с таким именем.</Trans>;
+    case 'not_a_group':
+      return <Trans>Это канал или человек, а не чат.</Trans>;
+    case 'already_known':
+      return <Trans>Этот чат уже есть в списке: режим меняется на его странице.</Trans>;
+    case 'telegram_unavailable':
+      return <Trans>Telegram сейчас не ответил. Попробуйте через минуту.</Trans>;
+    default:
+      return <FailureText error={error} />;
+  }
 }

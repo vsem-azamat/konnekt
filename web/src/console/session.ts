@@ -23,12 +23,29 @@ export type ConsoleFailureReason = 'refused' | 'stale' | 'not-kept' | 'failed';
 export class ConsoleError extends Error {
   readonly status: number;
   readonly reason: ConsoleFailureReason;
+  /** webapi's own code for a refusal (`already_known`), when it gave one. */
+  readonly detail: string | null;
 
-  constructor(status: number, reason: ConsoleFailureReason = 'failed') {
+  constructor(
+    status: number,
+    reason: ConsoleFailureReason = 'failed',
+    detail: string | null = null,
+  ) {
     super(`console request failed: ${status} (${reason})`);
     this.name = 'ConsoleError';
     this.status = status;
     this.reason = reason;
+    this.detail = detail;
+  }
+}
+
+/** The `detail` of a FastAPI refusal, when it is a plain code rather than a list. */
+async function detailOf(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === 'string' ? body.detail : null;
+  } catch {
+    return null;
   }
 }
 
@@ -95,7 +112,9 @@ export function consoleRequester(
         throw new ConsoleError(401, 'not-kept');
       }
     }
-    if (!response.ok) throw new ConsoleError(response.status);
+    if (!response.ok) {
+      throw new ConsoleError(response.status, 'failed', await detailOf(response));
+    }
     return (response.status === 204 ? undefined : await response.json()) as T;
   };
 }

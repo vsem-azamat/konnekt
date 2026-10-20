@@ -89,7 +89,7 @@ export default function ChatSectionPage() {
                 </Label>
                 <div style={{ marginTop: -4, marginBottom: 10 }}>
                   <Hint>
-                    <Trans>Их ведут не Konnekt, и правила там свои.</Trans>
+                    <Trans>Их ведёт не Konnekt, и правила там свои.</Trans>
                   </Hint>
                 </div>
                 <Rows>
