@@ -112,7 +112,19 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "přijímačk",
         "prijimaci",
         "entrance",
+        "admission",
         "вступн",
+        # The Ukrainian noun, only where it cannot be «introduction»: «вступ на
+        # медицину», «вступ з математики», «вступ до університету». «вступ до»
+        # with a school found is read in `parse`; «вступ до програмування» is an
+        # introduction to programming.
+        Word("вступ на"),
+        Word("вступ з"),
+        Word("вступ у"),
+        Word("вступ в"),
+        "вступ до університ",
+        "вступ до внз",
+        "вступ до виш",
         # The Ukrainian spelling, which used to reach `entrance_prep` only
         # because it was a synonym of one subject on this shelf.
         "приймач",
@@ -403,7 +415,20 @@ RESTATING: tuple[str, ...] = (
 
 # Words that restate one kind of help and not the others. «přijímací řízení»
 # is the admission procedure; beside tutoring «řízení» is control, a subject.
-RESTATING_FOR: dict[str, tuple[str, ...]] = {"entrance_prep": (Word("rizeni"),)}
+RESTATING_FOR: dict[str, tuple[str, ...]] = {
+    "entrance_prep": (
+        Word("rizeni"),
+        # Entering a university is what entrance exams are: «вступ до
+        # університету», «поступление в вуз», "university admissions".
+        "университет",
+        "університет",
+        "universit",
+        "univerzit",
+        Word("вуз"),
+        Word("внз"),
+        Word("виш"),
+    )
+}
 
 # Month names, unaccented and lowercased, in the order the client will have
 # typed them. Czech has both nominative and genitive forms in circulation.
@@ -473,6 +498,15 @@ async def parse(
     if institutions:
         result.institution = institutions[0]
         result.alternatives["institution"] = institutions[1:]
+
+    # «вступ до ЧВУТ» is entering ČVUT; «вступ до програмування» an
+    # introduction. The school decides, so this waits for it.
+    if (
+        result.service_type is None
+        and result.institution
+        and is_whole_word(tokenise(norm), "вступ до")
+    ):
+        result.service_type, keyword = "entrance_prep", "вступ до"
 
     result.deadline = _match_deadline(norm, today or date.today())
     result.budget_max = _match_budget(norm)
@@ -1164,9 +1198,15 @@ async def _from_admissions(
         return subjects
     school = await _school_words(session, institution)
     kept = [token for token in tokens if not _is_school_word(token, school)]
+    # Every leaf, however faintly it resembles the query: the choice is
+    # already narrowed to what the shelf lists, and a listed exam scored below
+    # the usual bar is still the answer — "entrance exam programming" is the
+    # technical admissions, whose name never says programming.
     found = [
         match
-        for match in await find_subjects(session, " ".join(kept), lang, limit=20)
+        for match in await find_subjects(
+            session, " ".join(kept), lang, limit=200, threshold=0.0
+        )
         if match.id in listed
     ]
     # The shelf's own exam before one it shares: the technical admissions are

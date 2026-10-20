@@ -445,3 +445,41 @@ async def test_maturita_is_not_an_entrance_exam(session) -> None:
     assert parsed.subject is None or parsed.subject.id != await _id(
         session, "maturita"
     ), parsed.subject
+
+
+# #261: the Ukrainian and English words for entrance exams.
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        ("вступ до ЧВУТ фізика", "uk", "prijimacky-fyzika"),
+        ("вступ з математики", "uk", "prijimacky-matematika"),
+        ("вступ на медицину", "uk", "prijimacky-medicina"),
+        ("вступ до університету", "uk", None),
+        ("admissions CTU physics", "en", "prijimacky-fyzika"),
+        ("university admissions maths", "en", "prijimacky-matematika"),
+        ("admission", "en", None),
+        ("entrance exam programming", "en", "prijimacky-technicke-vs"),
+    ],
+)
+async def test_other_languages_say_entrance_exams(session, text, lang, slug) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    if slug is None:
+        assert parsed.subject is None, parsed.subject
+    else:
+        assert parsed.subject is not None
+        assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # «вступ до» a subject is an introduction to it.
+        ("вступ до програмування", "uk"),
+        ("вступ до економіки", "uk"),
+        ("introduction to programming", "en"),
+    ],
+)
+async def test_an_introduction_is_not_an_entrance_exam(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
