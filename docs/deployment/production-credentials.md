@@ -22,6 +22,8 @@ them again — rotate rather than recover.
 | `DB_PASSWORD` | PostgreSQL password. The database runs beside this stack rather than in it, so this is the password that database already has — see [The Database](database.md). |
 | `MODERATOR_BOT_TOKEN` | Bot token from BotFather |
 | `MCP_TOKEN` | Bearer token for the control plane |
+| `ADS_BOT_TOKEN` | Optional. Token of @konnekt_ads_bot, the ads contact desk |
+| `ADS_BOT_GROUP_ID` | Optional. The staff forum supergroup where the ads desk opens a topic per person; the bot must be an admin there that can manage topics |
 | `ADMIN_SUPER_ADMINS` | Comma-separated Telegram IDs |
 | `ADMIN_REPORT_CHAT_ID` | Optional. Defaults to the first super admin |
 | `CATALOG_DB_USER`, `CATALOG_DB_NAME` | Required. The catalog database's role and name, as its data directory has them |
@@ -57,6 +59,7 @@ and off otherwise:
 | Feature | On when |
 | --- | --- |
 | MCP control plane | `MCP_TOKEN` is set |
+| Ads contact desk | `ADS_BOT_TOKEN` and `ADS_BOT_GROUP_ID` are set |
 
 Everything the application does runs on the bot token. Titles, photos and
 member counts are Bot API calls; message history and search read the rows the

@@ -103,6 +103,9 @@ services:
       # Only the bot process: the retired bots answer from here. Several
       # tokens, comma-separated; a second process polling them would fight it.
       MODERATOR_BOT_RETIRED_TOKEN: ${MODERATOR_BOT_RETIRED_TOKEN:-}
+      # The ads contact desk (app/presentation/telegram/ads.py), likewise only here.
+      ADS_BOT_TOKEN: ${ADS_BOT_TOKEN:-}
+      ADS_BOT_GROUP_ID: ${ADS_BOT_GROUP_ID:-}
     # The MCP control plane is served here rather than by webapi: Telegram
     # answers a confirmation button to the identity that sent it, and that
     # identity is this process. Loopback only — not published to the internet.
