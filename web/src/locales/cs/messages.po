@@ -1001,6 +1001,7 @@ msgstr "Kam se dostane"
 msgid "ČVUT, FIT, Strahov…"
 msgstr "ČVUT, FIT, Strahov…"
 
+#: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
 msgid "Открыть чат"
 msgstr "Otevřít chat"
@@ -1089,6 +1090,10 @@ msgstr "Nejvýše čtyři písmena."
 msgid "Кто может помочь"
 msgstr "Kdo může pomoct"
 
+#: src/components/ChatRow.tsx
+msgid "с темами"
+msgstr "s tématy"
+
 #: src/pages/MyHelper.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Tohle si přečtou první. Pár živých vět funguje líp než seznam."
@@ -1170,6 +1175,10 @@ msgstr "Zrušit ban"
 #: src/pages/Home.tsx
 msgid "Что нужно?"
 msgstr "Co potřebuješ?"
+
+#: src/components/ChatRow.tsx
+msgid "Откроется в Telegram"
+msgstr "Otevře se v Telegramu"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Как увидят студенты"
@@ -1361,6 +1370,7 @@ msgid "Реклама"
 msgstr "Reklama"
 
 #: src/components/AppHeader.tsx
+#: src/components/ChatRow.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
@@ -2077,6 +2087,7 @@ msgid "Подходят"
 msgstr "Vyhovují"
 
 #. placeholder {0}: chat.member_count
+#: src/components/ChatRow.tsx
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
 msgstr "{0, plural, one {# člen} few {# členové} many {# člena} other {# členů}}"

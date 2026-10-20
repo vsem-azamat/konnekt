@@ -66,3 +66,20 @@ class TestReadingTheLatest:
         await _snapshot(db_session_maker, FS, 800, hours_ago=1)
 
         assert await member_counts.latest_for(session, [FIT]) == {FIT: 1200}
+
+    async def test_a_snapshot_older_than_asked_for_is_no_answer(self, session: AsyncSession, db_session_maker) -> None:
+        """An old count is not today's count: the caller says how old is too old."""
+        await _snapshot(db_session_maker, FIT, 1200, hours_ago=100)
+        await _snapshot(db_session_maker, FS, 800, hours_ago=1)
+
+        since = utc_now() - datetime.timedelta(days=3)
+        assert await member_counts.latest_for(session, [FIT, FS], since=since) == {FS: 800}
+
+    async def test_an_old_snapshot_does_not_hide_behind_a_new_one(
+        self, session: AsyncSession, db_session_maker
+    ) -> None:
+        await _snapshot(db_session_maker, FIT, 1000, hours_ago=100)
+        await _snapshot(db_session_maker, FIT, 1200, hours_ago=1)
+
+        since = utc_now() - datetime.timedelta(days=3)
+        assert await member_counts.latest_for(session, [FIT], since=since) == {FIT: 1200}

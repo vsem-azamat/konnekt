@@ -22,8 +22,8 @@ import { reachFigures } from '@/lib/reach';
 /**
  * A post in the chats: where it goes and how many people are there.
  *
- * Per group, never per chat: which chats exist is on the Chats tab, and how
- * large each room is does not need publishing next to an offer.
+ * Per group: a sum is what an advertiser asks about. Each chat's own size is
+ * in its preview on the Chats tab.
  */
 export default function AdsChatsPage() {
   const { i18n } = useLingui();

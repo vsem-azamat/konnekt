@@ -178,9 +178,21 @@ export function Letters({ text }: { text: string }) {
   );
 }
 
-export function Tile({ tone, children }: { tone: number; children: ReactNode }) {
+export function Tile({
+  tone,
+  large = false,
+  children,
+}: {
+  tone: number;
+  /** The head of a preview, where the tile stands for the whole chat. */
+  large?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <span className={css.tile} style={toneStyle(tone)}>
+    <span
+      className={large ? `${css.tile} ${css.tileLarge}` : css.tile}
+      style={toneStyle(tone)}
+    >
       {children}
     </span>
   );

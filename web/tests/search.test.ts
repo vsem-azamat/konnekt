@@ -15,6 +15,8 @@ function chat(
     group,
     institution,
     activity: 'active',
+    member_count: null,
+    is_forum: false,
   };
 }
 
