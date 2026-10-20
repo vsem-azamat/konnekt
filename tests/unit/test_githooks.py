@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 pytestmark = pytest.mark.unit
 
@@ -69,6 +70,22 @@ def test_every_lane_is_named_even_when_off() -> None:
     result = _run(HOOKS / "lanes", input="", check=True)
 
     assert result.stdout.split() == ["python=false", "web=false", "catalog=false"]
+
+
+def test_ci_reads_the_lanes_from_the_same_script() -> None:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+
+    for job in ("test", "catalog"):
+        runs = "\n".join(str(step.get("run", "")) for step in workflow["jobs"][job]["steps"])
+        assert ".githooks/lanes" in runs, job
+
+
+def test_the_required_check_always_runs() -> None:
+    """Branch protection requires `test (3.12)`; a job skipped as a whole would never report."""
+    job = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["test"]
+
+    assert "if" not in job
+    assert "needs" not in job
 
 
 # The hooks against a scratch repository: a copy of the configuration they
