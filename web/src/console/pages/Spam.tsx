@@ -55,6 +55,7 @@ function Spam() {
       )}
       {picked ? (
         <PingSheet
+          key={picked.id}
           ping={picked}
           onClose={() => setPicked(null)}
           // A chat the bot never stored has no screen to open.

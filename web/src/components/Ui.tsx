@@ -487,17 +487,20 @@ export function Action({
   children,
   onClick,
   quiet,
+  danger,
   disabled,
 }: {
   children: ReactNode;
   onClick: () => void;
   quiet?: boolean;
+  /** For what cannot be undone, and nothing else. */
+  danger?: boolean;
   disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${css.pressable}`}
+      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${css.pressable}`}
       onClick={onClick}
       disabled={disabled}
     >
