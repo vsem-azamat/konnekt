@@ -17,7 +17,7 @@ import { RouterProvider } from 'react-router';
 import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
-import { ApiError } from '@/lib/api';
+import { ApiError, api, rawInitData } from '@/lib/api';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { router } from '@/router';
@@ -46,8 +46,15 @@ async function bootstrap(): Promise<void> {
   }
 
   initSdk();
+  reportLaunch();
   await initLocale();
   render();
+}
+
+/** One line in the console's audience per launch, never in the way of the app. */
+function reportLaunch(): void {
+  const raw = rawInitData();
+  if (raw) void api.reportLaunch(raw).catch(() => undefined);
 }
 
 /**

@@ -1556,6 +1556,171 @@
   background: var(--surface-pressed);
 }
 
+/* The audience summary: who may be written to, as one bar in four parts. */
+.reach {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.reachTotal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.reachTotal b {
+  color: var(--ink);
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.reachBar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.reachLegend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.reachLegend button {
+  all: unset;
+  cursor: pointer;
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reachLegend b {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-status='reachable'] {
+  --status: var(--tone-0-fg);
+}
+[data-status='never_started'] {
+  --status: var(--muted);
+}
+[data-status='blocked'] {
+  --status: var(--tone-4-fg);
+}
+[data-status='opted_out'] {
+  --status: var(--tone-1-fg);
+}
+
+.reachBar > [data-status] {
+  background: var(--status);
+}
+
+.reachLegend b,
+.statusText {
+  color: var(--status);
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.barRow {
+  all: unset;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.barRow b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--hairline);
+}
+
+.barTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--tone-3-fg);
+}
+
+.weeks {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 64px;
+}
+
+.weeks > span {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 4px;
+  background: var(--tone-3-bg);
+}
+
+.weeks > span:last-child {
+  background: var(--tone-3-fg);
+}
+
+.touchpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.touchpoints > span {
+  padding: 1px 7px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--surface-pressed);
+  color: var(--ink-soft);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 4px 0;
+}
+
+.timeline > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.timeline small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
 .trend {
   display: flex;
   flex-direction: column;

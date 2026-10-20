@@ -1,4 +1,7 @@
 import { createBrowserRouter } from 'react-router';
+import ConsoleAudiencePage from '@/console/pages/Audience';
+import ConsoleAudiencePeoplePage from '@/console/pages/AudiencePeople';
+import ConsoleAudiencePersonPage from '@/console/pages/AudiencePerson';
 import ConsoleBlacklistPage from '@/console/pages/Blacklist';
 import ConsoleCatalogPage from '@/console/pages/Catalog';
 import ConsoleChatPage from '@/console/pages/Chat';
@@ -58,6 +61,9 @@ export const router = createBrowserRouter([
       { path: 'life', element: <LifePage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'console', element: <ConsoleSummaryPage /> },
+      { path: 'console/audience', element: <ConsoleAudiencePage /> },
+      { path: 'console/audience/people', element: <ConsoleAudiencePeoplePage /> },
+      { path: 'console/audience/:id', element: <ConsoleAudiencePersonPage /> },
       { path: 'console/catalog', element: <ConsoleCatalogPage /> },
       { path: 'console/partners', element: <ConsolePartnersPage /> },
       { path: 'console/partners/new', element: <ConsolePartnerNewPage /> },
