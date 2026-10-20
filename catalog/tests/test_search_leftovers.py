@@ -548,3 +548,50 @@ async def test_a_university_beside_entrance_exams_is_bare(session, text, lang) -
 async def test_other_admissions_are_not_entrance(session, text) -> None:
     parsed = await parse(session, text, "en", today=TODAY)
     assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # The commonest Ukrainian phrasings (#262 review).
+        ("підготовка до вступу", "uk"),
+        ("підготовки до вступу", "uk"),
+        ("підготовку до вступу", "uk"),
+        ("допомога зі вступом", "uk"),
+        ("питання щодо вступу", "uk"),
+        ("вступ у ЧВУТ", "uk"),
+        ("вступ в ЧВУТ", "uk"),
+        ("вступ у Карлів університет", "uk"),
+        ("вступ до технічного університету", "uk"),
+        ("Вступ до технічних ВНЗ", "uk"),
+        ("вступ у університет", "uk"),
+        ("вступ в університет", "uk"),
+        ("вступ до внз", "uk"),
+        ("вступ у виш", "uk"),
+        # Each English phrase on its own.
+        ("university admission", "en"),
+        ("college admission", "en"),
+        ("admission test", "en"),
+        ("admission exam", "en"),
+        ("admission to medicine", "en"),
+    ],
+)
+async def test_each_entrance_phrase_on_its_own(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+
+
+async def test_a_named_kind_keeps_its_school_aside(session) -> None:
+    """With a comma and a school after «вступ до», nostrification is still
+    what is asked; the school only says where."""
+    parsed = await parse(session, "нострифікація, вступ до ЧВУТ", "uk", today=TODAY)
+    assert parsed.service_type == "nostrification"
+
+
+@pytest.mark.parametrize(
+    "text", ["поступление в университет", "вступительные в университет"]
+)
+async def test_a_russian_university_restates_entrance_exams(session, text) -> None:
+    parsed = await parse(session, text, "ru", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject

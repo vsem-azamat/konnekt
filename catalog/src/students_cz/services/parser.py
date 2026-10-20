@@ -377,16 +377,21 @@ LATE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "admission exam",
         Word("вступ на"),
         Word("вступ з"),
-        "вступ до університ",
-        "вступ у університ",
-        "вступ в університ",
-        "вступ до внз",
-        "вступ у внз",
-        "вступ в внз",
-        "вступ до виш",
-        "вступ у виш",
+        # As phrases: «до вступу» alone is "before the introduction" too.
+        "підготовка до вступу",
+        "підготовки до вступу",
+        "підготовку до вступу",
+        "зі вступом",
+        "щодо вступу",
     ),
 }
+
+# «вступ до / у / в» a university, with a word between or none: «вступ до
+# технічного університету», «вступ у ВНЗ», the leaves' own «Вступ до технічних
+# ВНЗ». Read after LATE_KEYWORDS, for the same reason.
+_ENTERING_A_UNIVERSITY = re.compile(
+    r"(?:^| )(вступ (?:до|у|в)) (?:\S+ )?(?:університ|внз|виш)"
+)
 
 # Words that only restate a kind of help once its keyword has named it: the
 # exam in «вступительные экзамены», the preparing in «подготовка к ...». A
@@ -979,6 +984,9 @@ def _match_service(
             match = is_whole_word if isinstance(keyword, Word) else starts_a_word
             if match(tokens, keyword):
                 return code, keyword
+    entering = _ENTERING_A_UNIVERSITY.search(tokens)
+    if entering and "entrance_prep" not in ignore:
+        return "entrance_prep", entering.group(1)
 
     if any(starts_a_word(tokens, verb) for verb in WEAK_HELP):
         if any(starts_a_word(tokens, word) for word in EXAM_MENTION):
@@ -1288,12 +1296,12 @@ async def _within_shelf(
 
 
 async def _enters_the_school(session: AsyncSession, norm: str, school: Match) -> bool:
-    """Is it «вступ до» the school itself? «вступ до ЧВУТ» is entering ČVUT;
-    «вступ до математичного аналізу ЧВУТ» an introduction taught there."""
+    """Is it «вступ до / у / в» the school itself? «вступ до ЧВУТ» is entering
+    ČVUT; «вступ до математичного аналізу ЧВУТ» an introduction taught there."""
     tokens = tokenise(norm).split()
     words = await _school_words(session, school)
     return any(
-        first == "вступ" and second == "до" and _is_school_word(after, words)
+        first == "вступ" and second in ("до", "у", "в") and _is_school_word(after, words)
         for first, second, after in zip(tokens, tokens[1:], tokens[2:], strict=False)
     )
 
