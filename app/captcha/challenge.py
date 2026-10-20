@@ -91,6 +91,10 @@ def gone_text(chat_title: str) -> str:
     return f"Заявку в <b>{html.escape(chat_title)}</b> уже рассмотрели админы чата."
 
 
+def handed_back_text(chat_title: str) -> str:
+    return f"Заявку в <b>{html.escape(chat_title)}</b> рассмотрят админы чата."
+
+
 def open_chat(link: str | None) -> InlineKeyboardMarkup | None:
     if not link:
         return None

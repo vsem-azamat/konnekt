@@ -117,6 +117,15 @@ async def answer(
     chat = await db.get(Chat, row.chat_id)
     title = _title(chat) if chat else str(row.chat_id)
 
+    # The tap arrives in a private chat, past the gate that stops the bot in
+    # chats it does not moderate, so the chat is asked again here: taken off
+    # approval or captcha since the message went out, the request is the
+    # admins' once more and the bot decides nothing.
+    if not _still_checks(chat):
+        await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
+        logger.info("captcha_chat_no_longer_checks", captcha_id=row.id, chat_id=row.chat_id)
+        return Outcome.GONE
+
     if row.options[pick] == row.answer:
         try:
             await bot.approve_chat_join_request(chat_id=row.chat_id, user_id=row.user_id)
@@ -158,8 +167,11 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
     ).all()
     for row in stale:
         chat = await db.get(Chat, row.chat_id)
-        await with_retry(lambda row=row: bot.decline_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
         title = _title(chat) if chat else str(row.chat_id)
+        if not _still_checks(chat):
+            await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
+            continue
+        await with_retry(lambda row=row: bot.decline_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
         await _close(bot, db, row, JoinCaptcha.STATUS_EXPIRED, now, challenge.failed_text(title))
     if stale:
         logger.info("captcha_expired", count=len(stale))
@@ -206,6 +218,15 @@ async def _edit(bot: Bot, row: JoinCaptcha, text: str, markup: InlineKeyboardMar
     except TelegramAPIError as err:
         # The decision stands either way; the applicant just sees stale buttons.
         logger.warning("captcha_message_not_edited", captcha_id=row.id, error=str(err))
+
+
+def _still_checks(chat: Chat | None) -> bool:
+    """Whether the bot may still decide this chat's requests.
+
+    Asked at every decision, not only when the captcha went out: taps and the
+    sweep both run outside the group gate.
+    """
+    return chat is not None and chat.resource_status == Chat.STATUS_APPROVED and chat.is_captcha_enabled
 
 
 def _title(chat: Chat) -> str:

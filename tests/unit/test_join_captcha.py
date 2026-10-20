@@ -260,3 +260,46 @@ async def test_an_unanswered_captcha_is_declined_once_its_time_is_up(session: As
     assert "отклонена" in bot.edit_message_text.await_args.kwargs["text"]
     await session.refresh(challenge)
     assert challenge.status == JoinCaptcha.STATUS_EXPIRED
+
+
+@pytest.mark.parametrize("change", ["unapproved", "captcha_off"])
+async def test_a_tap_after_the_chat_stopped_using_captcha_lets_nobody_in(
+    session: AsyncSession, bot, change: str
+) -> None:
+    """Taps arrive in a private chat, past the group gate: the chat is checked again here."""
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    if change == "unapproved":
+        chat.resource_status = DbChat.STATUS_DISABLED
+    else:
+        chat.is_captcha_enabled = False
+    await session.commit()
+
+    outcome = await service.answer(
+        bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=challenge.options.index(challenge.answer)
+    )
+
+    assert outcome is service.Outcome.GONE
+    bot.approve_chat_join_request.assert_not_awaited()
+    bot.decline_chat_join_request.assert_not_awaited()
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
+
+
+async def test_the_sweep_declines_nothing_in_a_chat_that_stopped_using_captcha(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    chat.is_captcha_enabled = False
+    await session.commit()
+
+    await service.expire_stale(bot, session, now=utc_now() + datetime.timedelta(minutes=6))
+
+    bot.decline_chat_join_request.assert_not_awaited()
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
