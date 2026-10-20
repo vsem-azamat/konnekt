@@ -674,3 +674,11 @@ def test_only_the_bot_process_holds_the_retired_bots_tokens() -> None:
 
     assert holders == {"bot"}
     assert "MODERATOR_BOT_RETIRED_TOKEN" not in _compose_passthrough()
+
+
+def test_the_bot_and_the_ads_pages_offer_the_same_contact() -> None:
+    """One variable, so the bot's /contacts and the site's ads pages cannot disagree."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+
+    assert services["bot"]["environment"]["ADS_BOT_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"
+    assert services["catalog-api"]["environment"]["ADS_CONTACT"] == "${CATALOG_ADS_CONTACT:-}"

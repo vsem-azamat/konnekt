@@ -21,6 +21,7 @@ from tests.telegram_helpers import TelegramObjectFactory, create_admin_user, cre
 
 SUPER_ADMIN_ID = 123456789
 SITE = "https://konnekt.example"
+CONTACT = "konnekt_ads_example_bot"
 
 
 @pytest.fixture
@@ -41,6 +42,7 @@ def site(monkeypatch):
     """A configured public URL, so the web buttons have somewhere to point."""
     monkeypatch.setattr(start_handlers.settings.webapi, "public_url", SITE)
     monkeypatch.setattr(start_handlers.settings.admin, "super_admins", [SUPER_ADMIN_ID])
+    monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", CONTACT)
 
 
 def _private(factory, command: str, user):
@@ -326,3 +328,51 @@ class TestHelpWithStudies:
 
         text, _ = _answered(message)
         assert "учёб" not in text
+
+
+@pytest.mark.handlers
+class TestTheContact:
+    """Where advertisers and anybody with a question write: one configured username.
+
+    The same variable gives the web's ads pages their button, so the bot and
+    the site cannot point to different people.
+    """
+
+    async def test_start_offers_the_configured_contact(self, telegram_factory, admin_repo, site):
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        _, buttons = _answered(message)
+        assert buttons[-1].url == f"https://t.me/{CONTACT}"
+
+    async def test_without_a_contact_start_offers_no_button_to_nobody(
+        self, telegram_factory, admin_repo, site, monkeypatch
+    ):
+        monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", "")
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        _, buttons = _answered(message)
+        assert not any(b.url and b.url.startswith("https://t.me/") for b in buttons)
+        assert [len(row) for row in _rows(message)] == [1, 1, 1]
+
+    async def test_contacts_names_the_configured_contact(self, telegram_factory, site):
+        message = _in_group(telegram_factory, "contacts", create_normal_user(id=555))
+
+        with patch.object(start_handlers.other, "sleep_and_delete"):
+            await start_handlers.get_contacts(message)
+
+        text = message.answer.call_args[0][0]
+        assert f"@{CONTACT}" in text
+        assert "Сотрудничество" in text
+
+    async def test_without_a_contact_contacts_leaves_the_line_out(self, telegram_factory, site, monkeypatch):
+        monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", "")
+        message = _in_group(telegram_factory, "contacts", create_normal_user(id=555))
+
+        with patch.object(start_handlers.other, "sleep_and_delete"):
+            await start_handlers.get_contacts(message)
+
+        assert "Сотрудничество" not in message.answer.call_args[0][0]
