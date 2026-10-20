@@ -116,6 +116,21 @@ class TelegramSettings(Settings):
         return self
 
 
+class AdsBotSettings(Settings):
+    """The ads contact desk, @konnekt_ads_bot: off without a token."""
+
+    token: str = Field(default="", description="Ads bot token from BotFather; unset disables the desk")
+    group_id: int | None = Field(default=None, description="The staff forum supergroup the desk opens topics in")
+
+    model_config = SettingsConfigDict(
+        env_prefix="ADS_BOT_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class AdminSettings(Settings):
     """Admin configuration."""
 
@@ -319,6 +334,7 @@ class AppSettings(Settings):
 
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
+    ads_bot: AdsBotSettings = Field(default_factory=AdsBotSettings)
     admin: AdminSettings = Field(default_factory=AdminSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     moderation: ModerationSettings = Field(default_factory=ModerationSettings)
