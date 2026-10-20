@@ -257,7 +257,7 @@ class TestReportCommand:
         assert "Ответьте" in sent_text or "reply" in sent_text.lower()
         # Members are told what happens, not who does it: the bot speaks as
         # «мы», the way the video does.
-        assert "модератор" not in sent_text.lower()
+        assert "модер" not in sent_text.lower()
 
     async def test_report_forwards_to_admin(self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer):
         """Sending /report as reply should forward a summary to admin chat."""
@@ -308,7 +308,7 @@ class TestReportCommand:
         )
         assert chat_msg is not None
         assert "Жалоба отправлена" in chat_msg.params.get("text", "")
-        assert "модератор" not in chat_msg.params.get("text", "").lower()
+        assert "модер" not in chat_msg.params.get("text", "").lower()
 
     async def test_both_prefixes_reach_the_same_handler(
         self, dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer

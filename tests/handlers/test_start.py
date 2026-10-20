@@ -86,7 +86,7 @@ class TestStart:
         await start_handlers.start_private(message, admin_repo)
 
         text, _ = _answered(message)
-        assert "модератор" not in text.lower()
+        assert "модер" not in text.lower()
 
     async def test_the_greeting_is_plain_language(self, telegram_factory, admin_repo, site):
         """With the site configured, so the line about who helps is in it."""
@@ -243,7 +243,7 @@ class TestHelp:
         assert "/banall" not in text
         # The section everybody sees speaks as the video does; the moderator's
         # own section, which they alone see, still says who they are.
-        assert "модератор" not in text.lower()
+        assert "модер" not in text.lower()
 
     async def test_a_moderator_sees_the_chat_scoped_commands(self, telegram_factory, admin_repo, site):
         admin_repo.is_admin.return_value = True
