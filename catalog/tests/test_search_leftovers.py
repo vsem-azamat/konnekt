@@ -685,3 +685,132 @@ async def test_admission_to_a_school_is_entrance(session, text) -> None:
 async def test_applying_with_an_attestat_is_entrance(session, text, lang) -> None:
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.service_type == "entrance_prep"
+
+
+# #302 review: what the first round broke or left unpinned.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "admission to the CTU",
+        "admission to the Czech Technical University",
+        "admission to Charles University",
+        "admission to economics",
+        "admission to law school",
+        "admission to engineering",
+        "admission to study in czechia",
+    ],
+)
+async def test_admission_to_a_named_school_or_field_is_entrance(session, text) -> None:
+    parsed = await parse(session, text, "en", today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # Already in: the help is with what comes after.
+        ("поступил в университет, нужна помощь с матаном", "ru"),
+        ("поступила в универ, нужен репетитор", "ru"),
+        # A university's exam, not entering one.
+        ("подготовка к университетскому экзамену по физике", "ru"),
+    ],
+)
+async def test_being_at_a_university_is_not_entering_one(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "kind"),
+    [
+        # A credit test in translation is exam prep, not a translation.
+        ("зачет по переводу", "ru", "exam_prep"),
+        ("перевод в другой вуз, нужно сдать зачет", "ru", "exam_prep"),
+        ("příprava na zkoušku z překladu", "cs", "exam_prep"),
+        ("exam prep translation", "en", "exam_prep"),
+        ("підготовка до іспиту з перекладу", "uk", "exam_prep"),
+    ],
+)
+async def test_an_exam_in_translation_is_an_exam(session, text, lang, kind) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == kind
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"), [("аттестат", "ru"), ("атестат", "uk"), ("нужен аттестат", "ru")]
+)
+async def test_a_certificate_alone_is_nostrification(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "nostrification"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("czech university admissions", "en"),
+        ("entrance exams czech university", "en"),
+        ("přijímačky na české vysoké školy", "cs"),
+        ("přijímačky na VŠ", "cs"),
+        ("přijímací zkoušky na vysoké škole", "cs"),
+        ("přijímačky na vysoké školy", "cs"),
+        # Going into one, in each form the rule reads.
+        ("готовиться в вуз", "ru"),
+        ("поступить на университет", "ru"),
+        ("поступить в универ", "ru"),
+        ("поступать в чешский университет", "ru"),
+    ],
+)
+async def test_every_word_for_a_czech_university_is_bare(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # The city restates it as the country does.
+        ("поступление в вуз Праги", "ru"),
+        ("поступление в вуз в Праге", "ru"),
+        ("přijímačky na vysokou školu v Praze", "cs"),
+        # Going into a university, in the other languages.
+        ("підготовка до університету", "uk"),
+        ("příprava na vysokou školu", "cs"),
+        ("příprava na univerzitu", "cs"),
+        ("preparation for university", "en"),
+        ("prep for university", "en"),
+    ],
+)
+async def test_a_university_in_prague_or_any_language_is_bare(
+    session, text, lang
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("příprava na zkoušku na univerzitě", "cs"),
+        ("preparation for the university exam in physics", "en"),
+    ],
+)
+async def test_preparing_for_an_exam_at_one_is_not_entering(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type != "entrance_prep"
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        # Admission yields to the papers it is for, not to the help it asks for.
+        ("репетитор для поступления", "ru"),
+        ("репетитор по математике для поступления", "ru"),
+        ("doučování na přijímací řízení", "cs"),
+        ("написать мотивационное письмо для поступления", "ru"),
+    ],
+)
+async def test_help_for_admission_is_entrance(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"

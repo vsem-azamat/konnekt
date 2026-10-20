@@ -92,10 +92,48 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "spisyvan",
         "списыв",
     ),
-    # Above the study kinds, unlike the rest of the non-study block below, and
-    # above entrance exams: admission is what the papers are for, so
-    # «перевод документов для поступления» and «nostrifikace pro přijímací
-    # řízení» ask for the papers.
+    # Before exam preparation, whose "exam prep" begins "entrance exam
+    # preparation" no less than "exam preparation".
+    "entrance_prep": (
+        "вступительн",
+        # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
+        # alone begins «приемник» and «приемная семья». Not «приемк», which is
+        # slang and a synonym of subjects.
+        "приемные экз",
+        "приемный экз",
+        "приемных экз",
+        "приемным экз",
+        "приемными экз",
+        "приемном экз",
+        "приемная комис",
+        "приемной комис",
+        "prijimack",
+        "přijímačk",
+        "entrance",
+        "вступн",
+        # The Ukrainian spelling, which used to reach `entrance_prep` only
+        # because it was a synonym of one subject on this shelf.
+        "приймач",
+        # Words: «osp» begins «OSPF», a networking protocol.
+        Word("tsp"),
+        Word("osp"),
+        "nastupni",
+    ),
+    "exam_prep": (
+        "к экзамену",
+        "подготовиться к экза",
+        "сдать экзамен",
+        "зачет",
+        "zapocet",
+        "na zkousku",
+        "priprava na zkousku",
+        "exam prep",
+        "до іспиту",
+        "перескладання",
+        "пересдач",
+        "opravny termin",
+    ),
+    # Above the study kinds, unlike the rest of the non-study block below.
     # "присяжный перевод диплома" was answered as thesis writing on the strength
     # of the word "диплом", and "перевод аттестата" as nostrification, and the
     # only thing that fixes those is order.
@@ -129,49 +167,6 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "признание диплома",
         "uznani",
         "нострифік",
-    ),
-    # Before exam preparation, whose "exam prep" begins "entrance exam
-    # preparation" no less than "exam preparation".
-    "entrance_prep": (
-        "вступительн",
-        # «приемные экзамены», «приемная комиссия» — as phrases, since «приемн»
-        # alone begins «приемник» and «приемная семья». Not «приемк», which is
-        # slang and a synonym of subjects.
-        "приемные экз",
-        "приемный экз",
-        "приемных экз",
-        "приемным экз",
-        "приемными экз",
-        "приемном экз",
-        "приемная комис",
-        "приемной комис",
-        "поступлен",
-        "prijimack",
-        "přijímačk",
-        "prijimaci",
-        "entrance",
-        "вступн",
-        # The Ukrainian spelling, which used to reach `entrance_prep` only
-        # because it was a synonym of one subject on this shelf.
-        "приймач",
-        # Words: «osp» begins «OSPF», a networking protocol.
-        Word("tsp"),
-        Word("osp"),
-        "nastupni",
-    ),
-    "exam_prep": (
-        "к экзамену",
-        "подготовиться к экза",
-        "сдать экзамен",
-        "зачет",
-        "zapocet",
-        "na zkousku",
-        "priprava na zkousku",
-        "exam prep",
-        "до іспиту",
-        "перескладання",
-        "пересдач",
-        "opravny termin",
     ),
     "writing": (
         "написать",
@@ -360,6 +355,14 @@ EXAM_MENTION: tuple[str, ...] = (
     "termin",
 )
 
+# Entrance words that a document kind outranks and nothing else: admission
+# is what papers are for, so «перевод документов для поступления» and
+# «překlad dokumentů pro přijímací řízení» ask for the translation, while
+# «репетитор для поступления» is still entrance exams. Read right after the
+# document kinds, which keep their place below exam preparation.
+AFTER_PAPERS: dict[str, tuple[str, ...]] = {"entrance_prep": ("поступлен", "prijimaci")}
+_PAPERS = ("translation", "nostrification")
+
 # Words for entrance exams that also mean something else, so they are read
 # only after every other kind of help has had its say: «вступ» is a paper's
 # introduction («написати вступ на 2 сторінки» is writing) and admission is
@@ -399,12 +402,25 @@ CERTIFICATE: tuple[str, ...] = ("аттестат", "атестат")
 _ENTERING_A_UNIVERSITY = re.compile(
     r"(?:^| )(вступ (?:до|у|в)) (?:\S+ )?(?:університ|внз|виш)"
     # The Russian for going into one, which no keyword names: «поступить в
-    # вуз», «подготовка в вуз», «подготовка к университету». «вуз» alone
-    # names no kind of help, and the scorer guessed one for it.
-    r"|(?:^| )((?:поступ|подготов|готов)\S* (?:в|к|на)) (?:\S+ )?(?:вуз|университ|универ)"
-    # "admission to" a school or what it teaches, not to a hospital or a club.
-    r"|(?:^| )(admission to) (?:the |a )?(?:\S+ )?"
-    r"(?:universit|college|faculty|school|medic|bachelor|master|programme)"
+    # вуз», «подготовка в вуз», «готовиться к университету». «вуз» alone
+    # names no kind of help, and the scorer guessed one for it. Only the forms
+    # of going in: «поступил в университет» is already there, and
+    # «университетский экзамен» is an exam at one.
+    r"|(?:^| )((?:поступ(?:ить|ать|аю|аешь|ает|аем|ают|лю|ишь|им|ят|ающ\S*)"
+    r"|подготовк\S{0,2}|подготовиться|готовиться|готовлюсь|готовимся|готовится)"
+    r" (?:в|к|на)) (?:\S+ )?(?:вуз\S{0,2}|универ|университет\S{0,2})(?: |$)"
+    # And in the other languages: «підготовка до університету», «příprava na
+    # vysokou školu», "preparation for university" — not for an exam there.
+    r"|(?:^| )(підготовк\S{0,2} до) (?:\S+ )?(?:університет\S{0,2}|внз|виш\S{0,2})(?: |$)"
+    r"|(?:^| )(priprav\S{0,2} (?:na|k)) (?:\S+ )?"
+    r"(?:vysok\S{0,3} skol\S{0,2}|univerzit\S{0,2})(?: |$)"
+    r"|(?:^| )((?:preparation|prep|preparing) for) (?:the |a )?(?:\S+ ){0,2}"
+    r"(?:universit\S*|college)(?:$| (?!\S*(?:exam|test|course|class)))"
+    # "admission to" a school or what it teaches, not to a hospital or a club,
+    # with its name in up to three words: "the Czech Technical University".
+    r"|(?:^| )(admission to) (?:the |a )?(?:\S+ ){0,3}"
+    r"(?:universit|college|faculty|school|medic|bachelor|master|programme"
+    r"|econom|law|engineer|stud)"
 )
 
 # Words that only restate a kind of help once its keyword has named it: the
@@ -482,6 +498,11 @@ RESTATING_FOR: dict[str, tuple[str, ...]] = {
         "чеськ",
         "czech",
         "cesk",
+        # And the city most of them are in: «вуз Праги», «v Praze».
+        "праг",
+        "prah",
+        "praz",
+        "prague",
     )
 }
 
@@ -1001,7 +1022,14 @@ def _match_service(
     SUBJECTLESS at the call site.
     """
     tokens = tokenise(norm)
-    for code, keywords in SERVICE_KEYWORDS.items():
+    # In SERVICE_KEYWORDS' order, with the entrance words the document kinds
+    # outrank read right after the last of them.
+    order: list[tuple[str, tuple[str, ...]]] = []
+    for code, words in SERVICE_KEYWORDS.items():
+        order.append((code, words))
+        if code == _PAPERS[-1]:
+            order.extend(AFTER_PAPERS.items())
+    for code, keywords in order:
         if code in ignore:
             continue
         for keyword in keywords:
@@ -1336,7 +1364,7 @@ async def _enters_the_school(
     """The words that enter the school itself, if any: «вступ до ЧВУТ» and
     "admission to CTU" enter ČVUT; «вступ до математичного аналізу ЧВУТ» is an
     introduction taught there."""
-    tokens = tokenise(norm).split()
+    tokens = [token for token in tokenise(norm).split() if token not in ("the", "a")]
     words = await _school_words(session, school)
     for first, second, after in zip(tokens, tokens[1:], tokens[2:], strict=False):
         entering = (first == "вступ" and second in ("до", "у", "в")) or (
