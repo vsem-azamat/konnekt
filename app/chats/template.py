@@ -8,6 +8,12 @@ chat keeps its own words and only loses the links that no longer lead anywhere
 useful: the network channel is not run, contacts go through the bot, and the
 bots Konnekt moved away from only point onwards (#245).
 
+A few chats keep their owner's words even where the shared text would apply
+(`OWN_WORDS`): their description was written by whoever runs the chat, with
+links of their own. Only the retired links go, and the bot line is added at
+the end. The owner's words are never cut to make room: a text that cannot take
+the bot line stays as it is, and the audit says so.
+
 Titles and the bot's rules pin come later (#202). Until the rules are pinned,
 the description does not promise them.
 """
@@ -30,6 +36,14 @@ _RETIRED = re.compile(
     re.IGNORECASE,
 )
 _LEADING_SYMBOLS = re.compile(r"^[^\w@\s]+")
+_RETIRED_IN_A_LIST = re.compile(r"(?:https?://)?" + _RETIRED.pattern + r"(?:\s*,\s*)?", re.IGNORECASE)
+_ANY_LINK = re.compile(r"@\w|t\.me/|https?://", re.IGNORECASE)
+BOT_LINE = "Все чаты и помощь с учёбой: @{bot}"
+
+# Chats whose description stays in their owner's words, chosen by the owner on
+# 2026-10-20: IT Чехия, Matfyz, VUT. A one-off decision, so a constant and not
+# a column.
+OWN_WORDS = frozenset({-1001541760895, -1001283110780, -1001198485843})
 
 
 def _utf16_len(text: str) -> int:
@@ -93,12 +107,48 @@ def _without_retired_links(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
-def expected_description(*, title: str, current: str, bot: str, university: bool, parent: Chat | None = None) -> str:
+def _without_retired_handles(line: str) -> str | None:
+    """The line with only its retired links cut, or None when nothing of the owner's is left."""
+    kept = _RETIRED_IN_A_LIST.sub("", line).rstrip(" ,")
+    return kept if _ANY_LINK.search(kept) else None
+
+
+def _in_own_words(current: str, bot: str) -> str:
+    """The owner's text without retired links, with the bot line at the end.
+
+    When the owner's text and the bot line do not fit together, the text is left
+    exactly as it was (`own_words_fit` tells the audit).
+    """
+    bot_line = BOT_LINE.format(bot=bot)
+    lines = []
+    for line in current.splitlines():
+        if not _RETIRED.search(line):
+            lines.append(line)
+        elif (kept := _without_retired_handles(line)) is not None:
+            lines.append(kept)
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    if bot_line in text:
+        return text
+    full = f"{text}\n\n{bot_line}" if text else bot_line
+    return full if _utf16_len(full) <= DESCRIPTION_LIMIT else current
+
+
+def own_words_fit(current: str, bot: str) -> bool:
+    """Whether a chat in its owner's words can take the bot line."""
+    return BOT_LINE.format(bot=bot) in _in_own_words(current, bot)
+
+
+def expected_description(
+    *, title: str, current: str, bot: str, university: bool, parent: Chat | None = None, own_words: bool = False
+) -> str:
     """What a chat's description should read, given its title and what it reads now.
 
     `university` is whether the chat is a university's main chat or under one
     (`main_chats`); the caller knows the whole table, this function does not.
+    `own_words` is whether the chat is one of `OWN_WORDS`.
     """
+    if own_words:
+        return _in_own_words(current, bot)
     if not university:
         return _without_retired_links(current)
 
@@ -110,7 +160,7 @@ def expected_description(*, title: str, current: str, bot: str, university: bool
     main = _username(parent.public_link) if parent is not None and ours else None
     if parent is not None and main:
         lines.append(f"Главный чат {_short_name(parent.title or '')}: {main}")
-    lines.append(f"Все чаты и помощь с учёбой: @{bot}")
+    lines.append(BOT_LINE.format(bot=bot))
 
     tail = "\n" + "\n".join(lines)
     head = f"{emoji} Чат студентов и абитуриентов "

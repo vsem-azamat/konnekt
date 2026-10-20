@@ -17,6 +17,7 @@ from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, ChatMemberRe
 from app.chats.audit import ChatState, audit_chats, inspect_chat
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
 from app.db.models import Chat
+from structlog.testing import capture_logs
 
 pytestmark = pytest.mark.asyncio
 
@@ -364,6 +365,40 @@ async def test_the_university_and_its_faculty_get_the_template(session_maker) ->
         -1: "🎓 Чат студентов и абитуриентов ČVUT",
         -3: "🎓 Чат студентов и абитуриентов ČVUT FIT",
     }
+
+
+async def test_a_main_chat_in_its_owners_words_keeps_them(session_maker, monkeypatch) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1}))
+
+    _, states = await _audit(session_maker, chat_ids={-1})
+
+    assert [s.expected_description for s in states] == [
+        "Чат для живущих в ареале Strahov\n\nВсе чаты и помощь с учёбой: @" + BOT_USERNAME
+    ]
+
+
+async def test_own_words_that_do_not_fit_are_a_finding_not_a_change(session_maker, monkeypatch) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1}))
+    bot = _bot(info=_chat_info(title=None, description="X" * 250))
+    bot.me.return_value = SimpleNamespace(username=BOT_USERNAME)
+
+    states = await audit_chats(session_maker=session_maker, bot=bot, pause_seconds=0, apply=True, chat_ids={-1})
+
+    assert states[0].findings == ("own words do not fit with the bot line",)
+    assert states[0].applied == ()
+    bot.set_chat_description.assert_not_awaited()
+
+
+async def test_an_own_words_id_that_is_not_an_approved_chat_is_reported(session_maker, monkeypatch) -> None:
+    await _seed_cvut(session_maker)
+    monkeypatch.setattr("app.chats.audit.OWN_WORDS", frozenset({-1, -999}))
+
+    with capture_logs() as logs:
+        await _audit(session_maker, chat_ids={-2})
+
+    assert [log["chat_ids"] for log in logs if log["event"] == "own_words_not_approved"] == [[-999]]
 
 
 async def test_audit_applies_only_to_the_chats_asked_for(session_maker) -> None:
