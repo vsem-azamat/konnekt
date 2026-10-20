@@ -260,7 +260,9 @@ async def test_an_unanswered_captcha_is_declined_once_its_time_is_up(session: As
 
     assert await service.expire_stale(bot, session, now=utc_now() + datetime.timedelta(minutes=6)) == 1
     bot.decline_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
-    assert "отклонена" in bot.edit_message_text.await_args.kwargs["text"]
+    text = bot.edit_message_text.await_args.kwargs["text"]
+    assert "время вышло" in text
+    assert "проверка не пройдена" not in text
     await session.refresh(challenge)
     assert challenge.status == JoinCaptcha.STATUS_EXPIRED
 

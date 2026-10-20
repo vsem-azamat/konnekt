@@ -294,7 +294,7 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
                     status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
                     logger.warning("captcha_expiry_refused", captcha_id=row.id, error=str(err))
             else:
-                status, note = JoinCaptcha.STATUS_EXPIRED, challenge.failed_text(title)
+                status, note = JoinCaptcha.STATUS_EXPIRED, challenge.expired_text(title)
         await _close(bot, db, row, status, now, note)
         settled += 1
     if settled:
