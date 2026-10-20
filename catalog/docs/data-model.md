@@ -296,30 +296,30 @@ something else:
   no other: «матан» is calculus, «приемка математика» is the maths entrance exam.
 - **A word for a whole shelf of subjects names the shelf.** «математика» names
   no single leaf, and answered with the best-scoring one it narrowed the search
-  to «Математика для экономистов». A group may carry synonyms of its own —
-  maths, physics, chemistry, programming and economics have stems such as
-  `математик`, `fyzik`, `chemi` — and the parser
-  answers with the group when one of them hits, no leaf was named, and the maths
-  word is all the query says about a subject: the kind of help's words, asking,
-  prepositions, «высшая»/«vyšší»/"higher" and what is already a field (school,
-  date, price) may surround it, nothing else. «matematiky pro ekonomy» stays the economists' leaf. Nor
-  beside a kind of help whose offers sit on another shelf — entrance exams,
-  nostrification — because that pair would match nobody. Through synonyms
-  only, never a group's name: «příprava na přijímací zkoušky» is the name of a
-  group and the kind of help in full.
+  to «Математика для экономистов». A group may carry synonyms of its own, stems
+  such as `математик` or `fyzik`, and the parser answers with the group when one
+  of them hits, no leaf was named, and the shelf's word is all the query says
+  about a subject: the kind of help's words, asking, prepositions,
+  «высшая»/«vyšší»/"higher" and what is already a field (school, date, price)
+  may surround it, nothing else. «matematiky pro ekonomy» stays the economists'
+  leaf, and «fyziky 2» stays Fyzika 2 — a number beside the word names a
+  numbered course. Nor beside a kind of help whose offers sit on another shelf —
+  entrance exams, nostrification — because that pair would match nobody.
+  Through synonyms only, never a group's name: «příprava na přijímací zkoušky»
+  is the name of a group and the kind of help in full. And not as a leaf's
+  synonym either: a word for the whole shelf on one of its leaves («хімія» on
+  general chemistry) answers that leaf at 1.00 and the shelf is never reached.
 - **A shelf holds its subtree and what it lists.** The tree files «Математика
   для экономистов» under economics and the physics entrance exam under
-  admissions; both belong to the shelf somebody names by one word. They are
-  listed by slug in `subjects.holds` — maths holds maturita, maths for
-  economists, financial maths and the maths and technical-university entrance
-  exams; physics holds the physics and technical-university entrance exams.
-  Listed by hand rather than guessed from names or synonyms: «Fyzikální chemie»
-  starts with physics and is chemistry, the medicine admissions name chemistry
-  and are not it, and «нострификация математика» is one synonym of a dozen on
-  nostrification. The search filters by what a subject holds
-  (`lookup.held_by`), and the request feed counts a helper's offer on a leaf as
-  an offer on every shelf that holds it (`lookup.shelves_of`) — upwards only.
-  A leaf holds itself and nothing else. Pickers and offers still hold leaves.
+  admissions; both belong to the shelf somebody names by one word, and
+  `subjects.holds` lists such leaves by slug. Listed by hand rather than guessed
+  from names or synonyms: «Fyzikální chemie» starts with physics and is
+  chemistry, the medicine admissions name chemistry and are not it, and
+  «нострификация математика» is one synonym of a dozen on nostrification. The
+  search filters by what a subject holds (`lookup.held_by`), and the request
+  feed counts a helper's offer on a leaf as an offer on every shelf that holds
+  it (`lookup.shelves_of`) — upwards only. A leaf holds itself and nothing
+  else. Pickers and offers still hold leaves.
 - **A subject and a kind of help that carries none cannot both survive.** The
   `life` group's offers have no subject at all, while the search applies subject
   and kind of help together — so the pair matches nobody, and one of the two has

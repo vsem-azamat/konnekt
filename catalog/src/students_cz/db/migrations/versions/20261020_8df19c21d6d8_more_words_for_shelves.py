@@ -36,7 +36,11 @@ depends_on: str | Sequence[str] | None = None
 # `tests/test_service_groups.py` the synonyms, `tests/test_subject_groups.py`
 # the holds and both together on a seeded database.
 SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
-    "physics": ("физик", "фізик", "fyzik", "physic"),
+    # Stems, and the Czech and Ukrainian locatives where k turns into c
+    # («ve fyzice», «у фізиці»). "physics" whole, since "physic" begins
+    # "physician".
+    "math": ("matematic",),
+    "physics": ("физик", "фізик", "фізиц", "fyzik", "fyzic", "physics"),
     "chemistry": ("хими", "хімі", "chemi"),
     "it-programming": (
         "программир",
@@ -45,10 +49,11 @@ SYNONYM_ADDS: dict[str, tuple[str, ...]] = {
         "programming",
         "информатик",
         "інформатик",
+        "інформатиц",
         "informatik",
-        "informatics",
+        "informatic",
     ),
-    "economics-finance": ("экономик", "економік", "ekonomi", "economics"),
+    "economics-finance": ("экономик", "економік", "економіц", "ekonomi", "economics"),
 }
 # A word for the whole chemistry shelf, sitting on one leaf of it: bare
 # «хімія» named general chemistry at 1.00 and never reached the shelf.

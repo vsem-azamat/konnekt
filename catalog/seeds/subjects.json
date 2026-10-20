@@ -11,6 +11,7 @@
       "synonyms": [
         "математик",
         "matematik",
+        "matematic",
         "math"
       ],
       "holds": [
@@ -261,8 +262,10 @@
       "synonyms": [
         "физик",
         "фізик",
+        "фізиц",
         "fyzik",
-        "physic"
+        "fyzic",
+        "physics"
       ],
       "holds": [
         "prijimacky-fyzika",
@@ -430,8 +433,9 @@
         "programming",
         "информатик",
         "інформатик",
+        "інформатиц",
         "informatik",
-        "informatics"
+        "informatic"
       ],
       "children": [
         {
@@ -679,6 +683,7 @@
       "synonyms": [
         "экономик",
         "економік",
+        "економіц",
         "ekonomi",
         "economics"
       ],

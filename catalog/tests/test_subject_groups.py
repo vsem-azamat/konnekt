@@ -7,8 +7,8 @@ more. Answered with whichever leaf the trigram scorer liked best — «Мате�
 and "maths" in English found nothing at all.
 
 So the parser may answer with the group itself, and everything that filters by
-a subject reads a group as what it holds: its subtree, and the maths filed on
-other shelves that its synonyms name.
+a subject reads a group as what it holds: its subtree, and the leaves on other
+shelves it lists in `holds`.
 """
 
 from datetime import date
@@ -52,7 +52,8 @@ async def _id(session: AsyncSession, slug: str) -> int:
         ("подготовка к экзамену по математике", "ru"),
         ("экзамен по математике", "ru"),
         ("maths exam", "en"),
-        ("математика 1", "ru"),
+        # The Czech locative turns k into c.
+        ("matematice", "cs"),
         # «Higher» says which school level, not which corner of maths.
         ("высшая математика", "ru"),
         ("вища математика", "uk"),
@@ -107,6 +108,9 @@ async def test_a_named_leaf_beats_its_shelf(session, text, lang, slug) -> None:
     [
         # A level says which language exam, not which maths.
         ("математика B2", "ru"),
+        # A number beside a shelf's word names a numbered course where there
+        # is one: «fyziky 2» is Fyzika 2. Not the shelf, for maths either.
+        ("математика 1", "ru"),
         # Kinds of help whose offers carry no maths leaf.
         ("math essay", "en"),
         ("математика общежитие", "ru"),
@@ -142,7 +146,7 @@ async def test_searching_a_shelf_finds_every_leaf_on_it(
     calculus = await helper_factory(tg_id=94001, subject_slug="matematicka-analyza")
     algebra = await helper_factory(tg_id=94002, subject_slug="linearni-algebra")
     physics = await helper_factory(tg_id=94003, subject_slug="fyzika-1")
-    # Maths filed on other shelves, which the maths shelf's synonyms name.
+    # Maths filed on other shelves, which the maths shelf lists.
     economists = await helper_factory(tg_id=94005, subject_slug="matematika-pro-ekonomy")
     maturita = await helper_factory(
         tg_id=94006, subject_slug="maturita", service_code="exam_prep"
@@ -366,7 +370,17 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         spec.loader.exec_module(module)
         if hasattr(module, "HOLDS"):
             migrations.append(module)
-    assert migrations[0].revision == "65e02593516e"
+    # In revision order, which the file names do not promise.
+    by_parent = {migration.down_revision: migration for migration in migrations}
+    first = next(
+        m for m in migrations if m.down_revision not in {n.revision for n in migrations}
+    )
+    assert first.revision == "65e02593516e"
+    ordered = [first]
+    while ordered[-1].revision in by_parent:
+        ordered.append(by_parent[ordered[-1].revision])
+    assert len(ordered) == len(migrations)
+    migrations = ordered
 
     def run(connection) -> None:
         with Operations.context(MigrationContext.configure(connection)):
@@ -397,6 +411,20 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         assert set(synonyms) == set(seeded[slug].get("synonyms", [])), slug
         assert set(holds) == set(seeded[slug].get("holds", [])), slug
 
+    # And the leaves a migration took a word from.
+    leaves = {
+        leaf["slug"]: leaf
+        for group in seeded.values()
+        for leaf in group.get("children", [])
+    }
+    removed = {slug for m in migrations for slug in getattr(m, "SYNONYM_REMOVES", {})}
+    assert removed
+    for slug in removed:
+        synonyms = await session.scalar(
+            text("SELECT synonyms FROM subjects WHERE slug = :slug"), {"slug": slug}
+        )
+        assert set(synonyms) == set(leaves[slug].get("synonyms", [])), slug
+
 
 # The other shelves people name by one word, written the same way as maths:
 # synonyms for the word, and `holds` for what sits elsewhere.
@@ -408,6 +436,9 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         ("fyzika", "cs", "physics"),
         # The genitive answered «Fyziologie» by trigram.
         ("fyziky", "cs", "physics"),
+        ("fyzice", "cs", "physics"),
+        ("doučování ve fyzice", "cs", "physics"),
+        ("фізиці", "uk", "physics"),
         ("pomoc u zkoušky z fyziky", "cs", "physics"),
         ("physics", "en", "physics"),
         ("фізика", "uk", "physics"),
@@ -420,12 +451,14 @@ async def test_the_migration_writes_what_the_seed_says(session: AsyncSession) ->
         ("информатика", "ru", "it-programming"),
         ("programování", "cs", "it-programming"),
         ("programming", "en", "it-programming"),
+        ("informatice", "cs", "it-programming"),
         ("програмування", "uk", "it-programming"),
         ("экономика", "ru", "economics-finance"),
         ("репетитор по экономике", "ru", "economics-finance"),
         ("ekonomie", "cs", "economics-finance"),
         ("economics", "en", "economics-finance"),
         ("економіка", "uk", "economics-finance"),
+        ("економіці", "uk", "economics-finance"),
     ],
 )
 async def test_other_words_for_a_shelf_name_their_shelf(
@@ -440,6 +473,11 @@ async def test_other_words_for_a_shelf_name_their_shelf(
     ("text", "lang", "slug"),
     [
         ("физика 1", "ru", "fyzika-1"),
+        # Inflected, so no leaf scores 1.00; the number still says which.
+        ("fyziky 2", "cs", "fyzika-2"),
+        ("репетитор по физике 2", "ru", "fyzika-2"),
+        ("фізичної хімії", "uk", "fyzikalni-chemie"),
+        ("organické chemie", "cs", "organicka-chemie"),
         ("fyzikální chemie", "cs", "fyzikalni-chemie"),
         ("физическая химия", "ru", "fyzikalni-chemie"),
         ("organická chemie", "cs", "organicka-chemie"),
@@ -455,23 +493,60 @@ async def test_a_named_leaf_beats_the_other_shelves(session, text, lang, slug) -
     assert parsed.subject.id == await _id(session, slug), parsed.subject
 
 
-@pytest.mark.parametrize(
-    ("shelf", "held", "not_held"),
-    [
-        # The physics entrance exam is physics; physical chemistry is chemistry.
-        ("physics", "prijimacky-fyzika", "fyzikalni-chemie"),
-        # Medicine admissions test chemistry, and are not chemistry.
-        ("chemistry", "obecna-chemie", "prijimacky-medicina"),
-        # VŠE admissions are admissions, not economics.
-        ("economics-finance", "mikroekonomie", "prijimacky-ekonomicke-vs"),
-    ],
-)
+async def test_a_stem_does_not_reach_another_word(session) -> None:
+    """ "physic" would begin "physician"."""
+    parsed = await parse(session, "physician", "en", today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, "physics")
+
+
+# Beyond its subtree, exactly what each shelf lists — maths what it held when
+# membership was read from leaf names, physics its entrance exams. And not
+# what a name or a synonym only mentions: «Fyzikální chemie» is chemistry, the
+# medicine admissions are not chemistry, the VŠE admissions are not economics,
+# and nostrification is not maths.
+ACROSS: dict[str, set[str]] = {
+    "math": {
+        "maturita",
+        "matematika-pro-ekonomy",
+        "financni-matematika",
+        "prijimacky-technicke-vs",
+        "prijimacky-matematika",
+    },
+    "physics": {"prijimacky-fyzika", "prijimacky-technicke-vs"},
+    "chemistry": set(),
+    "it-programming": set(),
+    "economics-finance": set(),
+}
+
+
+@pytest.mark.parametrize("shelf", sorted(ACROSS))
 async def test_a_shelf_holds_what_it_lists_and_nothing_it_only_mentions(
-    session, shelf, held, not_held
+    session, shelf
 ) -> None:
     from students_cz.services.lookup import held_by
 
-    holds = set(await held_by(session, await _id(session, shelf)))
-    assert await _id(session, held) in holds
-    other = await session.scalar(select(Subject.id).where(Subject.slug == not_held))
-    assert other is None or other not in holds
+    shelf_id = await _id(session, shelf)
+    path = await session.scalar(select(Subject.path).where(Subject.id == shelf_id))
+    held = await session.scalars(
+        select(Subject.slug).where(
+            Subject.id.in_(await held_by(session, shelf_id)),
+            ~Subject.path.startswith(path),
+        )
+    )
+    assert set(held) == ACROSS[shelf]
+
+
+async def test_every_listed_leaf_is_a_live_leaf_elsewhere(session) -> None:
+    """`holds` is the only way across the tree, so a typo there holds nothing
+    and fails nothing — except this."""
+    from students_cz.db.models.enums import NodeKind
+
+    shelves = (
+        await session.scalars(select(Subject).where(Subject.kind == NodeKind.GROUP))
+    ).all()
+    for shelf in shelves:
+        for slug in shelf.holds:
+            leaf = await session.scalar(select(Subject).where(Subject.slug == slug))
+            assert leaf is not None, f"{shelf.slug} holds a missing {slug}"
+            assert leaf.kind == NodeKind.LEAF and leaf.is_active, slug
+            assert not leaf.path.startswith(shelf.path), f"{slug} is under {shelf.slug}"

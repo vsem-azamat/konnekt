@@ -650,6 +650,7 @@ FILLER_WORDS: frozenset[str] = frozenset(
         "z",
         "s",
         "v",
+        "ve",
         "k",
         "na",
         "pro",
@@ -869,7 +870,6 @@ def _only_names_shelf(
     ]
     return bool(named) and all(
         token in named
-        or token.isdigit()
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or (school is not None and transliterate(token).startswith(school))
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
