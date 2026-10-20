@@ -728,13 +728,17 @@ async def test_a_dropped_guess_is_not_replaced_by_the_embedder(session) -> None:
     """Dropping the wrong shelf's guess left the list empty, and the embedder
     was then asked and answered «Chemie – střední škola» at 0.69 — beside
     entrance exams, which matches nobody. The shelf has spoken; nothing is left
-    for the embedder to explain."""
+    for the embedder to explain.
+
+    With ČVUT beside chemistry two admissions leaves are told — medicine by
+    chemistry, technical by the school — so neither is chosen and the list stays
+    empty (#306): the case the shelf's word guards."""
     from students_cz.db.embed import rebuild
     from students_cz.services import embedding
 
     from .test_embedding import PointedEmbedder
 
-    query = "вступительные по химии"
+    query = "вступительные по химии ЧВУТ"
     pointed = PointedEmbedder({query: "Chemie – střední škola"})
     await rebuild(session, embedder=pointed)
     embedding.set_embedder(pointed)
@@ -744,9 +748,7 @@ async def test_a_dropped_guess_is_not_replaced_by_the_embedder(session) -> None:
         embedding.set_embedder(None)
 
     assert parsed.service_type == "entrance_prep"
-    # Not school chemistry: the admissions named for chemistry (#306).
-    assert parsed.subject is not None
-    assert parsed.subject.id == await _id(session, "prijimacky-medicina"), parsed.subject
+    assert parsed.subject is None, parsed.subject
     assert parsed.vector is None, "the embedder was asked"
 
 
