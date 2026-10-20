@@ -380,8 +380,10 @@ async def test_ukrainian_classical_is_the_kind(session) -> None:
         ("přijímačky na ČVUT", "cs", "prijimacky-technicke-vs"),
         ("přijímačky na VŠE", "cs", "prijimacky-ekonomicke-vs"),
         ("вступительные по физике", "ru", "prijimacky-fyzika"),
-        # A shelf named beside them: the admissions leaf has to say its word.
-        ("přijímací zkoušky z chemie", "cs", "prijimacky-medicina"),
+        # A shelf that lists the technical admissions.
+        ("поступление программирование", "ru", "prijimacky-technicke-vs"),
+        # The shelf's own exam before the one three shelves share.
+        ("přijímačky na střední školu matematika", "cs", "prijimacky-matematika"),
     ],
 )
 async def test_entrance_exams_answer_from_the_admissions_shelf(
@@ -391,3 +393,29 @@ async def test_entrance_exams_answer_from_the_admissions_shelf(
     assert parsed.service_type == "entrance_prep"
     assert parsed.subject is not None
     assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "not_slug"),
+    [
+        # No shelf word, or a shelf that lists no admissions: left as it was,
+        # rather than handed to whichever admissions leaf the entrance word
+        # alone scores highest.
+        ("přijímačky z biologie", "cs", "prijimacky-technicke-vs"),
+        ("přijímačky na filozofickou fakultu", "cs", "prijimacky-technicke-vs"),
+        ("přijímací zkoušky z chemie", "cs", "prijimacky-fyzika"),
+    ],
+)
+async def test_other_entrance_queries_are_left_alone(
+    session, text, lang, not_slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, not_slug), (
+        parsed.subject
+    )
+
+
+async def test_a_named_subject_beside_entrance_exams_stays(session) -> None:
+    parsed = await parse(session, "přijímačky čeština B2", "cs", today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.label.startswith("Čeština"), parsed.subject
