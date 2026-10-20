@@ -208,6 +208,19 @@ async def _serve() -> None:
                 )
             )
 
+    from app.presentation.telegram.ads import build_ads_bot
+
+    if ads := build_ads_bot(session_maker):
+        ads_bot, ads_dp = ads
+        # Contained and without signals, as the retired bots above: a revoked
+        # token must not take moderation down, and SIGTERM is the main bot's.
+        tasks.append(
+            _contained(
+                _run_polling(ads_bot, ads_dp, name="ads", handle_signals=False, allowed_updates=["message"]),
+                name="ads",
+            )
+        )
+
     # The MCP control plane runs here, not in the web API: its proposals send
     # confirmation buttons, and Telegram answers a press to the identity that
     # sent it, which is this process's bot. Returns at once when MCP is off.

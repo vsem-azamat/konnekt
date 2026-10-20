@@ -2,7 +2,7 @@ import datetime
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import PendingActionStatus
@@ -613,3 +613,26 @@ class AdminSession(Base):
         self.expires_at = expires_at
         self.user_agent = user_agent
         self.ip = ip
+
+
+class AdsTopic(Base):
+    """The forum topic of the staff group that holds one person's conversation with the ads bot.
+
+    Stored so that a restart does not open a second topic for somebody already
+    talking to staff, and keyed by the group as well, so that moving the desk
+    to another group opens fresh topics there instead of writing into threads
+    of a group the bot has left.
+    """
+
+    __tablename__ = "ads_topics"
+    __table_args__ = (UniqueConstraint("group_id", "thread_id", name="uq_ads_topics_group_id_thread_id"),)
+
+    group_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    thread_id: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+
+    def __init__(self, group_id: int, user_id: int, thread_id: int) -> None:
+        self.group_id = group_id
+        self.user_id = user_id
+        self.thread_id = thread_id

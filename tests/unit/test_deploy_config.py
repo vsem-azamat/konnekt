@@ -183,6 +183,9 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "CATALOG_DB_PASSWORD",
         "MODERATOR_BOT_TOKEN",
         "MODERATOR_BOT_RETIRED_TOKEN",
+        "ADS_BOT_TOKEN",
+        # Where staff talk to advertisers, like the report chat.
+        "ADS_BOT_GROUP_ID",
         "OPENROUTER_API_KEY",
         "BRAVE_API_KEY",
         "TELETHON_API_ID",
