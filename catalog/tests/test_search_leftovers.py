@@ -366,3 +366,28 @@ async def test_ukrainian_classical_is_the_kind(session) -> None:
     parsed = await parse(session, "класична фізика", "uk", today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.id == await _id(session, "physics"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A school and a subject beside entrance exams (#259): the answer is on
+        # the admissions shelf, where every entrance offer sits.
+        ("поступление на ЧВУТ физика", "ru", "prijimacky-fyzika"),
+        ("přijímačky na VŠE z matematiky", "cs", "prijimacky-matematika"),
+        ("поступление в ВШЭ математика", "ru", "prijimacky-matematika"),
+        # What already landed there stays.
+        ("přijímačky na ČVUT", "cs", "prijimacky-technicke-vs"),
+        ("přijímačky na VŠE", "cs", "prijimacky-ekonomicke-vs"),
+        ("вступительные по физике", "ru", "prijimacky-fyzika"),
+        # A shelf named beside them: the admissions leaf has to say its word.
+        ("přijímací zkoušky z chemie", "cs", "prijimacky-medicina"),
+    ],
+)
+async def test_entrance_exams_answer_from_the_admissions_shelf(
+    session, text, lang, slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject

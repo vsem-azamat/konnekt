@@ -516,6 +516,7 @@ async def parse(
     # shelf would match nobody, where the leaf «Přijímací zkouška z matematiky»
     # matches them.
     shelf_spoke = False
+    stems: list[str] | None = None
     if not (subjects and _is_named(subjects[0])):
         shelves = await find_subjects(session, text, lang, limit=1, kind=NodeKind.GROUP)
         # The synonyms themselves, not the match's kind: the query has to hold a
@@ -557,6 +558,16 @@ async def parse(
             # bring another guess from somewhere else — it answered «Chemie –
             # střední škola» beside entrance exams, which matches nobody.
             shelf_spoke = not subjects
+    # Every entrance offer sits on the admissions shelf, so a guess from
+    # anywhere else beside entrance exams matches nobody: «поступление на ЧВУТ
+    # физика» guessed «Физика 1». Ask again, without the school's words, and
+    # take the best of the admissions shelf. After the shelves, whose own
+    # guess-drop knows nothing of where entrance offers sit.
+    if result.service_type == "entrance_prep" and subjects and not _is_named(subjects[0]):
+        subjects = await _from_admissions(session, result, norm, lang, subjects, stems)
+        # Emptied, it stays empty, for the reason the shelves give above.
+        shelf_spoke = shelf_spoke or not subjects
+
     # When the words naming the kind of help were the whole query, there is no
     # subject in it to find, and a trigram guess is the scorer answering a
     # question nobody asked: "bank statement" came back as Probability and
@@ -1098,6 +1109,57 @@ def _shares_a_stem(word: str, stem: str) -> bool:
     «chemie». «chemicko» is neither, and stays the school's word."""
     return word.startswith(stem) or (
         len(word) >= 5 and len(stem) >= 5 and word[:-1] == stem[:-1]
+    )
+
+
+# The shelf every entrance offer sits on.
+ADMISSIONS_SHELF = "admissions-prep"
+
+
+async def _from_admissions(
+    session: AsyncSession,
+    result: "ParsedQuery",
+    norm: str,
+    lang: str,
+    subjects: list[Match],
+    stems: list[str] | None,
+) -> list[Match]:
+    """These guesses if the best is on the admissions shelf; otherwise the
+    admissions leaves that the query, less its school's words, resembles.
+
+    Where the query names a shelf (`stems`), only the admissions leaves that
+    say its word: «přijímací zkoušky z chemie» resembles the physics exam by
+    every other word, and is the medicine admissions, biology and chemistry.
+    None of them may say it, and then there is no subject to give.
+    """
+    from students_cz.services.lookup import held_by
+
+    shelf = await session.scalar(
+        select(Subject.id).where(Subject.slug == ADMISSIONS_SHELF)
+    )
+    if shelf is None:
+        return subjects
+    admissions = set(await held_by(session, shelf))
+    if subjects[0].id in admissions:
+        return subjects
+    school = await _school_words(session, result.institution)
+    kept = [
+        token for token in tokenise(norm).split() if not _is_school_word(token, school)
+    ]
+    found = await find_subjects(session, " ".join(kept), lang, limit=12)
+    on_shelf = [match for match in found if match.id in admissions]
+    if stems:
+        on_shelf = [match for match in on_shelf if _says_shelf(match.label, stems)]
+        return on_shelf[:4]
+    return on_shelf[:4] or subjects
+
+
+def _says_shelf(label: str, stems: list[str]) -> bool:
+    """Does this name hold a word the shelf is named by, in some form?"""
+    return any(
+        _shares_a_stem(word, normalise(stem))
+        for word in tokenise(normalise(label)).split()
+        for stem in stems
     )
 
 
