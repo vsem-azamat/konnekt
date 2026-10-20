@@ -116,8 +116,9 @@ SERVICE_KEYWORDS: dict[str, tuple[str, ...]] = {
         # The Ukrainian spelling, which used to reach `entrance_prep` only
         # because it was a synonym of one subject on this shelf.
         "приймач",
-        "tsp",
-        "osp",
+        # Words: «osp» begins «OSPF», a networking protocol.
+        Word("tsp"),
+        Word("osp"),
         "nastupni",
     ),
     "exam_prep": (
@@ -363,10 +364,6 @@ EXAM_MENTION: tuple[str, ...] = (
 # query made of a keyword and these names no subject, and the scorer guessing
 # one answered the catalog's own name for entrance exams with «Чешский язык
 # B1», because a synonym of that course mentions an exam.
-# Words that restate one kind of help and not the others. «přijímací řízení»
-# is the admission procedure; beside tutoring «řízení» is control, a subject.
-RESTATING_FOR: dict[str, tuple[str, ...]] = {"entrance_prep": (Word("rizeni"),)}
-
 RESTATING: tuple[str, ...] = (
     "экзамен",
     "екзамен",
@@ -382,14 +379,32 @@ RESTATING: tuple[str, ...] = (
     Word("preparation"),
     # Tests, as whole words: «вступительные тесты». Not a stem, since a stem
     # would also take «тестирование» and "testing", which are subjects.
+    # Every case, since «к вступительным тестам» is as common as the
+    # nominative.
     Word("тест"),
+    Word("теста"),
+    Word("тесту"),
+    Word("тестом"),
+    Word("тесте"),
     Word("тесты"),
     Word("тестов"),
+    Word("тестам"),
+    Word("тестами"),
+    Word("тестах"),
+    Word("тестів"),
     Word("тести"),
     Word("test"),
     Word("tests"),
     Word("testy"),
+    Word("testu"),
+    Word("testů"),
+    Word("testem"),
+    Word("testech"),
 )
+
+# Words that restate one kind of help and not the others. «přijímací řízení»
+# is the admission procedure; beside tutoring «řízení» is control, a subject.
+RESTATING_FOR: dict[str, tuple[str, ...]] = {"entrance_prep": (Word("rizeni"),)}
 
 # Month names, unaccented and lowercased, in the order the client will have
 # typed them. Czech has both nominative and genitive forms in circulation.
@@ -918,18 +933,36 @@ ASIDE: tuple[str, ...] = (
     "пожалуйст",
     "будь",
     "ласка",
-    # A school year, as words: «клас» begins «классическая», «trid» begins
-    # «třídění».
+    # A school year, as words in every case: «клас» begins «классическая»,
+    # «trid» begins «třídění».
     Word("класс"),
     Word("класса"),
+    Word("классу"),
+    Word("классом"),
     Word("классе"),
+    Word("классы"),
+    Word("классов"),
+    Word("классам"),
+    Word("классами"),
+    Word("классах"),
     Word("клас"),
     Word("класу"),
+    Word("класом"),
     Word("класі"),
+    Word("класи"),
+    Word("класів"),
+    Word("класам"),
+    Word("класами"),
+    Word("класах"),
     Word("trida"),
     Word("tridy"),
     Word("tride"),
     Word("tridu"),
+    Word("tridou"),
+    Word("trid"),
+    Word("tridam"),
+    Word("tridach"),
+    Word("tridami"),
     "rocnik",
     "grade",
     "учител",
@@ -939,9 +972,15 @@ ASIDE: tuple[str, ...] = (
     # «ucitel» would begin «učitelství», which is a subject.
     Word("ucitel"),
     Word("ucitele"),
+    Word("uciteli"),
+    Word("ucitelem"),
+    Word("ucitelu"),
     Word("ucitelka"),
     Word("ucitelky"),
+    Word("ucitelce"),
     Word("ucitelku"),
+    Word("ucitelkou"),
+    Word("ucitelek"),
     "lektor",
     "teacher",
     "rychl",
@@ -1010,8 +1049,15 @@ async def _school_words(session: AsyncSession, institution: Match | None) -> set
     return {
         word
         for word in words
-        if not word.isdigit() and not any(word.startswith(stem) for stem in stems)
+        if not word.isdigit() and not any(_shares_a_stem(word, stem) for stem in stems)
     }
+
+
+def _shares_a_stem(word: str, stem: str) -> bool:
+    """Is this the word a shelf is named by, in any form? Some shelves list
+    forms rather than stems (`chemie`, `chemii`), so «chemicko» shares their
+    first five letters without starting with any of them."""
+    return word.startswith(stem) or (len(word) >= 5 and stem.startswith(word[:5]))
 
 
 async def _within_shelf(
@@ -1077,18 +1123,18 @@ def _only_names_shelf(
         or (token.isdigit() and token not in numbered)
         or any(token.startswith(word) for word in LEVEL_OF_SCHOOL)
         or _is_school_word(token, school)
-        or any(
-            token == word if isinstance(word, Word) else token.startswith(word)
-            for word in ASIDE
-        )
+        or any(_says(token, word) for word in ASIDE)
         or (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
-        or any(
-            token == word if isinstance(word, Word) else token.startswith(word)
-            for word in RESTATING
-        )
+        or any(_says(token, word) for word in RESTATING)
         for token in tokens
     )
+
+
+def _says(token: str, word: str) -> bool:
+    """Does the token say this word: all of it for a `Word`, its start for a
+    stem."""
+    return token == word if isinstance(word, Word) else token.startswith(word)
 
 
 def _is_school_word(token: str, school: set[str]) -> bool:
@@ -1120,10 +1166,7 @@ def _only_restates(norm: str, keyword: str, kind: str | None = None) -> bool:
     return all(
         (token in FILLER_WORDS and not _LEVEL.fullmatch(token))
         or any(token.startswith(word) for word in ASKING)
-        or any(
-            token == word if isinstance(word, Word) else token.startswith(word)
-            for word in restating
-        )
+        or any(_says(token, word) for word in restating)
         for token in tokenise(_without(norm, keyword)).split()
     )
 

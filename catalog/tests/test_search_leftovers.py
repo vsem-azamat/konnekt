@@ -126,3 +126,140 @@ async def test_rizeni_restates_only_entrance_exams(session) -> None:
 
     assert parsed.service_type == "tutoring"
     assert parsed.vector is not None, "the embedder was not asked"
+
+
+# Every form of the words said beside a shelf, each on its own: a form missing
+# from the list sent «математика 5-6 классы» to a leaf that matched nobody.
+ASIDE_FORMS = [
+    (
+        "математика 9 {}",
+        "ru",
+        "класс класса классу классом классе классы классов классам классами классах",
+    ),
+    (
+        "математика 9 {}",
+        "uk",
+        "клас класу класом класі класи класів класам класами класах",
+    ),
+    ("matematika {}", "cs", "třída třídy třídě třídu třídou tříd třídám třídách třídami"),
+    (
+        "{} matematiky",
+        "cs",
+        "učitel učitele učiteli učitelem učitelů"
+        " učitelka učitelky učitelce učitelku učitelkou",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        (template.format(form), lang)
+        for template, lang, forms in ASIDE_FORMS
+        for form in forms.split()
+    ],
+)
+async def test_every_form_of_an_aside_is_aside(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, "math"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        (f"вступительные {form}", "ru")
+        for form in [
+            "тест",
+            "теста",
+            "тесту",
+            "тестом",
+            "тесте",
+            "тесты",
+            "тестов",
+            "тестам",
+            "тестами",
+            "тестах",
+        ]
+    ]
+    + [
+        (f"вступні {form}", "uk")
+        for form in ["тест", "тесту", "тести", "тестів", "тестами"]
+    ]
+    + [(f"entrance {form}", "en") for form in ["test", "tests"]]
+    + [
+        (f"přijímací {form}", "cs")
+        for form in ["test", "testy", "testu", "testů", "testem", "testech"]
+    ],
+)
+async def test_every_form_of_a_test_restates_entrance_exams(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "entrance_prep"
+    assert parsed.subject is None, parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("зачет по OSPF", "ru"),
+        ("exam prep OSPF", "en"),
+        ("příprava na zkoušku z OSPF", "cs"),
+    ],
+)
+async def test_osp_is_a_word_not_the_start_of_ospf(session, text, lang) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.service_type == "exam_prep"
+
+
+def _shelf_words(slug: str) -> list[str]:
+    import json
+    from pathlib import Path
+
+    data = json.loads(
+        (Path(__file__).resolve().parents[1] / "seeds/subjects.json").read_text()
+    )
+    [group] = [group for group in data["groups"] if group["slug"] == slug]
+    return group["synonyms"]
+
+
+@pytest.mark.parametrize(
+    ("word", "shelf"),
+    [(word, "chemistry") for word in _shelf_words("chemistry")]
+    + [(word, "it-programming") for word in _shelf_words("it-programming")],
+)
+async def test_every_listed_form_names_its_shelf(session, word, shelf) -> None:
+    """A form that does not reach the shelf is a form nobody will notice is gone."""
+    parsed = await parse(session, word, "ru", today=TODAY)
+    assert parsed.subject is not None, "no subject at all"
+    assert parsed.subject.id == await _id(session, shelf), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("token", "names", "school"),
+    [
+        ("univerzite", {"univerzita"}, True),
+        ("karlove", {"karlova"}, True),
+        ("karlovom", {"karlov"}, True),
+        # Short words only whole: «brna» is not «brno», «uka» not «uk».
+        ("brna", {"brno"}, False),
+        ("uka", {"uk"}, False),
+        ("uk", {"uk"}, True),
+        # One letter, not two: «univerzum» is not «univerzita».
+        ("univerzum", {"univerzita"}, False),
+    ],
+)
+async def test_a_school_word_may_change_its_last_letter_and_no_more(
+    token, names, school
+) -> None:
+    from students_cz.services.parser import _is_school_word
+
+    assert _is_school_word(token, names) is school
+
+
+async def test_a_school_name_does_not_swallow_a_subject_word(session) -> None:
+    """VŠCHT's names say «chemicko-technologická»; beside it «chemická fyzika»
+    still has «chemická» to say, so physics is not the whole answer."""
+    parsed = await parse(session, "chemická fyzika VŠCHT", "cs", today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(session, "physics"), (
+        parsed.subject
+    )
