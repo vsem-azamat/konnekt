@@ -5,7 +5,7 @@ queue, so the previous release runs unchanged beside it. The hits of people
 already on the blacklist are answered «ad», as a ban from now on answers them.
 
 Revision ID: b5e1d8c3a7f2
-Revises: b3f8d1c6e925
+Revises: e5d2a7c4b913
 Create Date: 2026-10-20
 """
 
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "b5e1d8c3a7f2"
-down_revision: str | None = "b3f8d1c6e925"
+down_revision: str | None = "e5d2a7c4b913"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
