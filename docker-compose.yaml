@@ -106,6 +106,8 @@ services:
       # The ads contact desk (app/presentation/telegram/ads.py), likewise only here.
       ADS_BOT_TOKEN: ${ADS_BOT_TOKEN:-}
       ADS_BOT_GROUP_ID: ${ADS_BOT_GROUP_ID:-}
+      # Unset keeps the name in app/core/config.py.
+      ADS_BOT_NAME: ${ADS_BOT_NAME:-}
       # Who /start and /contacts send people to: the variable the ads pages
       # use too (catalog-api's ADS_CONTACT), so the two cannot disagree.
       ADS_BOT_CONTACT: ${CATALOG_ADS_CONTACT:-}

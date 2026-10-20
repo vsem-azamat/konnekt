@@ -577,6 +577,10 @@ msgstr "profily, žádosti, hledání bez výsledku"
 msgid "Партнёр"
 msgstr "Partner"
 
+#: src/pages/Profile.tsx
+msgid "Написать нам"
+msgstr "Napsat nám"
+
 #: src/console/pages/Chat.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1684,6 +1688,10 @@ msgstr "Můžeš se vrátit do Telegramu."
 #: src/console/pages/Chat.tsx
 msgid "Прятать «вошёл» и «вышел»"
 msgstr "Skrývat «vstoupil» a «odešel»"
+
+#: src/pages/Profile.tsx
+msgid "по любому вопросу"
+msgstr "s jakoukoli otázkou"
 
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx

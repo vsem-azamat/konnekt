@@ -44,7 +44,7 @@ def topic_name(person: User) -> str:
 def card(person: User) -> str:
     return "\n".join(
         [
-            "Новый собеседник",
+            "Новое обращение",
             f"Имя: {person.full_name}",
             f"Username: @{person.username}" if person.username else "Username: —",
             f"ID: {person.id}",

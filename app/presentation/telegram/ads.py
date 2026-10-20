@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any
 
 from aiogram import BaseMiddleware, Bot, Dispatcher, F, Router
 from aiogram.enums import ContentType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import CommandStart
 from aiogram.types import ChatMemberAdministrator, Message, TelegramObject
 from aiogram.utils.token import TokenValidationError
@@ -32,7 +31,16 @@ logger = get_logger("ads_bot")
 
 GREETING = (
     "Здравствуйте! Это команда Konnekt.\n\n"
-    "Напишите здесь о рекламе в наших чатах, о сотрудничестве или задайте вопрос — мы ответим в этом чате."
+    "Напишите здесь по любому вопросу — о чатах, рекламе и сотрудничестве, помощи с учёбой или о чём-то ещё. "
+    "Ответим в этом чате."
+)
+DESCRIPTION = (
+    "Konnekt — студенческие чаты Чехии. Здесь можно написать нашей команде по любому вопросу: "
+    "о чатах, о рекламе и сотрудничестве, о помощи с учёбой или о чём-то ещё.\n\n"
+    "Отправьте сообщение — ответим здесь же."
+)
+SHORT_DESCRIPTION = (
+    "Связь с командой Konnekt по любому вопросу: чаты, реклама, сотрудничество, помощь с учёбой. Ответим здесь."
 )
 
 # What copyMessage can carry. Everything else is a service message: a topic
@@ -130,7 +138,41 @@ def build_dispatcher(desk: AdsDesk, group_id: int, *, album_wait: float = ALBUM_
     dp.message.outer_middleware(Conversations(album_wait))
     dp.include_router(router)
     dp.startup.register(partial(check_group, group_id=group_id))
+    dp.startup.register(publish_profile)
     return dp
+
+
+async def publish_profile(bot: Bot) -> None:
+    """Write the desk's name and descriptions to Telegram, as `profile.py` does for the main bot.
+
+    Compared first, since every deploy restarts the bot and setMyName is
+    rate-limited for hours. Each step stands alone and is only logged, whatever
+    it raised: an HTML error page from Telegram is not a TelegramAPIError, and
+    a startup handler that raises stops the desk from polling.
+    """
+    name = settings.ads_bot.name
+
+    async def description() -> None:
+        if (await bot.get_my_description()).description != DESCRIPTION:
+            await bot.set_my_description(description=DESCRIPTION)
+
+    async def short_description() -> None:
+        if (await bot.get_my_short_description()).short_description != SHORT_DESCRIPTION:
+            await bot.set_my_short_description(short_description=SHORT_DESCRIPTION)
+
+    async def display_name() -> None:
+        if (await bot.get_my_name()).name != name:
+            await bot.set_my_name(name=name)
+
+    for step, run in (
+        ("description", description),
+        ("short_description", short_description),
+        ("name", display_name),
+    ):
+        try:
+            await run()
+        except Exception as e:
+            logger.warning("ads_profile_step_failed", step=step, error=str(e))
 
 
 async def check_group(bot: Bot, group_id: int) -> None:
@@ -138,8 +180,9 @@ async def check_group(bot: Bot, group_id: int) -> None:
     try:
         chat = await bot.get_chat(group_id)
         member = await bot.get_chat_member(group_id, bot.id)
-    except TelegramAPIError as e:
-        logger.warning("ads_group_unreachable", error=e.message)
+    except Exception as e:
+        # Anything, as in `publish_profile`: this is a startup handler.
+        logger.warning("ads_group_unreachable", error=str(e))
         return
     if not chat.is_forum:
         logger.warning("ads_group_not_a_forum")
