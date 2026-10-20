@@ -6,7 +6,7 @@ import datetime
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 
@@ -170,22 +170,25 @@ class ChatUpdate(BaseModel):
 
 
 # A public username, the one form of chat link Telegram resolves for a bot that
-# is not in the chat; an invite opens only for whoever joins through it.
-USERNAME_LINK = re.compile(r"^https://t\.me/(?P<username>[A-Za-z][\w]{3,31})$")
+# is not in the chat; an invite opens only for whoever joins through it. Taken
+# as people paste it: "@name", "name", "t.me/name" or the full link.
+_USERNAME = re.compile(r"^(?:@|(?:https?://)?(?:t\.me|telegram\.me)/)?(?P<username>[A-Za-z][\w]{3,31})/?$")
+
+
+def username_of(link: str) -> str | None:
+    """The username a pasted link names, or None when it names no public chat."""
+    match = _USERNAME.match(link.strip())
+    return match["username"] if match else None
 
 
 class ExternalChatCreate(BaseModel):
-    """A chat the bot is not in, named by the link a student would follow."""
+    """A chat the bot is not in, named by the link a student would follow.
 
-    public_link: str
+    Checked in the route rather than here, so that a refusal carries the same
+    plain code as the others the console has to tell apart.
+    """
 
-    @field_validator("public_link")
-    @classmethod
-    def _check_username_link(cls, value: str) -> str:
-        link = value.strip()
-        if not USERNAME_LINK.match(link):
-            raise ValueError("An external chat is added by its public link, e.g. https://t.me/cvut_fjfi")
-        return link
+    public_link: str = Field(max_length=200)
 
 
 class ChatNode(BaseModel):

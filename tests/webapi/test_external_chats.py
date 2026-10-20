@@ -11,7 +11,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import (
+    ClientDecodeError,
+    TelegramBadRequest,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+    TelegramServerError,
+)
 from app.core.config import settings
 from app.db.models import Chat
 from app.webapi.main import app
@@ -84,25 +90,39 @@ async def test_it_shows_up_in_the_public_catalogue(client_factory) -> None:
     assert [(row["title"], row["external"]) for row in rows] == [("ČVUT FJFI", True)]
 
 
-@pytest.mark.parametrize("link", ["https://t.me/+AbCdEfGhIjKl", "https://t.me/joinchat/AbCdEfGhIjKl"])
-async def test_an_invite_link_cannot_be_looked_up(client_factory, link) -> None:
+@pytest.mark.parametrize("link", ["@cvut_fjfi", "cvut_fjfi", "t.me/cvut_fjfi", " https://t.me/cvut_fjfi/ "])
+async def test_a_username_is_taken_in_any_of_its_usual_spellings(client_factory, db_session_maker, link) -> None:
+    make, holder = client_factory
+
+    async with make() as client:
+        resp = await client.post("/api/chats/external", json={"public_link": link})
+
+    assert resp.status_code == 201
+    holder["bot"].get_chat.assert_awaited_once_with("@cvut_fjfi")
+    async with db_session_maker() as s:
+        chat = await s.get(Chat, FJFI)
+    assert chat is not None
+    assert chat.public_link == "https://t.me/cvut_fjfi"
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://t.me/+AbCdEfGhIjKl",
+        "https://t.me/joinchat/AbCdEfGhIjKl",
+        "javascript:alert(1)",
+        "https://example.com/x",
+    ],
+)
+async def test_a_link_that_is_not_a_public_username_is_refused(client_factory, link) -> None:
     """Telegram resolves a username for anybody; an invite only for whoever joins through it."""
     make, holder = client_factory
 
     async with make() as client:
         resp = await client.post("/api/chats/external", json={"public_link": link})
 
-    assert resp.status_code == 422
+    assert (resp.status_code, resp.json()["detail"]) == (422, "not_public")
     holder["bot"].get_chat.assert_not_awaited()
-
-
-async def test_a_link_that_is_not_telegram_is_refused(client_factory) -> None:
-    make, _ = client_factory
-
-    async with make() as client:
-        resp = await client.post("/api/chats/external", json={"public_link": "javascript:alert(1)"})
-
-    assert resp.status_code == 422
 
 
 async def test_a_username_telegram_does_not_know_is_refused(client_factory, db_session_maker) -> None:
@@ -112,19 +132,44 @@ async def test_a_username_telegram_does_not_know_is_refused(client_factory, db_s
     async with make() as client:
         resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/nobody_here"})
 
-    assert resp.status_code == 422
+    assert (resp.status_code, resp.json()["detail"]) == (422, "not_found")
     async with db_session_maker() as s:
         assert (await s.get(Chat, FJFI)) is None
 
 
-async def test_a_channel_is_not_a_chat(client_factory) -> None:
+@pytest.mark.parametrize("kind", ["channel", "private"])
+async def test_only_a_group_is_a_chat(client_factory, kind) -> None:
     make, holder = client_factory
-    holder["bot"] = _bot(kind="channel")
+    holder["bot"] = _bot(kind=kind)
 
     async with make() as client:
         resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/felexams"})
 
-    assert resp.status_code == 422
+    assert (resp.status_code, resp.json()["detail"]) == (422, "not_a_group")
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=30),
+        TelegramNetworkError(method=MagicMock(), message="timeout"),
+        TelegramServerError(method=MagicMock(), message="bad gateway"),
+        ClientDecodeError("not json", ValueError("x"), "<html>502</html>"),
+    ],
+)
+async def test_telegram_failing_is_not_the_link_s_fault(client_factory, monkeypatch, error) -> None:
+    """Said at once and as a failure to retry: a request does not sit out a flood wait."""
+    make, holder = client_factory
+    holder["bot"].get_chat = AsyncMock(side_effect=error)
+    slept = AsyncMock()
+    monkeypatch.setattr("asyncio.sleep", slept)
+
+    async with make() as client:
+        resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
+
+    assert (resp.status_code, resp.json()["detail"]) == (503, "telegram_unavailable")
+    holder["bot"].get_chat.assert_awaited_once()
+    slept.assert_not_awaited()
 
 
 async def test_a_chat_already_known_is_left_as_it_is(client_factory, db_session_maker) -> None:
@@ -137,8 +182,27 @@ async def test_a_chat_already_known_is_left_as_it_is(client_factory, db_session_
     async with make() as client:
         resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
 
-    assert resp.status_code == 409
+    assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")
     async with db_session_maker() as s:
         chat = await s.get(Chat, FJFI)
     assert chat is not None
     assert chat.resource_status == Chat.STATUS_APPROVED
+
+
+async def test_a_chat_the_bot_records_meanwhile_is_left_as_it_is(client_factory, db_session_maker) -> None:
+    """The row can appear between the check and the insert: the bot was just added there."""
+    make, holder = client_factory
+    found = MagicMock(id=FJFI, title="ČVUT FJFI", type="supergroup", is_forum=False)
+
+    async def lookup_while_the_bot_joins(_username):
+        async with db_session_maker() as s:
+            s.add(Chat(id=FJFI, title="Ours", resource_status=Chat.STATUS_DISCOVERED))
+            await s.commit()
+        return found
+
+    holder["bot"].get_chat = AsyncMock(side_effect=lookup_while_the_bot_joins)
+
+    async with make() as client:
+        resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
+
+    assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")

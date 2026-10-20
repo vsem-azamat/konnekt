@@ -75,7 +75,9 @@ class TestChatScope:
         assert result["error"] == "unknown_chat"
         bot.send_message.assert_not_awaited()
 
-    @pytest.mark.parametrize("status", [Chat.STATUS_DISCOVERED, Chat.STATUS_DISABLED])
+    @pytest.mark.parametrize(
+        "status", [Chat.STATUS_DISCOVERED, Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED]
+    )
     async def test_no_public_action_in_a_chat_awaiting_approval(self, wired, bot, status) -> None:
         """Reading an unapproved chat is fine; acting in one is not.
 
@@ -229,9 +231,10 @@ class TestRemovalsWait:
 
 
 class TestRemainingWrites:
-    async def test_unmute_refuses_an_unapproved_chat(self, wired, bot) -> None:
+    @pytest.mark.parametrize("status", [Chat.STATUS_DISCOVERED, Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL])
+    async def test_unmute_refuses_an_unapproved_chat(self, wired, bot, status) -> None:
         async with wired() as session:
-            session.add(Chat(id=CHAT_ID, title="Pending", resource_status=Chat.STATUS_DISCOVERED))
+            session.add(Chat(id=CHAT_ID, title="Pending", resource_status=status))
             await session.commit()
 
         result = await _call("unmute_user", {"chat_id": CHAT_ID, "user_id": USER_ID})
@@ -293,9 +296,10 @@ class TestRemainingWrites:
         assert chat.welcome_message == "Старое приветствие"
         assert chat.is_welcome_enabled is False
 
-    async def test_set_welcome_refuses_an_unapproved_chat(self, wired, bot) -> None:
+    @pytest.mark.parametrize("status", [Chat.STATUS_DISCOVERED, Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL])
+    async def test_set_welcome_refuses_an_unapproved_chat(self, wired, bot, status) -> None:
         async with wired() as session:
-            session.add(Chat(id=CHAT_ID, title="Pending", resource_status=Chat.STATUS_DISCOVERED))
+            session.add(Chat(id=CHAT_ID, title="Pending", resource_status=status))
             await session.commit()
 
         result = await _call("set_welcome", {"chat_id": CHAT_ID, "message": "Привет"})

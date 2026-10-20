@@ -17,12 +17,19 @@ import datetime
 from typing import Annotated, cast
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import (
+    ClientDecodeError,
+    TelegramAPIError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+    TelegramServerError,
+)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chats.metadata import ask, fetch_member_count, fetch_metadata
+from app.chats.metadata import fetch_member_count, fetch_metadata
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -41,6 +48,7 @@ from app.webapi.schemas import (
     ExternalChatCreate,
     HeatmapCell,
     MemberSnapshotPoint,
+    username_of,
 )
 from app.webapi.services import member_counts, public_answers
 from app.webapi.services.spam_pings import read_pings
@@ -362,27 +370,42 @@ async def add_external_chat(
     id and title are its own rather than typed into the console. A chat already
     in the table is refused rather than turned external: adding a link must
     never be the way moderation is switched off somewhere we run.
+
+    Every refusal is a short code the console turns into words. Telegram
+    failing is told apart from the link being wrong, and is not waited out:
+    a flood wait can be minutes, which is no time to hold a request open.
     """
-    username = payload.public_link.rsplit("/", 1)[-1]
+    username = username_of(payload.public_link)
+    if username is None:
+        raise HTTPException(status_code=422, detail="not_public")
     try:
-        found = await ask(lambda: bot.get_chat(f"@{username}"))
+        found = await bot.get_chat(f"@{username}")
+    except (TelegramRetryAfter, TelegramNetworkError, TelegramServerError, ClientDecodeError) as err:
+        logger.warning("external_chat_lookup_failed", username=username, error=str(err))
+        raise HTTPException(status_code=503, detail="telegram_unavailable") from err
     except TelegramAPIError as err:
-        logger.warning("external_chat_not_found", username=username, error=str(err))
-        raise HTTPException(status_code=422, detail="Telegram does not know a public chat by that link") from err
+        logger.info("external_chat_not_found", username=username, error=str(err))
+        raise HTTPException(status_code=422, detail="not_found") from err
     if found.type not in ("group", "supergroup"):
-        raise HTTPException(status_code=422, detail="That link leads to a channel or a person, not a chat")
+        raise HTTPException(status_code=422, detail="not_a_group")
     if await session.get(Chat, found.id) is not None:
-        raise HTTPException(status_code=409, detail=f"Chat {found.id} is already known; change it on its own page")
+        raise HTTPException(status_code=409, detail="already_known")
 
     chat = Chat(
         id=found.id,
         title=found.title,
         resource_status=Chat.STATUS_EXTERNAL,
         is_forum=bool(found.is_forum),
-        public_link=payload.public_link,
+        public_link=f"https://t.me/{username}",
     )
     session.add(chat)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as err:
+        # The bot recorded the chat between the check and the insert: it was
+        # just added there, and whatever it recorded stands.
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="already_known") from err
     public_answers.forget()
     await session.refresh(chat)
 

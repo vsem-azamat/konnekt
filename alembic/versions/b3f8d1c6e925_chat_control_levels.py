@@ -2,7 +2,9 @@
 
 Only a constraint, and one every existing row already meets: the previous
 release writes three of the five values, so it runs unchanged beside this. No
-row is changed here; chats are moved to the new values from the console.
+row is changed on the way up; chats are moved to the new values from the
+console. The way down disables them, since the previous release cannot read
+them.
 
 Revision ID: b3f8d1c6e925
 Revises: a9c4e2d7f610
@@ -28,4 +30,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # The previous release knows neither value, and its console cannot list a
+    # row carrying one. Disabled, not approved: a chat we only watched or are
+    # not in must never come back moderated.
+    op.execute("UPDATE chats SET resource_status = 'disabled' WHERE resource_status IN ('observed', 'external')")
     op.drop_constraint("ck_chats_resource_status", "chats", type_="check")

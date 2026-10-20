@@ -3,8 +3,8 @@
 The case it exists for is a chat whose owner runs their own bot. Ours is added
 for the history and the member count, and anything it says or does there
 competes with the bot actually in charge. So a moderator's command, Telegram's
-"joined" notice and a stranger's first message all go through the production
-dispatcher, and the only trace any of them may leave is the recorded message.
+"joined" notice and a stranger's first message, one that repeats known spam,
+all go through the production dispatcher, and the only trace any of them may leave is the recorded message.
 """
 
 from __future__ import annotations
@@ -46,11 +46,19 @@ async def test_an_observed_chat_is_recorded_and_never_answered(
     for sub in router.sub_routers:
         sub._parent_router = router
     dp = build_dispatcher(bot, db_session_maker)
+    spam_text = "Дешёвые дипломы любого вуза, пишите в личку"
     async with db_session_maker() as session:
         session.add(DbChat(id=OBSERVED.id, title=OBSERVED.title, resource_status=DbChat.STATUS_OBSERVED))
+        # Known spam, so a stranger's first message repeating it would be
+        # flagged aloud in a chat we moderate.
+        session.add(
+            DbMessage(
+                chat_id=OBSERVED.id, user_id=999000999, message_id=900, message=spam_text, message_info={}, spam=True
+            )
+        )
         await session.commit()
 
-    written = _message(1, STRANGER, text="hello")
+    written = _message(1, STRANGER, text=spam_text)
     admin = User(id=SUPER_ADMIN_ID, is_bot=False, first_name="Admin")
     updates = [
         written,

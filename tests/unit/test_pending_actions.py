@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
-from app.db.models import PendingAction
+from app.db.models import Chat, PendingAction
 from app.moderation.pending_actions import PendingActionService
 
 pytestmark = pytest.mark.unit
@@ -34,6 +34,10 @@ def bot() -> MagicMock:
 
 
 async def _propose(session, bot, *, action: str = "ban", expires_in_minutes: int = 30) -> PendingAction:
+    # A proposal is only ever made for a chat the bot moderates.
+    if await session.get(Chat, CHAT_ID) is None:
+        session.add(Chat(id=CHAT_ID, title="Moderated", resource_status=Chat.STATUS_APPROVED))
+        await session.commit()
     service = PendingActionService(bot=bot, db=session)
     return await service.propose(
         origin="mcp",
@@ -279,3 +283,39 @@ class TestSuperAdmins:
         await session.refresh(pending)
         assert pending.status == PendingActionStatus.REJECTED
         assert pending.resolved_by is None, "the admin who pressed confirm did not say no"
+
+
+class TestTheChatAtThePress:
+    @pytest.mark.parametrize(
+        "status", [Chat.STATUS_OBSERVED, Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED, Chat.STATUS_DISCOVERED]
+    )
+    async def test_a_chat_no_longer_moderated_is_refused_at_the_press(self, session, bot, status) -> None:
+        """A proposal made while the chat was ours to moderate, pressed after it stopped being."""
+        from app.core.exceptions import ChatNotManagedError
+
+        executor = AsyncMock()
+        pending = await _propose(session, bot)
+        chat = await session.get(Chat, CHAT_ID)
+        assert chat is not None
+        chat.resource_status = status
+        await session.commit()
+        service = PendingActionService(bot=bot, db=session, executor=executor)
+
+        with pytest.raises(ChatNotManagedError):
+            await service.confirm(pending.id, admin_id=ADMIN_ID)
+
+        executor.assert_not_awaited()
+        await session.refresh(pending)
+        assert pending.status == PendingActionStatus.REJECTED
+        assert pending.resolved_by is None
+
+    async def test_a_proposal_for_every_chat_names_none_and_is_not_held_up(self, session, bot) -> None:
+        executor = AsyncMock()
+        service = PendingActionService(bot=bot, db=session, executor=executor)
+        pending = await service.propose(
+            origin="mcp", initiator_id=ADMIN_ID, action="blacklist", target_user_id=TARGET_ID
+        )
+
+        await service.confirm(pending.id, admin_id=ADMIN_ID)
+
+        executor.assert_awaited_once()
