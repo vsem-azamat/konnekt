@@ -253,17 +253,23 @@ version does.
 console (in `supervisor-telegram`'s app) shows the catalog to the people named
 in `ADMIN_TG_IDS`, the same Telegram ids as supervisor's `ADMIN_SUPER_ADMINS`.
 They sign in with the same init data as anybody else; `/me` says `is_admin`,
-and `/admin/*` answers 403 to everybody not on the list. The catalog itself is
-read-only there: moderating profiles is not a feature yet. Partner cards are
-the one thing the console writes, because otherwise the only way to add or
-stop one is the database.
+and `/admin/*` answers 403 to everybody not on the list. The console writes two
+things: a profile's moderation (kept or hidden) and the partner cards, because
+otherwise the only way to do either is the database.
 
-- `/admin/catalog`: profiles published in the last 7 days, newest first;
+- `/admin/catalog`: profiles published in the last 7 days that no operator has
+  kept or hidden yet, newest first, and the profiles an operator hid;
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
   30 days, grouped by their text ignoring case and leading or trailing spaces, most frequent
   first. Each list is capped; the counts give each list's full length, and the
   number of requests posted this week.
+- `GET /admin/profiles/{id}`: one profile as the operator moderates it.
+  `POST …/review` keeps it: `reviewed_at` is set and it leaves the new list,
+  still listed. `POST …/hide` sets it `banned`, which its owner cannot lift
+  by publishing again, and `POST …/restore` lists it again. Only a published
+  profile can be hidden and only a banned one restored (409 otherwise), so
+  restoring never undoes an owner's own «hide me». The owner is not told.
 - `/admin/partners`: every placement, active or not, with its impressions and
   clicks over the last 30 days.
 - `POST /admin/placements`: a new card on the Life screen, the one slot the
@@ -279,8 +285,9 @@ stop one is the database.
   a card ends; nothing is deleted, so its impressions and clicks stay.
 
 It names people as the catalog does, a first name and an initial: no handle,
-no Telegram id, no contact. The console opens a profile through the app, like
-anybody else, and lists only the services the catalog lists.
+no Telegram id, no contact. The console opens a profile in a sheet of its own,
+and «Как видят ученики» opens it through the app like anybody else; it lists
+only the services the catalog lists.
 
 There is no shared-helpers module here. What two domains both need is a rule,
 and a rule belongs in `services/` — that is what stops this package growing a

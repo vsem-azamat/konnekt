@@ -37,6 +37,12 @@ export const adminCatalogQuery = {
   staleTime: CONSOLE_STALE,
 };
 
+export const adminProfileQuery = (userId: number) => ({
+  queryKey: ['console', 'catalog', 'profile', userId] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) => api.getAdminProfile(userId, signal),
+  staleTime: CONSOLE_STALE,
+});
+
 export const adminPartnersQuery = {
   queryKey: ['console', 'partners'] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) => api.getAdminPartners(signal),

@@ -1767,3 +1767,18 @@
   flex-direction: column;
   gap: var(--gap-row);
 }
+
+/* A catalog profile in the console sheet: who, then what they wrote. */
+.profileTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileTop b {
+  font-size: 16px;
+}
+
+.profileHeadline {
+  font-size: 14px;
+}
