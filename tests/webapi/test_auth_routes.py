@@ -255,6 +255,6 @@ def test_only_an_address_is_recorded(host: str, recorded: str | None) -> None:
     """It arrives through forwarded headers; the column is 64 characters and the console shows it."""
     from types import SimpleNamespace
 
-    from app.webapi.routes.auth import _address
+    from app.webapi.auth.login import _address
 
     assert _address(SimpleNamespace(client=SimpleNamespace(host=host))) == recorded  # ty: ignore[invalid-argument-type]

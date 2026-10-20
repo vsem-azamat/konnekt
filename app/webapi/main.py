@@ -17,6 +17,7 @@ from app.webapi.routes import (
     admin,
     audience,
     auth,
+    auth_telegram,
     chats,
     health,
     join_check,
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(auth.router, prefix="/api")
+    app.include_router(auth_telegram.router, prefix="/api")
     app.include_router(health.router, prefix="/api")
     app.include_router(public.router, prefix="/api")
     app.include_router(join_check.router, prefix="/api")

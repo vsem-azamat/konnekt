@@ -207,6 +207,14 @@ class WebApiSettings(Settings):
         default=True,
         description="Set Secure flag on session cookie. Disable only for local http:// dev.",
     )
+    admin_url: str = Field(
+        default="",
+        description="Origin the console is opened at in a browser (not inside Telegram); the OpenID Connect redirect lives here.",
+    )
+    oidc_client_id: str = Field(
+        default="", description="Client ID BotFather shows under Login Widget; unset disables the browser door"
+    )
+    oidc_client_secret: str = Field(default="", description="Client Secret from the same place")
     # Not "none": SameSite is the only defence the console's mutations have
     # against a request another site makes with the admin's cookie.
     session_cookie_samesite: Literal["lax", "strict"] = Field(default="lax", description="SameSite: lax|strict")
@@ -223,6 +231,11 @@ class WebApiSettings(Settings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @property
+    def oidc_enabled(self) -> bool:
+        """On when configured and off otherwise, like the other optional doors."""
+        return bool(self.admin_url and self.oidc_client_id and self.oidc_client_secret)
 
     @property
     def allowed_origins(self) -> list[str]:
