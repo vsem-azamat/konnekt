@@ -119,6 +119,22 @@ class Settings(BaseSettings):
             raise ValueError("ADS_CONTACT must be a Telegram username, without a link")
         return username
 
+    @field_validator("service_token", mode="before")
+    @classmethod
+    def _strong_or_off(cls, value: object) -> object:
+        """Spaces around it dropped, blank is off, and a short one refuses to start.
+
+        A token pasted with a newline would otherwise never match, and a short
+        one is a guess away from acting as an operator.
+        """
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str):
+            return value
+        raw = raw.strip()
+        if raw and len(raw) < 32:
+            raise ValueError("SERVICE_TOKEN must be at least 32 characters, or unset")
+        return SecretStr(raw)
+
     @field_validator("admin_tg_ids", mode="before")
     @classmethod
     def _comma_separated(cls, value: object) -> object:

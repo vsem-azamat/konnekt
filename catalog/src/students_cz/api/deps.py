@@ -132,8 +132,17 @@ LangHeader = Annotated[
 ]
 
 
+# A Telegram id in digits: 20 is more than any has and fewer than `int()`
+# refuses, so a long header is a refusal, not a 500.
+_MAX_ID_DIGITS = 20
+
+
 def _service_operator(
-    settings: Settings, token: str, operator: str | None, lang: str | None
+    request: Request,
+    settings: Settings,
+    token: str,
+    operator: str | None,
+    lang: str | None,
 ) -> Operator:
     """Who the console's server asks for, if it showed the token.
 
@@ -149,6 +158,7 @@ def _service_operator(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "service call rejected")
     if (
         not operator
+        or len(operator) > _MAX_ID_DIGITS
         or not (operator.isascii() and operator.isdigit())
         or int(operator) < 1
     ):
@@ -163,10 +173,14 @@ def _service_operator(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown language"
         ) from exc
+    # What was done, and as whom: the console's server acts for an operator,
+    # and this is the catalog's own record of it.
+    log.info("service_call operator=%s %s %s", tg_id, request.method, request.url.path)
     return Operator(tg_id=tg_id, lang=ui_lang)
 
 
 async def current_operator(
+    request: Request,
     settings: SettingsDep,
     session: SessionDep,
     service: ServiceHeader = None,
@@ -181,7 +195,7 @@ async def current_operator(
     by it alone and never falls back to initData.
     """
     if service is not None:
-        return _service_operator(settings, service, operator, lang)
+        return _service_operator(request, settings, service, operator, lang)
     user = await current_user(
         await current_identity(settings, authorization), session, settings
     )
@@ -194,6 +208,7 @@ OperatorDep = Annotated[Operator, Depends(current_operator)]
 
 
 async def reader_lang(
+    request: Request,
     settings: SettingsDep,
     session: SessionDep,
     service: ServiceHeader = None,
@@ -207,7 +222,7 @@ async def reader_lang(
     a chat's page). Anybody else is registered on first sight, as `UserDep` does.
     """
     if service is not None:
-        return _service_operator(settings, service, operator, lang).lang
+        return _service_operator(request, settings, service, operator, lang).lang
     user = await current_user(
         await current_identity(settings, authorization), session, settings
     )

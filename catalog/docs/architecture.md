@@ -263,9 +263,11 @@ the id must still be on `ADMIN_TG_IDS`, so who is an operator stays this
 service's rule. It opens `/admin/*` and the list of universities, which a chat's
 page shows, and nothing else; a person's own screens never accept it, so it
 cannot act as anyone. A call that shows a token is judged by it alone and
-never falls back to init data, and it registers nobody. Unset, `SERVICE_TOKEN`
-turns this off. The Mini App's proxy strips the three headers from whatever a
-browser sends (`docker/Caddyfile`, checked by `docker/check-routes.py`), so
+never falls back to init data, and it registers nobody; each one is logged
+with the operator and what was asked, never the token. Unset, `SERVICE_TOKEN`
+turns this off, and one shorter than 32 characters refuses to start. The Mini App's proxy strips the three headers from whatever a
+browser sends (`docker/Caddyfile`; `docker/check-routes.py` checks every
+proxy to the catalog), so
 from outside they reach nothing.
 
 The console writes two

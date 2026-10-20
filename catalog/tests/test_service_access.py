@@ -10,7 +10,7 @@ import logging
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +23,7 @@ pytestmark = pytest.mark.asyncio
 
 OPERATOR = 97101
 STRANGER = 97102
-TOKEN = "s3rv1ce-t0ken-for-tests-only"
+TOKEN = "s3rv1ce-t0ken-for-tests-only-and-long-enough"
 
 
 def _client(session: AsyncSession, token: str = TOKEN) -> AsyncClient:
@@ -85,14 +85,31 @@ async def test_the_catalog_reads_as_the_operator_would(session: AsyncSession) ->
         _service(operator="me"),
         _service(operator="-5"),
         _service(operator="0"),
+        _service(operator="9" * 21),
+        _service(operator="9" * 5000),
+        _service(operator="٤٢"),
+        _service(operator="４２"),
     ],
-    ids=["wrong token", "empty token", "no operator", "not a number", "negative", "zero"],
+    ids=[
+        "wrong token",
+        "empty token",
+        "no operator",
+        "not a number",
+        "negative",
+        "zero",
+        "too long",
+        "far too long",
+        "arabic digits",
+        "fullwidth digits",
+    ],
 )
 async def test_a_wrong_or_partial_service_call_is_refused(
     session: AsyncSession, headers: dict[str, str]
 ) -> None:
+    # As bytes, so a header can carry what a browser could: UTF-8, not ASCII.
+    raw = {name.encode(): value.encode() for name, value in headers.items()}
     async with _client(session) as http:
-        response = await http.get("/api/v1/admin/catalog", headers=headers)
+        response = await http.get("/api/v1/admin/catalog", headers=raw)
 
     assert response.status_code == 401
 
@@ -129,6 +146,19 @@ async def test_a_wrong_token_does_not_fall_back_to_init_data(
         )
 
     assert response.status_code == 401
+
+
+async def test_the_token_decides_whoever_the_init_data_names(
+    session: AsyncSession,
+) -> None:
+    """A stranger's initData beside a valid service call is not looked at."""
+    async with _client(session) as http:
+        response = await http.get(
+            "/api/v1/admin/catalog",
+            headers={**auth_header(STRANGER), **_service()},
+        )
+
+    assert response.status_code == 200
 
 
 async def test_init_data_still_opens_the_console(session: AsyncSession) -> None:
@@ -205,6 +235,20 @@ async def test_a_refusal_never_logs_the_token(
     assert TOKEN not in caplog.text
 
 
+async def test_a_service_call_is_written_down(
+    session: AsyncSession, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Who was acted as, and what was asked: the token is not in it."""
+    with caplog.at_level(logging.INFO, logger="students_cz.auth"):
+        async with _client(session) as http:
+            await http.post("/api/v1/admin/profiles/1/hide", headers=_service())
+
+    (record,) = [r for r in caplog.records if r.getMessage().startswith("service_call ")]
+    assert str(OPERATOR) in record.getMessage()
+    assert "POST /api/v1/admin/profiles/1/hide" in record.getMessage()
+    assert TOKEN not in caplog.text
+
+
 async def test_the_token_comes_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -213,3 +257,25 @@ async def test_the_token_comes_from_the_environment(
     monkeypatch.delenv("SERVICE_TOKEN")
     assert Settings(_env_file=None).service_token.get_secret_value() == ""
     assert TOKEN not in repr(Settings(_env_file=None, service_token=SecretStr(TOKEN)))
+
+
+@pytest.mark.parametrize("value", ["   ", "\t\n", ""])
+async def test_a_blank_token_is_off(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    monkeypatch.setenv("SERVICE_TOKEN", value)
+    assert Settings(_env_file=None).service_token.get_secret_value() == ""
+
+
+async def test_a_token_is_read_without_the_spaces_around_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SERVICE_TOKEN", f"  {TOKEN}\n")
+    assert Settings(_env_file=None).service_token.get_secret_value() == TOKEN
+
+
+@pytest.mark.parametrize("value", ["short", "x" * 31])
+async def test_a_weak_token_refuses_to_start(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("SERVICE_TOKEN", value)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)

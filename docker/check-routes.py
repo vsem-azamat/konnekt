@@ -190,6 +190,26 @@ def service_headers_kept(proxy: dict) -> list[str]:
     return [name for name in SERVICE_HEADERS if name not in deleted]
 
 
+def catalog_proxies(node: object) -> list[dict]:
+    """Every reverse_proxy in the config that dials the catalog, wherever it sits.
+
+    Not only the ones a sample path reaches: a second route to the catalog,
+    on any host, must strip the same headers.
+    """
+    found: list[dict] = []
+    if isinstance(node, dict):
+        if node.get("handler") == "reverse_proxy" and any(
+            u.get("dial") == CATALOG for u in node.get("upstreams", [])
+        ):
+            found.append(node)
+        for value in node.values():
+            found.extend(catalog_proxies(value))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(catalog_proxies(item))
+    return found
+
+
 def cookie_free(proxy: dict) -> bool:
     """Whether a proxy drops cookies in both directions."""
     headers = proxy.get("headers", {})
@@ -235,6 +255,18 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
 def main() -> int:
     config = json.load(sys.stdin)
     failed = False
+    proxies = catalog_proxies(config)
+    if not proxies:
+        print("no proxy to the catalog found: the walk is looking in the wrong place")
+        failed = True
+    for index, proxy in enumerate(proxies, start=1):
+        kept = service_headers_kept(proxy)
+        if kept:
+            print(f"catalog proxy #{index} passes on {', '.join(kept)} from the client")
+            failed = True
+        if not cookie_free(proxy):
+            print(f"catalog proxy #{index} is proxied with cookies")
+            failed = True
     for host, samples in expectations().items():
         label = host or "mini app"
         # `handle` blocks share a group and exactly one of them runs: the
