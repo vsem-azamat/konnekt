@@ -117,6 +117,11 @@ msgstr "Имя, @username или id"
 msgid "Пока ни одной. Добавь ниже — без них тебя не найдут по поиску."
 msgstr "Пока ни одной. Добавь ниже — без них тебя не найдут по поиску."
 
+#. placeholder {0}: catalog.data.counts.profiles_week
+#: src/console/pages/Summary.tsx
+msgid "{0, plural, one {новая анкета} few {новые анкеты} many {новых анкет} other {новых анкет}}"
+msgstr "{0, plural, one {новая анкета} few {новые анкеты} many {новых анкет} other {новых анкет}}"
+
 #: src/console/pages/Spam.tsx
 msgid "Детектор ничего не находил."
 msgstr "Детектор ничего не находил."
@@ -195,6 +200,11 @@ msgstr "Помощь"
 msgid "Видимость"
 msgstr "Видимость"
 
+#. placeholder {0}: write(week)
+#: src/console/pages/Summary.tsx
+msgid "за 7 дней {0}"
+msgstr "за 7 дней {0}"
+
 #: src/console/pages/AudiencePeople.tsx
 msgid "новые за неделю"
 msgstr "новые за неделю"
@@ -248,6 +258,10 @@ msgstr "Kč"
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Отключить"
+
+#: src/console/pages/Summary.tsx
+msgid "сутки"
+msgstr "сутки"
 
 #: src/console/ProfileSheet.tsx
 #: src/pages/MyHelper.tsx
@@ -533,6 +547,10 @@ msgstr "отключён"
 msgid "На проверке"
 msgstr "На проверке"
 
+#: src/console/pages/Summary.tsx
+msgid "Самые живые чаты, сообщения по часам"
+msgstr "Самые живые чаты, сообщения по часам"
+
 #: src/console/pages/Chat.tsx
 msgid "Место в списке"
 msgstr "Место в списке"
@@ -803,6 +821,10 @@ msgstr "Чаты"
 msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 msgstr "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
 
+#: src/console/pages/Summary.tsx
+msgid "Каталог за неделю"
+msgstr "Каталог за неделю"
+
 #: src/console/pages/Spam.tsx
 msgid "Не реклама"
 msgstr "Не реклама"
@@ -1027,6 +1049,10 @@ msgstr "сегодня"
 msgid "Откройте приложение заново"
 msgstr "Откройте приложение заново"
 
+#: src/console/pages/Summary.tsx
+msgid "Участники за сутки"
+msgstr "Участники за сутки"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "Где бывает"
 msgstr "Где бывает"
@@ -1125,6 +1151,10 @@ msgstr "Монограмма"
 #: src/console/pages/Partners.tsx
 msgid "Студенты перестанут её видеть. Показы и клики сохранятся."
 msgstr "Студенты перестанут её видеть. Показы и клики сохранятся."
+
+#: src/console/pages/Summary.tsx
+msgid "открытые, срок не вышел"
+msgstr "открытые, срок не вышел"
 
 #: src/console/pages/Spam.tsx
 msgid "Сегодня"
@@ -1227,6 +1257,10 @@ msgstr "Скрыть анкету {name}?"
 msgid "Кого тут можно найти"
 msgstr "Кого тут можно найти"
 
+#: src/console/pages/Summary.tsx
+msgid "за 7 дней — пока не с чем сравнить"
+msgstr "за 7 дней — пока не с чем сравнить"
+
 #: src/pages/Ask.tsx
 msgid "Кто найдётся"
 msgstr "Кто найдётся"
@@ -1246,6 +1280,10 @@ msgstr "Откройте консоль в приложении Telegram на т
 #: src/console/pages/Chats.tsx
 msgid "Этот чат уже есть в списке: режим меняется на его странице."
 msgstr "Этот чат уже есть в списке: режим меняется на его странице."
+
+#: src/console/pages/Summary.tsx
+msgid "Обновлено {minutes} мин назад"
+msgstr "Обновлено {minutes} мин назад"
 
 #: src/console/pages/System.tsx
 msgid "не настроен: баны и обновления из Telegram не пройдут"
@@ -1644,8 +1682,10 @@ msgid "Для стирания: введите <0>{word}</0>, чтобы под�
 msgstr "Для стирания: введите <0>{word}</0>, чтобы подтвердить."
 
 #. placeholder {0}: data.total
+#. placeholder {0}: i18n.number(audience.data.total)
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
+#: src/console/pages/Summary.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "всего {0}"
@@ -1883,6 +1923,7 @@ msgid "Каталог не принял карточку: проверьте с�
 msgstr "Каталог не принял карточку: проверьте ссылку и длину полей."
 
 #: src/console/pages/Catalog.tsx
+#: src/console/pages/Summary.tsx
 msgid "Заявки без откликов"
 msgstr "Заявки без откликов"
 
@@ -1922,6 +1963,10 @@ msgstr "появится после одобрения"
 msgid "Автор забанен"
 msgstr "Автор забанен"
 
+#: src/console/pages/Summary.tsx
+msgid "детектор, все чаты"
+msgstr "детектор, все чаты"
+
 #: src/console/pages/System.tsx
 msgid "Вход действует"
 msgstr "Вход действует"
@@ -1930,15 +1975,16 @@ msgstr "Вход действует"
 msgid "Например"
 msgstr "Например"
 
+#. placeholder {0}: chats .map((chat) => `${chat.title ?? chat.chat_id} — ${chat.total_messages}`) .join(', ')
+#: src/console/pages/Summary.tsx
+msgid "Сообщения за сутки по часам: {0}"
+msgstr "Сообщения за сутки по часам: {0}"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за занятие"
 msgstr "за занятие"
-
-#: src/console/pages/Summary.tsx
-msgid "Новые анкеты за неделю"
-msgstr "Новые анкеты за неделю"
 
 #: src/pages/Profile.tsx
 msgid "страховка, виза, банк, переводы"
@@ -1998,6 +2044,10 @@ msgstr "За 30 дней"
 msgid "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
 msgstr "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
 
+#: src/console/pages/Summary.tsx
+msgid "Реклама не разобрана"
+msgstr "Реклама не разобрана"
+
 #: src/console/pages/Chat.tsx
 msgid "Активность"
 msgstr "Активность"
@@ -2052,11 +2102,6 @@ msgstr "За сутки"
 msgid "страховка, визы, банк, переводы"
 msgstr "страховка, визы, банк, переводы"
 
-#. placeholder {0}: stats.data?.spam_pings.count_7d ?? 0
-#: src/console/pages/Summary.tsx
-msgid "детектор, все чаты · {0} за неделю"
-msgstr "детектор, все чаты · {0} за неделю"
-
 #: src/pages/Helper.tsx
 msgid "У этого человека нет открытого username в Telegram, написать не получится."
 msgstr "У этого человека нет открытого username в Telegram, написать не получится."
@@ -2104,6 +2149,10 @@ msgstr "По этому запросу пока никого"
 #: src/pages/Helper.tsx
 msgid "Написать · {0} Kč"
 msgstr "Написать · {0} Kč"
+
+#: src/console/pages/Summary.tsx
+msgid "За сутки бот не видел сообщений."
+msgstr "За сутки бот не видел сообщений."
 
 #: src/pages/Profile.tsx
 msgid "скрыта — в каталоге её не видно"
@@ -2212,6 +2261,10 @@ msgstr "не задан"
 #: src/pages/Results.tsx
 msgid "Сверху — кто ведёт «{0}»"
 msgstr "Сверху — кто ведёт «{0}»"
+
+#: src/console/pages/Summary.tsx
+msgid "Аудитория за неделю"
+msgstr "Аудитория за неделю"
 
 #: src/components/AppHeader.tsx
 #: src/console/pages/Summary.tsx
@@ -2512,6 +2565,11 @@ msgstr "Отклики"
 msgid "Где её видно"
 msgstr "Где её видно"
 
+#. placeholder {0}: stats.data.spam_pings.unreviewed
+#: src/console/pages/Summary.tsx
+msgid "{0} всего не разобрано"
+msgstr "{0} всего не разобрано"
+
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "Ищем…"
@@ -2642,6 +2700,10 @@ msgstr "Учёба"
 #: src/pages/Join.tsx
 msgid "Открой из заявки"
 msgstr "Открой из заявки"
+
+#: src/console/pages/Summary.tsx
+msgid "Обновлено только что"
+msgstr "Обновлено только что"
 
 #: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
