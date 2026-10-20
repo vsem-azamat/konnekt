@@ -51,7 +51,9 @@ def database(pg_container, monkeypatch):
 
 
 def _alembic() -> Config:
-    config = Config(str(ROOT / "alembic.ini"))
+    # No ini file: env.py would hand it to logging.config.fileConfig, which
+    # disables every logger already made and silences the rest of the run.
+    config = Config()
     config.set_main_option("script_location", str(ROOT / "alembic"))
     return config
 
