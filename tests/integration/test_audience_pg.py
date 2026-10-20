@@ -8,7 +8,7 @@ tests/unit/test_audience.py, this pins that PostgreSQL agrees.
 import datetime
 
 import pytest
-from app.audience import record
+from app.audience import record, views
 from app.audience.record import Person
 from app.core.enums import Touchpoint
 from app.db.models import AudienceMember, AudienceReach, AudienceTouch
@@ -44,3 +44,19 @@ class TestAudienceOnPostgres:
         reach = await pg_session.get(AudienceReach, (ANNA.id, Touchpoint.MAIN_BOT))
         assert reach is not None
         assert (reach.started_at, reach.blocked_at) == (T1, None)
+
+    async def test_the_console_queries_run_and_search_ignores_case(self, pg_session: AsyncSession) -> None:
+        taras = Person(id=2, first_name="Тарас", language_code="uk")
+        await record.seen(pg_session, ANNA, Touchpoint.MAIN_BOT, at=T0, started=Touchpoint.MAIN_BOT)
+        await record.seen(pg_session, taras, Touchpoint.CONTACT_BOT, at=T1)
+        await pg_session.commit()
+
+        summary = await views.summary(pg_session, now=T1)
+        found = await views.page(pg_session, query="тарас")
+        card = await views.person(pg_session, ANNA.id)
+
+        assert summary["reach"] == {"reachable": 1, "never_started": 1, "blocked": 0, "opted_out": 0}
+        assert summary["first_touch"]["contact_bot"] == 1
+        assert [p["user_id"] for p in found["items"]] == [2]
+        assert card is not None
+        assert card["status"] == "reachable"

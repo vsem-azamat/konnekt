@@ -137,3 +137,13 @@ async def test_bots_never_join_the_audience(session_maker):
         await db.commit()
 
     assert await _member(session_maker, 999) is None
+
+
+async def test_opting_out_is_kept_and_a_new_visit_does_not_undo_it(session_maker):
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=T0)
+        await record.opted_out(db, ANNA.id, at=T0)
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=T1)
+        await db.commit()
+
+    assert (await _member(session_maker)).opted_out_at == T0

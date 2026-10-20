@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, update
 
 from app.core.enums import Touchpoint
 from app.db.models import AudienceMember, AudienceReach, AudienceTouch
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from aiogram.types import User
     from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["Person", "Touchpoint", "blocked", "seen"]
+__all__ = ["Person", "Touchpoint", "blocked", "opted_out", "seen"]
 
 
 @dataclass(frozen=True)
@@ -158,3 +158,12 @@ async def _reach(
     else:
         changes = {"blocked_at": insert.excluded.blocked_at}
     await db.execute(insert.on_conflict_do_update(index_elements=[reach.c.user_id, reach.c.bot], set_=changes))
+
+
+async def opted_out(db: AsyncSession, user_id: int, *, at: datetime.datetime) -> None:
+    """Record that `user_id` asked not to hear from us; only they can take it back."""
+    await db.execute(
+        update(AudienceMember)
+        .where(AudienceMember.user_id == user_id, AudienceMember.opted_out_at.is_(None))
+        .values(opted_out_at=at)
+    )
