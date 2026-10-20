@@ -48,3 +48,4 @@ test('the tab title says Konnekt', () => {
   assert.match(html, /<title>Konnekt\b/);
   assert.doesNotMatch(html, OLD_NAME);
 });
+// Probe for #270 path filters; this PR is closed unmerged.
