@@ -15,6 +15,7 @@ valid code from signing the admin's browser in to their account.
 
 from __future__ import annotations
 
+import ipaddress
 import time
 from collections import deque
 from typing import Annotated
@@ -35,8 +36,12 @@ router = APIRouter(prefix="/auth/telegram", tags=["auth"])
 
 _FLOW_TTL_SECONDS = 600
 CALLBACKS_PER_MINUTE = 10
+# Across every caller: each is within its own allowance and the sum is still a
+# stream of requests to Telegram carrying our client secret.
+EXCHANGES_PER_MINUTE = 30
 # Per process, like the throttles beside it; a forgotten entry only lets one more attempt through.
 _callbacks: dict[str, deque[float]] = {}
+_exchanges: deque[float] = deque()
 _REMEMBERED = 10_000
 _http: httpx.AsyncClient | None = None
 
@@ -44,6 +49,7 @@ _http: httpx.AsyncClient | None = None
 def forget() -> None:
     """For tests: nobody has called back recently."""
     _callbacks.clear()
+    _exchanges.clear()
 
 
 async def get_oidc_http() -> httpx.AsyncClient:
@@ -66,12 +72,40 @@ def _flow_cookie() -> str:
     return "__Host-konnekt_oidc_flow" if settings.webapi.session_cookie_secure else "konnekt_oidc_flow"
 
 
+def _limit_key(request: Request) -> str:
+    """Who an attempt is counted against: an IPv4 address, or an IPv6 /64.
+
+    A /64 is what one subscriber is given; counting single addresses would
+    leave them 2**64 allowances.
+    """
+    address = caller_address(request)
+    if address is None:
+        return "unknown"
+    ip = ipaddress.ip_address(address)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        # The same machine, written the other way.
+        return str(ip.ipv4_mapped)
+    return str(ipaddress.ip_network(f"{ip}/64", strict=False)) if ip.version == 6 else address
+
+
+def _exchanges_exhausted() -> bool:
+    now = time.monotonic()
+    while _exchanges and now - _exchanges[0] > 60:
+        _exchanges.popleft()
+    if len(_exchanges) >= EXCHANGES_PER_MINUTE:
+        return True
+    _exchanges.append(now)
+    return False
+
+
 def _limited(request: Request) -> bool:
     now = time.monotonic()
-    key = caller_address(request) or "unknown"
-    if key not in _callbacks and len(_callbacks) >= _REMEMBERED:
-        _callbacks.clear()
-    recent = _callbacks.setdefault(key, deque())
+    key = _limit_key(request)
+    # Re-inserted on every use, so the first key in the table is the one least recently seen.
+    recent = _callbacks.pop(key, None) or deque()
+    _callbacks[key] = recent
+    while len(_callbacks) > _REMEMBERED:
+        del _callbacks[next(iter(_callbacks))]
     while recent and now - recent[0] > 60:
         recent.popleft()
     if len(recent) >= CALLBACKS_PER_MINUTE:
@@ -139,6 +173,8 @@ async def callback(
         # `error` is whatever the caller put in the URL.
         return _failed(f"telegram returned {(error or 'no code')[:64]!r}")
 
+    if _exchanges_exhausted():
+        raise HTTPException(status_code=429, detail="too many attempts")
     try:
         user_id = await telegram_oidc.complete(
             http,
@@ -146,7 +182,7 @@ async def callback(
             verifier=verifier,
             nonce=nonce,
             client_id=settings.webapi.oidc_client_id,
-            client_secret=settings.webapi.oidc_client_secret,
+            client_secret=settings.webapi.oidc_client_secret.get_secret_value(),
             redirect_uri=_redirect_uri(),
         )
     except telegram_oidc.OidcError as err:

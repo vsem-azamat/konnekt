@@ -153,6 +153,19 @@ jobs:
           fi
           echo "Required configuration present."
 
+      # The console's host for Caddy, from the same URL the webapi reads.
+      # Refuses one that would take the Mini App's traffic or match nothing.
+      - name: Work out the console's host
+        id: admin_host
+        env:
+          WEBAPI_ADMIN_URL: ${{ vars.WEBAPI_ADMIN_URL }}
+          WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
+        # Its own line: an assignment's failure ends the step (bash -e), where the
+        # same call inside `echo "$(...)"` would pass with an empty host.
+        run: |
+          host=$(bash scripts/admin_host.sh "$WEBAPI_ADMIN_URL" "$WEBAPI_PUBLIC_URL")
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+
       - name: Copy docker-compose to VPS
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
@@ -182,6 +195,11 @@ jobs:
           ADMIN_REPORT_CHAT_ID: ${{ secrets.ADMIN_REPORT_CHAT_ID }}
           WEBAPI_PUBLIC_URL: ${{ vars.WEBAPI_PUBLIC_URL }}
           MCP_TOKEN: ${{ secrets.MCP_TOKEN }}
+          # The browser's sign-in (app/webapi/routes/auth_telegram.py): all three, or none.
+          WEBAPI_ADMIN_URL: ${{ vars.WEBAPI_ADMIN_URL }}
+          ADMIN_HOST: ${{ steps.admin_host.outputs.host }}
+          WEBAPI_OIDC_CLIENT_ID: ${{ vars.WEBAPI_OIDC_CLIENT_ID }}
+          WEBAPI_OIDC_CLIENT_SECRET: ${{ secrets.WEBAPI_OIDC_CLIENT_SECRET }}
           # The retired bots' tokens, comma-separated (app/presentation/telegram/moved.py).
           MODERATOR_BOT_RETIRED_TOKEN: ${{ secrets.MODERATOR_BOT_RETIRED_TOKEN }}
           # The ads contact desk, @konnekt_ads_bot (app/presentation/telegram/ads.py).
@@ -200,7 +218,7 @@ jobs:
           # Pull, migrate, embed and wait: more than the default ten minutes
           # on a slow day, and a session cut off midway leaves no catalog.
           command_timeout: 30m
-          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
+          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,WEBAPI_ADMIN_URL,ADMIN_HOST,WEBAPI_OIDC_CLIENT_ID,WEBAPI_OIDC_CLIENT_SECRET,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT
           script: |
             set -e
             cd ~/deploy/supervisor-telegram

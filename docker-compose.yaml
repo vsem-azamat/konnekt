@@ -143,6 +143,11 @@ services:
       <<: *runtime-env
       # Separate file so the two processes do not interleave in one log.
       LOG_FILE_PATH: logs/webapi.log
+      # The browser's way into the console. Here and not in the shared block:
+      # the bot has no use for the client secret. All three set, or switched off.
+      WEBAPI_ADMIN_URL:
+      WEBAPI_OIDC_CLIENT_ID:
+      WEBAPI_OIDC_CLIENT_SECRET:
     volumes:
       - bot-logs:/app/logs
     healthcheck:
@@ -169,6 +174,11 @@ services:
     image: ghcr.io/vsem-azamat/supervisor-telegram-webui:${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
     container_name: supervisor-telegram-webui
     logging: *rotated-logs
+    environment:
+      # The console's host, worked out from WEBAPI_ADMIN_URL by the deploy
+      # (scripts/admin_host.sh). In the environment, where a reload and the
+      # healthcheck see it too; unset, Caddy's own fallback is a host nobody sends.
+      ADMIN_HOST:
     ports:
       - "127.0.0.1:18083:80"
     depends_on:
