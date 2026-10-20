@@ -1154,10 +1154,13 @@ async def _from_admissions(
     if admissions_id is None:
         return subjects
     admissions = set(await held_by(session, admissions_id))
-    if subjects[0].id in admissions:
-        return subjects
-    listed = admissions & set(await held_by(session, shelf_id))
-    if not listed:
+    listed = await _entrance_exams(
+        session, admissions & set(await held_by(session, shelf_id))
+    )
+    # A guess already among them stands. Any other — off the shelf, or on it
+    # but not the named shelf's (TSP for «подготовка к поступлению по
+    # математике») — gives way.
+    if not listed or subjects[0].id in listed:
         return subjects
     school = await _school_words(session, institution)
     kept = [token for token in tokens if not _is_school_word(token, school)]
@@ -1174,6 +1177,25 @@ async def _from_admissions(
     sharing = {match.id: len(await shelves_of(session, {match.id})) for match in found}
     found.sort(key=lambda match: sharing[match.id])
     return found[:4] or subjects
+
+
+async def _entrance_exams(session: AsyncSession, ids: set[int]) -> set[int]:
+    """Those of these subjects whose name, in some language, reads as entrance
+    exams. A shelf lists maturita too, and it is the school-leaving exam."""
+    from students_cz.db.models import SubjectI18n
+
+    if not ids:
+        return set()
+    rows = await session.execute(
+        select(SubjectI18n.subject_id, SubjectI18n.name).where(
+            SubjectI18n.subject_id.in_(ids)
+        )
+    )
+    return {
+        subject_id
+        for subject_id, name in rows
+        if _match_service(normalise(name))[0] == "entrance_prep"
+    }
 
 
 async def _within_shelf(

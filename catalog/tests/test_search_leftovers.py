@@ -419,3 +419,29 @@ async def test_a_named_subject_beside_entrance_exams_stays(session) -> None:
     parsed = await parse(session, "přijímačky čeština B2", "cs", today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.label.startswith("Čeština"), parsed.subject
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "slug"),
+    [
+        # A guess from the admissions shelf that the named shelf does not list
+        # is no better than one from elsewhere: TSP is not the maths exam.
+        ("подготовка к поступлению по математике", "ru", "prijimacky-matematika"),
+        ("přijímačky na ČVUT z matematiky", "cs", "prijimacky-technicke-vs"),
+    ],
+)
+async def test_a_listed_exam_replaces_an_unlisted_admissions_guess(
+    session, text, lang, slug
+) -> None:
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.id == await _id(session, slug), parsed.subject
+
+
+async def test_maturita_is_not_an_entrance_exam(session) -> None:
+    """Maths lists maturita, but it is the school-leaving exam: beside
+    entrance exams it is not the answer."""
+    parsed = await parse(session, "поступление в гимназию математика", "ru", today=TODAY)
+    assert parsed.subject is None or parsed.subject.id != await _id(
+        session, "maturita"
+    ), parsed.subject
