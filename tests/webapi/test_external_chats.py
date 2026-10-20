@@ -206,3 +206,28 @@ async def test_a_chat_the_bot_records_meanwhile_is_left_as_it_is(client_factory,
         resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
 
     assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")
+
+
+async def test_the_insert_itself_refusing_a_known_chat_is_a_409(client_factory, db_session_maker, monkeypatch) -> None:
+    """The look-before-insert can miss a row written a moment later; the primary key does not."""
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    make, _ = client_factory
+    async with db_session_maker() as s:
+        s.add(Chat(id=FJFI, title="Ours", resource_status=Chat.STATUS_APPROVED))
+        await s.commit()
+
+    async def looked_too_early(self, entity, ident, **kwargs):
+        return None
+
+    monkeypatch.setattr(AsyncSession, "get", looked_too_early)
+
+    async with make() as client:
+        resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
+
+    monkeypatch.undo()
+    assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")
+    async with db_session_maker() as s:
+        chat = await s.get(Chat, FJFI)
+    assert chat is not None
+    assert chat.resource_status == Chat.STATUS_APPROVED

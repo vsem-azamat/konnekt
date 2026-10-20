@@ -39,6 +39,16 @@ def test_a_faculty_points_at_its_main_chat_and_the_bot() -> None:
     )
 
 
+def test_a_chat_under_somebody_else_s_main_chat_does_not_send_people_there() -> None:
+    """Our description vouching for a room we do not run is the listing without its mark."""
+    theirs = Chat(id=-11, title="VŠE Chat", public_link="https://t.me/vse_v_praze_chat", resource_status="external")
+
+    text = _university("VŠE FIS", "", parent=theirs)
+
+    assert "Главный чат" not in text
+    assert text.endswith("Все чаты и помощь с учёбой: @konnekt_cz_bot")
+
+
 def test_a_main_chat_names_itself_by_its_short_name() -> None:
     text = _university("VUT | ВУТ в Брно", "📍Общий чат для студентов VUT v Brně", parent=None)
 

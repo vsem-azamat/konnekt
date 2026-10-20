@@ -16,10 +16,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from app.db.models import Chat
+from app.db.models import Chat
 
 DESCRIPTION_LIMIT = 255  # Telegram's limit for a group description
 DEFAULT_EMOJI = "🎓"
@@ -106,7 +104,10 @@ def expected_description(*, title: str, current: str, bot: str, university: bool
 
     emoji = _leading_emoji(current) or DEFAULT_EMOJI
     lines = []
-    main = _username(parent.public_link) if parent is not None else None
+    # Somebody else's main chat is listed, never recommended: our own
+    # description sending people there would vouch for a room we do not run.
+    ours = parent is not None and parent.resource_status != Chat.STATUS_EXTERNAL
+    main = _username(parent.public_link) if parent is not None and ours else None
     if parent is not None and main:
         lines.append(f"Главный чат {_short_name(parent.title or '')}: {main}")
     lines.append(f"Все чаты и помощь с учёбой: @{bot}")

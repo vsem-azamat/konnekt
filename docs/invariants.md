@@ -100,8 +100,8 @@ bot in @chat_ntk): ours to list and unmarked, never ours to act in, since a
 second bot answering there competes with the one already running it. Neither
 is reach: nobody buying a post can be sold a room our posts do not go to. The
 price of that honesty is accepted: a group's chat count on the ads page can be
-smaller than in the catalogue, which shows that some of its chats are not
-moderated, though not which.
+smaller than in the catalogue, which shows which of its chats are not
+moderated.
 
 **Moderation is the one meaning of `approved`, read when the action runs.**
 Every path that acts in a chat asks whether it is approved at the moment it

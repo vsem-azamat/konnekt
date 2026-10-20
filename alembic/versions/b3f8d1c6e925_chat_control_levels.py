@@ -32,6 +32,11 @@ def upgrade() -> None:
 def downgrade() -> None:
     # The previous release knows neither value, and its console cannot list a
     # row carrying one. Disabled, not approved: a chat we only watched or are
-    # not in must never come back moderated.
-    op.execute("UPDATE chats SET resource_status = 'disabled' WHERE resource_status IN ('observed', 'external')")
+    # not in must never come back moderated. The note keeps the decision
+    # readable so it can be restored by hand on the way forward; the link
+    # stays, and a disabled chat is not listed.
+    op.execute(
+        "UPDATE chats SET relation_notes = concat_ws(E'\\n', relation_notes, 'Был ' || resource_status || ' до отката'), "
+        "resource_status = 'disabled' WHERE resource_status IN ('observed', 'external')"
+    )
     op.drop_constraint("ck_chats_resource_status", "chats", type_="check")
