@@ -13,7 +13,7 @@ import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from app.core.enums import PendingActionStatus
+from app.core.enums import ModerationAction, PendingActionOrigin, PendingActionStatus
 from app.core.time import utc_now
 from app.db.models import Chat, PendingAction
 from app.moderation.pending_actions import PendingActionService
@@ -313,7 +313,10 @@ class TestTheChatAtThePress:
         executor = AsyncMock()
         service = PendingActionService(bot=bot, db=session, executor=executor)
         pending = await service.propose(
-            origin="mcp", initiator_id=ADMIN_ID, action="blacklist", target_user_id=TARGET_ID
+            origin=PendingActionOrigin.MCP,
+            initiator_id=ADMIN_ID,
+            action=ModerationAction.BLACKLIST,
+            target_user_id=TARGET_ID,
         )
 
         await service.confirm(pending.id, admin_id=ADMIN_ID)
