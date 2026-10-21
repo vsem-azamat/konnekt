@@ -54,7 +54,7 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
         )
     except Exception as err:
         # A greeting Telegram refuses is the chat's problem, not the join's.
-        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err), exc_info=True)
+        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err), error_type=type(err).__name__)
         return
 
     if chat.time_delete:

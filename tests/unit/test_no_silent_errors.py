@@ -104,3 +104,31 @@ def test_a_logged_error_names_its_class() -> None:
 def test_the_allowance_names_something_that_exists() -> None:
     """A stale entry would excuse a handler nobody meant to."""
     assert {(file, name) for file, _, name in _handlers()} >= DELIBERATE
+
+
+# Best-effort cleanups whose failure changes nothing: a refusal sent anyway, a
+# message already gone, a session already closed.
+SUPPRESSED = {
+    ("presentation/telegram/middlewares/admin.py", "you_are_not_admin"),
+    ("presentation/telegram/utils/other.py", "_delete_later"),
+    ("webapi/services/publish_bot.py", "close_publish_bot"),
+}
+
+
+def test_suppressing_every_exception_is_a_named_cleanup() -> None:
+    """`contextlib.suppress(Exception)` is `except Exception: pass` under another name."""
+    found = set()
+
+    def visit(node: ast.AST, file: str, function: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.Call) and getattr(child.func, "attr", getattr(child.func, "id", "")) == "suppress":
+                broad = {getattr(a, "id", "") for a in child.args} & {"Exception", "BaseException"}
+                if broad:
+                    found.add((file, function))
+            name = child.name if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef) else function
+            visit(child, file, name)
+
+    for path in sorted(APP.rglob("*.py")):
+        visit(ast.parse(path.read_text()), path.relative_to(APP).as_posix(), "<module>")
+
+    assert found == SUPPRESSED

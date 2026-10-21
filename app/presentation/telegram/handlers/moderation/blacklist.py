@@ -123,7 +123,13 @@ async def process_blacklist_confirm(
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception as err:
-        logger.warning("message_delete_failed", error=str(err), exc_info=True, message_id=message_id, chat_id=chat_id)
+        logger.warning(
+            "message_delete_failed",
+            error=str(err),
+            error_type=type(err).__name__,
+            message_id=message_id,
+            chat_id=chat_id,
+        )
 
     try:
         if not callback.message or not isinstance(callback.message, types.Message):
