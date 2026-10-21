@@ -55,12 +55,12 @@ async def test_the_application_logger_actually_writes_somewhere() -> None:
     logger = logging.getLogger("students_cz")
 
     assert logger.level == logging.INFO
-    assert any(isinstance(h, logging.StreamHandler) for h in logger.handlers)
+    # On the root, so a library's warnings leave in the same shape as ours.
+    assert any(
+        isinstance(h, logging.StreamHandler) and getattr(h, "_students_cz_handler", False)
+        for h in logging.getLogger().handlers
+    )
 
-    # Asserted against a handler on the root logger rather than through
-    # pytest's capture, because propagation is half of what is being claimed:
-    # a record that never leaves its own logger reaches nothing a deployment
-    # configures either.
     seen: list[str] = []
 
     class Capture(logging.Handler):
@@ -84,7 +84,14 @@ async def test_configuring_logging_twice_does_not_double_the_handlers() -> None:
 
     from students_cz.main import configure_logging
 
+    def ours() -> int:
+        return sum(
+            getattr(h, "_students_cz_handler", False)
+            for h in logging.getLogger().handlers
+        )
+
     configure_logging("INFO")
-    before = len(logging.getLogger("students_cz").handlers)
+    before = ours()
     configure_logging("INFO")
-    assert len(logging.getLogger("students_cz").handlers) == before
+    assert before == 1
+    assert ours() == before
