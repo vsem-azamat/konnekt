@@ -17,6 +17,9 @@ def create_engine() -> AsyncEngine:
     return create_async_engine(
         settings.database.url,
         echo=settings.debug,
+        # A database error quotes the statement's parameters in its message:
+        # message text, names, ids. The message reaches the logs.
+        hide_parameters=True,
         pool_pre_ping=True,
         pool_recycle=3600,  # Recycle connections after 1 hour
         # The database is on another host. Without these a network blip held

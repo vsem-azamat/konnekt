@@ -60,6 +60,7 @@ async def record(
         logger.error(
             "moderation_event_not_recorded",
             error=str(err),
+            exc_info=True,
             action=action,
             actor_id=actor_id,
             target_user_id=target_user_id,

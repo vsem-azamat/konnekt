@@ -106,7 +106,9 @@ async def announce(bot: Bot, db: AsyncSession, wave: JoinWave, chat: Chat) -> No
         )
     except TelegramAPIError as err:
         # The pause works without the alert; only the buttons are lost.
-        logger.error("join_wave_alert_not_sent", chat_id=chat.id, wave_id=wave.id, error=str(err))
+        logger.error(
+            "join_wave_alert_not_sent", chat_id=chat.id, wave_id=wave.id, error=str(err), error_type=type(err).__name__
+        )
         return
     wave.alert_message_id = sent.message_id
     await db.commit()
@@ -209,7 +211,7 @@ async def decide(
                 reply_markup=markup,
             )
         except TelegramAPIError as err:
-            logger.warning("join_wave_alert_not_edited", wave_id=wave.id, error=str(err))
+            logger.warning("join_wave_alert_not_edited", wave_id=wave.id, error=str(err), error_type=type(err).__name__)
     return note
 
 
@@ -257,7 +259,9 @@ async def _decline_held(bot: Bot, db: AsyncSession, wave: JoinWave, now: datetim
             except TelegramAPIError as err:
                 if not request_gone(err):
                     failed.add(row.id)
-                    logger.warning("join_wave_decline_failed", captcha_id=row.id, error=str(err))
+                    logger.warning(
+                        "join_wave_decline_failed", captcha_id=row.id, error=str(err), error_type=type(err).__name__
+                    )
                     continue
                 row.status = JoinCaptcha.STATUS_GONE
             else:

@@ -64,7 +64,7 @@ async def fetch_metadata(*, bot: Bot, chat_id: int) -> ChatMetadata | None:
     try:
         chat = await ask(lambda: bot.get_chat(chat_id))
     except TelegramAPIError as err:
-        logger.warning("get_chat_failed", chat_id=chat_id, error=str(err))
+        logger.warning("get_chat_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None
 
     photo = getattr(chat, "photo", None)
@@ -83,5 +83,5 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
     try:
         return await ask(lambda: bot.get_chat_member_count(chat_id))
     except TelegramAPIError as err:
-        logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err))
+        logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None
