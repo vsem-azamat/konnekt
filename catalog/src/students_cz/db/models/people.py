@@ -199,11 +199,9 @@ class HelperProfile(TimestampMixin, Base):
             "rating IS NULL OR (rating >= 0 AND rating <= 5)",
             name="rating_range",
         ),
-        # The reason is an operator's hide's and leaves with it; words only
-        # for «Другое».
-        CheckConstraint(
-            "hidden_reason IS NULL OR status = 'banned'", name="reason_only_when_banned"
-        ),
+        # Words only for «Другое». (A reason only on a banned profile is the
+        # rule too, but the release before this one restores without clearing
+        # it, and must still run on this schema: services/admin.py keeps it.)
         CheckConstraint(
             "hidden_note IS NULL OR hidden_reason = 'other'", name="note_only_for_other"
         ),

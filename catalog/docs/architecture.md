@@ -290,7 +290,7 @@ otherwise the only way to do either is the database.
   characters, and a note only then) and sets it `banned`, which its owner
   cannot lift by publishing again; `POST …/restore` lists it again, counts
   that as a look (`reviewed_at`), and forgets the reason. The database
-  holds a reason only on a banned profile and a note only for `other`.
+  holds a note only for `other`.
   `review` and `restore` approve the profile as the operator read it: sent
   `{"seen": <its updated_at>}`, an owner's save since then is a 409. Only a published profile can be hidden and only a
   banned one restored (409 otherwise), so restoring never undoes an owner's

@@ -11,7 +11,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -439,7 +439,8 @@ async def test_hiding_a_profile_bans_it_so_its_owner_cannot_list_it_again(
     user_id = (await _fresh_helper(helper_factory, session, 97603)).id
     # Taken down by its owner: hidden too, but not the operator's doing.
     own = await _fresh_helper(helper_factory, session, 97607)
-    own_profile = await session.get(HelperProfile, own.id)
+    own_id = own.id
+    own_profile = await session.get(HelperProfile, own_id)
     assert own_profile is not None
     own_profile.status = PublishStatus.HIDDEN
     await session.flush()
@@ -459,9 +460,11 @@ async def test_hiding_a_profile_bans_it_so_its_owner_cannot_list_it_again(
 
     assert hidden.status_code == 200, hidden.text
     assert hidden.json()["status"] == "banned"
-    assert body["counts"]["hidden"] == 1
     assert user_id not in [row["user_id"] for row in body["profiles"]]
-    assert [row["user_id"] for row in body["hidden"]] == [user_id]
+    # Theirs, not the owner's own: counted against whatever else the
+    # database already holds.
+    assert user_id in [row["user_id"] for row in body["hidden"]]
+    assert own_id not in [row["user_id"] for row in body["hidden"]]
     # Saved, as any edit to it is, and still not listed.
     assert again.status_code == 200, again.text
     assert again.json()["helper_status"] == "banned"
@@ -487,7 +490,7 @@ async def test_a_hidden_profile_comes_back_as_it_was(
 
     assert restored.status_code == 200, restored.text
     assert restored.json()["status"] == "published"
-    assert body["hidden"] == []
+    assert user.id not in [row["user_id"] for row in body["hidden"]]
     # Hiding was a look at it: back in the catalog, not back on the new list.
     assert user.id not in [row["user_id"] for row in body["profiles"]]
 
@@ -724,13 +727,6 @@ async def test_a_decision_on_a_profile_changed_since_it_was_read_is_409(
         await http.put(
             "/api/v1/helper", headers=auth_header(97614), json={"about": "Вторая правка"}
         )
-        # One transaction here, so now() stands still between the two saves;
-        # two requests in production are two transactions and two times.
-        await session.execute(
-            update(HelperProfile)
-            .where(HelperProfile.user_id == user_id)
-            .values(updated_at=func.clock_timestamp())
-        )
         stale = await http.post(
             f"/api/v1/admin/profiles/{user_id}/{action}",
             headers=auth_header(OPERATOR),
@@ -777,31 +773,56 @@ async def test_an_edited_hidden_profile_queues_by_when_it_was_edited(
     assert ours == [old.id, newer.id]
 
 
-@pytest.mark.parametrize(
-    ("status", "reason", "note"),
-    [
-        # A reason belongs to an operator's hide and goes with it.
-        (PublishStatus.PUBLISHED, HideReason.SPAM, None),
-        # Words only for «Другое».
-        (PublishStatus.BANNED, HideReason.SPAM, "и ещё"),
-    ],
-)
-async def test_the_database_keeps_a_reason_to_a_hidden_profile(
-    session: AsyncSession,
-    helper_factory,
-    status: PublishStatus,
-    reason: HideReason,
-    note: str | None,
+async def test_the_database_keeps_words_to_other(
+    session: AsyncSession, helper_factory
 ) -> None:
     user = await _fresh_helper(helper_factory, session, 97617)
     profile = await session.get(HelperProfile, user.id)
     assert profile is not None
-    profile.status = status
-    profile.hidden_reason = reason
-    profile.hidden_note = note
+    profile.status = PublishStatus.BANNED
+    profile.hidden_reason = HideReason.SPAM
+    profile.hidden_note = "и ещё"
 
     with pytest.raises(IntegrityError):
         await session.flush()
+
+
+async def test_an_edit_to_offers_alone_is_an_edit_too(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Offers live in their own table: a new one with a handle in its note
+    must not be restored on the strength of the profile read before it."""
+    user_id = (await _fresh_helper(helper_factory, session, 97618)).id
+
+    async with _client(session) as http:
+        await _hide(http, user_id)
+        read = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        mine = (await http.get("/api/v1/helper", headers=auth_header(97618))).json()
+        offers = [
+            {
+                "service_type_id": offer["service_type_id"],
+                "subject_id": offer["subject_id"],
+                "institution_id": offer["institution_id"],
+                "price_amount": offer["price_amount"],
+                "note": "пиши мне в личку",
+            }
+            for offer in mine["offers"]
+        ]
+        edited = await http.put(
+            "/api/v1/helper", headers=auth_header(97618), json={"offers": offers}
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/restore",
+            headers=auth_header(OPERATOR),
+            json={"seen": read["updated_at"]},
+        )
+
+    assert edited.status_code == 200, edited.text
+    assert restored.status_code == 409
 
 
 # ── partner cards ───────────────────────────────────────────────────────

@@ -41,11 +41,6 @@ def upgrade() -> None:
         "helper_profiles", sa.Column("hidden_note", sa.String(200), nullable=True)
     )
     op.create_check_constraint(
-        op.f("ck_helper_profiles_reason_only_when_banned"),
-        "helper_profiles",
-        "hidden_reason IS NULL OR status = 'banned'",
-    )
-    op.create_check_constraint(
         op.f("ck_helper_profiles_note_only_for_other"),
         "helper_profiles",
         "hidden_note IS NULL OR hidden_reason = 'other'",
@@ -59,11 +54,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_constraint(
         op.f("ck_helper_profiles_note_only_for_other"), "helper_profiles", type_="check"
-    )
-    op.drop_constraint(
-        op.f("ck_helper_profiles_reason_only_when_banned"),
-        "helper_profiles",
-        type_="check",
     )
     op.drop_column("helper_profiles", "hidden_note")
     op.drop_column("helper_profiles", "hidden_reason")

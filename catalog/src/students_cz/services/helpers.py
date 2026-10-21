@@ -9,7 +9,7 @@ being reimplemented.
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.db.models import (
@@ -88,6 +88,11 @@ async def save_profile(
         session.add(helper)
 
     _apply_text(helper, spec, lang)
+    # Changed, whatever changed: an operator's «Оставить» or «Вернуть» checks
+    # it against what they read, and offers live in their own table, where
+    # the row's own `onupdate` never sees them. The clock and not now(), which
+    # stands still for the transaction.
+    helper.updated_at = func.clock_timestamp()
     # A ban is not something the banned person can lift by pressing publish.
     # What they changed is kept, though, and goes back to an operator, who
     # either lists it again or leaves it hidden: a profile hidden for a wrong
