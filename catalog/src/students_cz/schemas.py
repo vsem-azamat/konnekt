@@ -16,9 +16,11 @@ Two conventions worth stating once:
 from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from students_cz.db.models.enums import (
+    HIDE_NOTE_MAX,
+    HideReason,
     PriceUnit,
     PublishStatus,
     ServiceForm,
@@ -421,6 +423,12 @@ class MyHelperOut(BaseModel):
     city: str | None = None
     place_note: str | None = None
     offers: list[MyOfferOut] = Field(default_factory=list)
+    # Listed, or hidden by an operator, and not looked at since it last
+    # changed: «на проверке». Listing does not wait for it.
+    under_review: bool = False
+    # Only while an operator keeps it hidden.
+    hidden_reason: HideReason | None = None
+    hidden_note: str | None = None
 
 
 # ── requests ────────────────────────────────────────────────────────────
@@ -519,6 +527,8 @@ class AdsInfo(BaseModel):
 class AdminProfile(BaseModel):
     user_id: int
     name: str
+    # «Новые анкеты» holds hidden ones too, once their owner has changed them.
+    status: PublishStatus
     services: list[str]
     published_at: datetime
 
@@ -570,6 +580,10 @@ class AdminProfileDetail(BaseModel):
     institution: str | None
     published_at: datetime | None
     reviewed_at: datetime | None
+    # What the operator read, for `AdminDecision.seen`.
+    updated_at: datetime
+    hidden_reason: HideReason | None
+    hidden_note: str | None
 
 
 class AdminPlacement(BaseModel):
@@ -619,6 +633,35 @@ class AdminPlacementIn(BaseModel):
     @classmethod
     def _url_is_https(cls, value: str) -> str:
         return _https_link(value)
+
+
+class AdminDecision(BaseModel):
+    """Keeping or restoring approves the profile as the operator read it. With
+    `seen`, its `updated_at` then, an owner's save in between is a 409 rather
+    than an edit approved unread."""
+
+    seen: datetime | None = None
+
+
+class AdminHide(BaseModel):
+    """Why, from the list, or in words for «Другое» and only for it: the owner
+    is shown the reason, and a note beside a listed reason would be shown to
+    nobody."""
+
+    reason: HideReason
+    note: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
+
+    @model_validator(mode="after")
+    def _note_for_other_only(self) -> "AdminHide":
+        self.note = self.note or None
+        if self.reason is HideReason.OTHER:
+            if self.note is None:
+                raise ValueError("say why in a note")
+            if len(self.note) > HIDE_NOTE_MAX:
+                raise ValueError(f"at most {HIDE_NOTE_MAX} characters")
+        elif self.note is not None:
+            raise ValueError("a note goes only with «other»")
+        return self
 
 
 class AdminPlacementSwitch(BaseModel):

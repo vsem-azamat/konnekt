@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.webapi.deps import require_super_admin
 from app.webapi.origin_guard import DEV_ORIGIN, RequireOurOrigin
+from app.webapi.request_log import RequestLog
 from app.webapi.routes import (
     admin,
     audience,
@@ -36,6 +38,9 @@ if TYPE_CHECKING:
 # Without it structlog prints to stdout and nothing reaches the root logger:
 # no JSON in production, no LOG_FILE_PATH, and no error alerts.
 setup_logging()
+# RequestLog writes the line for every request, with its id and its route;
+# uvicorn's would be a second, poorer one.
+logging.getLogger("uvicorn.access").disabled = True
 logger = get_logger("webapi.main")
 
 
@@ -104,6 +109,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Outside the server-error middleware that FastAPI puts around everything,
+    # which `add_middleware` cannot reach: a 500 then gets its id and one line.
+    build = app.build_middleware_stack
+    app.build_middleware_stack = lambda: RequestLog(build())  # ty: ignore[invalid-assignment]
 
     app.include_router(auth.router, prefix="/api")
     app.include_router(auth_telegram.router, prefix="/api")

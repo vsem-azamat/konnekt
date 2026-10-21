@@ -108,7 +108,14 @@ function Catalog() {
                 </Tile>
               }
               title={profile.name}
-              hint={profile.services.join(', ')}
+              hint={
+                // Hidden, and changed by its owner since: back for a decision.
+                profile.status === 'banned' ? (
+                  <Trans>скрыта, автор изменил анкету</Trans>
+                ) : (
+                  profile.services.join(', ')
+                )
+              }
               trailing={
                 <>
                   <Count>

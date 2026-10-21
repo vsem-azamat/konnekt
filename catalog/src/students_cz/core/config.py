@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    # One JSON line a record for the log shipper; "text" for reading in a terminal.
+    log_format: Literal["json", "text"] = "json"
 
     # One pool per process, and the Dockerfile pins `--workers 1`, so these are
     # the whole connection budget: at most `db_pool_size + db_max_overflow`

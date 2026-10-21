@@ -553,8 +553,10 @@ async def test_a_banned_profile_cannot_publish_itself(client, session):
     helper.status = PublishStatus.BANNED
     await session.commit()
 
-    refused = await client.put("/api/v1/helper", json={"publish": True}, headers=headers)
-    assert refused.status_code == 403
+    # Saved, and not listed: only an operator lifts a ban.
+    saved = await client.put("/api/v1/helper", json={"publish": True}, headers=headers)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["helper_status"] == "banned"
 
 
 async def test_the_same_axes_twice_is_a_422_not_a_traceback(client, session):

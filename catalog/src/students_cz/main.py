@@ -12,32 +12,22 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from students_cz.api.request_log import RequestLog
 from students_cz.api.v1 import router as api_router
 from students_cz.api.v1.health import health_router
 from students_cz.bot import build_bot
 from students_cz.core.config import get_settings
+from students_cz.core.logs import JsonFormatter
 from students_cz.db.session import dispose_engine
 from students_cz.services import errors
 from students_cz.services.embedding import get_embedder
 
 log = logging.getLogger("students_cz")
+_OURS = "_students_cz_handler"
 
 
-class QuietHealthChecks(logging.Filter):
-    """Drop the container healthcheck's requests from uvicorn's access log.
-
-    It asks every 15 s; in one week 39,593 of 39,603 lines were it, and the
-    rotated log kept three days of anything else.
-    """
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        args = record.args if isinstance(record.args, tuple) else ()
-        path = str(args[2]).split("?", 1)[0] if len(args) > 2 else ""
-        return path != "/healthz"
-
-
-def configure_logging(level: str) -> None:
-    """Give this application's logger somewhere to write.
+def configure_logging(level: str, log_format: str = "json") -> None:
+    """Give this application's logs, and every library's, somewhere to write.
 
     Uvicorn configures its own loggers and nothing else, so without this the
     `students_cz` logger has no handler and falls back to Python's last-resort
@@ -45,20 +35,35 @@ def configure_logging(level: str) -> None:
     went nowhere, including the one that says semantic search is off because
     the image carries no model.
 
-    Records still propagate. Uvicorn does not configure the root logger, so
-    there is nothing to duplicate against, and cutting propagation would also
-    cut off whatever a deployment attaches there with `--log-config`.
+    The handler is on the root logger, so SQLAlchemy's and aiogram's warnings
+    leave in the same shape as ours instead of as bare text through the
+    last-resort handler. Uvicorn's own loggers keep their handlers (they do not
+    propagate) and get the same formatter.
+
+    Each record is a JSON line (`LOG_FORMAT=text` for a terminal). Uvicorn's
+    access log is off: `RequestLog` writes the line for every request, with the
+    route and the id, and its would be a second, poorer one.
     """
     log.setLevel(level)
-    access = logging.getLogger("uvicorn.access")
-    if not any(isinstance(f, QuietHealthChecks) for f in access.filters):
-        access.addFilter(QuietHealthChecks())
-    if any(isinstance(handler, logging.StreamHandler) for handler in log.handlers):
-        # `create_app()` runs once per process, and once per test.
-        return
+    formatter: logging.Formatter = (
+        JsonFormatter()
+        if log_format == "json"
+        else logging.Formatter("%(levelname)s:     %(name)s: %(message)s")
+    )
+    logging.getLogger("uvicorn.access").disabled = True
+    for name in ("uvicorn", "uvicorn.error"):
+        for handler in logging.getLogger(name).handlers:
+            handler.setFormatter(formatter)
+    root = logging.getLogger()
+    for handler in root.handlers:
+        if getattr(handler, _OURS, False):
+            # `create_app()` runs once per process, and once per test.
+            handler.setFormatter(formatter)
+            return
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
-    log.addHandler(handler)
+    setattr(handler, _OURS, True)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 
 @asynccontextmanager
@@ -117,7 +122,7 @@ def status_for(exc: BaseException) -> int:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.log_format)
     app = FastAPI(
         title="Students CZ",
         description="Student help catalog for the Czech Republic",
@@ -132,6 +137,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Outside the server-error middleware that FastAPI puts around everything,
+    # which `add_middleware` cannot reach: a 500 then gets its id and one line.
+    build = app.build_middleware_stack
+    app.build_middleware_stack = lambda: RequestLog(build())  # ty: ignore[invalid-assignment]
 
     # The one place a service's vocabulary becomes a status code. Services
     # raise rules, not protocols, so that the bot can call the same code and

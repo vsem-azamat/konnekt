@@ -167,6 +167,13 @@ export const CheckIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const LockIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </Svg>
+);
+
 export const ShieldIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 3.4 5.6 6v5.8c0 3.6 2.7 6.5 6.4 8.4 3.7-1.9 6.4-4.8 6.4-8.4V6L12 3.4Z" />
