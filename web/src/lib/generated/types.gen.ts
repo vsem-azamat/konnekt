@@ -60,6 +60,35 @@ export type AdminCounts = {
 };
 
 /**
+ * AdminDecision
+ *
+ * Keeping or restoring approves the profile as the operator read it. With
+ * `seen`, its `updated_at` then, an owner's save in between is a 409 rather
+ * than an edit approved unread.
+ */
+export type AdminDecision = {
+    /**
+     * Seen
+     */
+    seen?: string | null;
+};
+
+/**
+ * AdminHide
+ *
+ * Why, from the list, or in words for «Другое» and only for it: the owner
+ * is shown the reason, and a note beside a listed reason would be shown to
+ * nobody.
+ */
+export type AdminHide = {
+    reason: HideReason;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
  * AdminPlacement
  */
 export type AdminPlacement = {
@@ -151,6 +180,7 @@ export type AdminProfile = {
      * Name
      */
     name: string;
+    status: PublishStatus;
     /**
      * Services
      */
@@ -201,6 +231,15 @@ export type AdminProfileDetail = {
      * Reviewed At
      */
     reviewed_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    hidden_reason: HideReason | null;
+    /**
+     * Hidden Note
+     */
+    hidden_note: string | null;
 };
 
 /**
@@ -564,6 +603,13 @@ export type HelperUpsert = {
 };
 
 /**
+ * HideReason
+ *
+ * Why an operator hid a profile. Its owner reads it; see helpers.py.
+ */
+export type HideReason = 'spam' | 'misleading' | 'rules' | 'other';
+
+/**
  * HomeOut
  */
 export type HomeOut = {
@@ -767,6 +813,15 @@ export type MyHelperOut = {
      * Offers
      */
     offers?: Array<MyOfferOut>;
+    /**
+     * Under Review
+     */
+    under_review?: boolean;
+    hidden_reason?: HideReason | null;
+    /**
+     * Hidden Note
+     */
+    hidden_note?: string | null;
 };
 
 /**
@@ -2349,7 +2404,10 @@ export type ReadProfileApiV1AdminProfilesUserIdGetResponses = {
 export type ReadProfileApiV1AdminProfilesUserIdGetResponse = ReadProfileApiV1AdminProfilesUserIdGetResponses[keyof ReadProfileApiV1AdminProfilesUserIdGetResponses];
 
 export type KeepProfileApiV1AdminProfilesUserIdReviewPostData = {
-    body?: never;
+    /**
+     * Decision
+     */
+    body?: AdminDecision | null;
     headers?: {
         /**
          * Authorization
@@ -2385,7 +2443,7 @@ export type KeepProfileApiV1AdminProfilesUserIdReviewPostResponses = {
 export type KeepProfileApiV1AdminProfilesUserIdReviewPostResponse = KeepProfileApiV1AdminProfilesUserIdReviewPostResponses[keyof KeepProfileApiV1AdminProfilesUserIdReviewPostResponses];
 
 export type HideProfileApiV1AdminProfilesUserIdHidePostData = {
-    body?: never;
+    body: AdminHide;
     headers?: {
         /**
          * Authorization
@@ -2421,7 +2479,10 @@ export type HideProfileApiV1AdminProfilesUserIdHidePostResponses = {
 export type HideProfileApiV1AdminProfilesUserIdHidePostResponse = HideProfileApiV1AdminProfilesUserIdHidePostResponses[keyof HideProfileApiV1AdminProfilesUserIdHidePostResponses];
 
 export type RestoreProfileApiV1AdminProfilesUserIdRestorePostData = {
-    body?: never;
+    /**
+     * Decision
+     */
+    body?: AdminDecision | null;
     headers?: {
         /**
          * Authorization

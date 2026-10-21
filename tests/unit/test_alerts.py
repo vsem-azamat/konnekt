@@ -149,3 +149,16 @@ async def test_positional_arguments_are_not_sent() -> None:
     sent = await _run(lambda: structlog.get_logger("x").error("could not load %s", "password=hunter2"))
 
     assert sent == ["⚠️ bot: x: could not load %s"]
+
+
+async def test_the_error_class_is_part_of_the_alert_so_another_bug_is_not_throttled_away() -> None:
+    setup_logging()
+
+    sent = await _run(
+        lambda: (
+            structlog.get_logger("bot.update").error("update_failed", error_type="ValueError"),
+            structlog.get_logger("bot.update").error("update_failed", error_type="KeyError"),
+        )
+    )
+
+    assert sent == ["⚠️ bot: bot.update: update_failed (ValueError)", "⚠️ bot: bot.update: update_failed (KeyError)"]

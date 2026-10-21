@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
-import { CloseIcon, PlusIcon } from '@/components/icons';
+import { HideReasonText } from '@/components/HideReasonText';
+import { CloseIcon, LockIcon, PlusIcon } from '@/components/icons';
 import {
   Empty,
   Hint,
@@ -14,7 +15,6 @@ import {
   Screen,
   Segmented,
   SkeletonRows,
-  Sub,
   Tile,
   Title,
   ui,
@@ -22,7 +22,8 @@ import {
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { afterHelperSaved } from '@/lib/helperSaved';
-import type { MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
+import { type OwnerStatus, ownerStatus } from '@/lib/ownerStatus';
+import type { MyHelper, MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
 import { askedFormat, formatOptions, formatQuestion } from '@/lib/workFormat';
 
 /**
@@ -64,6 +65,17 @@ export default function MyHelperPage() {
   const [workFormat, setWorkFormat] = useState<WorkFormat>('both');
   const [listed, setListed] = useState(true);
   const [rows, setRows] = useState<Draft[]>([]);
+  // The profile as the server last said it was, kept across the refetch after
+  // a save (afterHelperSaved drops the cached copy), so the status above the
+  // form does not blink out while the new one loads.
+  const [seen, setSeen] = useState<MyHelper>();
+  useEffect(() => {
+    if (data) setSeen(data);
+  }, [data]);
+  const status = seen ? ownerStatus(seen) : null;
+  // Only an operator lifts their hide; a save there keeps it hidden, and says so.
+  const banned = status === 'banned';
+  const [savedHidden, setSavedHidden] = useState(false);
 
   // Worded by what is on the screen now, not by what the server last saw:
   // deleting the last lesson row has to stop the question asking about
@@ -93,6 +105,9 @@ export default function MyHelperPage() {
     setCity(data.city ?? '');
     setPlaceNote(data.place_note ?? '');
     setWorkFormat(data.work_format);
+    // On while an operator keeps it hidden too: the server ignores it then,
+    // and if they list it again while this screen is open, the next save must
+    // not take it down.
     setListed(data.status !== 'hidden' && data.status !== 'draft');
     setRows(data.offers.map(toDraft));
     setLoaded(true);
@@ -113,8 +128,10 @@ export default function MyHelperPage() {
         offers: rows.map(toOffer),
         publish: listed,
       }),
+    onMutate: () => setSavedHidden(false),
     onSuccess: (me) => {
       hapticSuccess();
+      setSavedHidden(me.helper_status === 'banned');
       afterHelperSaved(queryClient, me);
     },
   });
@@ -151,9 +168,7 @@ export default function MyHelperPage() {
       <Title>
         <Trans>Моя анкета</Trans>
       </Title>
-      <Sub>
-        <Trans>Всё можно менять когда угодно. Пустые поля просто не показываем.</Trans>
-      </Sub>
+      {seen && status ? <StatusCard status={status} helper={seen} /> : null}
 
       {!loaded ? (
         <div style={{ marginTop: 16 }}>
@@ -287,23 +302,42 @@ export default function MyHelperPage() {
           <Label>
             <Trans>Видимость</Trans>
           </Label>
-          <Segmented
-            value={listed ? 'on' : 'off'}
-            onChange={(value) => setListed(value === 'on')}
-            options={[
-              { value: 'on', label: <Trans>В каталоге</Trans> },
-              { value: 'off', label: <Trans>Скрыть</Trans> },
-            ]}
-          />
-          <div style={{ marginTop: 9 }}>
-            <Hint>
-              {listed ? (
-                <Trans>Тебя видят в поиске и могут написать.</Trans>
-              ) : (
-                <Trans>Анкета сохранится, но в каталоге её не будет.</Trans>
-              )}
-            </Hint>
-          </div>
+          {banned ? (
+            <div className={ui.ownerLocked}>
+              <LockIcon size={18} />
+              <span>
+                <Trans>Вернуть в каталог может только администратор</Trans>
+              </span>
+            </div>
+          ) : (
+            <>
+              <Segmented
+                value={listed ? 'on' : 'off'}
+                onChange={(value) => setListed(value === 'on')}
+                options={[
+                  { value: 'on', label: <Trans>В каталоге</Trans> },
+                  { value: 'off', label: <Trans>Скрыть</Trans> },
+                ]}
+              />
+              <div style={{ marginTop: 9 }}>
+                <Hint>
+                  {listed ? (
+                    <Trans>Тебя видят в поиске и могут написать.</Trans>
+                  ) : (
+                    <Trans>Анкета сохранится, но в каталоге её не будет.</Trans>
+                  )}
+                </Hint>
+              </div>
+            </>
+          )}
+
+          {savedHidden ? (
+            <div className={ui.ownerSaved} role="status">
+              <Trans>
+                Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз.
+              </Trans>
+            </div>
+          ) : null}
 
           {save.isError ? (
             <div style={{ marginTop: 12 }}>
@@ -315,6 +349,63 @@ export default function MyHelperPage() {
         </>
       )}
     </Screen>
+  );
+}
+
+/**
+ * Where the profile stands, and who can change that: the owner's own states,
+ * «на проверке» (listed already, only not looked at yet), and an operator's
+ * hide with its reason.
+ */
+function StatusCard({ status, helper }: { status: OwnerStatus; helper: MyHelper }) {
+  return (
+    <div className={ui.ownerStatus} data-status={status}>
+      <span className={ui.ownerStatusTitle}>
+        {status === 'draft' ? (
+          <Trans>Черновик</Trans>
+        ) : status === 'review' ? (
+          <Trans>На проверке</Trans>
+        ) : status === 'listed' ? (
+          <Trans>В каталоге</Trans>
+        ) : status === 'hidden' ? (
+          <Trans>Скрыта тобой</Trans>
+        ) : (
+          <Trans>Скрыта администратором</Trans>
+        )}
+      </span>
+      {status === 'banned' && helper.hidden_reason ? (
+        <span>
+          {helper.hidden_reason === 'other' && helper.hidden_note ? (
+            <Trans>Причина: {helper.hidden_note}</Trans>
+          ) : (
+            <Trans>
+              Причина: <HideReasonText reason={helper.hidden_reason} />
+            </Trans>
+          )}
+        </span>
+      ) : null}
+      <span>
+        {status === 'draft' ? (
+          <Trans>Пока её видишь только ты. Выбери «В каталоге», когда всё готово.</Trans>
+        ) : status === 'review' ? (
+          <Trans>Анкета уже в каталоге, администратор её ещё не смотрел.</Trans>
+        ) : status === 'listed' ? (
+          <Trans>Тебя видят в поиске и могут написать.</Trans>
+        ) : status === 'hidden' ? (
+          <Trans>Анкета сохранена, но в каталоге её нет. Вернуть можно ниже.</Trans>
+        ) : helper.under_review ? (
+          <Trans>
+            В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё
+            раз.
+          </Trans>
+        ) : (
+          <Trans>
+            В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её
+            в каталог может только администратор.
+          </Trans>
+        )}
+      </span>
+    </div>
   );
 }
 

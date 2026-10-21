@@ -17,6 +17,10 @@ msgstr ""
 msgid "Новая карточка"
 msgstr "Nová karta"
 
+#: src/console/ProfileSheet.tsx
+msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы не пишем, но в «Моей анкете» будет видно, что её скрыли, и причина."
+msgstr "Zmizí z katalogu i z vyhledávání a autor ho nebude moct znovu zveřejnit. Vrátit ho jde tady, ve «Skrytých». Autorovi nepíšeme, ale v «Mém profilu» uvidí, že byl skryt, a proč."
+
 #: src/console/pages/Chats.tsx
 msgid "+ Внешний чат"
 msgstr "+ Externí chat"
@@ -183,6 +187,11 @@ msgstr "zap."
 #: src/console/BrowserShell.tsx
 msgid "Обзор"
 msgstr "Přehled"
+
+#. placeholder {0}: helper.hidden_note
+#: src/pages/MyHelper.tsx
+msgid "Причина: {0}"
+msgstr "Důvod: {0}"
 
 #: src/console/pages/Catalog.tsx
 msgid "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
@@ -363,6 +372,10 @@ msgstr "Nespravuje je Konnekt a pravidla jsou tam jejich vlastní."
 msgid "Mini App"
 msgstr "Mini App"
 
+#: src/components/HideReasonText.tsx
+msgid "Реклама или спам"
+msgstr "Reklama nebo spam"
+
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -373,8 +386,8 @@ msgid "математический анализ на ČVUT к 14 февраля
 msgstr "matematická analýza na ČVUT do 14. února, do 600 Kč"
 
 #: src/pages/MyHelper.tsx
-msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
-msgstr "Vše můžeš kdykoli změnit. Prázdná pole prostě neukazujeme."
+#~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
+#~ msgstr "Vše můžeš kdykoli změnit. Prázdná pole prostě neukazujeme."
 
 #: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
@@ -564,6 +577,7 @@ msgid "отключён"
 msgstr "vypnutý"
 
 #: src/console/pages/Chats.tsx
+#: src/pages/MyHelper.tsx
 msgid "На проверке"
 msgstr "Ke schválení"
 
@@ -644,6 +658,10 @@ msgstr "Načítáme seznam škol…"
 msgid "Как забанить"
 msgstr "Jak zabanovat"
 
+#: src/components/HideReasonText.tsx
+msgid "Неправдивые сведения"
+msgstr "Nepravdivé údaje"
+
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
 msgstr "doučování, práce, dokumenty"
@@ -651,6 +669,10 @@ msgstr "doučování, práce, dokumenty"
 #: src/pages/Profile.tsx
 msgid "расскажи своими словами, анкету соберём сами"
 msgstr "napiš to vlastními slovy, anketu sestavíme sami"
+
+#: src/pages/MyHelper.tsx
+msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
+msgstr "V katalogu není vidět. Změny jsou uložené, administrátor se na profil podívá znovu."
 
 #: src/components/Incoming.tsx
 msgid "Заявку уже закрыли"
@@ -712,6 +734,10 @@ msgstr "Napiš to tak, jak to máš v hlavě. Poznáme předmět, školu, termí
 #: src/console/pages/AudiencePerson.tsx
 msgid "заблокирован {0}"
 msgstr "zablokován {0}"
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор изменил её после этого: вернуть или оставить скрытой?"
+msgstr "Autor ho mezitím upravil: vrátit, nebo nechat skrytý?"
 
 #: src/console/pages/Spam.tsx
 msgid "Разобрано"
@@ -780,6 +806,10 @@ msgstr "Poptávky vidí ti, kdo na ně můžou odpovědět."
 #: src/pages/Helper.tsx
 msgid "Сколько стоит"
 msgstr "Kolik to stojí"
+
+#: src/pages/MyHelper.tsx
+msgid "Скрыта тобой"
+msgstr "Skrytý tebou"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -858,6 +888,10 @@ msgstr "Přihlášení se neuložilo: otevřete konzoli v aplikaci Telegram."
 msgid "Все чаты"
 msgstr "Všechny chaty"
 
+#: src/pages/MyHelper.tsx
+msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
+msgstr "Profil už je v katalogu, administrátor ho ještě neviděl."
+
 #: src/console/pages/AudiencePeople.tsx
 msgid "@username, имя или id"
 msgstr "@username, jméno nebo id"
@@ -900,6 +934,10 @@ msgstr "nastavuje se u nadřazeného"
 msgid "с {since}: {0} → {1}"
 msgstr "od {since}: {0} → {1}"
 
+#: src/components/HideReasonText.tsx
+msgid "Другое"
+msgstr "Jiné"
+
 #: src/pages/Mine.tsx
 msgid "Пока без откликов"
 msgstr "Zatím bez odpovědí"
@@ -940,6 +978,10 @@ msgstr "Zobrazit podobné"
 #: src/console/pages/System.tsx
 msgid "Выйти на этом устройстве?"
 msgstr "Odhlásit se na tomto zařízení?"
+
+#: src/pages/Profile.tsx
+msgid "скрыта администратором"
+msgstr "skrytý administrátorem"
 
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
@@ -1021,6 +1063,14 @@ msgstr "Poptávky"
 msgid "На все открытые заявки кто-то откликнулся."
 msgstr "Na všechny otevřené žádosti někdo odpověděl."
 
+#: src/pages/MyHelper.tsx
+msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
+msgstr "Zatím ho vidíš jen ty. Až bude hotový, vyber «V katalogu»."
+
+#: src/console/pages/Catalog.tsx
+msgid "скрыта, автор изменил анкету"
+msgstr "skrytý, autor ho upravil"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "Bude první v sekci «Není o škole». Zobrazují se tam tři karty: nejnižší zmizí, dokud jinou nevypnete."
@@ -1082,6 +1132,10 @@ msgstr "Kde bývá"
 #: src/console/pages/System.tsx
 msgid "выкл."
 msgstr "vyp."
+
+#: src/console/ProfileSheet.tsx
+msgid "Причина"
+msgstr "Důvod"
 
 #: src/pages/Join.tsx
 msgid "Готово, ты в чате"
@@ -1210,6 +1264,10 @@ msgstr "Ostatní"
 #: src/console/pages/AudiencePerson.tsx
 msgid "с {0}, последний раз {1}"
 msgstr "od {0}, naposledy {1}"
+
+#: src/pages/MyHelper.tsx
+msgid "Черновик"
+msgstr "Koncept"
 
 #: src/console/pages/Chat.tsx
 msgid "Модерировать"
@@ -1444,6 +1502,10 @@ msgstr "s tématy"
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "Tohle si přečtou první. Pár živých vět funguje líp než seznam."
 
+#: src/console/ProfileSheet.tsx
+msgid "Причина своими словами"
+msgstr "Důvod vlastními slovy"
+
 #: src/console/pages/Catalog.tsx
 msgid "Все новые анкеты просмотрены."
 msgstr "Všechny nové profily jsou prohlédnuté."
@@ -1602,6 +1664,10 @@ msgstr "Volné termíny"
 msgid "Вход устарел: откройте приложение заново."
 msgstr "Přihlášení vypršelo: otevřete aplikaci znovu."
 
+#: src/pages/MyHelper.tsx
+msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
+msgstr "V katalogu není vidět. Profil můžeš upravovat a změny se uloží, ale zpět do katalogu ho může vrátit jen administrátor."
+
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
 msgstr "Odpovíme, ve kterých chatech se to hodí a kolik to stojí."
@@ -1638,6 +1704,10 @@ msgstr "Za 7 dní"
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
 msgstr "Chaty ke schválení"
+
+#: src/pages/MyHelper.tsx
+msgid "Скрыта администратором"
+msgstr "Skrytý administrátorem"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Подзаголовок"
@@ -1808,6 +1878,10 @@ msgstr "Zavřít"
 msgid "Сб"
 msgstr "So"
 
+#: src/console/ProfileSheet.tsx
+msgid "Оставить скрытой"
+msgstr "Nechat skrytý"
+
 #: src/console/Charts.tsx
 msgid "Вт"
 msgstr "Út"
@@ -1859,6 +1933,10 @@ msgstr "Nic není označeno „není reklama“."
 msgid "Забанить"
 msgstr "Zabanovat"
 
+#: src/console/ProfileSheet.tsx
+msgid "Автор может её править, но не опубликовать сам."
+msgstr "Autor ho může upravovat, ale sám ho nezveřejní."
+
 #: src/components/ChatRow.tsx
 msgid "Этот чат ведёт не Konnekt, и правила там свои."
 msgstr "Tento chat nespravuje Konnekt a pravidla jsou tam jeho vlastní."
@@ -1886,6 +1964,10 @@ msgstr "Zabanovaní ve všech chatech. Banuje se příkazem /banall nebo z obraz
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram odmítl ve všech chatech: zkontrolujte práva bota a zabanujte znovu."
+
+#: src/components/HideReasonText.tsx
+msgid "Нарушает правила"
+msgstr "Porušuje pravidla"
 
 #: src/console/Login.tsx
 msgid "Войти через Telegram"
@@ -1954,6 +2036,10 @@ msgstr "Takhle vypadá"
 #: src/console/pages/PartnerNew.tsx
 msgid "Каталог не принял карточку: проверьте ссылку и длину полей."
 msgstr "Katalog kartu nepřijal: zkontrolujte odkaz a délku polí."
+
+#: src/pages/MyHelper.tsx
+msgid "Анкета сохранена, но в каталоге её нет. Вернуть можно ниже."
+msgstr "Profil je uložený, ale v katalogu není. Vrátit ho můžeš níže."
 
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Summary.tsx
@@ -2083,6 +2169,10 @@ msgstr "Za 30 dní"
 msgid "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
 msgstr "Klepni na tlačítko a potvrď, že nejsi bot. Žádost se hned schválí."
 
+#: src/pages/MyHelper.tsx
+msgid "Причина: <0/>"
+msgstr "Důvod: <0/>"
+
 #: src/console/pages/Summary.tsx
 msgid "Реклама не разобрана"
 msgstr "Nevyřízená reklama"
@@ -2116,6 +2206,10 @@ msgstr "{0, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other
 #: src/components/Incoming.tsx
 msgid "На эту заявку ты уже отвечал"
 msgstr "Na tuhle poptávku jsi už odpovídal"
+
+#: src/pages/MyHelper.tsx
+msgid "Вернуть в каталог может только администратор"
+msgstr "Zpět do katalogu ho může vrátit jen administrátor"
 
 #: src/pages/Ads.tsx
 msgid "Что не размещаем"
@@ -2192,6 +2286,10 @@ msgstr "Napsat · {0} Kč"
 #: src/console/pages/Summary.tsx
 msgid "За сутки бот не видел сообщений."
 msgstr "Bot za 24 hodin neviděl žádné zprávy."
+
+#: src/console/ProfileSheet.tsx
+msgid "Что не так, своими словами"
+msgstr "Co je špatně, vlastními slovy"
 
 #: src/pages/Profile.tsx
 msgid "скрыта — в каталоге её не видно"
@@ -2276,6 +2374,10 @@ msgstr "Zkus to znovu"
 #: src/components/Incoming.tsx
 msgid "Чем можешь помочь и когда"
 msgstr "S čím můžeš pomoct a kdy"
+
+#: src/console/ProfileSheet.tsx
+msgid "Скрыта из каталога: <0/>."
+msgstr "Skrytý z katalogu: <0/>."
 
 #: src/pages/Chats.tsx
 msgid "Чатов пока нет"
@@ -2389,6 +2491,10 @@ msgstr "Odmítl jsi"
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
 msgstr "Zaznamenává historii a počítá členy. Nic nepíše a na nic neodpovídá."
+
+#: src/console/ProfileSheet.tsx
+msgid "Скрыта из каталога."
+msgstr "Skrytý z katalogu."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Заголовок"
@@ -2534,8 +2640,8 @@ msgid "3 дня"
 msgstr "3 dny"
 
 #: src/console/ProfileSheet.tsx
-msgid "Скрыта из каталога: автор не может опубликовать её сам."
-msgstr "Skryto z katalogu: autor ho nemůže sám znovu zveřejnit."
+#~ msgid "Скрыта из каталога: автор не может опубликовать её сам."
+#~ msgstr "Skryto z katalogu: autor ho nemůže sám znovu zveřejnit."
 
 #: src/components/Phrase.tsx
 msgid "Помощь нужна до экзамена или на нём?"
@@ -2600,8 +2706,8 @@ msgid "Вступление в чат"
 msgstr "Vstup do chatu"
 
 #: src/console/ProfileSheet.tsx
-msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
-msgstr "Zmizí z katalogu i z vyhledávání a autor ho nebude moci znovu zveřejnit. Vrátit ho lze tady, v „Skrytých“. Autorovi nic nepíšeme."
+#~ msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
+#~ msgstr "Zmizí z katalogu i z vyhledávání a autor ho nebude moci znovu zveřejnit. Vrátit ho lze tady, v „Skrytých“. Autorovi nic nepíšeme."
 
 #: src/pages/MyHelper.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
@@ -2628,6 +2734,11 @@ msgstr "Hledáme…"
 #: src/pages/Results.tsx
 msgid "Пусть найдут тебя"
 msgstr "Ať najdou oni tebe"
+
+#. placeholder {0}: data.hidden_note
+#: src/console/ProfileSheet.tsx
+msgid "Скрыта из каталога: «{0}»."
+msgstr "Skrytý z katalogu: «{0}»."
 
 #: src/pages/Life.tsx
 msgid "Но без этого не доучишься. Сроки и требования — наши, предложения — партнёрские."
@@ -2770,6 +2881,10 @@ msgstr "Publikum"
 #: src/components/Incoming.tsx
 msgid "Сначала заполни профиль"
 msgstr "Nejdřív vyplň profil"
+
+#: src/pages/MyHelper.tsx
+msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."
+msgstr "Uloženo. Profil je dál skrytý, administrátor se na něj podívá znovu."
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Blacklist.tsx

@@ -17,7 +17,7 @@
  *   requests.
  */
 
-import type { Avatar, HomeSection } from './generated/types.gen';
+import type { Avatar, HideReason, HomeSection } from './generated/types.gen';
 
 export type UiLang = 'ru' | 'cs' | 'en' | 'uk';
 
@@ -69,7 +69,11 @@ export type { Avatar };
  * accept anything. The rest of this file is still the hand-written stopgap
  * described above — types move across as the code that uses them is touched.
  */
-export type { ServiceGroup, ServiceTypeOut as ServiceType } from './generated/types.gen';
+export type {
+  HideReason,
+  ServiceGroup,
+  ServiceTypeOut as ServiceType,
+} from './generated/types.gen';
 
 export interface Subject {
   id: number;
@@ -407,6 +411,11 @@ export interface MyHelper {
   city: string | null;
   place_note: string | null;
   offers: MyOffer[];
+  /** Listed, or hidden by an operator, and not looked at since it changed. */
+  under_review?: boolean;
+  /** Only while an operator keeps it hidden. */
+  hidden_reason?: HideReason | null;
+  hidden_note?: string | null;
 }
 
 export interface ContactStart {
