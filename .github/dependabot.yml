@@ -17,6 +17,11 @@ updates:
     schedule: {interval: monthly}
     groups:
       web: {patterns: ["*"]}
+    # TypeScript 7 drops the compiler API that @hey-api/openapi-ts (api:generate)
+    # is built on; lift this once openapi-ts supports it.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   # Actions are pinned to commits (#191); this keeps the pins moving.
   - package-ecosystem: github-actions
     directory: /
