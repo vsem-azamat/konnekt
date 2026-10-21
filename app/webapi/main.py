@@ -23,6 +23,7 @@ from app.webapi.routes import (
     auth_telegram,
     catalog,
     chats,
+    client_errors,
     health,
     join_check,
     metrics,
@@ -122,6 +123,7 @@ def create_app() -> FastAPI:
     app.include_router(public.router, prefix="/api")
     app.include_router(join_check.router, prefix="/api")
     app.include_router(seen.router, prefix="/api")
+    app.include_router(client_errors.router, prefix="/api")
     # The console, guarded at the router: a route added here cannot forget to
     # ask, and the question comes before anything else a route depends on.
     console = [Depends(require_super_admin)]
