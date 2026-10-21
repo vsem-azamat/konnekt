@@ -9,13 +9,13 @@ from __future__ import annotations
 import datetime
 from typing import Annotated, Literal, cast
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Path, Response
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.core.time import utc_now
-from app.db.models import Chat, Message
+from app.db.models import Chat, ChatAvatar, Message
 from app.webapi.deps import get_session
 from app.webapi.schemas import PublicCatalogItem, PublicReach, PublicReachGroup
 from app.webapi.services import member_counts, public_answers
@@ -50,6 +50,13 @@ MIN_OBSERVED_DAYS = 14
 # a chat it has not counted for three days is one it left or cannot see, and
 # its last number would read as today's.
 MEMBER_COUNT_FRESH_FOR = datetime.timedelta(days=3)
+
+# A picture's address changes with the picture, so what is served at one never
+# goes stale: the browser may keep it for as long as it likes.
+AVATAR_PATH = "/api/public/avatars"
+AVATAR_CACHE_CONTROL = "public, max-age=31536000, immutable"
+# What Telegram's `file_unique_id` is made of; anything else cannot be one.
+_UNIQUE_ID = r"^[A-Za-z0-9_-]{1,64}$"
 
 # Sorts after every real title, so ungrouped chats land at the end rather than
 # at the top where an empty string would put them.
@@ -149,8 +156,10 @@ async def get_public_catalog(
                     "institution"
                 ),
                 func.coalesce(recent_messages.c.messages, 0).label("messages"),
+                ChatAvatar.unique_id.label("avatar"),
             )
             .outerjoin(parent, parent.id == Chat.parent_chat_id)
+            .outerjoin(ChatAvatar, ChatAvatar.chat_id == Chat.id)
             .outerjoin(recent_messages, recent_messages.c.chat_id == Chat.id)
             .where(Chat.resource_status.in_(Chat.LISTABLE_STATUSES))
             .where(Chat.public_link.is_not(None))
@@ -168,6 +177,7 @@ async def get_public_catalog(
             member_count=counts.get(row.id),
             is_forum=bool(row.is_forum),
             external=row.resource_status == Chat.STATUS_EXTERNAL,
+            avatar=f"{AVATAR_PATH}/{row.avatar}" if row.avatar else None,
         )
         for row in rows
         if row.title and row.public_link
@@ -186,6 +196,46 @@ async def get_public_catalog(
     )
     public_answers.remember("catalog", answer)
     return answer
+
+
+@router.get("/avatars/{unique_id}")
+async def get_public_avatar(
+    unique_id: Annotated[str, Path(pattern=_UNIQUE_ID)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    if_none_match: Annotated[str | None, Header()] = None,
+) -> Response:
+    """A listed chat's photo, at the address the catalog gave for it.
+
+    Only a chat the catalog lists has one here: the picture follows the same
+    decision to publish as the row does, so unlisting a chat takes its picture
+    down with it. The id is Telegram's `file_unique_id` for the photo, which
+    changes exactly when the chat's photo does; that is what lets the answer be
+    cached for a year, and the ETag answers a revalidation without the bytes.
+    """
+    etag = f'"{unique_id}"'
+    headers = {"Cache-Control": AVATAR_CACHE_CONTROL, "ETag": etag, "X-Content-Type-Options": "nosniff"}
+    if if_none_match == etag:
+        # Only after the picture is known to exist, or a guess would be answered "fine".
+        known = await session.scalar(_listed_avatar(unique_id).with_only_columns(ChatAvatar.chat_id))
+        if known is not None:
+            return Response(status_code=304, headers=headers)
+    row = (
+        await session.execute(_listed_avatar(unique_id).with_only_columns(ChatAvatar.content, ChatAvatar.content_type))
+    ).first()
+    if row is None:
+        return Response(status_code=404, headers={"Cache-Control": "public, max-age=60"})
+    return Response(content=row.content, media_type=row.content_type, headers=headers)
+
+
+def _listed_avatar(unique_id: str):
+    return (
+        select(ChatAvatar)
+        .join(Chat, Chat.id == ChatAvatar.chat_id)
+        .where(ChatAvatar.unique_id == unique_id)
+        .where(Chat.resource_status.in_(Chat.LISTABLE_STATUSES))
+        .where(Chat.public_link.is_not(None))
+        .limit(1)
+    )
 
 
 @router.get("/reach", response_model=PublicReach)

@@ -13,6 +13,7 @@ taken once a day, because they hardly ever change and each one is another call.
 from __future__ import annotations
 
 import datetime
+import io
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
@@ -20,7 +21,7 @@ import pytest
 from aiogram.exceptions import TelegramBadRequest
 from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
 from app.core.time import utc_now
-from app.db.models import Chat, ChatMemberSnapshot
+from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
 from sqlalchemy import select
 
 if TYPE_CHECKING:
@@ -41,6 +42,20 @@ def _bot(*, counts: dict[int, int] | None = None, title: str = "Как в Telegr
         return chat
 
     bot.get_chat = AsyncMock(side_effect=_get_chat)
+    return bot
+
+
+def _bot_with_photo(big: str, small: str, unique: str):
+    bot = _bot()
+
+    async def _get_chat(chat_id):
+        chat = MagicMock()
+        chat.title = "A"
+        chat.photo = MagicMock(big_file_id=big, small_file_id=small, small_file_unique_id=unique)
+        return chat
+
+    bot.get_chat = AsyncMock(side_effect=_get_chat)
+    bot.download = AsyncMock(return_value=io.BytesIO(b"\xff\xd8\xff" + b"x" * 32))
     return bot
 
 
@@ -176,17 +191,113 @@ class TestMetadata:
 
         assert (await _chat(db_session_maker, -100)).photo_file_id == "file-123"
 
-    async def test_a_chat_with_no_photo_keeps_the_one_we_had(
+    async def test_a_chat_that_answers_without_a_photo_has_none(
         self, db_session_maker: async_sessionmaker[AsyncSession]
     ) -> None:
-        """A photo Telegram did not mention is not a photo that was removed."""
+        """`getChat` leaves the photo out when there is none: that is the answer, and the old one goes."""
         chat = Chat(id=-100, title="A")
         chat.photo_file_id = "file-old"
         await _seed(db_session_maker, chat)
 
         await snapshot_once(session_maker=db_session_maker, bot=_bot(photo=None))
 
+        assert (await _chat(db_session_maker, -100)).photo_file_id is None
+
+    async def test_a_chat_that_would_not_answer_keeps_the_photo_it_had(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        chat = Chat(id=-100, title="A")
+        chat.photo_file_id = "file-old"
+        await _seed(db_session_maker, chat)
+        bot = _bot()
+        bot.get_chat = AsyncMock(side_effect=_refused())
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
         assert (await _chat(db_session_maker, -100)).photo_file_id == "file-old"
+
+
+class TestAvatars:
+    """The picture comes with the photo: fetched when it is new, not re-fetched when it is not."""
+
+    async def _avatar(self, session_maker, chat_id: int = -100) -> ChatAvatar | None:
+        async with session_maker() as session:
+            return await session.get(ChatAvatar, chat_id)
+
+    async def test_a_new_photo_is_downloaded_in_the_same_tick(self, db_session_maker) -> None:
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        avatar = await self._avatar(db_session_maker)
+        assert avatar is not None
+        assert avatar.unique_id == "uniq-1"
+
+    async def test_a_chat_synced_yesterday_without_a_picture_gets_one_now(self, db_session_maker) -> None:
+        """The rows that existed before this feature have a file id and no picture: waiting a day for each would be silly."""
+        chat = Chat(id=-100, title="A")
+        chat.photo_file_id = "big-1"
+        chat.last_synced_at = utc_now()
+        await _seed(db_session_maker, chat)
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot_with_photo("big-1", "small-1", "uniq-1"))
+
+        assert await self._avatar(db_session_maker) is not None
+
+    async def test_a_chat_with_its_picture_is_not_asked_again_until_stale(self, db_session_maker) -> None:
+        chat = Chat(id=-100, title="A")
+        chat.photo_file_id = "big-1"
+        chat.last_synced_at = utc_now()
+        await _seed(db_session_maker, chat)
+        async with db_session_maker() as session:
+            session.add(ChatAvatar(chat_id=-100, unique_id="uniq-1", content=b"\xff\xd8\xff"))
+            await session.commit()
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        bot.get_chat.assert_not_awaited()
+
+    async def test_a_chat_the_bot_is_not_in_is_asked_by_its_public_name(self, db_session_maker) -> None:
+        chat = Chat(id=-100, title="A", resource_status=Chat.STATUS_EXTERNAL, public_link="https://t.me/cvut_fjfi")
+        await _seed(db_session_maker, chat)
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+        by_name = bot.get_chat.side_effect
+
+        async def _get_chat(chat_id):
+            if isinstance(chat_id, int):
+                raise _refused()
+            return await by_name(chat_id)
+
+        bot.get_chat = AsyncMock(side_effect=_get_chat)
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert bot.get_chat.await_args_list[-1].args == ("@cvut_fjfi",)
+        assert await self._avatar(db_session_maker) is not None
+
+    async def test_a_chat_that_removed_its_photo_loses_the_picture(self, db_session_maker) -> None:
+        chat = Chat(id=-100, title="A")
+        chat.photo_file_id = "big-1"
+        await _seed(db_session_maker, chat)
+        async with db_session_maker() as session:
+            session.add(ChatAvatar(chat_id=-100, unique_id="uniq-1", content=b"\xff\xd8\xff"))
+            await session.commit()
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(photo=None))
+
+        assert await self._avatar(db_session_maker) is None
+
+    async def test_a_download_that_fails_does_not_stop_the_tick(self, db_session_maker) -> None:
+        await _seed(db_session_maker, Chat(id=-100, title="A"), Chat(id=-200, title="B"))
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+        bot.download = AsyncMock(side_effect=_refused())
+
+        written = await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert written == 2
+        assert await self._avatar(db_session_maker) is None
 
 
 class TestFloodControl:

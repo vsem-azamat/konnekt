@@ -54,6 +54,16 @@ moderates real chats. No test can catch this.
 
 ## Mini App
 
+**A chat's photo is served from our address, and an address names one picture
+forever.** The catalog shows `/api/public/avatars/<file_unique_id>` with a
+year-long `immutable` cache. That is only safe because Telegram changes the
+unique id when the photo changes; serving different bytes at an existing id, or
+keying the address by chat, would leave every browser and Telegram WebView
+showing the old photo with nothing to invalidate it. A Telegram file URL or file
+id must never reach a client instead: the URL carries the bot token. The bytes
+live in the database because the bot writes them and the web API, a different
+container, reads them.
+
 **A Mini App secret is `hmac(key="WebAppData", msg=bot_token)`.** The other
 derivation anyone reaches for, `sha256(bot_token)`, belonged to the Login
 Widget and fails every signature here. "Fixing" that by relaxing the check is

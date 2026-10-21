@@ -2,7 +2,18 @@ import datetime
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import PendingActionStatus
@@ -581,6 +592,37 @@ class JoinWave(Base):
         self.chat_id = chat_id
         self.started_at = started_at
         self.last_surge_at = started_at
+
+
+class ChatAvatar(Base):
+    """A chat's photo as bytes we serve ourselves, one row per chat.
+
+    A Telegram file id cannot be shown to a browser, and the only URL Telegram
+    gives for its file carries the bot token, so the picture is downloaded once
+    and kept. It lives in the database rather than on a volume because the bot
+    writes it and the web API reads it, in different containers: the database is
+    the one place both already reach, a backup already covers, and a few hundred
+    160 px JPEGs are well under a megabyte.
+
+    ``unique_id`` is Telegram's ``file_unique_id`` for the photo: it changes when
+    the chat changes its photo and not otherwise, so it is both the test for "do
+    we need to fetch again" and the address the picture is served at, which is
+    why the address can be cached forever.
+    """
+
+    __tablename__ = "chat_avatars"
+
+    chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True)
+    unique_id: Mapped[str] = mapped_column(String(64), index=True)
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str] = mapped_column(String(32), default="image/jpeg")
+    fetched_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+
+    def __init__(self, chat_id: int, unique_id: str, content: bytes, content_type: str = "image/jpeg") -> None:
+        self.chat_id = chat_id
+        self.unique_id = unique_id
+        self.content = content
+        self.content_type = content_type
 
 
 class ChatMemberSnapshot(Base):

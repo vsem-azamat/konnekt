@@ -61,6 +61,10 @@ class PublicCatalogItem(BaseModel):
     # need: the rules in there are not ours. A chat we only observe is still
     # ours and is not marked.
     external: bool = False
+    # Where the chat's photo is served, relative to the site: our own address,
+    # which changes when the photo does. None when there is no picture, and the
+    # app then keeps its letters. Never a Telegram file id or URL.
+    avatar: str | None = None
 
 
 class PublicReachGroup(BaseModel):
@@ -169,18 +173,6 @@ class ChatUpdate(BaseModel):
         if not PUBLIC_LINK.match(link):
             raise ValueError("Public link must be a Telegram chat link, e.g. https://t.me/cvut_fit")
         return link
-
-
-# A public username, the one form of chat link Telegram resolves for a bot that
-# is not in the chat; an invite opens only for whoever joins through it. Taken
-# as people paste it: "@name", "name", "t.me/name" or the full link.
-_USERNAME = re.compile(r"^(?:@|(?:https?://)?(?:t\.me|telegram\.me)/)?(?P<username>[A-Za-z][\w]{3,31})/?$")
-
-
-def username_of(link: str) -> str | None:
-    """The username a pasted link names, or None when it names no public chat."""
-    match = _USERNAME.match(link.strip())
-    return match["username"] if match else None
 
 
 class ExternalChatCreate(BaseModel):

@@ -29,7 +29,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chats.metadata import fetch_member_count, fetch_metadata
+from app.chats.avatars import sync_photo
+from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -48,7 +49,6 @@ from app.webapi.schemas import (
     ExternalChatCreate,
     HeatmapCell,
     MemberSnapshotPoint,
-    username_of,
 )
 from app.webapi.services import member_counts, public_answers
 from app.webapi.services.spam_pings import read_pings
@@ -324,12 +324,13 @@ async def refresh_chat_from_telegram(
     if chat is None:
         raise HTTPException(status_code=404, detail=f"Chat {chat_id} not found")
 
-    metadata = await fetch_metadata(bot=bot, chat_id=chat_id)
+    metadata = await fetch_metadata(
+        bot=bot, chat_id=chat_id, username=username_of(chat.public_link) if chat.public_link else None
+    )
     if metadata is not None:
         if metadata.title and metadata.title != chat.title:
             chat.title = metadata.title
-        if metadata.photo_file_id and metadata.photo_file_id != chat.photo_file_id:
-            chat.photo_file_id = metadata.photo_file_id
+        await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
 
     chat.last_synced_at = utc_now()
     await session.commit()
