@@ -54,6 +54,18 @@ moderates real chats. No test can catch this.
 
 ## Mini App
 
+**The app's height is only as fresh as Telegram's last report, so it has to
+recover on its own.** Minimising, backgrounding and restoring a Mini App send
+events whose order and completeness differ by client. On Android an app sized
+by the last *stable* height stayed the height of the minimised bottom bar after
+it was expanded again, and the catalogue showed a heading with no list under it
+(October 2026; the device's exact event sequence was not captured). So the
+viewport is asked for again on `visibility_changed` (Telegram's own script calls
+it `activated`) and on `visibilitychange` to visible, and a settled live height
+replaces a stale stable one: `web/src/lib/appHeight.ts`. The safe-area insets
+are not re-asked yet; if they turn out to go stale the same way, they get the
+same treatment.
+
 **A chat's photo is served from our address, and an address names one picture
 forever.** The catalog shows `/api/public/avatars/<file_unique_id>` with a
 year-long `immutable` cache. That is only safe because Telegram changes the
