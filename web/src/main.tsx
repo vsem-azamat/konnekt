@@ -33,9 +33,11 @@ import { followAppHeight } from '@/lib/appHeight';
 import {
   createReporter,
   describeError,
+  flushClientEvents,
   layoutLooksBroken,
   type Reporter,
   reportClientEvent,
+  scrub,
   startReporting,
 } from '@/lib/clientErrors';
 import { subscribeTheme } from '@/lib/theme';
@@ -97,14 +99,17 @@ function reportFailures(): void {
   if (!initData) return;
   const { tgWebAppPlatform, tgWebAppVersion } = retrieveLaunchParams();
   const reporter = createReporter({
-    send: (events) =>
-      api.reportClientErrors({
-        init_data: initData,
-        version: import.meta.env.VITE_APP_VERSION || 'unknown',
-        platform: tgWebAppPlatform,
-        tg_version: tgWebAppVersion,
-        events,
-      }),
+    send: (events, leaving) =>
+      api.reportClientErrors(
+        {
+          init_data: initData,
+          version: import.meta.env.VITE_APP_VERSION || 'unknown',
+          platform: tgWebAppPlatform,
+          tg_version: tgWebAppVersion,
+          events,
+        },
+        leaving,
+      ),
     route: routePattern,
   });
   startReporting(reporter);
@@ -121,6 +126,11 @@ function reportFailures(): void {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') reporter.flush();
     else setTimeout(checkLayout, LAYOUT_CHECK_MS);
+  });
+  // Restored from minimised, Android may say so only through Telegram's own
+  // event, and that return is exactly where the height went stale before.
+  on('visibility_changed', ({ is_visible }) => {
+    if (is_visible) setTimeout(checkLayout, LAYOUT_CHECK_MS);
   });
   setTimeout(checkLayout, LAYOUT_CHECK_MS);
 }
@@ -380,10 +390,19 @@ const queryClient = new QueryClient({
   },
 });
 
-function renderFailed(error: unknown): void {
+/**
+ * A render error, with the component stack in place of the script's: in a
+ * minified build the components are what still says where it happened.
+ */
+function renderFailed(error: unknown, info: { componentStack?: string }): void {
   console.error(error);
   const { message, stack, ignore } = describeError(error);
-  if (!ignore) reportClientEvent({ kind: 'render', message, stack });
+  if (ignore) return;
+  reportClientEvent({
+    kind: 'render',
+    message,
+    stack: info.componentStack ? scrub(info.componentStack, 2000) : stack,
+  });
 }
 
 function render(): void {
@@ -410,6 +429,10 @@ bootstrap().catch((error: unknown) => {
   // to catch it and no UI to report it in. Say something in plain text rather
   // than leaving a white screen.
   console.error('[boot] failed to start', error);
+  // Reported when the reporter got that far: nothing else would tell us.
+  const { message, stack } = describeError(error);
+  reportClientEvent({ kind: 'error', message, stack });
+  flushClientEvents();
 
   const container = document.getElementById('root');
   if (container) {

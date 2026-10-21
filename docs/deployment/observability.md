@@ -61,8 +61,11 @@ Nothing about the person.
 
 Counted in `mini_app_client_errors_total{kind, platform}`; reports the limits
 turned away in `mini_app_client_errors_dropped_total{reason}` (`rate_limited`
-for one person, `overall_limit` for everybody). `kind` is one of `error`,
-`unhandled_rejection`, `render`, `api`, `empty`, `layout`.
+for one person, `overall_limit` for everybody, `invalid` for an event the
+server could not read). `kind` is one of `error`,
+`unhandled_rejection`, `render`, `api`, `empty`, `layout`. `kind="api"` with
+`status=0` includes requests cut off by the app going to the background or
+offline, so it is not worth an alert on its own.
 
 ## After a deploy
 

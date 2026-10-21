@@ -311,12 +311,12 @@ export const api = {
   /**
    * What failed in this app, for the log (lib/clientErrors.ts). Plain `fetch`
    * rather than `publicRequest`, so that a report that fails is not itself
-   * reported, and `keepalive` so that one sent as the app goes away arrives.
+   * reported; `keepalive` so that one sent as the app goes away arrives.
    */
-  reportClientErrors: (report: ClientErrorReport): void => {
+  reportClientErrors: (report: ClientErrorReport, keepalive: boolean): void => {
     void fetch(`${BASE_URL}/api/public/client-errors`, {
       method: 'POST',
-      keepalive: true,
+      keepalive,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
     }).catch(() => undefined);

@@ -50,12 +50,24 @@ const PER_BATCH = 10;
 const MESSAGE_CHARS = 500;
 const STACK_CHARS = 2000;
 
-/** The query and fragment of an address, and numbers long enough to name somebody. */
-const ADDRESS_TAIL = /(https?:\/\/[^\s?#]*)[?#]\S*/g;
+/**
+ * The query and fragment of an address whatever its scheme, initData on its
+ * own, and numbers long enough to name somebody. The server scrubs the same.
+ */
+const ADDRESS_TAIL = /([a-z][a-z0-9+.-]*:\/\/[^\s?#]*)[?#]\S*/gi;
+const INIT_DATA = /tgWebAppData=\S*/gi;
 const LONG_NUMBER = /\d{6,}/g;
 
+/**
+ * Cut by characters, not UTF-16 units: half an emoji is a lone surrogate,
+ * which JSON.stringify writes as an escape the server refuses to parse.
+ */
 export function scrub(text: string, limit = MESSAGE_CHARS): string {
-  return text.replace(ADDRESS_TAIL, '$1').replace(LONG_NUMBER, '…').slice(0, limit);
+  const clean = text
+    .replace(ADDRESS_TAIL, '$1')
+    .replace(INIT_DATA, '')
+    .replace(LONG_NUMBER, '…');
+  return Array.from(clean).slice(0, limit).join('');
 }
 
 /**
@@ -116,21 +128,27 @@ export function createReporter({
   send,
   route,
 }: {
-  send: (events: ClientEvent[]) => void;
+  /**
+   * `leaving` when the app is going away, which is when the request has to
+   * outlive the page (`keepalive`). Only then: the browser caps what all such
+   * requests in flight may carry together at 64 KiB, and a burst over it
+   * would be dropped without a word.
+   */
+  send: (events: ClientEvent[], leaving: boolean) => void;
   route: () => string;
 }): Reporter {
   const seen = new Set<string>();
   let queue: ClientEvent[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const flush = (): void => {
+  const flush = (leaving: boolean): void => {
     clearTimeout(timer);
     timer = undefined;
     while (queue.length > 0) {
       const batch = queue.slice(0, PER_BATCH);
       queue = queue.slice(PER_BATCH);
       try {
-        send(batch);
+        send(batch, leaving);
       } catch {
         // Reporting a failure to report would be a loop with no way out.
       }
@@ -154,9 +172,9 @@ export function createReporter({
       if (seen.has(key) || seen.size >= PER_SESSION) return;
       seen.add(key);
       queue.push(event);
-      timer ??= setTimeout(flush, FLUSH_MS);
+      timer ??= setTimeout(() => flush(false), FLUSH_MS);
     },
-    flush,
+    flush: () => flush(true),
   };
 }
 
@@ -165,6 +183,11 @@ let current: Reporter | undefined;
 
 export function startReporting(reporter: Reporter): void {
   current = reporter;
+}
+
+/** Send what is waiting now: the app is going away, or never started. */
+export function flushClientEvents(): void {
+  current?.flush();
 }
 
 export function reportClientEvent(

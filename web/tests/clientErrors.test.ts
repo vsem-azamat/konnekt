@@ -16,11 +16,15 @@ import {
 function setup() {
   mock.timers.enable({ apis: ['setTimeout'] });
   const sent: ClientEvent[][] = [];
+  const leavings: boolean[] = [];
   const reporter = createReporter({
-    send: (events) => sent.push(events),
+    send: (events, leaving) => {
+      sent.push(events);
+      leavings.push(leaving);
+    },
     route: () => '/chats/:group',
   });
-  return { reporter, sent };
+  return { reporter, sent, leavings };
 }
 
 test('events wait a moment and go out together', (t) => {
@@ -40,14 +44,17 @@ test('events wait a moment and go out together', (t) => {
   );
 });
 
-test('leaving the app sends what is waiting at once', (t) => {
+test('leaving the app sends what is waiting at once, to outlive the page', (t) => {
   t.after(() => mock.timers.reset());
-  const { reporter, sent } = setup();
+  const { reporter, sent, leavings } = setup();
+  reporter.report({ kind: 'error', message: 'two' });
+  mock.timers.tick(FLUSH_MS);
   reporter.report({ kind: 'error', message: 'one' });
   reporter.flush();
-  assert.equal(sent.length, 1);
+  assert.equal(sent.length, 2);
+  assert.deepEqual(leavings, [false, true]);
   mock.timers.tick(FLUSH_MS);
-  assert.equal(sent.length, 1);
+  assert.equal(sent.length, 2);
 });
 
 test('the same failure in a loop is one event', (t) => {
@@ -126,4 +133,17 @@ test('an app far shorter than its window looks broken; a keyboard does not', () 
 test('a call that broke is a failure; the API saying no is not', () => {
   for (const status of [0, 401, 500, 502, 503]) assert.equal(isFailure(status), true);
   for (const status of [400, 403, 404, 409, 422]) assert.equal(isFailure(status), false);
+});
+
+test('a cut never splits a character in two', () => {
+  const cut = scrub(`${'а'.repeat(499)}😀😀`);
+  assert.equal(Array.from(cut).length, 500);
+  assert.equal(cut.at(-1), '😀'.at(-1));
+  assert.doesNotThrow(() => JSON.parse(JSON.stringify(cut)));
+  assert.ok(!/[\uD800-\uDBFF]$/.test(scrub(`${'а'.repeat(499)}😀`, 500)));
+});
+
+test('initData outside an address, and other schemes, are scrubbed too', () => {
+  assert.equal(scrub('x #tgWebAppData=user%3D42 y'), 'x # y');
+  assert.equal(scrub('TG://resolve?domain=me'), 'TG://resolve');
 });
