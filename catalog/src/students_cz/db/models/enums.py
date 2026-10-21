@@ -51,6 +51,20 @@ class PublishStatus(StrEnum):
     BANNED = "banned"
 
 
+class HideReason(StrEnum):
+    """Why an operator hid a profile. Its owner reads it; see helpers.py."""
+
+    SPAM = "spam"
+    MISLEADING = "misleading"
+    RULES = "rules"
+    # Said in words: `hidden_note`.
+    OTHER = "other"
+
+
+# A line on a phone screen, not a letter.
+HIDE_NOTE_MAX = 200
+
+
 class ServiceGroup(StrEnum):
     """Which shelf a kind of help sits on.
 

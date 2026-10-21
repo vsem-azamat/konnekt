@@ -155,6 +155,8 @@ export default function ProfilePage() {
                     <Trans>в каталоге</Trans>
                   ) : me.helper_status === 'hidden' ? (
                     <Trans>скрыта — в каталоге её не видно</Trans>
+                  ) : me.helper_status === 'banned' ? (
+                    <Trans>скрыта администратором</Trans>
                   ) : me.is_helper ? (
                     <Trans>черновик — не видна в каталоге</Trans>
                   ) : (

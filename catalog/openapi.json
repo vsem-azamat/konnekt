@@ -1709,6 +1709,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AdminDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Decision"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1769,6 +1786,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminHide"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1829,6 +1856,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AdminDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Decision"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2154,6 +2198,49 @@
         ],
         "title": "AdminCounts"
       },
+      "AdminDecision": {
+        "properties": {
+          "seen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seen"
+          }
+        },
+        "type": "object",
+        "title": "AdminDecision",
+        "description": "Keeping or restoring approves the profile as the operator read it. With\n`seen`, its `updated_at` then, an owner's save in between is a 409 rather\nthan an edit approved unread."
+      },
+      "AdminHide": {
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/HideReason"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AdminHide",
+        "description": "Why, from the list, or in words for «Другое» and only for it: the owner\nis shown the reason, and a note beside a listed reason would be shown to\nnobody."
+      },
       "AdminPlacement": {
         "properties": {
           "placement_id": {
@@ -2297,6 +2384,9 @@
             "type": "string",
             "title": "Name"
           },
+          "status": {
+            "$ref": "#/components/schemas/PublishStatus"
+          },
           "services": {
             "items": {
               "type": "string"
@@ -2314,6 +2404,7 @@
         "required": [
           "user_id",
           "name",
+          "status",
           "services",
           "published_at"
         ],
@@ -2395,6 +2486,32 @@
               }
             ],
             "title": "Reviewed At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "hidden_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HideReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hidden_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Note"
           }
         },
         "type": "object",
@@ -2407,7 +2524,10 @@
           "services",
           "institution",
           "published_at",
-          "reviewed_at"
+          "reviewed_at",
+          "updated_at",
+          "hidden_reason",
+          "hidden_note"
         ],
         "title": "AdminProfileDetail",
         "description": "One profile as the operator moderates it. Named as the catalog names\npeople, with nothing to reach them by: the console does not contact."
@@ -3058,6 +3178,17 @@
         "type": "object",
         "title": "HelperUpsert"
       },
+      "HideReason": {
+        "type": "string",
+        "enum": [
+          "spam",
+          "misleading",
+          "rules",
+          "other"
+        ],
+        "title": "HideReason",
+        "description": "Why an operator hid a profile. Its owner reads it; see helpers.py."
+      },
       "HomeOut": {
         "properties": {
           "people": {
@@ -3449,6 +3580,32 @@
             },
             "type": "array",
             "title": "Offers"
+          },
+          "under_review": {
+            "type": "boolean",
+            "title": "Under Review",
+            "default": false
+          },
+          "hidden_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HideReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hidden_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Note"
           }
         },
         "type": "object",

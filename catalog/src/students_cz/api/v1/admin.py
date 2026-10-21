@@ -8,6 +8,8 @@ from fastapi import APIRouter, status
 from students_cz.api.deps import IdPath, OperatorDep, SessionDep
 from students_cz.schemas import (
     AdminCatalog,
+    AdminDecision,
+    AdminHide,
     AdminPlacement,
     AdminPlacementIn,
     AdminPlacementSwitch,
@@ -32,23 +34,31 @@ async def read_profile(
 
 @router.post("/profiles/{user_id}/review", response_model=AdminProfileDetail)
 async def keep_profile(
-    user_id: IdPath, operator: OperatorDep, session: SessionDep
+    user_id: IdPath,
+    operator: OperatorDep,
+    session: SessionDep,
+    decision: AdminDecision | None = None,
 ) -> AdminProfileDetail:
-    return await admin.keep_profile(session, operator.lang, user_id)
+    seen = decision.seen if decision else None
+    return await admin.keep_profile(session, operator.lang, user_id, seen)
 
 
 @router.post("/profiles/{user_id}/hide", response_model=AdminProfileDetail)
 async def hide_profile(
-    user_id: IdPath, operator: OperatorDep, session: SessionDep
+    user_id: IdPath, why: AdminHide, operator: OperatorDep, session: SessionDep
 ) -> AdminProfileDetail:
-    return await admin.hide_profile(session, operator.lang, user_id)
+    return await admin.hide_profile(session, operator.lang, user_id, why)
 
 
 @router.post("/profiles/{user_id}/restore", response_model=AdminProfileDetail)
 async def restore_profile(
-    user_id: IdPath, operator: OperatorDep, session: SessionDep
+    user_id: IdPath,
+    operator: OperatorDep,
+    session: SessionDep,
+    decision: AdminDecision | None = None,
 ) -> AdminProfileDetail:
-    return await admin.restore_profile(session, operator.lang, user_id)
+    seen = decision.seen if decision else None
+    return await admin.restore_profile(session, operator.lang, user_id, seen)
 
 
 @router.get("/partners", response_model=list[AdminPlacement])

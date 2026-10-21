@@ -6,6 +6,8 @@ write in the application, and until now the only way to exercise either was a
 signed request against a running app.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,17 +28,28 @@ async def _person(session: AsyncSession, tg_id: int) -> User:
 
 
 async def test_a_banned_profile_cannot_publish_itself(session: AsyncSession) -> None:
+    """Its edits are kept and go to an operator; the ban is theirs to lift."""
     user = await _person(session, 91101)
-    session.add(HelperProfile(user_id=user.id, status=PublishStatus.BANNED))
+    helper = HelperProfile(
+        user_id=user.id,
+        status=PublishStatus.BANNED,
+        published_at=datetime.now(UTC),
+        reviewed_at=datetime.now(UTC),
+    )
+    session.add(helper)
     await session.flush()
 
-    with pytest.raises(errors.Forbidden):
-        await helpers.save_profile(
-            session,
-            user=user,
-            spec=HelperUpsert(raw_intro="пусти меня обратно", publish=True),
-            lang=UiLang.RU,
-        )
+    saved = await helpers.save_profile(
+        session,
+        user=user,
+        spec=HelperUpsert(about="пусти меня обратно", publish=True),
+        lang=UiLang.RU,
+    )
+
+    assert saved.published_now is False
+    assert helper.status == PublishStatus.BANNED
+    assert helper.about == "пусти меня обратно"
+    assert helper.reviewed_at is None
 
 
 async def test_the_same_axes_twice_is_named_rather_than_a_constraint_error(

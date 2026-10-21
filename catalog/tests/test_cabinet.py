@@ -7,13 +7,15 @@ no longer requires a recognised subject: the catalog needs people in it before
 it needs them classified.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.db.models import HelperProfile, Offer, ServiceType, Subject, User
-from students_cz.db.models.enums import PublishStatus
+from students_cz.db.models.enums import HideReason, PublishStatus
 
 from .conftest import auth_header
 
@@ -250,3 +252,69 @@ async def test_an_offer_the_payload_drops_is_deleted(
 
     body = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()
     assert [o["subject_id"] for o in body["offers"]] == [subjects[0].id]
+
+
+async def test_the_owner_reads_whether_an_operator_has_looked_yet(
+    client: AsyncClient,
+) -> None:
+    """Listed at once, and «на проверке» until an operator kept it: no
+    pre-moderation, only a word for the owner."""
+    await client.put("/api/v1/helper", headers=auth_header(OWNER), json={"publish": True})
+    fresh = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()
+
+    assert fresh["status"] == "published"
+    assert fresh["under_review"] is True
+    assert fresh["hidden_reason"] is None
+
+
+async def test_a_profile_an_operator_hid_reads_back_as_hidden_and_why(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    await client.put("/api/v1/helper", headers=auth_header(OWNER), json={"publish": True})
+    user = await session.scalar(select(User).where(User.tg_id == OWNER))
+    assert user is not None
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = PublishStatus.BANNED
+    profile.hidden_reason = HideReason.OTHER
+    profile.hidden_note = "Чужие фото"
+    profile.reviewed_at = datetime.now(UTC)
+    await session.flush()
+
+    body = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()
+    me = (await client.get("/api/v1/me", headers=auth_header(OWNER))).json()
+
+    assert body["status"] == "banned"
+    assert body["hidden_reason"] == "other"
+    assert body["hidden_note"] == "Чужие фото"
+    assert body["under_review"] is False
+    assert me["helper_status"] == "banned"
+
+    # An edit is saved and sent back to the operator; it stays hidden.
+    saved = await client.put(
+        "/api/v1/helper",
+        headers=auth_header(OWNER),
+        json={"about": "Свои фото", "publish": True},
+    )
+    after = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()
+
+    assert saved.status_code == 200, saved.text
+    assert after["status"] == "banned"
+    assert after["about"] == "Свои фото"
+    assert after["under_review"] is True
+    assert after["hidden_reason"] == "other"
+
+
+async def test_a_reason_reaches_only_its_owner(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A draft or a profile its owner hid has no reason to show."""
+    await client.put(
+        "/api/v1/helper", headers=auth_header(OWNER), json={"publish": False}
+    )
+    body = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()
+
+    assert body["status"] == "draft"
+    assert body["under_review"] is False
+    assert body["hidden_reason"] is None
+    assert body["hidden_note"] is None
