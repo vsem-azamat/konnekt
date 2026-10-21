@@ -204,6 +204,13 @@
   outline-offset: 2px;
 }
 
+/* A field on a card: the card is the field's own grey, so the fill alone
+   leaves only the placeholder visible. */
+.fieldOnCard {
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
 .fieldIcon {
   flex: none;
   color: var(--muted);
@@ -1128,6 +1135,19 @@
   color: var(--ink-soft);
 }
 
+/* A reason with something to the right of it, e.g. who the replies are from. */
+.reasonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reasonRow .reason {
+  margin: 0;
+}
+
 .reasonDot {
   flex: none;
   width: 5px;
@@ -1372,6 +1392,18 @@
   background: var(--bg);
   color: var(--ink-soft);
   box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+/* The button under an empty list's text: one, centred, as wide as its words
+   rather than the whole row. */
+.emptyAction {
+  margin-top: 14px;
+  justify-content: center;
+}
+
+.emptyAction .action {
+  flex: 0 1 auto;
+  padding-inline: 22px;
 }
 
 /* What cannot be undone. Red is kept for this so that it means one thing. */
