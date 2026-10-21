@@ -22,6 +22,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
+import { useReportEmpty } from '@/hooks/useReportEmpty';
 import { chatsQuery, institutionsQuery, meQuery } from '@/lib/api';
 import {
   cities,
@@ -62,6 +63,7 @@ export default function ChatsPage() {
   const mine = ownUniversity(me.data?.institution, institutions.data ?? []);
   const { entries, rest } = useMemo(() => directory(data ?? [], mine), [data, mine]);
   const searching = query.trim() !== '';
+  useReportEmpty(data !== undefined && data.length === 0, 'chat directory');
 
   return (
     <>

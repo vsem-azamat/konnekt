@@ -48,3 +48,11 @@ def _fresh_seen_throttle() -> None:
     from app.webapi.routes import seen
 
     seen.forget()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_client_error_limits() -> None:
+    """The client-error limits are per process; a test must start a fresh window."""
+    from app.webapi.routes import client_errors
+
+    client_errors.forget()

@@ -85,7 +85,21 @@ def test_no_label_of_any_series_can_carry_a_person_or_a_chat() -> None:
     import app.presentation.telegram.metrics as bot_metrics
     from prometheus_client.metrics import MetricWrapperBase
 
-    allowed = {"method", "route", "status", "level", "outcome", "update_type", "event", "queue"}
+    # kind, platform and reason: the Mini App's failures, each a fixed set the
+    # route maps anything unknown into (app/webapi/routes/client_errors.py).
+    allowed = {
+        "method",
+        "route",
+        "status",
+        "level",
+        "outcome",
+        "update_type",
+        "event",
+        "queue",
+        "kind",
+        "platform",
+        "reason",
+    }
     labels: set[str] = set()
     for module in (metrics, captcha_metrics, bot_metrics):
         for value in vars(module).values():

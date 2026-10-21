@@ -14,6 +14,7 @@ import {
   miniApp,
   on,
   postEvent,
+  retrieveLaunchParams,
   swipeBehavior,
   themeParams,
   viewport,
@@ -29,6 +30,16 @@ import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
 import { ApiError, api, rawInitData, routeCatalogCalls } from '@/lib/api';
 import { followAppHeight } from '@/lib/appHeight';
+import {
+  createReporter,
+  describeError,
+  flushClientEvents,
+  layoutLooksBroken,
+  type Reporter,
+  reportClientEvent,
+  scrub,
+  startReporting,
+} from '@/lib/clientErrors';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -63,6 +74,7 @@ async function bootstrap(): Promise<void> {
   }
 
   initSdk();
+  reportFailures();
   reportLaunch();
   await initLocale();
   render();
@@ -72,6 +84,90 @@ async function bootstrap(): Promise<void> {
 function reportLaunch(): void {
   const raw = rawInitData();
   if (raw) void api.reportLaunch(raw).catch(() => undefined);
+}
+
+/**
+ * Tell the server what fails in this app (lib/clientErrors.ts), from here on.
+ *
+ * Inside Telegram and in a build only: the console in a browser has no
+ * initData to sign a report with, and the development mock's is unsigned, so
+ * the server would refuse every one.
+ */
+function reportFailures(): void {
+  if (import.meta.env.DEV) return;
+  const initData = rawInitData();
+  if (!initData) return;
+  const { tgWebAppPlatform, tgWebAppVersion } = retrieveLaunchParams();
+  const reporter = createReporter({
+    send: (events, leaving) =>
+      api.reportClientErrors(
+        {
+          init_data: initData,
+          version: import.meta.env.VITE_APP_VERSION || 'unknown',
+          platform: tgWebAppPlatform,
+          tg_version: tgWebAppVersion,
+          events,
+        },
+        leaving,
+      ),
+    route: routePattern,
+  });
+  startReporting(reporter);
+
+  window.addEventListener('error', (event) => {
+    report(reporter, 'error', event.error ?? event.message);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    report(reporter, 'unhandled_rejection', event.reason);
+  });
+  // A batch still waiting when the app is put away or closed goes now: a
+  // Mini App is often never seen again after that.
+  window.addEventListener('pagehide', reporter.flush);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') reporter.flush();
+    else setTimeout(checkLayout, LAYOUT_CHECK_MS);
+  });
+  // Restored from minimised, Android may say so only through Telegram's own
+  // event, and that return is exactly where the height went stale before.
+  on('visibility_changed', ({ is_visible }) => {
+    if (is_visible) setTimeout(checkLayout, LAYOUT_CHECK_MS);
+  });
+  setTimeout(checkLayout, LAYOUT_CHECK_MS);
+}
+
+function report(
+  reporter: Reporter,
+  kind: 'error' | 'unhandled_rejection',
+  thrown: unknown,
+) {
+  const { message, stack, ignore } = describeError(thrown);
+  if (!ignore) reporter.report({ kind, message, stack });
+}
+
+/** The screen as the router names it, `/chats/:group`: never the address itself. */
+function routePattern(): string {
+  const paths = router.state.matches.map((match) => match.route.path).filter(Boolean);
+  return `/${paths.join('/')}`.replace(/\/+/g, '/');
+}
+
+/** Long enough for a client that answers the viewport request to have answered. */
+const LAYOUT_CHECK_MS = 1500;
+let layoutReported = false;
+
+/**
+ * Once per session, if the app is a sliver of its window: the bug where a
+ * stale viewport height left a heading and nothing under it.
+ */
+function checkLayout(): void {
+  const root = document.getElementById('root');
+  if (layoutReported || !root || document.visibilityState !== 'visible') return;
+  const height = root.getBoundingClientRect().height;
+  if (!layoutLooksBroken(height, window.innerHeight)) return;
+  layoutReported = true;
+  reportClientEvent({
+    kind: 'layout',
+    message: `app ${Math.round(height)}px in a ${window.innerHeight}px window`,
+  });
 }
 
 /**
@@ -294,11 +390,30 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * A render error, with the component stack in place of the script's: in a
+ * minified build the components are what still says where it happened.
+ */
+function renderFailed(error: unknown, info: { componentStack?: string }): void {
+  console.error(error);
+  const { message, stack, ignore } = describeError(error);
+  if (ignore) return;
+  reportClientEvent({
+    kind: 'render',
+    message,
+    stack: info.componentStack ? scrub(info.componentStack, 2000) : stack,
+  });
+}
+
 function render(): void {
   const container = document.getElementById('root');
   if (!container) throw new Error('#root is missing from index.html');
 
-  createRoot(container).render(
+  createRoot(container, {
+    // React logs these itself unless told what to do with them; it still should.
+    onCaughtError: renderFailed,
+    onUncaughtError: renderFailed,
+  }).render(
     <StrictMode>
       <I18nProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
@@ -314,6 +429,10 @@ bootstrap().catch((error: unknown) => {
   // to catch it and no UI to report it in. Say something in plain text rather
   // than leaving a white screen.
   console.error('[boot] failed to start', error);
+  // Reported when the reporter got that far: nothing else would tell us.
+  const { message, stack } = describeError(error);
+  reportClientEvent({ kind: 'error', message, stack });
+  flushClientEvents();
 
   const container = document.getElementById('root');
   if (container) {
