@@ -195,9 +195,6 @@ export function Tile({
   photo?: string | null;
   children: ReactNode;
 }) {
-  // A picture that fails to load leaves the tile as it was, letters and tone.
-  const [shown, setShown] = useState(false);
-  const [failed, setFailed] = useState(false);
   const classes = [css.tile];
   if (large) classes.push(css.tileLarge);
   if (round) classes.push(css.tileRound);
@@ -205,18 +202,28 @@ export function Tile({
   return (
     <span className={classes.join(' ')} style={toneStyle(tone)}>
       {children}
-      {photo && !failed ? (
-        <img
-          className={shown ? `${css.tileImg} ${css.tileImgShown}` : css.tileImg}
-          src={assetUrl(photo)}
-          alt=""
-          // The name is next to it; a description would be read twice.
-          decoding="async"
-          onLoad={() => setShown(true)}
-          onError={() => setFailed(true)}
-        />
-      ) : null}
+      {/* Keyed by address: a photo that changed gets a fresh try, not the
+          verdict of the one before it. */}
+      {photo ? <TilePhoto key={photo} src={photo} /> : null}
     </span>
+  );
+}
+
+/** The picture over a tile's letters; if it does not load, the letters stay. */
+function TilePhoto({ src }: { src: string }) {
+  const [shown, setShown] = useState(false);
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      className={shown ? `${css.tileImg} ${css.tileImgShown}` : css.tileImg}
+      src={assetUrl(src)}
+      // The name is next to it; a description would be read twice.
+      alt=""
+      decoding="async"
+      onLoad={() => setShown(true)}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
