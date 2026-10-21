@@ -72,6 +72,11 @@ msgstr "покази й кліки"
 msgid "Пара слов о себе — что делаешь и как быстро"
 msgstr "Кілька слів про себе — що робиш і як швидко"
 
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
+msgstr "{0, plural, one {рік на платформі} few {роки на платформі} many {років на платформі} other {року на платформі}}"
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Знайшлося"
@@ -752,8 +757,8 @@ msgid "в разделе «Не про учёбу»"
 msgstr "у розділі «Не про навчання»"
 
 #: src/components/Phrase.tsx
-msgid "сдали"
-msgstr "склали"
+#~ msgid "сдали"
+#~ msgstr "склали"
 
 #: src/console/pages/Audience.tsx
 msgid "список, поиск, фильтры"
@@ -1583,6 +1588,7 @@ msgid "Ссылка для публичной вкладки"
 msgstr "Посилання для публічної вкладки"
 
 #: src/components/TabBar.tsx
+#: src/pages/Mine.tsx
 msgid "Мне нужна помощь"
 msgstr "Мені потрібна допомога"
 
@@ -2804,8 +2810,8 @@ msgid "Не удалось загрузить"
 msgstr "Не вдалося завантажити"
 
 #: src/components/Phrase.tsx
-msgid "лет на площадке"
-msgstr "років на майданчику"
+#~ msgid "лет на площадке"
+#~ msgstr "років на майданчику"
 
 #: src/pages/ChatSection.tsx
 msgid "Наши чаты"
@@ -2896,6 +2902,11 @@ msgstr "Аудиторія"
 #: src/components/Incoming.tsx
 msgid "Сначала заполни профиль"
 msgstr "Спершу заповни профіль"
+
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {занятие через нас} few {занятия через нас} many {занятий через нас} other {занятия через нас}}"
+msgstr "{0, plural, one {заняття з нами} few {заняття з нами} many {занять з нами} other {заняття з нами}}"
 
 #: src/pages/MyHelper.tsx
 msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."
