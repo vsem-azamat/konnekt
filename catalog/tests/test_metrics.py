@@ -151,3 +151,20 @@ async def test_a_failed_notification_does_not_log_who_it_was_for(
 
     assert caplog.records
     assert "424242" not in caplog.text
+
+
+@pytest.mark.parametrize("short", ["x", "a" * 31])
+def test_a_short_secret_refuses_to_start(short: str) -> None:
+    from students_cz.core.config import Settings
+
+    with pytest.raises(ValueError, match="OBSERVABILITY_METRICS_SECRET"):
+        Settings(observability_metrics_secret=short)
+
+
+def test_a_long_enough_secret_is_kept_and_blank_is_off() -> None:
+    from students_cz.core.config import Settings
+
+    kept = Settings(observability_metrics_secret=" " + "k" * 32 + "\n")
+    assert kept.observability_metrics_secret.get_secret_value() == "k" * 32
+    off = Settings(observability_metrics_secret="  ")
+    assert off.observability_metrics_secret.get_secret_value() == ""

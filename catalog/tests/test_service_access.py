@@ -245,7 +245,9 @@ async def test_a_service_call_is_written_down(
 
     (record,) = [r for r in caplog.records if r.getMessage().startswith("service_call ")]
     assert str(OPERATOR) in record.getMessage()
-    assert "POST /api/v1/admin/profiles/1/hide" in record.getMessage()
+    # The route, not the path: a path names the person whose screen it is.
+    assert "POST /api/v1/admin/profiles/{user_id}/hide" in record.getMessage()
+    assert "profiles/1/" not in record.getMessage()
     assert TOKEN not in caplog.text
 
 
