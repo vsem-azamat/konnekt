@@ -237,6 +237,11 @@ async function publicRequest<T>(
   return payload as T;
 }
 
+/** A path the server gave for a picture, as the browser must ask for it. */
+export function assetUrl(path: string): string {
+  return `${BASE_URL}${path}`;
+}
+
 // ── endpoints ───────────────────────────────────────────────────────────
 //
 // Written by hand, and not by the generator: `openapi-ts.config.ts` declares

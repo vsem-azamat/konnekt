@@ -33,12 +33,21 @@ export interface PublicChat {
    * so its rules are not ours. False for every chat we run.
    */
   external: boolean;
+  /**
+   * The chat's photo, an address on this origin that changes when the photo
+   * does. Null when it has none or supervisor could not read it, and the tile
+   * keeps its letters.
+   */
+  avatar: string | null;
 }
 
 const ACTIVITIES: readonly Activity[] = ['unknown', 'quiet', 'active', 'busy'];
 
 /** A catalog institution code, the shape supervisor stores. */
 const INSTITUTION_CODE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
+
+/** Where a photo may come from: supervisor's own picture route, and nowhere else. */
+const AVATAR_PATH = /^\/api\/public\/avatars\/[A-Za-z0-9_-]{1,64}$/;
 
 /** Where a chat may lead: Telegram's own hosts, which openTelegramLink accepts. */
 const TELEGRAM_LINK = /^https:\/\/(t\.me|telegram\.me|telegram\.dog)\//;
@@ -64,6 +73,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
       member_count,
       is_forum,
       external,
+      avatar,
     } = item as Record<string, unknown>;
     if (typeof title !== 'string' || !title.trim()) continue;
     if (typeof link !== 'string' || !TELEGRAM_LINK.test(link)) continue;
@@ -84,6 +94,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
           : null,
       is_forum: is_forum === true,
       external: external === true,
+      avatar: typeof avatar === 'string' && AVATAR_PATH.test(avatar) ? avatar : null,
     });
   }
   return chats;
@@ -150,6 +161,17 @@ export function byOwner(chats: PublicChat[]): {
     ours: chats.filter((chat) => !chat.external),
     others: chats.filter((chat) => chat.external),
   };
+}
+
+/**
+ * The photo for a section's row: that of the section's own chat, which is the
+ * university itself. A faculty's photo would say the wrong thing, so a section
+ * whose own chat has none keeps its letters.
+ */
+export function sectionAvatar(
+  section: Extract<Entry, { kind: 'section' }>,
+): string | null {
+  return section.chats.find((chat) => chat.title === section.name)?.avatar ?? null;
 }
 
 /** How many chat names a section's row lists under its own. */

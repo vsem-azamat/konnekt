@@ -463,6 +463,33 @@
   border-radius: var(--r-tile);
 }
 
+/* A chat's tile is a circle. */
+.tileRound,
+.tileRound.tileLarge {
+  border-radius: 50%;
+}
+
+/* The photo lies over the letters, which keep the tile's size while it loads
+   and stay as the answer when there is none. */
+.tilePhoto {
+  position: relative;
+  overflow: hidden;
+}
+
+.tileImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.tileImgShown {
+  opacity: 1;
+}
+
 .tileLarge {
   width: 56px;
   height: 56px;
