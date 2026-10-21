@@ -29,6 +29,7 @@ import {
   initials,
   ownUniversity,
   search,
+  sectionAvatar,
   sectionHint,
 } from '@/lib/chats';
 
@@ -131,7 +132,7 @@ export default function ChatsPage() {
                       <Row
                         key={`section:${entry.name}`}
                         leading={
-                          <Tile tone={index}>
+                          <Tile tone={index} round photo={sectionAvatar(entry)}>
                             <Letters text={initials(entry.name)} />
                           </Tile>
                         }

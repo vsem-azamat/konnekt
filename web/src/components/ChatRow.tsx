@@ -52,7 +52,7 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
     <>
       <Row
         leading={
-          <Tile tone={tone}>
+          <Tile tone={tone} round photo={chat.avatar}>
             <Letters text={initials(chat.title)} />
           </Tile>
         }
@@ -114,7 +114,7 @@ function ChatPreview({
     <Sheet
       title={
         <span className={css.chatHead}>
-          <Tile tone={tone} large>
+          <Tile tone={tone} large round photo={chat.avatar}>
             <Letters text={initials(chat.title)} />
           </Tile>
           <span className={css.chatHeadBody}>
