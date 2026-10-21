@@ -16,6 +16,7 @@ from students_cz.api.request_log import RequestLog
 from students_cz.api.v1 import router as api_router
 from students_cz.api.v1.health import health_router
 from students_cz.bot import build_bot
+from students_cz.core import metrics
 from students_cz.core.config import get_settings
 from students_cz.core.logs import JsonFormatter
 from students_cz.db.session import dispose_engine
@@ -64,6 +65,7 @@ def configure_logging(level: str, log_format: str = "json") -> None:
     setattr(handler, _OURS, True)
     handler.setFormatter(formatter)
     root.addHandler(handler)
+    log.addHandler(metrics.LogCounter())
 
 
 @asynccontextmanager

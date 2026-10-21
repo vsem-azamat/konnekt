@@ -100,6 +100,9 @@ class Settings(BaseSettings):
     # alone, never sent by a browser. Unset turns that way in off. See
     # docs/architecture.md.
     service_token: SecretStr = SecretStr("")
+    # The bearer token Prometheus presents, and the switch for the metrics
+    # endpoint: unset, nothing answers. See core/metrics.py.
+    observability_metrics_secret: SecretStr = SecretStr("")
     # Who a business writes to about advertising: a Telegram username. Unset
     # means the ads page offers no contact. See docs/architecture.md.
     ads_contact: str | None = None
