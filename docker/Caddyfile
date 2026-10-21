@@ -9,7 +9,34 @@
 	}
 }
 
+# What the access line leaves out. A sign-in callback's `code` and `state` ride
+# in the query string, and the browser sends cookies and an Authorization header
+# with initData: none of it belongs in a log, so the line keeps the path and
+# drops the query, every header, and the TLS details.
+(access_log) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp \?.* ""
+				request>headers delete
+				request>tls delete
+				request>remote_ip delete
+				request>remote_port delete
+				resp_headers delete
+			}
+		}
+	}
+	# One id per request, here, so the line below and the backends' lines agree.
+	log_append request_id {http.request.uuid}
+	# The container check, every few seconds, and files nobody reads a line about.
+	@quiet path /healthz /assets/*
+	log_skip @quiet
+}
+
 :80 {
+	import access_log
 	encode zstd gzip
 
 	# On every response. The Mini App must stay framable by Telegram's web
@@ -36,6 +63,7 @@
 	@catalog path /api/v1/* /healthz
 	handle @catalog {
 		reverse_proxy catalog-api:8000 {
+			header_up X-Request-Id {http.request.uuid}
 			header_up -Cookie
 			header_up -X-Catalog-Service
 			header_up -X-Catalog-Operator
@@ -63,6 +91,7 @@
 
 	handle /api/* {
 		reverse_proxy webapi:8787 {
+			header_up X-Request-Id {http.request.uuid}
 			# One address, the one this proxy believes, rather than the chain.
 			header_up X-Forwarded-For {client_ip}
 		}
@@ -120,6 +149,7 @@
 # docker-compose.yaml. Unset, it falls back to a name no request can carry, so
 # the block is present and matches nothing.
 http://{$ADMIN_HOST:admin.invalid} {
+	import access_log
 	encode zstd gzip
 
 	# Never framed: the console is not opened inside Telegram from here.
@@ -137,6 +167,7 @@ http://{$ADMIN_HOST:admin.invalid} {
 
 	handle /api/* {
 		reverse_proxy webapi:8787 {
+			header_up X-Request-Id {http.request.uuid}
 			header_up X-Forwarded-For {client_ip}
 		}
 	}
