@@ -77,20 +77,33 @@ class ForeignRecordFormatter(logging.Formatter):
         level = record.levelname.lower()
         event = record.getMessage()
         exception = self.formatException(record.exc_info) if record.exc_info else None
+        # The same spelling structlog's TimeStamper writes, so one query reads both.
         timestamp = datetime.fromtimestamp(record.created, UTC).isoformat(timespec="microseconds")
+        timestamp = timestamp.replace("+00:00", "Z")
+        # What the update or request in hand bound: a library's line is as much
+        # part of it as ours.
+        context = structlog.contextvars.get_contextvars()
         if not self.json_output:
             text = f"{timestamp} [{record.levelname}] {record.name}: {event}"
-            return f"{text}\n{exception}" if exception else text
-        fields = {
+            if context:
+                text += " " + " ".join(f"{key}={value}" for key, value in context.items())
+            for extra in (exception, record.stack_info):
+                if extra:
+                    text += f"\n{extra}"
+            return text
+        fields: dict[str, object] = {
             "event": event,
             "logger": record.name,
             "level": level,
             "severity": record.levelname,
             "timestamp": timestamp,
+            **context,
         }
         if exception:
             fields["exception"] = exception
-        return json.dumps(fields, ensure_ascii=False)
+        if record.stack_info:
+            fields["stack"] = record.stack_info
+        return json.dumps(fields, ensure_ascii=False, default=str)
 
 
 _OURS = "_konnekt_handler"

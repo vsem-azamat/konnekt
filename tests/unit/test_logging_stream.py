@@ -89,15 +89,43 @@ def test_httpx_does_not_log_every_request_url() -> None:
     assert logging.getLogger("httpx").level >= logging.WARNING
 
 
-def test_context_bound_once_reaches_every_line() -> None:
+def test_context_bound_once_reaches_every_line_ours_or_a_librarys() -> None:
+    """Through the configured pipeline and out of a real handler, not capture_logs' own merge."""
     setup_logging()
+    seen: list[str] = []
+
+    class Capture(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            seen.append(self.format(record))
+
+    capture = Capture()
+    capture.setFormatter(ForeignRecordFormatter(json_output=True))
+    root = logging.getLogger()
+    root.addHandler(capture)
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(update_id=42)
     try:
-        with structlog.testing.capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
-            get_logger("t").info("seen")
-        assert logs[0]["update_id"] == 42
-        # the configured chain itself carries the merge, not just the test's
-        assert structlog.contextvars.merge_contextvars in structlog.get_config()["processors"]
+        # structlog's own lines are rendered by its chain, which merges the context...
+        get_logger("t").error("ours")
+        # ...a library's by the formatter.
+        logging.getLogger("aiogram.event").error("theirs")
     finally:
         structlog.contextvars.clear_contextvars()
+        root.removeHandler(capture)
+
+    ours, theirs = seen
+    assert "update_id" in ours
+    assert json.loads(theirs)["update_id"] == 42
+
+
+def test_timestamps_are_spelled_as_structlogs() -> None:
+    line = ForeignRecordFormatter(json_output=True).format(_record("x"))
+
+    assert json.loads(line)["timestamp"].endswith("Z")
+
+
+def test_a_stack_asked_for_is_not_dropped() -> None:
+    record = _record("where am I")
+    record.stack_info = "Stack (most recent call last):\n  File x"
+
+    assert "File x" in json.loads(ForeignRecordFormatter(json_output=True).format(record))["stack"]
