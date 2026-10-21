@@ -117,14 +117,38 @@ export function ClarifyOptionLabel({ code }: { code: string }): ReactElement | n
 }
 
 /** The little captions under the numbers on a profile. */
-export function StatLabel({ code }: { code: string }): ReactElement | null {
+export function StatLabel({
+  code,
+  value,
+}: {
+  code: string;
+  value: string;
+}): ReactElement | null {
   switch (code) {
+    // The caption sits under the number, so it is the noun alone and has to
+    // agree with it: "1 год", "3 года", "5 лет".
     case 'stat.deals':
-      return <Trans>сдали</Trans>;
+      return (
+        <Plural
+          value={Number(value)}
+          one="занятие через нас"
+          few="занятия через нас"
+          many="занятий через нас"
+          other="занятия через нас"
+        />
+      );
     case 'stat.rating':
       return <Trans>оценка</Trans>;
     case 'stat.years':
-      return <Trans>лет на площадке</Trans>;
+      return (
+        <Plural
+          value={Number(value)}
+          one="год на площадке"
+          few="года на площадке"
+          many="лет на площадке"
+          other="года на площадке"
+        />
+      );
     case 'stat.since':
       return <Trans>первый год</Trans>;
     default:

@@ -22,6 +22,7 @@ import {
 } from '@/components/Ui';
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { offerChipText } from '@/lib/offerChip';
 import { TurnaroundLabel } from '@/lib/turnaround';
 import type { HelperDetail } from '@/lib/types';
 
@@ -135,7 +136,7 @@ export default function HelperPage() {
                 {stat.value}
               </b>
               <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>
-                <StatLabel code={stat.code} />
+                <StatLabel code={stat.code} value={stat.value} />
               </span>
             </div>
           ))}
@@ -149,10 +150,7 @@ export default function HelperPage() {
           </Label>
           <Chips>
             {data.offers.map((offer) => (
-              <ChipView key={offer.id}>
-                {[offer.subject, offer.institution].filter(Boolean).join(' · ') ||
-                  offer.service_type_name}
-              </ChipView>
+              <ChipView key={offer.id}>{offerChipText(offer)}</ChipView>
             ))}
           </Chips>
         </>
