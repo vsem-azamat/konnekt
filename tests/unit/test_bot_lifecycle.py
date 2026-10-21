@@ -49,6 +49,7 @@ def services(monkeypatch) -> list[str]:
     monkeypatch.setattr("app.mcp.runner.run_mcp_server", forever("mcp"))
     monkeypatch.setattr("app.moderation.pending_actions.run_expiry_sweep", forever("sweep"))
     monkeypatch.setattr("app.chats.snapshots.run_snapshot_loop", forever("snapshots"))
+    monkeypatch.setattr("app.chats.invite_links.run_sync_loop", forever("invite_links"))
     monkeypatch.setattr("app.moderation.history_service.run_history_retention", forever("retention"))
     return cancelled
 
@@ -68,7 +69,7 @@ async def test_a_poller_that_dies_takes_the_process_down(monkeypatch, services) 
     with pytest.raises(ConnectionError):
         await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert sorted(services) == ["mcp", "retention", "snapshots", "sweep"]
+    assert sorted(services) == ["invite_links", "mcp", "retention", "snapshots", "sweep"]
 
 
 async def test_sigterm_ends_the_process_without_waiting_for_a_kill(monkeypatch, services) -> None:
@@ -81,7 +82,7 @@ async def test_sigterm_ends_the_process_without_waiting_for_a_kill(monkeypatch, 
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert sorted(services) == ["mcp", "retention", "snapshots", "sweep"]
+    assert sorted(services) == ["invite_links", "mcp", "retention", "snapshots", "sweep"]
 
 
 async def test_a_service_that_finishes_early_does_not_stop_the_bot(monkeypatch, services) -> None:
@@ -139,7 +140,7 @@ async def test_the_database_closes_after_everything_that_uses_it(monkeypatch, se
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert order == ["db after ['mcp', 'retention', 'snapshots', 'sweep']"]
+    assert order == ["db after ['invite_links', 'mcp', 'retention', 'snapshots', 'sweep']"]
 
 
 async def test_a_retired_bot_failing_takes_down_neither_moderation_nor_the_others(monkeypatch, services) -> None:
