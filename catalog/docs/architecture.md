@@ -115,7 +115,9 @@ they describe is this one.
 
 The catalog API never calls `/api/public/*`, and the app reads only what those
 endpoints publish: a chat's title, link, group, university code, activity,
-member count and whether it has topics, and reach summed per group.
+member count, whether it has topics and the address of its photo, and reach
+summed per group. The photo is served by the webapi from its own database
+(`/api/public/avatars/…`) and the app accepts only that path.
 The fields are supervisor's contract. `group` is the section's title: the
 parent chat's, or the chat's own when others sit under it. It changes
 whenever supervisor changes how it groups chats. No group name is written in
