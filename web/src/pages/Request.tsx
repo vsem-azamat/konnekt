@@ -141,7 +141,7 @@ function ResponseCard({ response }: { response: RequestResponse }) {
               {response.name}
             </span>
             {response.status === 'accepted' ? (
-              <Badge>
+              <Badge inline>
                 <Trans>выбран</Trans>
               </Badge>
             ) : null}

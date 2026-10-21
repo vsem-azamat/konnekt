@@ -459,6 +459,11 @@
   letter-spacing: 0.02em;
 }
 
+.badgeInline {
+  position: static;
+  flex: none;
+}
+
 /* ── tiles and avatars ──────────────────────────────────────────────── */
 
 .tile {
