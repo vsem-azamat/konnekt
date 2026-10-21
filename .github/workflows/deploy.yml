@@ -133,6 +133,7 @@ jobs:
           CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
           CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}
           CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
+          OBSERVABILITY_METRICS_SECRET: ${{ secrets.OBSERVABILITY_METRICS_SECRET }}
         run: |
           missing=""
 
@@ -145,6 +146,13 @@ jobs:
           for name in DB_HOST DB_USER DB_NAME DB_PASSWORD MODERATOR_BOT_TOKEN ADMIN_SUPER_ADMINS WEBAPI_PUBLIC_URL CATALOG_DB_USER CATALOG_DB_NAME CATALOG_DB_PASSWORD; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
+
+          # Optional, but a short one stops all three processes at import, which
+          # would otherwise show only after the old stack is down and migrated.
+          if [ -n "$OBSERVABILITY_METRICS_SECRET" ] && [ "${#OBSERVABILITY_METRICS_SECRET}" -lt 32 ]; then
+            echo "OBSERVABILITY_METRICS_SECRET must be 32 characters or more, or unset." >&2
+            exit 1
+          fi
 
           if [ -n "$missing" ]; then
             echo "Missing required configuration:$missing" >&2

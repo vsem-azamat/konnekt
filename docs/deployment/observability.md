@@ -19,7 +19,8 @@ An error is found by `level="error"`, and its traceback is in the same line
 Loki labels, which must stay few.
 
 What is not logged: passwords, tokens, cookies, query strings, and the
-audience's ids. A request line names its route template, never the path (a
+audience's ids, except in the moderation lines that name their target (a ban
+says whom). A request line names its route template, never the path (a
 path carries the ids of the people it is about); the bot's context leaves the
 chat id out of private chats, where it is the person's; Caddy's own lines, its
 error log included, carry no uri, headers or client address, only the backend

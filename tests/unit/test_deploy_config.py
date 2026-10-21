@@ -809,3 +809,14 @@ def test_the_bots_scrape_is_published_on_loopback_beside_the_control_plane_not_t
     assert "127.0.0.1:8789:8789" in ports
     assert "127.0.0.1:8788:8788" in ports
     assert all(port.startswith("127.0.0.1:") for port in ports)
+
+
+def test_a_short_metrics_secret_stops_the_deploy_before_anything_is_touched() -> None:
+    """Checked with the required configuration, ahead of the pull: the processes refuse a short one at start."""
+    steps = yaml.safe_load(DEPLOY.read_text())["jobs"]["deploy"]["steps"]
+    names = [step.get("name") for step in steps]
+    check = next(step for step in steps if step.get("name") == "Check required configuration is present")
+
+    assert "OBSERVABILITY_METRICS_SECRET" in check["env"]
+    assert '"${#OBSERVABILITY_METRICS_SECRET}" -lt 32' in check["run"]
+    assert names.index("Check required configuration is present") < names.index("Deploy on VPS")
