@@ -1,5 +1,8 @@
 # The log shipper on the azamat VPS: ~/deploy/alloy-logs, started by hand.
 #
+# The project is named here, not taken from the directory: the filter in
+# config.alloy and every query read `compose_project`.
+#
 # It is a host-level agent rather than a service of this stack: the deploy
 # workflow recreates the stack's containers, and a shipper recreated with them
 # would lose the tail of the very deploy that needed watching. The credentials
@@ -8,34 +11,55 @@
 name: alloy-logs
 
 services:
+  # Alloy runs as root, and a read-only mount of the Docker socket does not
+  # limit the API: anyone who can talk to it can start a privileged container.
+  # So Alloy never sees the socket. This proxy does, and answers only the GETs
+  # that listing containers and reading their logs need; everything else,
+  # exec and every POST included, is refused.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: alloy-logs-socket-proxy
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Internal: nothing outside this project, the host's ports included, reaches it.
+    networks: [docker-api]
+    mem_limit: 64m
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
   alloy:
     image: grafana/alloy:v1.19.2
     container_name: alloy-logs
     command:
       - run
-      - --server.http.listen-addr=127.0.0.1:12346
+      - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    # Host networking so the HTTP port above is loopback of the host and not
-    # of a container nobody can reach; nothing is published.
-    network_mode: host
     env_file: .env
-    # Read-only mount of the socket still lets Alloy read every container's
-    # metadata on this host, which is why the config keeps one project only.
     volumes:
       - ./config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy/data
-    # The socket's group on the host (`stat -c %g /var/run/docker.sock`), set
-    # in `.env` as DOCKER_GID.
-    group_add:
-      - ${DOCKER_GID:?Set DOCKER_GID in .env to the docker socket's group id}
+    # The way out to the monitoring server, and the way to the proxy; the HTTP
+    # port is not published.
+    networks: [docker-api, default]
+    depends_on: [socket-proxy]
     mem_limit: 256m
     security_opt: [no-new-privileges:true]
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
     restart: unless-stopped
+
+networks:
+  docker-api:
+    internal: true
 
 volumes:
   alloy-data:

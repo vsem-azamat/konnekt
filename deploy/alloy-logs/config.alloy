@@ -11,7 +11,7 @@ logging {
 }
 
 discovery.docker "containers" {
-  host             = "unix:///var/run/docker.sock"
+  host             = "tcp://socket-proxy:2375"
   refresh_interval = "30s"
 }
 
@@ -52,7 +52,7 @@ discovery.relabel "supervisor_telegram" {
 }
 
 loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
+  host       = "tcp://socket-proxy:2375"
   targets    = discovery.relabel.supervisor_telegram.output
   forward_to = [loki.process.json.receiver]
 }

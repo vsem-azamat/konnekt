@@ -37,14 +37,36 @@ def test_a_restart_does_not_backfill_old_logs() -> None:
     assert 'older_than          = "24h"' in CONFIG
 
 
-def test_the_agent_is_pinned_read_only_on_the_socket_and_publishes_nothing() -> None:
-    service = COMPOSE["services"]["alloy"]
+def test_alloy_never_sees_the_docker_socket_only_a_proxy_that_refuses_writes() -> None:
+    """Alloy runs as root, and `:ro` on the socket does not limit the API."""
+    services = COMPOSE["services"]
+    alloy, proxy = services["alloy"], services["socket-proxy"]
 
+    assert not any("docker.sock" in volume for volume in alloy["volumes"])
+    assert "docker.sock" in " ".join(proxy["volumes"])
+    assert re.fullmatch(r"tecnativa/docker-socket-proxy:\d+\.\d+\.\d+", proxy["image"])
+    # Containers and their networks to read; nothing else, and no POST at all.
+    enabled = {name for name, value in proxy["environment"].items() if str(value) == "1"}
+    assert enabled == {"CONTAINERS", "NETWORKS"}
+    assert str(proxy["environment"]["POST"]) == "0"
+    assert COMPOSE["networks"]["docker-api"]["internal"] is True
+    assert proxy["networks"] == ["docker-api"]
+    assert "tcp://socket-proxy:2375" in CONFIG
+    assert "unix://" not in CONFIG
+
+
+def test_the_agent_is_pinned_and_publishes_nothing() -> None:
+    for service in COMPOSE["services"].values():
+        assert "ports" not in service
+        assert service["image"].split(":")[1] != "latest"
     assert re.fullmatch(r"grafana/alloy:v\d+\.\d+\.\d+", IMAGE)
-    assert "/var/run/docker.sock:/var/run/docker.sock:ro" in service["volumes"]
-    assert "ports" not in service
-    assert any("127.0.0.1" in arg for arg in service["command"] if "listen-addr" in arg)
-    assert service["env_file"] == ".env"
+    assert COMPOSE["services"]["alloy"]["env_file"] == ".env"
+
+
+def test_the_filter_follows_a_project_name_the_stack_states_itself() -> None:
+    stack = yaml.safe_load((DIR.parents[1] / "docker-compose.yaml").read_text())
+
+    assert stack["name"] == "supervisor-telegram"
 
 
 @pytest.mark.skipif(
