@@ -20,6 +20,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
+import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { requestName } from '@/lib/requestHeading';
 import type { HelpRequest } from '@/lib/types';
@@ -105,7 +106,12 @@ export default function MinePage() {
               </Trans>
             }
             action={
-              <Action onClick={() => navigate('/ask')}>
+              <Action
+                onClick={() => {
+                  hapticSelection();
+                  navigate('/ask');
+                }}
+              >
                 <Trans>Мне нужна помощь</Trans>
               </Action>
             }
