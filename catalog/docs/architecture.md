@@ -275,7 +275,7 @@ things: a profile's moderation (kept or hidden) and the partner cards, because
 otherwise the only way to do either is the database.
 
 - `/admin/catalog`: listed profiles no operator has kept or hidden yet,
-  however old, newest first (those out before the console moderated were
+  and hidden ones their owner has changed since, however old, newest first (those out before the console moderated were
   counted as looked at), and the profiles an operator hid;
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
@@ -283,13 +283,20 @@ otherwise the only way to do either is the database.
   first. Each list is capped; the counts give each list's full length, and the
   number of requests posted this week.
 - `GET /admin/profiles/{id}`: one profile as the operator moderates it.
-  `POST …/review` keeps it: `reviewed_at` is set and it leaves the new list,
-  still listed. `POST …/hide` sets it `banned`, which its owner cannot lift
-  by publishing again, and `POST …/restore` lists it again. Only a published
-  profile can be hidden and only a banned one restored (409 otherwise), so
-  restoring never undoes an owner's own «hide me». Each is one conditional
-  `UPDATE`, and the owner's save locks the row, so neither side overwrites
-  the other in a race. The owner is not told.
+  `POST …/review` keeps it as it is: `reviewed_at` is set and it leaves the
+  new list, still listed or still hidden. `POST …/hide` takes a reason
+  (`spam`, `misleading`, `rules`, or `other` with a note of up to 200
+  characters, and a note only then) and sets it `banned`, which its owner
+  cannot lift by publishing again; `POST …/restore` lists it again and
+  forgets the reason. Only a published profile can be hidden and only a
+  banned one restored (409 otherwise), so restoring never undoes an owner's
+  own «hide me». Each is one conditional `UPDATE`, and the owner's save
+  locks the row, so neither side overwrites the other in a race. Nobody
+  messages the owner; their own profile (`GET /helper`) says it was hidden
+  and why. Their edits to it are saved and clear `reviewed_at`, so it is
+  back on the new list, still hidden, until an operator decides again.
+  `GET /helper` also says `under_review` while a listed profile has not been
+  looked at: listing does not wait for it.
 - `/admin/partners`: every placement, active or not, with its impressions and
   clicks over the last 30 days.
 - `POST /admin/placements`: a new card on the Life screen, the one slot the

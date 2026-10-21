@@ -8,6 +8,7 @@ from fastapi import APIRouter, status
 from students_cz.api.deps import IdPath, OperatorDep, SessionDep
 from students_cz.schemas import (
     AdminCatalog,
+    AdminHide,
     AdminPlacement,
     AdminPlacementIn,
     AdminPlacementSwitch,
@@ -39,9 +40,9 @@ async def keep_profile(
 
 @router.post("/profiles/{user_id}/hide", response_model=AdminProfileDetail)
 async def hide_profile(
-    user_id: IdPath, operator: OperatorDep, session: SessionDep
+    user_id: IdPath, why: AdminHide, operator: OperatorDep, session: SessionDep
 ) -> AdminProfileDetail:
-    return await admin.hide_profile(session, operator.lang, user_id)
+    return await admin.hide_profile(session, operator.lang, user_id, why)
 
 
 @router.post("/profiles/{user_id}/restore", response_model=AdminProfileDetail)

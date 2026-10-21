@@ -29,7 +29,7 @@ from students_cz.db.models.enums import (
     UserEventKind,
 )
 from students_cz.schemas import HelperUpsert
-from students_cz.services.errors import Forbidden, Invalid
+from students_cz.services.errors import Invalid
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -87,12 +87,16 @@ async def save_profile(
         helper = HelperProfile(user_id=user.id)
         session.add(helper)
 
-    # A ban is not something the banned person can lift by pressing publish.
-    if helper.status == PublishStatus.BANNED:
-        raise Forbidden("this profile is blocked")
-
     _apply_text(helper, spec, lang)
-    published_now = await _apply_status(session, helper, user, publish=spec.publish)
+    # A ban is not something the banned person can lift by pressing publish.
+    # What they changed is kept, though, and goes back to an operator, who
+    # either lists it again or leaves it hidden: a profile hidden for a wrong
+    # price is fixed by fixing the price.
+    if helper.status == PublishStatus.BANNED:
+        helper.reviewed_at = None
+        published_now = False
+    else:
+        published_now = await _apply_status(session, helper, user, publish=spec.publish)
     await session.flush()
     # Same rule as the text fields, and for the same reason. `offers` defaults
     # to an empty list, so an unconditional call here deletes everything the

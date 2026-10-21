@@ -30,6 +30,7 @@ from students_cz.db.models.requests import HelpRequest, RequestResponse
 from students_cz.schemas import (
     AdminCatalog,
     AdminCounts,
+    AdminHide,
     AdminPlacement,
     AdminPlacementIn,
     AdminProfile,
@@ -56,9 +57,10 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         HelperProfile.status == PublishStatus.PUBLISHED,
         HelperProfile.published_at >= now - WEEK,
     )
-    # However old: a profile nobody looked at does not leave on its own.
+    # However old: a profile nobody looked at does not leave on its own. A
+    # hidden one is back here once its owner changes it (helpers.py).
     to_review = and_(
-        HelperProfile.status == PublishStatus.PUBLISHED,
+        HelperProfile.status.in_((PublishStatus.PUBLISHED, PublishStatus.BANNED)),
         HelperProfile.reviewed_at.is_(None),
     )
     hidden = HelperProfile.status == PublishStatus.BANNED
@@ -112,14 +114,14 @@ async def _new_profiles(
 ) -> list[AdminProfile]:
     rows = (
         await session.execute(
-            select(HelperProfile.published_at, User)
+            select(HelperProfile.published_at, HelperProfile.status, User)
             .join(User, User.id == HelperProfile.user_id)
             .where(where)
             .order_by(newest.desc())
             .limit(LIST_CAP)
         )
     ).all()
-    ids = [user.id for _, user in rows]
+    ids = [user.id for _, _, user in rows]
     services = await _services(session, lang, ids)
     return [
         AdminProfile(
@@ -127,12 +129,13 @@ async def _new_profiles(
             # As the catalog shows people, since the operator reads them the
             # way anybody browsing does.
             name=display_name(user),
+            status=status,
             services=services.get(user.id, []),
             # A hidden profile was listed once, so it has one; a ban from before
             # the console might not.
             published_at=published_at or user.created_at,
         )
-        for published_at, user in rows
+        for published_at, status, user in rows
     ]
 
 
@@ -213,24 +216,27 @@ async def profile(
         institution=institution,
         published_at=helper.published_at,
         reviewed_at=helper.reviewed_at,
+        hidden_reason=helper.hidden_reason,
+        hidden_note=helper.hidden_note,
     )
 
 
 async def keep_profile(
     session: AsyncSession, lang: UiLang, user_id: int
 ) -> AdminProfileDetail:
-    """An operator looked and left it as it is: off «Новые анкеты», still listed."""
+    """An operator looked and left it as it is: off «Новые анкеты», still listed,
+    or still hidden for the reason it was hidden."""
     await _moderate(
         session,
         user_id,
-        HelperProfile.status == PublishStatus.PUBLISHED,
+        HelperProfile.status.in_((PublishStatus.PUBLISHED, PublishStatus.BANNED)),
         reviewed_at=func.now(),
     )
     return await profile(session, lang, user_id)
 
 
 async def hide_profile(
-    session: AsyncSession, lang: UiLang, user_id: int
+    session: AsyncSession, lang: UiLang, user_id: int, why: AdminHide
 ) -> AdminProfileDetail:
     """Out of the catalog, and its owner cannot list it again; see helpers.py.
 
@@ -243,6 +249,8 @@ async def hide_profile(
         HelperProfile.status == PublishStatus.PUBLISHED,
         status=PublishStatus.BANNED,
         reviewed_at=func.now(),
+        hidden_reason=why.reason,
+        hidden_note=why.note,
     )
     return await profile(session, lang, user_id)
 
@@ -259,6 +267,8 @@ async def restore_profile(
         HelperProfile.status == PublishStatus.BANNED,
         status=PublishStatus.PUBLISHED,
         published_at=func.coalesce(HelperProfile.published_at, func.now()),
+        hidden_reason=None,
+        hidden_note=None,
     )
     return await profile(session, lang, user_id)
 

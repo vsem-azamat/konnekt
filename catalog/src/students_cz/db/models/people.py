@@ -34,7 +34,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from students_cz.db.base import Base, IdMixin, TimestampMixin
 from students_cz.db.models.enums import (
+    HIDE_NOTE_MAX,
     ContentLang,
+    HideReason,
     PublishStatus,
     UiLang,
     WorkFormat,
@@ -155,6 +157,12 @@ class HelperProfile(TimestampMixin, Base):
     # When an operator looked at it in the console and kept or hid it; until
     # then a newly published profile waits on the console's «Новые анкеты».
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set with a ban and cleared with its lift; the owner reads both. The note
+    # is the operator's own words for «Другое», and only for it.
+    hidden_reason: Mapped[HideReason | None] = mapped_column(
+        pg_enum(HideReason, "hide_reason")
+    )
+    hidden_note: Mapped[str | None] = mapped_column(String(HIDE_NOTE_MAX))
 
     work_format: Mapped[WorkFormat] = mapped_column(
         pg_enum(WorkFormat, "work_format"),
