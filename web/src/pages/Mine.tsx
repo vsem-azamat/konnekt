@@ -7,19 +7,21 @@ import { DocumentIcon, iconForService } from '@/components/icons';
 import { formatDay } from '@/components/Phrase';
 import { TabBar } from '@/components/TabBar';
 import {
+  Action,
   AvatarStack,
   Card,
   Cards,
   Empty,
-  Label,
   Reason,
   Screen,
   Segmented,
   SkeletonRows,
   Tile,
   Title,
+  ui,
 } from '@/components/Ui';
 import { api } from '@/lib/api';
+import { requestName } from '@/lib/requestHeading';
 import type { HelpRequest } from '@/lib/types';
 
 type Tab = 'mine' | 'incoming';
@@ -82,15 +84,11 @@ export default function MinePage() {
               ]}
             />
           </div>
-        ) : (
-          <Label>
-            <Trans>Заявки</Trans>
-          </Label>
-        )}
+        ) : null}
 
-        {/* The segmented control replaces the section label, and with it the
-            gap the label used to provide above the list. */}
-        <div style={{ height: isHelper ? 14 : 0 }} />
+        {/* The title already says «Заявки»; a section label repeating it under
+            the same words told the reader nothing. */}
+        <div style={{ height: 14 }} />
 
         {tab === 'incoming' ? (
           <Incoming />
@@ -105,6 +103,11 @@ export default function MinePage() {
               <Trans>
                 Опиши, что нужно, и получай отклики — вместо того чтобы искать самому.
               </Trans>
+            }
+            action={
+              <Action onClick={() => navigate('/ask')}>
+                <Trans>Мне нужна помощь</Trans>
+              </Action>
             }
           />
         ) : (
@@ -135,8 +138,7 @@ function RequestCard({
   onClick: () => void;
 }) {
   const Icon = request.service_type ? iconForService('tutoring') : DocumentIcon;
-  const title =
-    [request.subject, request.institution].filter(Boolean).join(', ') || request.text;
+  const title = requestName(request) ?? request.text;
 
   return (
     <Card onClick={onClick}>
@@ -159,7 +161,7 @@ function RequestCard({
       </div>
 
       {request.responses_count > 0 ? (
-        <>
+        <div className={ui.reasonRow}>
           <Reason>
             <Plural
               value={request.responses_count}
@@ -169,12 +171,8 @@ function RequestCard({
               other="# отклика"
             />
           </Reason>
-          {request.responders.length > 0 ? (
-            <div style={{ marginTop: 10 }}>
-              <AvatarStack avatars={request.responders} />
-            </div>
-          ) : null}
-        </>
+          <AvatarStack avatars={request.responders} />
+        </div>
       ) : (
         <Reason weak>
           <Trans>Пока без откликов</Trans>

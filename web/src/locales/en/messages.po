@@ -1576,6 +1576,7 @@ msgid "Ссылка для публичной вкладки"
 msgstr "Link for the public tab"
 
 #: src/components/TabBar.tsx
+#: src/pages/Mine.tsx
 msgid "Мне нужна помощь"
 msgstr "I need help"
 
