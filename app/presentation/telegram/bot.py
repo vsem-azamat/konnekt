@@ -8,6 +8,7 @@ counts — all of which need a long-lived bot, which is what this process is.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 from aiogram import Bot, Dispatcher
@@ -28,18 +29,25 @@ if TYPE_CHECKING:
 from app.db.session import close_db, get_session_maker
 from app.presentation.telegram import heartbeat
 from app.presentation.telegram.handlers import router
+from app.presentation.telegram.metrics import ApiCallMetrics, run_metrics_server, run_queue_depths
 from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
     AudienceMiddleware,
     BlacklistMiddleware,
     DependenciesMiddleware,
+    HandlerNameMiddleware,
     HistoryMiddleware,
+    LoggingContextMiddleware,
     ManagedChatsMiddleware,
 )
+from app.presentation.telegram.middlewares.logging_context import AlreadyReported
 from app.presentation.telegram.profile import publish_profile
 
 setup_logging()
 logger = get_logger("bot")
+
+
+_ALREADY_REPORTED = AlreadyReported()
 
 
 # ---------------------------------------------------------------------------
@@ -83,11 +91,11 @@ async def on_startup(bot: Bot) -> None:
     try:
         await _publish_menu_button(bot)
     except Exception as e:
-        logger.warning("menu_button_not_set", error=str(e))
+        logger.warning("menu_button_not_set", error=str(e), exc_info=True)
     try:
         await publish_profile(bot)
     except Exception as e:
-        logger.warning("profile_not_set", error=str(e))
+        logger.warning("profile_not_set", error=str(e), exc_info=True)
 
 
 async def on_shutdown(bot: Bot) -> None:
@@ -100,7 +108,7 @@ async def on_shutdown(bot: Bot) -> None:
     try:
         await bot.delete_webhook()
     except Exception as e:
-        logger.warning("shutdown_delete_webhook_failed", error=str(e))
+        logger.warning("shutdown_delete_webhook_failed", error=str(e), exc_info=True)
     logger.info("main_bot_shutdown_complete")
 
 
@@ -113,6 +121,7 @@ def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bo
     """Create and configure the moderation bot — the only bot in this process."""
     bot = Bot(token=settings.telegram.token, default=DefaultBotProperties(parse_mode="HTML"))
     bot.session.middleware(heartbeat.PollingHeartbeat())
+    bot.session.middleware(ApiCallMetrics())
     return bot, build_dispatcher(bot, session_maker)
 
 
@@ -120,6 +129,14 @@ def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) 
     """The moderator dispatcher, middlewares in their order, for any bot."""
     dp = Dispatcher()
 
+    # First, so everything below logs with the update in hand, and a failure
+    # is reported once, here, with it.
+    dp.update.outer_middleware(LoggingContextMiddleware())
+    for observer in dp.observers.values():
+        if observer is not dp.update and observer is not dp.errors:
+            observer.middleware(HandlerNameMiddleware())
+    # aiogram logs the same exception again, without any of that.
+    logging.getLogger("aiogram.event").addFilter(_ALREADY_REPORTED)
     dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT))
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
@@ -259,6 +276,11 @@ async def _serve() -> None:
 
     # A stalled poller ends the process, so the container restarts it.
     tasks.append(heartbeat.watch())
+
+    # What Prometheus reads: the scrape (returns at once without a secret) and
+    # the queue gauges it cannot compute at scrape time.
+    tasks.append(_contained(run_metrics_server(), name="metrics"))
+    tasks.append(run_queue_depths(session_maker))
 
     polling = _run_polling(
         main_bot,

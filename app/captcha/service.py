@@ -21,6 +21,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.captcha import challenge, waves
+from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -84,6 +85,7 @@ async def admit(
 
     if row.status == JoinCaptcha.STATUS_HELD:
         assert wave is not None
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_HELD).inc()
         if wave.decision == JoinWave.DECISION_DECLINE:
             await _decline_on_sight(bot, db, row, now)
         return
@@ -102,12 +104,16 @@ async def admit(
         row.status = JoinCaptcha.STATUS_UNDELIVERED
         row.resolved_at = now
         await db.commit()
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_UNDELIVERED).inc()
         # Reported by the sweep, summed up per chat: a second captcha bot in
         # the chat makes every request land here.
-        logger.warning("captcha_not_delivered", chat_id=chat.id, user_id=user_id, error=str(err))
+        logger.warning(
+            "captcha_not_delivered", chat_id=chat.id, user_id=user_id, error=str(err), error_type=type(err).__name__
+        )
         return
     row.message_id = sent.message_id
     await db.commit()
+    CAPTCHA_EVENTS.labels(event="sent").inc()
     logger.info("captcha_sent", chat_id=chat.id, user_id=user_id, captcha_id=row.id)
 
 
@@ -151,13 +157,16 @@ async def _decline_on_sight(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: d
     except TelegramAPIError as err:
         if not request_gone(err):
             # Stays held: the alert's button declines what is left.
-            logger.warning("captcha_wave_decline_failed", captcha_id=row.id, error=str(err))
+            logger.warning(
+                "captcha_wave_decline_failed", captcha_id=row.id, error=str(err), error_type=type(err).__name__
+            )
             return
         row.status = JoinCaptcha.STATUS_GONE
     else:
         row.status = JoinCaptcha.STATUS_DECLINED
     row.resolved_at = now
     await db.commit()
+    CAPTCHA_EVENTS.labels(event=row.status).inc()
 
 
 async def answer(
@@ -209,6 +218,8 @@ async def answer(
         return Outcome.PASSED
 
     row.attempts_left -= 1
+    if row.attempts_left > 0:
+        CAPTCHA_EVENTS.labels(event="retry").inc()
     if row.attempts_left <= 0:
         try:
             await with_retry(lambda: bot.decline_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
@@ -242,7 +253,9 @@ async def _refused(
         return Outcome.GONE
     # Nothing the applicant can fix, and something the admins must know.
     await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
-    logger.warning("captcha_request_refused", captcha_id=row.id, chat_id=row.chat_id, error=str(err))
+    logger.warning(
+        "captcha_request_refused", captcha_id=row.id, chat_id=row.chat_id, error=str(err), error_type=type(err).__name__
+    )
     advice = "Проверьте права бота в чате." if lacks_rights(err) else "Telegram не ответил, заявка ждёт админов чата."
     await report(
         bot,
@@ -292,7 +305,9 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
                     status, note = JoinCaptcha.STATUS_GONE, challenge.gone_text(title)
                 else:
                     status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
-                    logger.warning("captcha_expiry_refused", captcha_id=row.id, error=str(err))
+                    logger.warning(
+                        "captcha_expiry_refused", captcha_id=row.id, error=str(err), error_type=type(err).__name__
+                    )
             else:
                 status, note = JoinCaptcha.STATUS_EXPIRED, challenge.expired_text(title)
         await _close(bot, db, row, status, now, note)
@@ -379,6 +394,7 @@ async def _close(
     row.status = status
     row.resolved_at = now
     await db.commit()
+    CAPTCHA_EVENTS.labels(event=status).inc()
     await _edit(bot, row, text, markup)
 
 
@@ -389,7 +405,7 @@ async def _edit(bot: Bot, row: JoinCaptcha, text: str, markup: InlineKeyboardMar
         await bot.edit_message_text(chat_id=row.user_chat_id, message_id=row.message_id, text=text, reply_markup=markup)
     except TelegramAPIError as err:
         # The decision stands either way; the applicant just sees stale buttons.
-        logger.warning("captcha_message_not_edited", captcha_id=row.id, error=str(err))
+        logger.warning("captcha_message_not_edited", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
 
 
 def _still_checks(chat: Chat | None) -> bool:

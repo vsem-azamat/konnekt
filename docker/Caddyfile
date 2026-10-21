@@ -7,9 +7,62 @@
 		# sending one first.
 		trusted_proxies_strict
 	}
+	# Caddy's own log, errors included. Spelled out: a snippet cannot be
+	# imported here, the global block being first; keep it the same as below.
+	log {
+		output stderr
+		format filter {
+			wrap json
+			fields {
+				request>uri delete
+				request>headers delete
+				request>tls delete
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+# What a log line leaves out, in the access log and in Caddy's own error log
+# alike: a proxy error carries the request it failed on, and a sign-in
+# callback's `code` and `state` ride in its query string, a path names the
+# person it is about (/api/audience/<id>), and the browser sends cookies and an
+# Authorization header with initData. None of it belongs in a log. The line
+# keeps what happened to the request: its method, host, status, time, an id,
+# and which backend (`handler`) it went to; the backend's own line, found by the
+# id, has the route.
+(without_the_request) {
+	format filter {
+		wrap json
+		fields {
+			request>uri delete
+			request>headers delete
+			request>tls delete
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			resp_headers delete
+		}
+	}
+}
+
+(access_log) {
+	log {
+		output stdout
+		import without_the_request
+	}
+	# One id per request, here, so the line below and the backends' lines agree.
+	log_append request_id {http.request.uuid}
+	# The container check, every few seconds, and files nobody reads a line about.
+	@quiet path /healthz /assets/*
+	log_skip @quiet
 }
 
 :80 {
+	import access_log
 	encode zstd gzip
 
 	# On every response. The Mini App must stay framable by Telegram's web
@@ -35,7 +88,9 @@
 	# they are a guess at its token, so they never get through here.
 	@catalog path /api/v1/* /healthz
 	handle @catalog {
+		log_append handler catalog
 		reverse_proxy catalog-api:8000 {
+			header_up X-Request-Id {http.request.uuid}
 			header_up -Cookie
 			header_up -X-Catalog-Service
 			header_up -X-Catalog-Operator
@@ -62,7 +117,9 @@
 	}
 
 	handle /api/* {
+		log_append handler webapi
 		reverse_proxy webapi:8787 {
+			header_up X-Request-Id {http.request.uuid}
 			# One address, the one this proxy believes, rather than the chain.
 			header_up X-Forwarded-For {client_ip}
 		}
@@ -120,6 +177,7 @@
 # docker-compose.yaml. Unset, it falls back to a name no request can carry, so
 # the block is present and matches nothing.
 http://{$ADMIN_HOST:admin.invalid} {
+	import access_log
 	encode zstd gzip
 
 	# Never framed: the console is not opened inside Telegram from here.
@@ -136,7 +194,9 @@ http://{$ADMIN_HOST:admin.invalid} {
 	}
 
 	handle /api/* {
+		log_append handler webapi
 		reverse_proxy webapi:8787 {
+			header_up X-Request-Id {http.request.uuid}
 			header_up X-Forwarded-For {client_ip}
 		}
 	}

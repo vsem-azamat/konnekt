@@ -19,6 +19,8 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from app.core.metrics import ALERTS
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
@@ -99,7 +101,9 @@ class AlertHandler(logging.Handler):
             text = await self._queue.get()
             try:
                 await send(text)
+                ALERTS.labels(outcome="sent").inc()
             except Exception as err:
+                ALERTS.labels(outcome="failed").inc()
                 # A warning, so a failing send cannot alert about itself.
                 logger.warning("alert_not_sent: %s", type(err).__name__)
             finally:

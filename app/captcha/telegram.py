@@ -49,4 +49,4 @@ async def report(bot: Bot, text: str) -> None:
     try:
         await bot.send_message(chat_id=settings.admin.default_report_chat_id, text=text)
     except TelegramAPIError as err:
-        logger.warning("captcha_report_not_sent", error=str(err))
+        logger.warning("captcha_report_not_sent", error=str(err), error_type=type(err).__name__)

@@ -12,11 +12,13 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.core.config import Settings, get_settings
 from students_cz.db.models import HelperProfile, Offer, User
 from students_cz.db.models.enums import (
+    HideReason,
     PlacementEventKind,
     PlacementSlot,
     PublishStatus,
@@ -39,6 +41,8 @@ pytestmark = pytest.mark.asyncio
 
 OPERATOR = 97001
 STRANGER = 97002
+# Hiding says why; the owner reads it.
+SPAM = {"reason": "spam"}
 
 
 def _client(
@@ -162,7 +166,13 @@ async def test_new_profiles_wait_for_an_operator_newest_first(
     assert body["profiles"][1]["services"] == [], "a service switched off is not offered"
     assert body["counts"]["profiles_week"] >= 2
     # A display name, as the catalog shows it, and nothing to reach them by.
-    assert set(body["profiles"][0]) == {"user_id", "name", "services", "published_at"}
+    assert set(body["profiles"][0]) == {
+        "user_id",
+        "name",
+        "status",
+        "services",
+        "published_at",
+    }
 
 
 async def test_unanswered_requests_are_open_ones_nobody_answered_oldest_first(
@@ -397,6 +407,7 @@ async def test_an_unknown_profile_is_404(session: AsyncSession, method: str) -> 
             method,
             path if method == "GET" else f"{path}/hide",
             headers=auth_header(OPERATOR),
+            json=SPAM,
         )
     assert response.status_code == 404
 
@@ -422,20 +433,23 @@ async def test_keeping_a_profile_takes_it_off_the_new_list_and_leaves_it_listed(
     assert body["counts"]["profiles_week"] >= 1
 
 
-async def test_hiding_a_profile_bans_it_so_its_owner_cannot_publish_it_again(
+async def test_hiding_a_profile_bans_it_so_its_owner_cannot_list_it_again(
     session: AsyncSession, helper_factory
 ) -> None:
     user_id = (await _fresh_helper(helper_factory, session, 97603)).id
     # Taken down by its owner: hidden too, but not the operator's doing.
     own = await _fresh_helper(helper_factory, session, 97607)
-    own_profile = await session.get(HelperProfile, own.id)
+    own_id = own.id
+    own_profile = await session.get(HelperProfile, own_id)
     assert own_profile is not None
     own_profile.status = PublishStatus.HIDDEN
     await session.flush()
 
     async with _client(session) as http:
         hidden = await http.post(
-            f"/api/v1/admin/profiles/{user_id}/hide", headers=auth_header(OPERATOR)
+            f"/api/v1/admin/profiles/{user_id}/hide",
+            headers=auth_header(OPERATOR),
+            json=SPAM,
         )
         body = (
             await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
@@ -446,10 +460,14 @@ async def test_hiding_a_profile_bans_it_so_its_owner_cannot_publish_it_again(
 
     assert hidden.status_code == 200, hidden.text
     assert hidden.json()["status"] == "banned"
-    assert body["counts"]["hidden"] == 1
     assert user_id not in [row["user_id"] for row in body["profiles"]]
-    assert [row["user_id"] for row in body["hidden"]] == [user_id]
-    assert again.status_code == 403
+    # Theirs, not the owner's own: counted against whatever else the
+    # database already holds.
+    assert user_id in [row["user_id"] for row in body["hidden"]]
+    assert own_id not in [row["user_id"] for row in body["hidden"]]
+    # Saved, as any edit to it is, and still not listed.
+    assert again.status_code == 200, again.text
+    assert again.json()["helper_status"] == "banned"
 
 
 async def test_a_hidden_profile_comes_back_as_it_was(
@@ -459,7 +477,9 @@ async def test_a_hidden_profile_comes_back_as_it_was(
 
     async with _client(session) as http:
         await http.post(
-            f"/api/v1/admin/profiles/{user.id}/hide", headers=auth_header(OPERATOR)
+            f"/api/v1/admin/profiles/{user.id}/hide",
+            headers=auth_header(OPERATOR),
+            json=SPAM,
         )
         restored = await http.post(
             f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
@@ -470,7 +490,7 @@ async def test_a_hidden_profile_comes_back_as_it_was(
 
     assert restored.status_code == 200, restored.text
     assert restored.json()["status"] == "published"
-    assert body["hidden"] == []
+    assert user.id not in [row["user_id"] for row in body["hidden"]]
     # Hiding was a look at it: back in the catalog, not back on the new list.
     assert user.id not in [row["user_id"] for row in body["profiles"]]
 
@@ -489,19 +509,24 @@ async def test_only_a_listed_profile_can_be_hidden(
 
     async with _client(session) as http:
         response = await http.post(
-            f"/api/v1/admin/profiles/{user.id}/hide", headers=auth_header(OPERATOR)
+            f"/api/v1/admin/profiles/{user.id}/hide",
+            headers=auth_header(OPERATOR),
+            json=SPAM,
         )
 
     assert response.status_code == 409
 
 
-async def test_only_a_listed_profile_can_be_kept(
-    session: AsyncSession, helper_factory
+@pytest.mark.parametrize("status", [PublishStatus.DRAFT, PublishStatus.HIDDEN])
+async def test_only_a_listed_or_hidden_profile_can_be_kept(
+    session: AsyncSession, helper_factory, status: PublishStatus
 ) -> None:
+    """Either is the operator's to look at; a draft or a profile its owner
+    took down is not."""
     user = await _fresh_helper(helper_factory, session, 97608)
     profile = await session.get(HelperProfile, user.id)
     assert profile is not None
-    profile.status = PublishStatus.BANNED
+    profile.status = status
     await session.flush()
 
     async with _client(session) as http:
@@ -540,6 +565,264 @@ async def test_only_a_hidden_profile_can_be_restored(
             f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
         )
     assert response.status_code == 409
+
+
+async def _hide(
+    http: AsyncClient, user_id: int, reason: str = "spam", note: str | None = None
+):
+    body: dict[str, str] = {"reason": reason}
+    if note is not None:
+        body["note"] = note
+    return await http.post(
+        f"/api/v1/admin/profiles/{user_id}/hide", headers=auth_header(OPERATOR), json=body
+    )
+
+
+async def test_hiding_says_why_and_restoring_forgets_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97610)
+
+    async with _client(session) as http:
+        hidden = await _hide(http, user.id, "other", "  Чужие фото  ")
+        opened = await http.get(
+            f"/api/v1/admin/profiles/{user.id}", headers=auth_header(OPERATOR)
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+
+    assert hidden.status_code == 200, hidden.text
+    assert hidden.json()["hidden_reason"] == "other"
+    assert hidden.json()["hidden_note"] == "Чужие фото"
+    assert opened.json()["hidden_reason"] == "other"
+    assert restored.json()["hidden_reason"] is None
+    assert restored.json()["hidden_note"] is None
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"reason": "boring"},
+        # «Другое» is only the word for a reason the list lacks: say it.
+        {"reason": "other"},
+        {"reason": "other", "note": "   "},
+        {"reason": "other", "note": "x" * 201},
+        # A reason on the list says it all; a note there would be shown to
+        # nobody, so it is refused rather than kept.
+        {"reason": "spam", "note": "и ещё"},
+    ],
+)
+async def test_a_reason_is_one_of_the_list_or_said_in_words(
+    session: AsyncSession, helper_factory, body: dict[str, str]
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97611)
+
+    async with _client(session) as http:
+        response = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/hide",
+            headers=auth_header(OPERATOR),
+            json=body,
+        )
+
+    assert response.status_code == 422
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    assert profile.status == PublishStatus.PUBLISHED
+
+
+async def test_an_owner_edit_to_a_hidden_profile_goes_back_to_the_operator(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Saved, still hidden, and on «Новые анкеты» again until an operator
+    either restores it or leaves it hidden."""
+    user = await _fresh_helper(helper_factory, session, 97612)
+
+    async with _client(session) as http:
+        await _hide(http, user.id)
+        before = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+        saved = await http.put(
+            "/api/v1/helper",
+            headers=auth_header(97612),
+            json={"about": "Новая версия", "publish": True},
+        )
+        queued = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+        kept = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/review", headers=auth_header(OPERATOR)
+        )
+        after = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+
+    assert user.id not in [row["user_id"] for row in before["profiles"]]
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["helper_status"] == "banned"
+    row = next(row for row in queued["profiles"] if row["user_id"] == user.id)
+    assert row["status"] == "banned"
+    assert (
+        queued["counts"]["profiles_to_review"]
+        == before["counts"]["profiles_to_review"] + 1
+    )
+    assert user.id in [row["user_id"] for row in queued["hidden"]]
+    assert kept.status_code == 200, kept.text
+    assert kept.json()["status"] == "banned"
+    assert kept.json()["about"] == "Новая версия"
+    # Left hidden, for the same reason.
+    assert kept.json()["hidden_reason"] == "spam"
+    assert user.id not in [row["user_id"] for row in after["profiles"]]
+
+
+async def test_restoring_an_edited_profile_counts_as_looking_at_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Back in the catalog and off «Новые анкеты»: the operator read the
+    edit to restore it, so its owner is not told it is still on review."""
+    user = await _fresh_helper(helper_factory, session, 97613)
+
+    async with _client(session) as http:
+        await _hide(http, user.id)
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97613), json={"about": "Новая версия"}
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+        mine = (await http.get("/api/v1/helper", headers=auth_header(97613))).json()
+
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["reviewed_at"] is not None
+    assert user.id not in [row["user_id"] for row in body["profiles"]]
+    assert mine["status"] == "published"
+    assert mine["under_review"] is False
+
+
+@pytest.mark.parametrize("action", ["review", "restore"])
+async def test_a_decision_on_a_profile_changed_since_it_was_read_is_409(
+    session: AsyncSession, helper_factory, action: str
+) -> None:
+    """Keeping or restoring approves what the operator read. An owner's save
+    in between is a different profile: show it, do not approve it unseen."""
+    # Kept as a number: the refused decision rolls the session back, and
+    # with it whatever it had loaded.
+    user_id = (await _fresh_helper(helper_factory, session, 97614)).id
+
+    async with _client(session) as http:
+        await _hide(http, user_id)
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97614), json={"about": "Первая правка"}
+        )
+        read = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97614), json={"about": "Вторая правка"}
+        )
+        stale = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/{action}",
+            headers=auth_header(OPERATOR),
+            json={"seen": read["updated_at"]},
+        )
+        fresh = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        decided = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/{action}",
+            headers=auth_header(OPERATOR),
+            json={"seen": fresh["updated_at"]},
+        )
+
+    assert stale.status_code == 409
+    assert decided.status_code == 200, decided.text
+
+
+async def test_an_edited_hidden_profile_queues_by_when_it_was_edited(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Out a month ago, hidden, changed today: today's news, not last month's."""
+    old = await _fresh_helper(helper_factory, session, 97615)
+    newer = await _fresh_helper(helper_factory, session, 97616)
+    profile = await session.get(HelperProfile, old.id)
+    assert profile is not None
+    profile.published_at = datetime.now(UTC) - timedelta(days=30)
+    profile.status = PublishStatus.BANNED
+    profile.hidden_reason = HideReason.SPAM
+    profile.reviewed_at = None
+    profile.updated_at = datetime.now(UTC) + timedelta(seconds=1)
+    await session.flush()
+
+    async with _client(session) as http:
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+
+    ours = [
+        row["user_id"] for row in body["profiles"] if row["user_id"] in {old.id, newer.id}
+    ]
+    assert ours == [old.id, newer.id]
+
+
+async def test_the_database_keeps_words_to_other(
+    session: AsyncSession, helper_factory
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97617)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = PublishStatus.BANNED
+    profile.hidden_reason = HideReason.SPAM
+    profile.hidden_note = "и ещё"
+
+    with pytest.raises(IntegrityError):
+        await session.flush()
+
+
+async def test_an_edit_to_offers_alone_is_an_edit_too(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Offers live in their own table: a new one with a handle in its note
+    must not be restored on the strength of the profile read before it."""
+    user_id = (await _fresh_helper(helper_factory, session, 97618)).id
+
+    async with _client(session) as http:
+        await _hide(http, user_id)
+        read = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        mine = (await http.get("/api/v1/helper", headers=auth_header(97618))).json()
+        offers = [
+            {
+                "service_type_id": offer["service_type_id"],
+                "subject_id": offer["subject_id"],
+                "institution_id": offer["institution_id"],
+                "price_amount": offer["price_amount"],
+                "note": "пиши мне в личку",
+            }
+            for offer in mine["offers"]
+        ]
+        edited = await http.put(
+            "/api/v1/helper", headers=auth_header(97618), json={"offers": offers}
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/restore",
+            headers=auth_header(OPERATOR),
+            json={"seen": read["updated_at"]},
+        )
+
+    assert edited.status_code == 200, edited.text
+    assert restored.status_code == 409
 
 
 # ── partner cards ───────────────────────────────────────────────────────

@@ -72,4 +72,4 @@ async def report_to_moderators(
     except Exception as err:
         # The member is told their report went through either way. Telling them
         # otherwise would ask them to do something about a failure that is ours.
-        logger.error("report_forward_failed", error=str(err), target_user_id=reported.id)
+        logger.error("report_forward_failed", error=str(err), exc_info=True, target_user_id=reported.id)

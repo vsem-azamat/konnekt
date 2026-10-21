@@ -34,6 +34,9 @@ def get_engine() -> AsyncEngine:
         _engine = create_async_engine(
             settings.sqlalchemy_url,
             echo=settings.db_echo,
+            # A database error quotes the statement's parameters in its
+            # message: names, ids. The message reaches the logs.
+            hide_parameters=True,
             pool_size=settings.db_pool_size,
             max_overflow=settings.db_max_overflow,
             pool_recycle=settings.db_pool_recycle_seconds,

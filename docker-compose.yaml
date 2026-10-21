@@ -17,6 +17,10 @@
 # DB_PASSWORD, MODERATOR_BOT_TOKEN and ADMIN_SUPER_ADMINS have no defaults and
 # fail loudly at startup; the rest simply come up switched off. Redeploy through
 # the workflow.
+# Named here, not taken from the directory it is deployed in: the log shipper
+# (deploy/alloy-logs) keeps the containers of this project name and no others.
+name: supervisor-telegram
+
 x-runtime-env: &runtime-env
   # The database is not part of this stack. It is on the shared PostgreSQL
   # server and holds the production data, so where it lives is deployment

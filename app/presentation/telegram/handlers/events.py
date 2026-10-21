@@ -54,7 +54,7 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
         )
     except Exception as err:
         # A greeting Telegram refuses is the chat's problem, not the join's.
-        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err))
+        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err), error_type=type(err).__name__)
         return
 
     if chat.time_delete:
@@ -87,7 +87,9 @@ async def remove_membership_notice(message: Message, db: AsyncSession) -> None:
     except TelegramBadRequest as err:
         # Missing the right, or the notice is older than Telegram lets a bot
         # delete. Neither is worth an alert; the chat is merely noisier.
-        logger.debug("service_notice_not_removed", chat_id=message.chat.id, error=str(err))
+        logger.debug(
+            "service_notice_not_removed", chat_id=message.chat.id, error=str(err), error_type=type(err).__name__
+        )
 
 
 @router.chat_join_request()

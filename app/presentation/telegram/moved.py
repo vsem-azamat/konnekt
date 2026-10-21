@@ -87,7 +87,7 @@ async def retire_profile(bot: Bot, konnekt_username: str) -> None:
         try:
             await step
         except Exception as e:
-            logger.warning("retired_profile_step_failed", bot=bot.id, step=name, error=str(e))
+            logger.warning("retired_profile_step_failed", bot=bot.id, step=name, error=str(e), exc_info=True)
 
 
 def build_moved_bots(session_maker: async_sessionmaker[AsyncSession]) -> list[tuple[Bot, Dispatcher]]:

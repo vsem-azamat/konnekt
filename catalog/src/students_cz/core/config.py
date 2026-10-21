@@ -3,7 +3,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, SecretStr, computed_field, field_validator
+from pydantic import (
+    Field,
+    SecretStr,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+)
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -57,6 +63,8 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    # One JSON line a record for the log shipper; "text" for reading in a terminal.
+    log_format: Literal["json", "text"] = "json"
 
     # One pool per process, and the Dockerfile pins `--workers 1`, so these are
     # the whole connection budget: at most `db_pool_size + db_max_overflow`
@@ -98,6 +106,9 @@ class Settings(BaseSettings):
     # alone, never sent by a browser. Unset turns that way in off. See
     # docs/architecture.md.
     service_token: SecretStr = SecretStr("")
+    # The bearer token Prometheus presents, and the switch for the metrics
+    # endpoint: unset, nothing answers. See core/metrics.py.
+    observability_metrics_secret: SecretStr = SecretStr("")
     # Who a business writes to about advertising: a Telegram username. Unset
     # means the ads page offers no contact. See docs/architecture.md.
     ads_contact: str | None = None
@@ -119,9 +130,9 @@ class Settings(BaseSettings):
             raise ValueError("ADS_CONTACT must be a Telegram username, without a link")
         return username
 
-    @field_validator("service_token", mode="before")
+    @field_validator("service_token", "observability_metrics_secret", mode="before")
     @classmethod
-    def _strong_or_off(cls, value: object) -> object:
+    def _strong_or_off(cls, value: object, info: ValidationInfo) -> object:
         """Spaces around it dropped, blank is off, and a short one refuses to start.
 
         A token pasted with a newline would otherwise never match, and a short
@@ -132,7 +143,8 @@ class Settings(BaseSettings):
             return value
         raw = raw.strip()
         if raw and len(raw) < 32:
-            raise ValueError("SERVICE_TOKEN must be at least 32 characters, or unset")
+            name = str(info.field_name).upper()
+            raise ValueError(f"{name} must be at least 32 characters, or unset")
         return SecretStr(raw)
 
     @field_validator("admin_tg_ids", mode="before")

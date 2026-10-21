@@ -33,7 +33,7 @@ class HistoryMiddleware(BaseMiddleware):
                 try:
                     await history_service.merge_user(db, user)
                 except Exception as err:
-                    logger.error("merge_user_failed", error=str(err))
+                    logger.error("merge_user_failed", error=str(err), exc_info=True)
                     # Swallowed, so the session must be usable for the rest of the update.
                     await db.rollback()
 
@@ -46,7 +46,7 @@ class HistoryMiddleware(BaseMiddleware):
             try:
                 await history_service.save_message(db, message, edited=edited)
             except Exception as err:
-                logger.error("save_message_failed", error=str(err))
+                logger.error("save_message_failed", error=str(err), exc_info=True)
                 await db.rollback()
 
             if not data.get("chat_is_approved", False):
@@ -63,7 +63,7 @@ class HistoryMiddleware(BaseMiddleware):
                         replace=edited,
                     )
                 except Exception as err:
-                    logger.error("ad_detector_failed", error=str(err))
+                    logger.error("ad_detector_failed", error=str(err), exc_info=True)
                     # Swallowed, so the session must be usable for the rest of the update.
                     await db.rollback()
 

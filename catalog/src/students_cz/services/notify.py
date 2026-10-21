@@ -25,6 +25,7 @@ from aiogram.types import (
 )
 
 from students_cz.bot.texts import OPEN_APP, OWNER_OPEN_CONSOLE, pick
+from students_cz.core.metrics import NOTIFICATIONS
 from students_cz.db.models import User
 from students_cz.db.models.enums import UiLang
 from students_cz.db.session import get_sessionmaker
@@ -189,7 +190,7 @@ async def tell(
     happening.
     """
     if bot is None:
-        log.debug("no bot configured; not notifying %s", tg_id)
+        log.debug("no bot configured; not notifying")
         return False
 
     try:
@@ -213,19 +214,24 @@ async def tell(
         async with get_sessionmaker()() as session:
             await mark_unreachable(session, tg_id, str(exc))
             await session.commit()
+        NOTIFICATIONS.labels(outcome="blocked").inc()
         return False
     except TelegramRetryAfter as exc:
         # Not retried here. This is a single message to a single person, and
         # holding a background task open for the flood-wait window to deliver
         # something the app already shows is not worth it.
-        log.warning("flood wait %ss notifying %s", exc.retry_after, tg_id)
+        # No id: the people written to are the audience, whose ids stay out of the logs.
+        log.warning("flood wait %ss notifying", exc.retry_after)
+        NOTIFICATIONS.labels(outcome="flood").inc()
         return False
     except Exception as exc:
         # Includes the timeout above: asyncio.TimeoutError is TimeoutError is
         # an Exception. Everything here is "the message did not arrive", and
         # none of it is worth failing the caller over.
-        log.warning("could not notify %s: %s", tg_id, exc)
+        log.warning("could not notify: %s", type(exc).__name__)
+        NOTIFICATIONS.labels(outcome="failed").inc()
         return False
+    NOTIFICATIONS.labels(outcome="sent").inc()
     return True
 
 

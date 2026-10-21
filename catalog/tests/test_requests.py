@@ -489,12 +489,14 @@ async def test_a_failure_after_the_write_leaves_nothing_behind(
     # the notification is composed from it — the window the rule is about.
     monkeypatch.setattr(requests_api, "_responses_out", explode)
 
-    with pytest.raises(RuntimeError):
-        await client.post(
-            f"/api/v1/requests/{created['id']}/respond",
-            json={"message": "могу помочь с этим"},
-            headers=helper_header(),
-        )
+    # A 500: the server-error middleware answers, and RequestLog, outside it,
+    # reports the failure without handing it on to the server a second time.
+    response = await client.post(
+        f"/api/v1/requests/{created['id']}/respond",
+        json={"message": "могу помочь с этим"},
+        headers=helper_header(),
+    )
+    assert response.status_code == 500
 
     answered = await session.scalar(
         select(func.count())

@@ -95,4 +95,4 @@ async def publish_profile(bot: Bot) -> None:
         try:
             await step(bot)
         except Exception as err:
-            logger.warning("profile_step_failed", step=name, error=str(err))
+            logger.warning("profile_step_failed", step=name, error=str(err), exc_info=True)
