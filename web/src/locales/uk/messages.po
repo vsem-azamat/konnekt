@@ -72,6 +72,11 @@ msgstr "покази й кліки"
 msgid "Пара слов о себе — что делаешь и как быстро"
 msgstr "Кілька слів про себе — що робиш і як швидко"
 
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
+msgstr "{0, plural, one {рік на платформі} few {роки на платформі} many {років на платформі} other {року на платформі}}"
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Знайшлося"
@@ -748,8 +753,8 @@ msgid "в разделе «Не про учёбу»"
 msgstr "у розділі «Не про навчання»"
 
 #: src/components/Phrase.tsx
-msgid "сдали"
-msgstr "склали"
+#~ msgid "сдали"
+#~ msgstr "склали"
 
 #: src/console/pages/Audience.tsx
 msgid "список, поиск, фильтры"
@@ -1843,7 +1848,7 @@ msgstr "Місто"
 #: src/components/Phrase.tsx
 #: src/pages/Request.tsx
 msgid "{0, plural, one {# занятие через нас} few {# занятия через нас} many {# занятий через нас} other {# занятия через нас}}"
-msgstr "{0, plural, one {# заняття з нами} few {# заняття з нами} many {# занять з нами} other {# заняття з нами}}"
+msgstr ""
 
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
@@ -2353,6 +2358,11 @@ msgstr "Не видно: у чату немає назви"
 msgid "Последняя активность"
 msgstr "Остання активність"
 
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+#~ msgid "{0, plural, one {занятие з нами} few {занятия з нами} many {занятий з нами} other {занятия з нами}}"
+#~ msgstr "{0, plural, one {заняття з нами} few {заняття з нами} many {занять з нами} other {заняття з нами}}"
+
 #: src/console/BanSheet.tsx
 msgid "{name} не забанен ни в одном чате"
 msgstr "{name} не забанено в жодному чаті"
@@ -2428,6 +2438,13 @@ msgstr "За цим поки не знайти"
 #: src/pages/Results.tsx
 msgid "Пока никого"
 msgstr "Поки нікого"
+
+#. placeholder {0}: num(p.deals)
+#. placeholder {0}: response.deals_count
+#: src/components/Phrase.tsx
+#: src/pages/Request.tsx
+#~ msgid "{0, plural, one {# занятие з нами} few {# занятия з нами} many {# занятий з нами} other {# занятия з нами}}"
+#~ msgstr "{0, plural, one {# заняття з нами} few {# заняття з нами} many {# занять з нами} other {# заняття з нами}}"
 
 #: src/console/pages/Summary.tsx
 msgid "что поймал детектор"
@@ -2789,8 +2806,8 @@ msgid "Не удалось загрузить"
 msgstr "Не вдалося завантажити"
 
 #: src/components/Phrase.tsx
-msgid "лет на площадке"
-msgstr "років на майданчику"
+#~ msgid "лет на площадке"
+#~ msgstr "років на майданчику"
 
 #: src/pages/ChatSection.tsx
 msgid "Наши чаты"
@@ -2881,6 +2898,11 @@ msgstr "Аудиторія"
 #: src/components/Incoming.tsx
 msgid "Сначала заполни профиль"
 msgstr "Спершу заповни профіль"
+
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {занятие через нас} few {занятия через нас} many {занятий через нас} other {занятия через нас}}"
+msgstr ""
 
 #: src/pages/MyHelper.tsx
 msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."

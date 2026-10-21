@@ -72,6 +72,11 @@ msgstr "zobrazení a kliknutí"
 msgid "Пара слов о себе — что делаешь и как быстро"
 msgstr "Pár slov o sobě — co děláš a jak rychle"
 
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
+msgstr "{0, plural, one {rok na platformě} few {roky na platformě} many {roku na platformě} other {let na platformě}}"
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Nalezeno"
@@ -748,8 +753,8 @@ msgid "в разделе «Не про учёбу»"
 msgstr "v sekci «Ne o studiu»"
 
 #: src/components/Phrase.tsx
-msgid "сдали"
-msgstr "uspěli"
+#~ msgid "сдали"
+#~ msgstr "uspěli"
 
 #: src/console/pages/Audience.tsx
 msgid "список, поиск, фильтры"
@@ -2789,8 +2794,8 @@ msgid "Не удалось загрузить"
 msgstr "Nepodařilo se načíst"
 
 #: src/components/Phrase.tsx
-msgid "лет на площадке"
-msgstr "let na platformě"
+#~ msgid "лет на площадке"
+#~ msgstr "let na platformě"
 
 #: src/pages/ChatSection.tsx
 msgid "Наши чаты"
@@ -2881,6 +2886,11 @@ msgstr "Publikum"
 #: src/components/Incoming.tsx
 msgid "Сначала заполни профиль"
 msgstr "Nejdřív vyplň profil"
+
+#. placeholder {0}: Number(value)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {занятие через нас} few {занятия через нас} many {занятий через нас} other {занятия через нас}}"
+msgstr "{0, plural, one {lekce přes nás} few {lekce přes nás} many {lekce přes nás} other {lekcí přes nás}}"
 
 #: src/pages/MyHelper.tsx
 msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."
