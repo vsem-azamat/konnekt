@@ -104,8 +104,11 @@ async def moderate_profile(
     http: CatalogHttp,
     admin_id: AdminId,
     lang: ConsoleLang = None,
+    # Why, when hiding, and what the operator read, when deciding; the
+    # catalog checks both.
+    body: Annotated[dict[str, Any] | None, Body()] = None,
 ) -> Response:
-    return await _ask(http, "POST", f"/admin/profiles/{user_id}/{action}", admin_id, lang)
+    return await _ask(http, "POST", f"/admin/profiles/{user_id}/{action}", admin_id, lang, body)
 
 
 @router.get("/admin/partners")

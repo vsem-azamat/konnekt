@@ -119,6 +119,17 @@ async def test_a_card_and_a_switch_carry_their_body(upstream: Catalog) -> None:
     assert json.loads(switched.content) == {"is_active": False}
 
 
+async def test_hiding_carries_its_reason_and_the_rest_carry_nothing(upstream: Catalog) -> None:
+    why = {"reason": "other", "note": "Чужие фото"}
+    async with _client() as http:
+        await http.post("/api/catalog/admin/profiles/7/hide", json=why)
+        await http.post("/api/catalog/admin/profiles/7/review")
+
+    hidden, kept = upstream.requests
+    assert json.loads(hidden.content) == why
+    assert kept.content == b""
+
+
 async def test_the_console_names_its_language(upstream: Catalog) -> None:
     async with _client() as http:
         named = await http.get("/api/catalog/taxonomy/institutions", params={"lang": "cs"})

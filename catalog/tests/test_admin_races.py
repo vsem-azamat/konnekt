@@ -15,10 +15,12 @@ from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from students_cz.db.models import HelperProfile, User
-from students_cz.db.models.enums import PublishStatus, UiLang
-from students_cz.schemas import HelperUpsert
+from students_cz.db.models.enums import HideReason, PublishStatus, UiLang
+from students_cz.schemas import AdminHide, HelperUpsert
 from students_cz.services import admin, helpers
-from students_cz.services.errors import Conflict, Forbidden
+from students_cz.services.errors import Conflict
+
+SPAM = AdminHide(reason=HideReason.SPAM)
 
 pytestmark = pytest.mark.asyncio
 
@@ -81,7 +83,7 @@ async def test_an_owner_hiding_first_is_not_overwritten_by_a_ban(
 
     async def ban() -> None:
         async with AsyncSession(engine) as session:
-            await admin.hide_profile(session, UiLang.RU, listed)
+            await admin.hide_profile(session, UiLang.RU, listed, SPAM)
             await session.commit()
 
     async with AsyncSession(engine) as owner:
@@ -100,7 +102,7 @@ async def test_an_owner_hiding_first_is_not_overwritten_by_a_ban(
     assert await _status(engine, listed) == PublishStatus.HIDDEN
 
 
-async def test_an_owner_saving_over_a_ban_is_refused(
+async def test_an_owner_saving_over_a_ban_keeps_the_ban(
     engine: AsyncEngine, listed: int
 ) -> None:
     """The ban lands while the owner's save is on its way: the save must see
@@ -116,11 +118,16 @@ async def test_an_owner_saving_over_a_ban_is_refused(
             await session.commit()
 
     async with AsyncSession(engine) as operator:
-        await admin.hide_profile(operator, UiLang.RU, listed)
+        await admin.hide_profile(operator, UiLang.RU, listed, SPAM)
         saving = asyncio.create_task(save())
         await _until_waiting(engine)
         await operator.commit()
 
-    with pytest.raises(Forbidden):
-        await saving
+    await saving
     assert await _status(engine, listed) == PublishStatus.BANNED
+    async with AsyncSession(engine) as session:
+        profile = await session.get(HelperProfile, listed)
+        assert profile is not None
+        # Back for an operator, for the reason it was hidden.
+        assert profile.reviewed_at is None
+        assert profile.hidden_reason == HideReason.SPAM

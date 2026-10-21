@@ -23,6 +23,7 @@ from students_cz.db.models import (
     ServiceType,
     Subject,
 )
+from students_cz.db.models.enums import PublishStatus
 from students_cz.schemas import (
     HelperUpsert,
     MeOut,
@@ -79,6 +80,7 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
         ).all()
     }
 
+    banned = helper.status == PublishStatus.BANNED
     return MyHelperOut(
         exists=True,
         status=helper.status.value,
@@ -87,6 +89,10 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
         work_format=helper.work_format,
         city=helper.city,
         place_note=helper.place_note,
+        under_review=helper.reviewed_at is None
+        and helper.status in (PublishStatus.PUBLISHED, PublishStatus.BANNED),
+        hidden_reason=helper.hidden_reason if banned else None,
+        hidden_note=helper.hidden_note if banned else None,
         offers=[
             MyOfferOut(
                 service_type_id=offer.service_type_id,

@@ -3,6 +3,8 @@ import { retrieveRawInitData } from '@tma.js/sdk-react';
 import { type PublicChat, sanitize } from './chats';
 import type {
   AdminCatalog,
+  AdminDecision,
+  AdminHide,
   AdminPlacement,
   AdminPlacementIn,
   AdminPlacementSwitch,
@@ -392,16 +394,25 @@ export const api = {
     request<AdminProfileDetail>(`/admin/profiles/${userId}`, { signal }),
 
   /** Looked at and left listed: off «Новые анкеты». Operators only. */
-  keepProfile: (userId: number) =>
-    request<AdminProfileDetail>(`/admin/profiles/${userId}/review`, { method: 'POST' }),
+  keepProfile: (userId: number, decision: AdminDecision) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/review`, {
+      method: 'POST',
+      body: decision,
+    }),
 
   /** Out of the catalog; its owner cannot list it again. Operators only. */
-  hideProfile: (userId: number) =>
-    request<AdminProfileDetail>(`/admin/profiles/${userId}/hide`, { method: 'POST' }),
+  hideProfile: (userId: number, why: AdminHide) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/hide`, {
+      method: 'POST',
+      body: why,
+    }),
 
   /** A hidden profile listed again. Operators only. */
-  restoreProfile: (userId: number) =>
-    request<AdminProfileDetail>(`/admin/profiles/${userId}/restore`, { method: 'POST' }),
+  restoreProfile: (userId: number, decision: AdminDecision) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/restore`, {
+      method: 'POST',
+      body: decision,
+    }),
 
   /** Placements with the last month's impressions and clicks. Operators only. */
   getAdminPartners: (signal?: AbortSignal) =>

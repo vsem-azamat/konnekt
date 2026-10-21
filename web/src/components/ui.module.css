@@ -1936,3 +1936,84 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Where «Моя анкета» stands, above the form. Tinted by who decides: the
+   owner's own states are quiet, an operator's hide is the warm one. Not red:
+   red is for what cannot be undone, and an operator can list it again. */
+.ownerStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ownerStatusTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.ownerStatusTitle::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+}
+
+.ownerStatus[data-status='review'] {
+  background: var(--tone-3-bg);
+}
+.ownerStatus[data-status='review'] .ownerStatusTitle {
+  color: var(--tone-3-fg);
+}
+.ownerStatus[data-status='listed'] {
+  background: var(--good-soft);
+}
+.ownerStatus[data-status='listed'] .ownerStatusTitle {
+  color: var(--good);
+}
+.ownerStatus[data-status='hidden'] {
+  background: var(--tone-5-bg);
+}
+.ownerStatus[data-status='hidden'] .ownerStatusTitle {
+  color: var(--tone-5-fg);
+}
+.ownerStatus[data-status='banned'] {
+  background: var(--tone-1-bg);
+}
+.ownerStatus[data-status='banned'] .ownerStatusTitle {
+  color: var(--tone-1-fg);
+}
+
+/* In place of the switch an operator's hide takes away. */
+.ownerLocked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-field);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.ownerSaved {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-field);
+  background: var(--good-soft);
+  color: var(--good);
+  font-size: 15px;
+  font-weight: 550;
+}
