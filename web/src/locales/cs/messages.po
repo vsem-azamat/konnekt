@@ -1854,7 +1854,7 @@ msgstr "{0, plural, one {# lekce přes nás} few {# lekce přes nás} many {# le
 
 #: src/pages/Chats.tsx
 msgid "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
-msgstr "{count, plural, one {další # chat: {names}} few {další # chaty: {names}} many {dalšího # chatu: {names}} other {dalších # chatů: {names}}}"
+msgstr "{count, plural, one {ještě # chat: {names}} few {ještě # chaty: {names}} many {ještě # chatu: {names}} other {ještě # chatů: {names}}}"
 
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"

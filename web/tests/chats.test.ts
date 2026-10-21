@@ -163,6 +163,12 @@ test('a section hint names its chats, skipping only the one named like it', () =
     names: 'ČVUT FIT, ČVUT FEL',
     more: true,
   });
+  const three = directory([...TODAY.slice(0, 3), chat(CVUT, CVUT)]).entries[0];
+  assert.deepEqual(three?.kind === 'section' && sectionHint(three), {
+    count: 3,
+    names: 'ČVUT FA, ČVUT FIT, ČVUT FEL',
+    more: true,
+  });
 });
 
 test('a one-word abbreviation stays whole, so VŠE and VŠCHT differ', () => {
