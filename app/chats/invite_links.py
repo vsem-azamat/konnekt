@@ -53,6 +53,9 @@ MANAGED_STATUSES = (Chat.STATUS_APPROVED,)
 # More dead links than this in one sweep is Telegram or this code misbehaving,
 # not administrators revoking: stop rather than mint links across the catalogue.
 MAX_REPLACEMENTS_PER_SWEEP = 5
+# Set when that happens and kept until the process restarts: a pause of one
+# sweep only re-links the next few chats every quarter of an hour.
+_halted = False
 SYNC_INTERVAL_SECONDS = 900
 # One edit and one lookup per chat; a second apart keeps a tick clear of flood control.
 PAUSE_BETWEEN_CHATS_SECONDS = 1.0
@@ -64,7 +67,9 @@ _problems: dict[int, str] = {}
 
 
 def forget_problems() -> None:
+    global _halted
     _problems.clear()
+    _halted = False
 
 
 def is_invite_link(link: str) -> bool:
@@ -76,11 +81,10 @@ def is_invite_link(link: str) -> bool:
 def _usable(link: ChatInviteLink) -> bool:
     """Whether a link Telegram just edited is one a stranger can still join by.
 
-    Ours never carry a limit or an expiry, so one that does was not made by
-    this module and would stop working under the catalogue sooner or later:
-    replaced now, rather than when someone finds the page's link dead.
+    Only revocation is read from the answer: an edit replaces the whole link, so
+    an expiry or member limit somebody had set is cleared by it, not reported.
     """
-    return not link.is_revoked and link.member_limit is None and link.expire_date is None
+    return not link.is_revoked
 
 
 def _transient(err: Exception) -> bool:
@@ -246,6 +250,10 @@ async def sync_once(
     Chats not listed are not published, observed ones are another bot's and
     external ones are somebody else's room the bot may not be in.
     """
+    global _halted
+    if _halted:
+        logger.info("invite_links_halted")
+        return {}
     counts: dict[str, int] = {}
     async with session_maker() as session:
         chat_ids = (
@@ -275,8 +283,12 @@ async def sync_once(
                 outcome = "failed"
         counts[outcome] = counts.get(outcome, 0) + 1
         if counts.get("replaced", 0) > MAX_REPLACEMENTS_PER_SWEEP:
+            _halted = True
             logger.error("invite_links_mass_replacement", replaced=counts["replaced"])
             break
+    # A chat taken down or switched off is no longer a problem to be told about.
+    for gone in set(_problems) - set(chat_ids):
+        del _problems[gone]
     # Only those still standing, by reason, so a gauge falls when a chat recovers.
     standing = list(_problems.values())
     for reason in ("no_invite_right", "not_in_chat", "create_failed"):

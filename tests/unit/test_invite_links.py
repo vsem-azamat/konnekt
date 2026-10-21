@@ -7,7 +7,6 @@ so every rule here is about what the bot does when its own call says so.
 
 from __future__ import annotations
 
-import datetime
 import logging
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
@@ -23,7 +22,6 @@ from aiogram.exceptions import (
 from aiogram.types import ChatInviteLink, User
 from app.chats import invite_links
 from app.chats.invite_links import LINK_NAME, ensure_link, sync_once
-from app.core.time import utc_now
 from app.db.models import Chat
 from sqlalchemy import select
 
@@ -131,12 +129,8 @@ async def test_a_dead_link_is_replaced_and_the_new_one_is_served(message: str) -
 
 @pytest.mark.parametrize(
     "returned",
-    [
-        _link(is_revoked=True),
-        _link(member_limit=5),
-        _link(expire_date=utc_now() - datetime.timedelta(hours=1)),
-    ],
-    ids=["revoked", "member limit", "expired"],
+    [_link(is_revoked=True)],
+    ids=["revoked"],
 )
 async def test_a_link_that_edits_but_does_not_work_is_replaced(returned: ChatInviteLink) -> None:
     bot, chat = _bot(), _chat()
@@ -390,7 +384,7 @@ async def test_a_mass_of_dead_links_stops_the_sweep(session_maker: async_session
 async def test_the_old_link_is_revoked_only_after_its_replacement_exists() -> None:
     order: list[str] = []
     bot, chat = _bot(), _chat()
-    bot.edit_chat_invite_link.return_value = _link(member_limit=3)
+    bot.edit_chat_invite_link.return_value = _link(is_revoked=True)
     bot.create_chat_invite_link.side_effect = lambda **_: order.append("create") or _link(NEW)
     bot.revoke_chat_invite_link.side_effect = lambda **_: order.append("revoke")
 
@@ -401,7 +395,7 @@ async def test_the_old_link_is_revoked_only_after_its_replacement_exists() -> No
 
 async def test_a_failed_replacement_leaves_the_old_link_unrevoked() -> None:
     bot, chat = _bot(create=_refused("CHAT_ADMIN_REQUIRED")), _chat()
-    bot.edit_chat_invite_link.return_value = _link(member_limit=3)
+    bot.edit_chat_invite_link.return_value = _link(is_revoked=True)
 
     await ensure_link(bot, chat)
 
@@ -438,3 +432,39 @@ async def test_observed_chats_are_not_ours_to_link(session_maker: async_sessionm
     await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
 
     bot.get_chat.assert_not_called()
+
+
+async def test_after_a_mass_replacement_the_sweeps_stay_stopped(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        session.add_all(
+            Chat(id=-i, title=f"room {i}", resource_status=Chat.STATUS_APPROVED, public_link=f"https://t.me/+old{i}")
+            for i in range(1, 12)
+        )
+        await session.commit()
+    bot = _bot(edit=_refused("INVITE_REVOKED_MISSING"))
+
+    await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+    made = bot.create_chat_invite_link.await_count
+    assert await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0) == {}
+
+    assert bot.create_chat_invite_link.await_count == made
+
+
+async def test_a_problem_of_a_chat_taken_down_is_forgotten(session_maker: async_sessionmaker[AsyncSession]) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1, title="room", resource_status=Chat.STATUS_APPROVED, public_link=OURS))
+        await session.commit()
+    bot = _bot(edit=_refused("CHAT_ADMIN_REQUIRED"), create=_refused("CHAT_ADMIN_REQUIRED"))
+    await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+    assert invite_links._problems
+    async with session_maker() as session:
+        chat = await session.get(Chat, -1)
+        assert chat is not None
+        chat.public_link = None
+        await session.commit()
+
+    await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+
+    assert not invite_links._problems

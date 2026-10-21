@@ -165,7 +165,10 @@ lost invite right is the usual cause. Only approved chats are swept: observed
 ones are another bot's to act in. The sweep writes a new link only where the
 row still holds the link and status it started from, because an operator may
 unlist the chat while Telegram is being asked, and more than a few dead links
-in one sweep stops it instead of minting links across the catalogue.
+in one sweep halts the sweeps until the process restarts, instead of minting
+links across the catalogue. An edit replaces the whole link, so the chat's own
+settings are the authority for join requests: turn the captcha on for a
+chat, do not set it by hand on the bot's link.
 
 **Moderation is the one meaning of `approved`, read when the action runs.**
 Every path that acts in a chat asks whether it is approved at the moment it
