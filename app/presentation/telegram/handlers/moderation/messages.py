@@ -63,7 +63,7 @@ async def kick_user(message: types.Message, bot: Bot, db: AsyncSession, admin_re
         await record_reply_target(message, db, ModerationEventAction.KICK)
         await message.answer(f"Пользователь {other.get_user_mention(target)} удалён из чата")
     except Exception as err:
-        logger.error("kick_failed", error=str(err), user_id=target.id, chat_id=message.chat.id)
+        logger.error("kick_failed", error=str(err), exc_info=True, user_id=target.id, chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Что-то пошло не так. Попробуйте позже."), 10)
 
     await message.delete()
@@ -81,7 +81,7 @@ async def delete_message(message: types.Message, bot: Bot, db: AsyncSession) -> 
         await bot.delete_message(message.chat.id, reply.message_id)
         await _record_on_message(message, db, reply, ModerationEventAction.DELETE)
     except Exception as err:
-        logger.error("delete_failed", error=str(err), chat_id=message.chat.id)
+        logger.error("delete_failed", error=str(err), exc_info=True, chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось удалить сообщение."), 10)
 
     await message.delete()
@@ -110,7 +110,7 @@ async def purge_messages(message: types.Message, bot: Bot, db: AsyncSession) -> 
         await _record_on_message(message, db, reply, ModerationEventAction.PURGE, detail=f"{len(ids)} сообщений")
     except Exception as err:
         # Telegram refuses the whole batch if any message is older than 48h.
-        logger.error("purge_failed", error=str(err), chat_id=message.chat.id, span=span)
+        logger.error("purge_failed", error=str(err), exc_info=True, chat_id=message.chat.id, span=span)
         other.sleep_and_delete(
             await message.answer("Не удалось удалить пачку — возможно, сообщения старше 48 часов."), 10
         )
@@ -174,7 +174,7 @@ async def pin_message(message: types.Message, bot: Bot, db: AsyncSession) -> Non
         )
         await _record_on_message(message, db, reply, ModerationEventAction.PIN)
     except Exception as err:
-        logger.error("pin_failed", error=str(err), chat_id=message.chat.id)
+        logger.error("pin_failed", error=str(err), exc_info=True, chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось закрепить сообщение."), 10)
 
     await message.delete()
@@ -192,7 +192,7 @@ async def unpin_message(message: types.Message, bot: Bot, db: AsyncSession) -> N
         await bot.unpin_chat_message(chat_id=message.chat.id, message_id=reply.message_id)
         await _record_on_message(message, db, reply, ModerationEventAction.UNPIN)
     except Exception as err:
-        logger.error("unpin_failed", error=str(err), chat_id=message.chat.id)
+        logger.error("unpin_failed", error=str(err), exc_info=True, chat_id=message.chat.id)
         other.sleep_and_delete(await message.answer("Не удалось открепить сообщение."), 10)
 
     await message.delete()

@@ -79,7 +79,13 @@ async def _fan_out(
                         break
                     await asyncio.sleep(err.retry_after)
                 except Exception as err:
-                    logger.warning(f"{what}_failed", user_id=user_id, chat_id=chat_id, error=str(err))
+                    logger.warning(
+                        f"{what}_failed",
+                        user_id=user_id,
+                        chat_id=chat_id,
+                        error=str(err),
+                        error_type=type(err).__name__,
+                    )
                     return chat_id
             return chat_id
 
@@ -138,7 +144,13 @@ async def add_to_blacklist(
         except Exception as err:
             # Telegram refuses routinely here — a message already gone, or older
             # than it allows. One refusal says nothing about the next.
-            logger.warning(f"Failed to delete message {message.message_id} in chat {message.chat_id}.\nError: {err}")
+            logger.warning(
+                "message_delete_failed",
+                user_id=id_tg,
+                chat_id=message.chat_id,
+                message_id=message.message_id,
+                error_type=type(err).__name__,
+            )
     return failed
 
 

@@ -90,11 +90,11 @@ async def on_startup(bot: Bot) -> None:
     try:
         await _publish_menu_button(bot)
     except Exception as e:
-        logger.warning("menu_button_not_set", error=str(e))
+        logger.warning("menu_button_not_set", error=str(e), exc_info=True)
     try:
         await publish_profile(bot)
     except Exception as e:
-        logger.warning("profile_not_set", error=str(e))
+        logger.warning("profile_not_set", error=str(e), exc_info=True)
 
 
 async def on_shutdown(bot: Bot) -> None:
@@ -107,7 +107,7 @@ async def on_shutdown(bot: Bot) -> None:
     try:
         await bot.delete_webhook()
     except Exception as e:
-        logger.warning("shutdown_delete_webhook_failed", error=str(e))
+        logger.warning("shutdown_delete_webhook_failed", error=str(e), exc_info=True)
     logger.info("main_bot_shutdown_complete")
 
 

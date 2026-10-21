@@ -21,3 +21,8 @@ def test_connections_and_queries_have_timeouts(monkeypatch) -> None:
     assert 0 < seen["connect_args"]["timeout"] <= 15
     assert 0 < seen["connect_args"]["command_timeout"] <= 60
     assert 0 < seen["pool_timeout"] <= 30
+
+
+def test_error_messages_do_not_quote_the_parameters() -> None:
+    """A database error names the statement's parameters: message text, names, ids."""
+    assert session_module.create_engine().sync_engine.hide_parameters is True

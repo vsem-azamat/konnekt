@@ -84,5 +84,5 @@ async def _strip_keyboard(callback: types.CallbackQuery, note: str) -> None:
         # html_text, not text: the proposal was rendered with its reason escaped,
         # and the plain text would send that reason back as live markup.
         await message.edit_text(f"{message.html_text}\n\n<b>{note}</b>", reply_markup=None)
-    except Exception:
-        logger.warning("pending_action_edit_failed", message_id=message.message_id)
+    except Exception as err:
+        logger.warning("pending_action_edit_failed", message_id=message.message_id, error_type=type(err).__name__)
