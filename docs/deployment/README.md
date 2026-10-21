@@ -15,3 +15,5 @@ This section covers production runtime operations and deployment contracts.
 - [The admin site](admin-site.md) - the console in a browser: what switches it
   on, what has to exist outside this repository, and what to check after the
   first deploy.
+- [Observability](observability.md) - the logs' shape, what the three
+  processes expose to Prometheus, and the one secret that switches it on.

@@ -133,6 +133,7 @@ jobs:
           CATALOG_DB_USER: ${{ secrets.CATALOG_DB_USER }}
           CATALOG_DB_NAME: ${{ secrets.CATALOG_DB_NAME }}
           CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
+          OBSERVABILITY_METRICS_SECRET: ${{ secrets.OBSERVABILITY_METRICS_SECRET }}
         run: |
           missing=""
 
@@ -145,6 +146,13 @@ jobs:
           for name in DB_HOST DB_USER DB_NAME DB_PASSWORD MODERATOR_BOT_TOKEN ADMIN_SUPER_ADMINS WEBAPI_PUBLIC_URL CATALOG_DB_USER CATALOG_DB_NAME CATALOG_DB_PASSWORD; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
+
+          # Optional, but a short one stops all three processes at import, which
+          # would otherwise show only after the old stack is down and migrated.
+          if [ -n "$OBSERVABILITY_METRICS_SECRET" ] && [ "${#OBSERVABILITY_METRICS_SECRET}" -lt 32 ]; then
+            echo "OBSERVABILITY_METRICS_SECRET must be 32 characters or more, or unset." >&2
+            exit 1
+          fi
 
           if [ -n "$missing" ]; then
             echo "Missing required configuration:$missing" >&2
@@ -213,6 +221,7 @@ jobs:
           CATALOG_ADS_CONTACT: ${{ vars.CATALOG_ADS_CONTACT }}
           # Between webapi and the catalog alone (catalog/docs/architecture.md).
           CATALOG_SERVICE_TOKEN: ${{ secrets.CATALOG_SERVICE_TOKEN }}
+          OBSERVABILITY_METRICS_SECRET: ${{ secrets.OBSERVABILITY_METRICS_SECRET }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -220,7 +229,7 @@ jobs:
           # Pull, migrate, embed and wait: more than the default ten minutes
           # on a slow day, and a session cut off midway leaves no catalog.
           command_timeout: 30m
-          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,WEBAPI_ADMIN_URL,ADMIN_HOST,WEBAPI_OIDC_CLIENT_ID,WEBAPI_OIDC_CLIENT_SECRET,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT,CATALOG_SERVICE_TOKEN
+          envs: IMAGE_TAG,MIGRATE,DB_HOST,DB_PORT,DB_USER,DB_NAME,DB_PASSWORD,MODERATOR_BOT_TOKEN,ADMIN_SUPER_ADMINS,ADMIN_REPORT_CHAT_ID,WEBAPI_PUBLIC_URL,MCP_TOKEN,WEBAPI_ADMIN_URL,ADMIN_HOST,WEBAPI_OIDC_CLIENT_ID,WEBAPI_OIDC_CLIENT_SECRET,MODERATOR_BOT_RETIRED_TOKEN,ADS_BOT_TOKEN,ADS_BOT_GROUP_ID,ADS_BOT_NAME,CATALOG_DB_USER,CATALOG_DB_NAME,CATALOG_DB_PASSWORD,CATALOG_OWNER_TG_ID,CATALOG_ADS_CONTACT,CATALOG_SERVICE_TOKEN,OBSERVABILITY_METRICS_SECRET
           script: |
             set -e
             cd ~/deploy/supervisor-telegram
