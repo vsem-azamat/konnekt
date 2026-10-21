@@ -24,6 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
 from app.chats import invite_links
+from app.chats.avatars import sync_photo
+from app.chats.metadata import fetch_metadata, username_of
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -121,6 +123,26 @@ async def remove_membership_notice(message: Message, db: AsyncSession) -> None:
         logger.debug(
             "service_notice_not_removed", chat_id=message.chat.id, error=str(err), error_type=type(err).__name__
         )
+
+
+@router.message(ChatTypeFilter(["group", "supergroup"]), F.new_chat_photo | F.delete_chat_photo)
+async def chat_photo_changed(message: Message, bot: Bot, db: AsyncSession) -> None:
+    """Take a changed chat photo on the notice instead of at the next daily sync.
+
+    The notice carries the message's own photo sizes, which are not the chat's,
+    so Telegram is asked again. Nothing here is shown in the chat and nothing
+    is removed: only the stored picture follows.
+    """
+    chat = await db.scalar(select(Chat).where(Chat.id == message.chat.id))
+    if chat is None:
+        return
+    metadata = await fetch_metadata(
+        bot=bot, chat_id=chat.id, username=username_of(chat.public_link) if chat.public_link else None
+    )
+    if metadata is None:
+        return
+    await sync_photo(session=db, bot=bot, chat=chat, metadata=metadata)
+    await db.commit()
 
 
 @router.chat_join_request()

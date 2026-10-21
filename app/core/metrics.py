@@ -33,6 +33,7 @@ HTTP_DURATION = Histogram(
 )
 HTTP_IN_PROGRESS = Gauge("http_requests_in_progress", "HTTP requests being served now")
 LOG_RECORDS = Counter("app_log_records_total", "Log records written, by level", ["level"])
+AVATAR_SYNCS = Counter("chat_avatar_syncs_total", "Chat photo syncs, by what became of the photo", ["outcome"])
 ALERTS = Counter("alerts_total", "Error alerts sent to the report chat", ["outcome"])
 
 

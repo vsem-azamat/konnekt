@@ -81,10 +81,29 @@ async def test_refresh_caches_photo_file_id(client_factory, db_session_maker) ->
     assert chat.last_synced_at is not None
 
 
-async def test_refresh_keeps_the_cached_photo_when_telegram_mentions_none(client_factory, db_session_maker) -> None:
-    """We overwrite on a positive answer only. A hiccup must not blank the icon."""
+async def test_refresh_clears_the_photo_when_the_chat_has_none_now(client_factory, db_session_maker) -> None:
+    """`getChat` leaves the photo out when it was removed: that answer is the news."""
     make, bot_holder = client_factory
     bot_holder["bot"] = _bot(photo=None)
+    async with db_session_maker() as s:
+        chat = Chat(id=-7002, title="B")
+        chat.photo_file_id = "stale-cached-id"
+        s.add(chat)
+        await s.commit()
+
+    async with make() as client:
+        resp = await client.post("/api/chats/-7002/refresh")
+
+    assert resp.status_code == 200
+    async with db_session_maker() as s:
+        chat = (await s.execute(select(Chat).where(Chat.id == -7002))).scalar_one()
+    assert chat.photo_file_id is None
+
+
+async def test_refresh_keeps_the_cached_photo_when_telegram_does_not_answer(client_factory, db_session_maker) -> None:
+    """A hiccup is not a removal: no answer means the icon stays."""
+    make, bot_holder = client_factory
+    bot_holder["bot"].get_chat = AsyncMock(side_effect=TelegramBadRequest(method=MagicMock(), message="chat not found"))
     async with db_session_maker() as s:
         chat = Chat(id=-7002, title="B")
         chat.photo_file_id = "stale-cached-id"
