@@ -73,12 +73,17 @@ def test_setup_puts_the_formatter_on_every_way_out(tmp_path, monkeypatch: pytest
         setup_logging()  # idempotent: the second call must not double every line
 
         root = logging.getLogger()
-        ours = [h for h in root.handlers if isinstance(h.formatter, ForeignRecordFormatter)]
-        assert len(ours) == 2  # stdout and the file
+        # Ours by the mark setup_logging puts on them: pytest's own capture
+        # handlers sit on the root too, and may carry any formatter.
+        ours = [h for h in root.handlers if getattr(h, "_konnekt_handler", None)]
+        assert sorted(type(h).__name__ for h in ours if isinstance(h.formatter, ForeignRecordFormatter)) == [
+            "RotatingFileHandler",
+            "StreamHandler",
+        ]  # stdout and the file; the metrics counter has no formatter
         assert isinstance(uvicorn_handler.formatter, ForeignRecordFormatter)
     finally:
         logging.getLogger("uvicorn.error").removeHandler(uvicorn_handler)
-        for handler in [h for h in logging.getLogger().handlers if isinstance(h.formatter, ForeignRecordFormatter)]:
+        for handler in [h for h in logging.getLogger().handlers if getattr(h, "_konnekt_handler", None)]:
             logging.getLogger().removeHandler(handler)
             handler.close()
 
