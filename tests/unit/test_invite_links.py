@@ -13,7 +13,13 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError, TelegramRetryAfter
+from aiogram.exceptions import (
+    ClientDecodeError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+)
 from aiogram.types import ChatInviteLink, User
 from app.chats import invite_links
 from app.chats.invite_links import LINK_NAME, ensure_link, sync_once
@@ -279,7 +285,7 @@ async def test_sync_handles_listed_private_chats_and_nothing_else(
     await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
 
     asked = sorted(call.args[0] if call.args else call.kwargs["chat_id"] for call in bot.get_chat.call_args_list)
-    assert asked == [-2, -1]
+    assert asked == [-1]
     async with session_maker() as session:
         unlisted = await session.get(Chat, -4)
     assert unlisted is not None
@@ -313,3 +319,122 @@ async def test_one_chat_failing_does_not_stop_the_rest(session_maker: async_sess
     await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
 
     assert bot.edit_chat_invite_link.await_count == 2
+
+
+async def test_a_chat_unlisted_during_the_sweep_stays_unlisted_and_the_new_link_is_revoked(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1, title="room", resource_status=Chat.STATUS_APPROVED, public_link=OURS))
+        await session.commit()
+
+    async def operator_takes_it_down(**_kwargs):
+        async with session_maker() as other:
+            chat = await other.get(Chat, -1)
+            assert chat is not None
+            chat.public_link = None
+            await other.commit()
+        raise _refused("INVITE_REVOKED_MISSING")
+
+    bot = _bot(edit=operator_takes_it_down)
+
+    counts = await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+
+    async with session_maker() as session:
+        stored = (await session.execute(select(Chat.public_link))).scalar_one()
+    assert stored is None
+    assert counts == {"raced": 1}
+    bot.revoke_chat_invite_link.assert_awaited_once_with(chat_id=-1, invite_link=NEW)
+
+
+async def test_a_chat_switched_off_during_the_sweep_is_not_given_the_link(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1, title="room", resource_status=Chat.STATUS_APPROVED, public_link=OURS))
+        await session.commit()
+
+    async def operator_switches_it_to_watching(**_kwargs):
+        async with session_maker() as other:
+            chat = await other.get(Chat, -1)
+            assert chat is not None
+            chat.resource_status = Chat.STATUS_DISABLED
+            await other.commit()
+        raise _refused("INVITE_REVOKED_MISSING")
+
+    bot = _bot(edit=operator_switches_it_to_watching)
+
+    await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+
+    async with session_maker() as session:
+        stored = (await session.execute(select(Chat.public_link))).scalar_one()
+    assert stored == OURS
+
+
+async def test_a_mass_of_dead_links_stops_the_sweep(session_maker: async_sessionmaker[AsyncSession], caplog) -> None:
+    async with session_maker() as session:
+        session.add_all(
+            Chat(id=-i, title=f"room {i}", resource_status=Chat.STATUS_APPROVED, public_link=f"https://t.me/+old{i}")
+            for i in range(1, 12)
+        )
+        await session.commit()
+    bot = _bot(edit=_refused("INVITE_REVOKED_MISSING"))
+
+    with caplog.at_level(logging.INFO):
+        counts = await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+
+    assert counts == {"replaced": invite_links.MAX_REPLACEMENTS_PER_SWEEP + 1}
+    assert any(r.levelno >= logging.ERROR for r in caplog.records)
+
+
+async def test_the_old_link_is_revoked_only_after_its_replacement_exists() -> None:
+    order: list[str] = []
+    bot, chat = _bot(), _chat()
+    bot.edit_chat_invite_link.return_value = _link(member_limit=3)
+    bot.create_chat_invite_link.side_effect = lambda **_: order.append("create") or _link(NEW)
+    bot.revoke_chat_invite_link.side_effect = lambda **_: order.append("revoke")
+
+    await ensure_link(bot, chat)
+
+    assert order == ["create", "revoke"]
+
+
+async def test_a_failed_replacement_leaves_the_old_link_unrevoked() -> None:
+    bot, chat = _bot(create=_refused("CHAT_ADMIN_REQUIRED")), _chat()
+    bot.edit_chat_invite_link.return_value = _link(member_limit=3)
+
+    await ensure_link(bot, chat)
+
+    bot.revoke_chat_invite_link.assert_not_called()
+    assert chat.public_link == OURS
+
+
+async def test_an_answer_telegram_sent_that_cannot_be_read_is_transient() -> None:
+    bot, chat = _bot(edit=ClientDecodeError("bad", Exception("x"), "{}")), _chat()
+
+    assert await ensure_link(bot, chat) == "transient"
+    bot.create_chat_invite_link.assert_not_called()
+
+
+async def test_each_broken_chat_gets_an_alert_of_its_own(caplog: pytest.LogCaptureFixture) -> None:
+    bot = _bot(edit=_refused("CHAT_ADMIN_REQUIRED"), create=_refused("CHAT_ADMIN_REQUIRED"))
+    first, second = _chat(), Chat(id=-200, title="b", resource_status=Chat.STATUS_APPROVED, public_link=OURS)
+
+    with caplog.at_level(logging.INFO):
+        await ensure_link(bot, first)
+        await ensure_link(bot, second)
+
+    names = {r.getMessage() for r in caplog.records if r.levelno >= logging.ERROR}
+    assert len(names) == 2
+    assert all("chat=" in name for name in names)
+
+
+async def test_observed_chats_are_not_ours_to_link(session_maker: async_sessionmaker[AsyncSession]) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1, title="o", resource_status=Chat.STATUS_OBSERVED, public_link=OURS))
+        await session.commit()
+    bot = _bot()
+
+    await sync_once(session_maker=session_maker, bot=bot, pause_seconds=0)
+
+    bot.get_chat.assert_not_called()

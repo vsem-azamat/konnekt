@@ -22,6 +22,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from aiogram.exceptions import (
+    ClientDecodeError,
     TelegramAPIError,
     TelegramBadRequest,
     TelegramForbiddenError,
@@ -29,7 +30,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
     TelegramServerError,
 )
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.chats.metadata import ask
 from app.chats.metrics import INVITE_LINK_EVENTS, INVITE_LINK_PROBLEMS
@@ -46,8 +47,12 @@ logger = get_logger("chats.invite_links")
 # The name Telegram shows to an administrator looking at the chat's links, and
 # the one the links made by hand already carry.
 LINK_NAME = "Konnekt catalog"
-# Chats the bot is in and lists as its own; external ones are somebody else's room.
-MANAGED_STATUSES = (Chat.STATUS_APPROVED, Chat.STATUS_OBSERVED)
+# Only chats we run. `observed` ones are another bot's to act in (docs/invariants.md)
+# and `external` ones are somebody else's room the bot may not even be in.
+MANAGED_STATUSES = (Chat.STATUS_APPROVED,)
+# More dead links than this in one sweep is Telegram or this code misbehaving,
+# not administrators revoking: stop rather than mint links across the catalogue.
+MAX_REPLACEMENTS_PER_SWEEP = 5
 SYNC_INTERVAL_SECONDS = 900
 # One edit and one lookup per chat; a second apart keeps a tick clear of flood control.
 PAUSE_BETWEEN_CHATS_SECONDS = 1.0
@@ -78,11 +83,11 @@ def _usable(link: ChatInviteLink) -> bool:
     return not link.is_revoked and link.member_limit is None and link.expire_date is None
 
 
-def _transient(err: TelegramAPIError) -> bool:
-    return isinstance(err, TelegramRetryAfter | TelegramNetworkError | TelegramServerError)
+def _transient(err: Exception) -> bool:
+    return isinstance(err, TelegramRetryAfter | TelegramNetworkError | TelegramServerError | ClientDecodeError)
 
 
-def _problem_of(err: TelegramAPIError) -> str:
+def _problem_of(err: Exception) -> str:
     """Why the bot cannot make a link: a right it lacks, or a chat it is no longer in."""
     text = str(err).lower()
     if "not enough rights" in text or "admin_required" in text or "admin required" in text:
@@ -97,7 +102,10 @@ def _report(chat: Chat, problem: str) -> str:
     if _problems.get(chat.id) != problem:
         _problems[chat.id] = problem
         # An error reaches the report chat; the standing state does not repeat it.
-        logger.error("invite_link_unrecoverable", chat_id=chat.id, problem=problem)
+        # The chat is in the event's name because the report chat gets only the
+        # name, and alerts are throttled per name: a shared one would hide the
+        # second broken chat for half an hour.
+        logger.error(f"invite_link_unrecoverable chat={chat.id}", chat_id=chat.id, problem=problem)
     else:
         logger.info("invite_link_still_broken", chat_id=chat.id, problem=problem)
     return problem
@@ -108,12 +116,16 @@ def _settled(chat: Chat) -> None:
         logger.info("invite_link_recovered", chat_id=chat.id)
 
 
-async def _retire(bot: Bot, chat: Chat, link: str) -> None:
+async def _retire_by_id(bot: Bot, chat_id: int, link: str) -> None:
     """Revoke a link of ours that nothing serves any more; never at the cost of the caller."""
     try:
-        await bot.revoke_chat_invite_link(chat_id=chat.id, invite_link=link)
-    except TelegramAPIError as err:
-        logger.info("invite_link_not_retired", chat_id=chat.id, error=str(err), error_type=type(err).__name__)
+        await bot.revoke_chat_invite_link(chat_id=chat_id, invite_link=link)
+    except (TelegramAPIError, ClientDecodeError) as err:
+        logger.info("invite_link_not_retired", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+
+
+async def _retire(bot: Bot, chat: Chat, link: str) -> None:
+    await _retire_by_id(bot, chat.id, link)
 
 
 async def ensure_link(bot: Bot, chat: Chat) -> str:
@@ -125,7 +137,7 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
     """
     try:
         info = await ask(lambda: bot.get_chat(chat.id))
-    except TelegramAPIError as err:
+    except (TelegramAPIError, ClientDecodeError) as err:
         if _transient(err):
             return "transient"
         return _report(chat, _problem_of(err))
@@ -144,9 +156,12 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
 
     # A chat that has the bot's captcha, or admits only by request, must not
     # hand out a link that skips the check.
-    wants_request = chat.is_captcha_enabled or bool(info.join_by_request)
+    wants_request = (chat.resource_status == Chat.STATUS_APPROVED and chat.is_captcha_enabled) or bool(
+        info.join_by_request
+    )
 
     had_link = current is not None and is_invite_link(current)
+    stale: str | None = None
     if had_link:
         assert current is not None
         try:
@@ -155,7 +170,7 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
                     chat_id=chat.id, invite_link=current, name=LINK_NAME, creates_join_request=wants_request
                 )
             )
-        except TelegramAPIError as err:
+        except (TelegramAPIError, ClientDecodeError) as err:
             if _transient(err):
                 return "transient"
             if isinstance(err, TelegramBadRequest) and "not modified" in str(err).lower():
@@ -167,28 +182,56 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
             if _usable(edited):
                 _settled(chat)
                 return "kept"
-            await _retire(bot, chat, current)
+            # Revoked only once its replacement exists: a failed create must
+            # leave the catalogue a link rather than none.
+            stale = current
 
     try:
         made = await ask(
             lambda: bot.create_chat_invite_link(chat_id=chat.id, name=LINK_NAME, creates_join_request=wants_request)
         )
-    except TelegramAPIError as err:
+    except (TelegramAPIError, ClientDecodeError) as err:
         if _transient(err):
             return "transient"
         return _report(chat, _problem_of(err))
     chat.public_link = made.invite_link
+    if stale is not None:
+        await _retire(bot, chat, stale)
     _settled(chat)
     return "replaced" if had_link else "created"
 
 
 async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
-    """`ensure_link` for one chat, stored and counted."""
+    """`ensure_link` for one chat, stored and counted.
+
+    The Telegram calls take a while and a person may take the chat down in the
+    meantime, so the new link is written only where the row still holds the
+    link and the status the work started from. Otherwise the sweep would put a
+    chat the operator just unlisted back on the public page.
+    """
+    await session.refresh(chat)
+    old = chat.public_link
+    if old is None or chat.resource_status not in MANAGED_STATUSES:
+        return "skipped"
+    chat_id = chat.id
     outcome = await ensure_link(bot, chat)
-    INVITE_LINK_EVENTS.labels(event=outcome).inc()
-    if outcome in {"created", "replaced", "username"}:
+    new = chat.public_link
+    session.expire(chat)  # the change is made below, conditionally, not by the unit of work
+    if new != old:
+        stored = await session.execute(
+            update(Chat)
+            .where(Chat.id == chat_id, Chat.public_link == old, Chat.resource_status.in_(MANAGED_STATUSES))
+            .values(public_link=new)
+        )
         await session.commit()
-        logger.info("invite_link_changed", chat_id=chat.id, outcome=outcome)
+        if stored.rowcount == 0:  # ty: ignore[unresolved-attribute]
+            if new is not None and is_invite_link(new):
+                await _retire_by_id(bot, chat_id, new)
+            logger.info("invite_link_dropped_chat_changed", chat_id=chat_id)
+            outcome = "raced"
+        else:
+            logger.info("invite_link_changed", chat_id=chat_id, outcome=outcome)
+    INVITE_LINK_EVENTS.labels(event=outcome).inc()
     return outcome
 
 
@@ -198,10 +241,10 @@ async def sync_once(
     bot: Bot,
     pause_seconds: float = PAUSE_BETWEEN_CHATS_SECONDS,
 ) -> dict[str, int]:
-    """Check every listed chat the bot is in; returns the outcomes counted.
+    """Check every listed chat the bot runs; returns the outcomes counted.
 
-    Chats we only list as somebody else's (`external`) are not ours to link
-    and the bot is not necessarily in them; chats not listed are not published.
+    Chats not listed are not published, observed ones are another bot's and
+    external ones are somebody else's room the bot may not be in.
     """
     counts: dict[str, int] = {}
     async with session_maker() as session:
@@ -217,21 +260,23 @@ async def sync_once(
             .scalars()
             .all()
         )
-        for index, chat_id in enumerate(chat_ids):
-            if index:
-                await asyncio.sleep(pause_seconds)
+    for index, chat_id in enumerate(chat_ids):
+        if index:
+            await asyncio.sleep(pause_seconds)
+        # A session to a chat: nothing is held open across the Telegram calls of the others.
+        async with session_maker() as session:
             try:
-                # Read afresh: a rollback below expires everything still held.
                 chat = await session.get(Chat, chat_id)
-                if chat is None:
-                    continue
-                outcome = await sync_chat(session, bot, chat)
+                outcome = await sync_chat(session, bot, chat) if chat is not None else "skipped"
             except Exception:
                 # One chat's failure is not the others': they are checked all the same.
                 await session.rollback()
                 logger.exception("invite_link_sync_failed", chat_id=chat_id)
                 outcome = "failed"
-            counts[outcome] = counts.get(outcome, 0) + 1
+        counts[outcome] = counts.get(outcome, 0) + 1
+        if counts.get("replaced", 0) > MAX_REPLACEMENTS_PER_SWEEP:
+            logger.error("invite_links_mass_replacement", replaced=counts["replaced"])
+            break
     # Only those still standing, by reason, so a gauge falls when a chat recovers.
     standing = list(_problems.values())
     for reason in ("no_invite_right", "not_in_chat", "create_failed"):
