@@ -10,10 +10,12 @@ import {
   ownUniversity,
   type PublicChat,
   placeOf,
+  rowChipFor,
   sanitize,
   search,
   sectionAvatar,
   sectionHint,
+  sectionMembers,
 } from '../src/lib/chats.ts';
 
 function chat(
@@ -118,6 +120,13 @@ test('activity is a chip only when supervisor measured it', () => {
   assert.equal(chipFor('unknown'), null);
 });
 
+test('a row says how a chat talks only when it talks more than most', () => {
+  assert.equal(rowChipFor('busy'), 'busy');
+  assert.equal(rowChipFor('active'), 'active');
+  assert.equal(rowChipFor('quiet'), null);
+  assert.equal(rowChipFor('unknown'), null);
+});
+
 test('a tile takes its letters from the first of two names', async () => {
   assert.equal(initials('ČVUT | ЧВУТ'), 'ČVUT');
   assert.equal(initials('Fyzika v ČR'), 'FV');
@@ -143,15 +152,23 @@ const TODAY: PublicChat[] = [
 
 test('a section hint names its chats, skipping only the one named like it', () => {
   const [today] = directory(TODAY).entries;
-  assert.equal(
-    today?.kind === 'section' && sectionHint(today),
-    'ČVUT FA, ČVUT FIT, ČVUT FEL',
-  );
+  assert.deepEqual(today?.kind === 'section' && sectionHint(today), {
+    count: 4,
+    names: 'ČVUT FA, ČVUT FIT, ČVUT FEL…',
+    more: false,
+  });
   const [tomorrow] = directory(SAMPLE).entries;
-  assert.equal(
-    tomorrow?.kind === 'section' && sectionHint(tomorrow),
-    'ČVUT FIT, ČVUT FEL',
-  );
+  assert.deepEqual(tomorrow?.kind === 'section' && sectionHint(tomorrow), {
+    count: 2,
+    names: 'ČVUT FIT, ČVUT FEL',
+    more: true,
+  });
+  const three = directory([...TODAY.slice(0, 3), chat(CVUT, CVUT)]).entries[0];
+  assert.deepEqual(three?.kind === 'section' && sectionHint(three), {
+    count: 3,
+    names: 'ČVUT FA, ČVUT FIT, ČVUT FEL',
+    more: true,
+  });
 });
 
 test('a one-word abbreviation stays whole, so VŠE and VŠCHT differ', () => {
@@ -343,4 +360,17 @@ test('a section shows the photo of its own chat, and none when that has no photo
   // A faculty's photo says nothing about the university: the letters stay.
   assert.equal(sectionAvatar(section([fit, chat(CVUT, CVUT)])), null);
   assert.equal(sectionAvatar(section([fit])), null);
+});
+
+test('a section counts the people of its own chat, and none when that was never measured', () => {
+  const section = (chats: PublicChat[]) =>
+    ({ kind: 'section', name: CVUT, chats }) as Extract<Entry, { kind: 'section' }>;
+  const fit = chat('ČVUT FIT', CVUT, { member_count: 983 });
+  assert.equal(
+    sectionMembers(section([fit, chat(CVUT, CVUT, { member_count: 1513 })])),
+    1513,
+  );
+  // A faculty's count is not the university's.
+  assert.equal(sectionMembers(section([fit, chat(CVUT, CVUT)])), null);
+  assert.equal(sectionMembers(section([fit])), null);
 });
