@@ -398,6 +398,29 @@ class McpSettings(Settings):
     )
 
 
+class ObservabilitySettings(Settings):
+    """What Prometheus may read from this process.
+
+    The secret is the bearer token the scrape job presents, and it is also the
+    switch: unset, the endpoints answer nothing (app/core/metrics.py).
+    """
+
+    metrics_secret: SecretStr = Field(default=SecretStr(""), description="Bearer token for the metrics endpoints")
+
+    # Not configurable, like the MCP plane's: the compose port mapping hard-codes
+    # the container side, and the bot is the one process with no web front.
+    metrics_host: str = "0.0.0.0"  # noqa: S104 — inside the container; the mapping is loopback-only
+    metrics_port: int = 8789
+
+    model_config = SettingsConfigDict(
+        env_prefix="OBSERVABILITY_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class AppSettings(Settings):
     """Main application settings."""
 
@@ -413,6 +436,7 @@ class AppSettings(Settings):
     moderation: ModerationSettings = Field(default_factory=ModerationSettings)
     webapi: WebApiSettings = Field(default_factory=WebApiSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
+    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 
     model_config = SettingsConfigDict(
         env_prefix="APP_",

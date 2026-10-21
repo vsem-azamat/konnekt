@@ -12,6 +12,7 @@ import structlog
 from structlog.types import EventDict, Processor
 
 from app.core.config import settings
+from app.core.metrics import LogCounter
 
 
 def add_severity_level(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
@@ -126,6 +127,8 @@ def setup_logging() -> None:
     console.setLevel(level)
     console.setFormatter(formatter)
     _install(root_logger, console)
+
+    _install(root_logger, LogCounter())
 
     # Setup file logging if path is provided
     if settings.logging.file_path:

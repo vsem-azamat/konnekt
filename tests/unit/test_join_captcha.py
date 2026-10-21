@@ -564,3 +564,48 @@ async def test_a_refusal_that_is_not_about_rights_is_not_blamed_on_them(session:
     line = _report_lines(bot)[-1]
     assert "Проверьте права" not in line
     assert "Telegram не ответил" in line
+
+
+# --- what Prometheus is told -------------------------------------------------
+
+
+def _events(event: str) -> float:
+    from prometheus_client import REGISTRY
+
+    return REGISTRY.get_sample_value("captcha_events_total", {"event": event}) or 0.0
+
+
+async def test_the_captcha_counts_what_happens_to_applicants(session: AsyncSession, bot) -> None:
+    sent, retry, failed, passed = _events("sent"), _events("retry"), _events("failed"), _events("passed")
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    assert _events("sent") == sent + 1
+
+    await service.answer(bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=_wrong_pick(challenge))
+    assert _events("retry") == retry + 1
+    await session.refresh(challenge)
+    await service.answer(bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=_wrong_pick(challenge))
+    assert _events("failed") == failed + 1
+
+    await join_requested(_request(USER_ID + 1), bot, session)
+    second = (await session.scalars(select(JoinCaptcha).where(JoinCaptcha.user_id == USER_ID + 1))).one()
+    await service.answer(
+        bot, session, challenge_id=second.id, user_id=USER_ID + 1, pick=second.options.index(second.answer)
+    )
+    assert _events("passed") == passed + 1
+
+
+async def test_undelivered_and_expired_captchas_are_counted_too(session: AsyncSession, bot) -> None:
+    undelivered, expired = _events("undelivered"), _events("expired")
+    await _seed_chat(session)
+    bot.send_message.side_effect = TelegramForbiddenError(
+        method=SendMessage(chat_id=USER_ID, text="x"), message="Forbidden: bot can't initiate conversation"
+    )
+    await join_requested(_request(), bot, session)
+    assert _events("undelivered") == undelivered + 1
+
+    bot.send_message.side_effect = None
+    await join_requested(_request(USER_ID + 1), bot, session)
+    await service.expire_stale(bot, session, now=utc_now() + datetime.timedelta(minutes=6))
+    assert _events("expired") == expired + 1
