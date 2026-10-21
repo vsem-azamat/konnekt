@@ -16,6 +16,7 @@ from students_cz.api.v1 import (
     browse,
     cabinet,
     me,
+    metrics,
     placements,
     public,
     requests,
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/api/v1")
 for _module in (
     public,
     me,
+    metrics,
     taxonomy,
     search,
     browse,
