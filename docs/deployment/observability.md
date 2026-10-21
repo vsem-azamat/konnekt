@@ -47,6 +47,23 @@ Series, and what never to put in a label, are in `app/core/metrics.py`,
 `app/presentation/telegram/metrics.py` and the catalog's `core/metrics.py`;
 the rule is in [invariants](../invariants.md#observability).
 
+## The Mini App's own failures
+
+The Mini App reports what fails in it to `POST /api/public/client-errors`
+(`web/src/lib/clientErrors.ts`, `app/webapi/routes/client_errors.py`): errors
+nothing caught, rejected promises, render errors, calls to our APIs that broke
+(no answer, 5xx, or a refused signature), a catalogue that loaded empty, and
+an app far shorter than its window. Each is one web API line,
+`event="client_error"` at `warning` (so it never reaches the report chat),
+with `kind`, `route` (the screen's pattern), `endpoint` and `status` for a
+call, `message`, `stack`, `version` (the commit), `platform` and `tg_version`.
+Nothing about the person.
+
+Counted in `mini_app_client_errors_total{kind, platform}`; reports the limits
+turned away in `mini_app_client_errors_dropped_total{reason}` (`rate_limited`
+for one person, `overall_limit` for everybody). `kind` is one of `error`,
+`unhandled_rejection`, `render`, `api`, `empty`, `layout`.
+
 ## After a deploy
 
 ```bash

@@ -30,6 +30,10 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 FROM web-dependencies AS web-build
 
 COPY web/ ./
+# The commit, which the app reports with each failure (web/src/lib/clientErrors.ts).
+# Last, so that a new one rebuilds only the build.
+ARG WEB_VERSION=unknown
+ENV VITE_APP_VERSION=$WEB_VERSION
 RUN pnpm run build
 
 # Production stage

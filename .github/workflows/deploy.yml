@@ -68,6 +68,7 @@ jobs:
         with:
           context: .
           target: webui
+          build-args: WEB_VERSION=${{ github.sha }}
           push: true
           tags: |
             ghcr.io/vsem-azamat/supervisor-telegram-webui:${{ github.sha }}
