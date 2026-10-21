@@ -136,6 +136,11 @@ class Chat(Base):
     # all such disagreements are: a chat that was meant to be private turns out
     # to have been on a public page for a month. A chat is in the catalogue when
     # it is approved and this is set; taking it down means clearing it.
+    #
+    # Whose link it is depends on the chat. A username's is `t.me/<username>`.
+    # Without one, once the chat is listed the bot owns the value: it keeps a
+    # link of its own working and replaces it when Telegram says it is dead
+    # (app/chats/invite_links.py). Listing stays a person's decision either way.
     public_link: Mapped[str | None] = mapped_column(String(128), nullable=True)
     # The university in the catalog's taxonomy, by its code ("cvut"), so
     # the app can put a student's own university first. Set on the chat at the

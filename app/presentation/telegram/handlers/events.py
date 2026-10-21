@@ -11,11 +11,19 @@ from urllib.parse import quote
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
-from aiogram.types import ChatJoinRequest, ChatMemberUpdated, Message
+from aiogram.types import (
+    ChatJoinRequest,
+    ChatMemberAdministrator,
+    ChatMemberOwner,
+    ChatMemberUnion,
+    ChatMemberUpdated,
+    Message,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
+from app.chats import invite_links
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -64,6 +72,29 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
 @router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))
 async def user_left(event: ChatMemberUpdated) -> None:
     logger.info("user_left", chat_id=event.chat.id, user_id=event.new_chat_member.user.id)
+
+
+def _may_invite(member: ChatMemberUnion) -> bool:
+    if isinstance(member, ChatMemberOwner):
+        return True
+    return isinstance(member, ChatMemberAdministrator) and member.can_invite_users
+
+
+@router.my_chat_member(ChatTypeFilter(["group", "supergroup"]))
+async def bot_rights_changed(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """Mend a listed chat's link the moment the bot gets the right to.
+
+    A bot without the invite right cannot replace a link that died meanwhile,
+    and waiting for the next sweep would leave the catalogue pointing at a dead
+    link for up to a quarter of an hour after the right came back. Losing the
+    right needs no reaction: the sweep reports what it can no longer mend.
+    """
+    if _may_invite(event.old_chat_member) or not _may_invite(event.new_chat_member):
+        return
+    chat = await db.get(Chat, event.chat.id)
+    if chat is None or chat.public_link is None or chat.resource_status not in invite_links.MANAGED_STATUSES:
+        return
+    await invite_links.sync_chat(db, bot, chat)
 
 
 @router.message(ChatTypeFilter(["group", "supergroup"]), F.new_chat_members | F.left_chat_member)

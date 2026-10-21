@@ -274,6 +274,12 @@ async def _serve() -> None:
 
     tasks.append(run_snapshot_loop(session_maker=session_maker, bot=main_bot))
 
+    # The invite link of every listed private chat: adopted at startup, then
+    # checked and replaced when Telegram says it no longer works.
+    from app.chats.invite_links import run_sync_loop as run_invite_link_sync
+
+    tasks.append(run_invite_link_sync(session_maker=session_maker, bot=main_bot))
+
     # A stalled poller ends the process, so the container restarts it.
     tasks.append(heartbeat.watch())
 

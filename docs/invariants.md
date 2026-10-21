@@ -147,6 +147,21 @@ price of that honesty is accepted: a group's chat count on the ads page can be
 smaller than in the catalogue, which shows which of its chats are not
 moderated.
 
+**A private chat's catalogue link is the bot's, and the bot never lists a chat.**
+`public_link` is both the decision to list and the address served. For a chat
+without a username the bot keeps that address a link it made itself, and
+replaces it when Telegram says it no longer works; it does so only for chats
+already carrying one. A flag beside the link was considered and left out for
+the reason on the column: the two would disagree. So a link pasted into the
+console for a private chat is only a request to list it — the next sweep swaps
+it for the bot's own — and clearing the column still takes the chat down.
+Telegram sends no update when a link is revoked, so the sweep is the detector.
+`editChatInviteLink` succeeds only for a link the bot created and that is
+live, which is why the same call adopts links made by hand with the bot's token
+(no recreating, no churn) and finds the dead ones. An error reaches the report
+chat only when the bot cannot mend the link, once per problem and not per
+sweep; a lost invite right is the usual cause.
+
 **Moderation is the one meaning of `approved`, read when the action runs.**
 Every path that acts in a chat asks whether it is approved at the moment it
 acts — a proposal confirmed later or a join check passed later asks again,
