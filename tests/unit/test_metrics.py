@@ -132,3 +132,24 @@ def test_the_scrape_port_cannot_be_moved_by_an_environment_variable(monkeypatch:
     monkeypatch.setenv("OBSERVABILITY_METRICS_PORT", "9999")
 
     assert ObservabilitySettings().metrics_port == 8789
+
+
+def test_failure_counters_exist_before_the_first_failure() -> None:
+    """`increase()` counts nothing for a series whose first sample is already 1, so a rare
+    failure's first report would never reach an alert. Every series is there from the start."""
+    from typing import get_args
+
+    from app.captcha import metrics as _captcha  # noqa: F401  (registers the counter)
+    from app.db.models import JoinCaptcha
+    from app.webapi.routes import client_errors
+
+    for kind in get_args(client_errors.Kind):
+        for platform in (*client_errors.PLATFORMS, "other"):
+            assert (
+                REGISTRY.get_sample_value("mini_app_client_errors_total", {"kind": kind, "platform": platform})
+                is not None
+            )
+    for reason in ("invalid", "rate_limited", "overall_limit"):
+        assert REGISTRY.get_sample_value("mini_app_client_errors_dropped_total", {"reason": reason}) is not None
+    for event in ("sent", "retry", JoinCaptcha.STATUS_HELD, JoinCaptcha.STATUS_UNDELIVERED, JoinCaptcha.STATUS_PASSED):
+        assert REGISTRY.get_sample_value("captcha_events_total", {"event": event}) is not None
