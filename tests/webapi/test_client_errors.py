@@ -153,8 +153,55 @@ async def test_a_launch_older_than_an_hour_may_still_report(bot_token: str) -> N
         _event(message="x" * 2000),
     ],
 )
-async def test_a_malformed_event_is_refused(bot_token: str, event: dict[str, object]) -> None:
-    assert await _post(_report(_init_data(bot_token), event)) == 422
+async def test_a_malformed_event_is_skipped_and_the_rest_are_kept(bot_token: str, event: dict[str, object]) -> None:
+    dropped = _dropped("invalid")
+    with structlog.testing.capture_logs() as logs:
+        status = await _post(_report(_init_data(bot_token), event, _event(message="the good one")))
+
+    assert status == 204
+    assert [entry["message"] for entry in logs if entry["event"] == "client_error"] == ["the good one"]
+    assert _dropped("invalid") == dropped + 1
+
+
+async def test_a_malformed_report_is_refused_without_echoing_it(bot_token: str) -> None:
+    init_data = _init_data(bot_token)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
+        response = await client.post("/api/public/client-errors", json=_report(init_data, version="not a word"))
+    assert response.status_code == 422
+    assert init_data not in response.text
+
+
+async def test_a_launch_older_than_a_day_may_not(bot_token: str) -> None:
+    assert await _post(_report(_init_data(bot_token, age=25 * 3600))) == 403
+
+
+async def test_a_new_window_lets_everybody_report_again(bot_token: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.webapi.routes import client_errors
+
+    now = [1000.0]
+    monkeypatch.setattr(client_errors.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(client_errors, "OVERALL", client_errors.PER_PERSON + 1)
+    for _ in range(client_errors.PER_PERSON // 10 + 1):
+        await _post(_report(_init_data(bot_token), *[_event()] * 10))
+    await _post(_report(_init_data(bot_token, person=7), *[_event()] * 10))
+
+    now[0] += client_errors.WINDOW_SECONDS
+    with structlog.testing.capture_logs() as logs:
+        await _post(_report(_init_data(bot_token)))
+        await _post(_report(_init_data(bot_token, person=7)))
+    assert [entry["event"] for entry in logs].count("client_error") == 2
+
+
+async def test_a_bare_init_data_and_odd_schemes_are_scrubbed(bot_token: str) -> None:
+    message = "x #tgWebAppData=user%3D42 TG://resolve?domain=me WSS://h.example/s?k=1"
+    with structlog.testing.capture_logs() as logs:
+        await _post(_report(_init_data(bot_token), _event(message=message, route="/helper/1234567890")))
+
+    [line] = [entry for entry in logs if entry["event"] == "client_error"]
+    assert "user%3D42" not in line["message"]
+    assert "domain=me" not in line["message"]
+    assert "k=1" not in line["message"]
+    assert "1234567890" not in line["route"]
 
 
 async def test_a_report_carries_a_bounded_number_of_events(bot_token: str) -> None:

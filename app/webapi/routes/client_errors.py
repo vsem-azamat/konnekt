@@ -5,7 +5,7 @@ a counter: `client_error` at warning, which reaches Loki without becoming an
 alert in the report chat, and `mini_app_client_errors_total` by kind and
 platform, which is what Grafana alerts on.
 
-Signed like `/seen`, so that only a Telegram launch can fill the log, but the
+Signed like `/seen`, so that only a Telegram launch can write these lines, but the
 signature is used for nothing else. The line carries what failed and where —
 the screen's route pattern, the endpoint, the status, the build — and nothing
 about who: no id, no name, no initData. The id Telegram signed lives here only
@@ -14,14 +14,15 @@ as a key of the per-person limit, in this process's memory.
 Bounded three ways: the body before it is parsed, each field by the schema, and
 the number of lines, per person and for everybody together. What the limits
 turn away is answered like the rest and counted in
-`mini_app_client_errors_dropped_total`, so a flood shows as a flood.
+`mini_app_client_errors_dropped_total`, so a flood shows as a flood; so is an
+event this server cannot read, which is skipped rather than failing the batch.
 """
 
 from __future__ import annotations
 
 import re
 import time
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
@@ -70,7 +71,9 @@ class ClientErrorReport(BaseModel):
     version: Annotated[str, Field(pattern=_BUILD_WORD)]
     platform: str = Field(max_length=20)
     tg_version: Annotated[str, Field(pattern=_BUILD_WORD)]
-    events: list[ClientEvent] = Field(min_length=1, max_length=20)
+    # Checked one by one below: one event this server cannot take (a field a
+    # newer client added, a pattern it widened) must not lose the others.
+    events: list[dict[str, Any]] = Field(min_length=1, max_length=20)
 
 
 # Per process, as the throttles in the bot are. Fixed windows: a forgotten
@@ -102,15 +105,27 @@ def _admit(person: int, wanted: int) -> tuple[int, int, int]:
     return admitted, wanted - by_person, by_person - admitted
 
 
-# The query and fragment of any address: the Mini App's own carries initData
-# in its fragment, and a query can carry anything.
-_ADDRESS_TAIL = re.compile(r"(https?://[^\s?#]*)[?#]\S*")
+# The query and fragment of any address, whatever its scheme: the Mini App's
+# own carries initData in its fragment, and a query can carry anything.
+_ADDRESS_TAIL = re.compile(r"([a-z][a-z0-9+.-]*://[^\s?#]*)[?#]\S*", re.IGNORECASE)
+# initData on its own, outside an address.
+_INIT_DATA = re.compile(r"tgWebAppData=\S*", re.IGNORECASE)
 # Telegram ids, and any other number long enough to name somebody.
 _LONG_NUMBER = re.compile(r"\d{6,}")
 
 
 def _scrub(text: str) -> str:
-    return _LONG_NUMBER.sub("…", _ADDRESS_TAIL.sub(r"\1", text))
+    return _LONG_NUMBER.sub("…", _INIT_DATA.sub("", _ADDRESS_TAIL.sub(r"\1", text)))
+
+
+def _valid(events: list[dict[str, Any]]) -> list[ClientEvent]:
+    valid = []
+    for raw in events:
+        try:
+            valid.append(ClientEvent.model_validate(raw))
+        except ValidationError:
+            metrics.CLIENT_ERRORS_DROPPED.labels(reason="invalid").inc()
+    return valid
 
 
 async def _read_capped(request: Request) -> bytes:
@@ -128,28 +143,30 @@ async def client_errors(request: Request) -> Response:
     try:
         report = ClientErrorReport.model_validate_json(await _read_capped(request))
     except ValidationError as error:
-        raise RequestValidationError(error.errors()) from None
+        # Without the input: for a body that is not JSON that is all of it, initData included.
+        raise RequestValidationError(error.errors(include_input=False)) from None
     try:
         caller = verify_init_data(report.init_data, bot_token=settings.telegram.token, max_age_seconds=MAX_AGE_SECONDS)
     except InitDataError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="check_failed") from None
 
-    admitted, by_person, overall = _admit(caller.user_id, len(report.events))
+    events = _valid(report.events)
+    admitted, by_person, overall = _admit(caller.user_id, len(events))
     if by_person:
         metrics.CLIENT_ERRORS_DROPPED.labels(reason="rate_limited").inc(by_person)
     if overall:
         metrics.CLIENT_ERRORS_DROPPED.labels(reason="overall_limit").inc(overall)
 
     platform = report.platform if report.platform in PLATFORMS else "other"
-    for event in report.events[:admitted]:
+    for event in events[:admitted]:
         metrics.CLIENT_ERRORS.labels(kind=event.kind, platform=platform).inc()
         logger.warning(
             "client_error",
             kind=event.kind,
             message=_scrub(event.message),
             stack=_scrub(event.stack),
-            route=event.route,
-            endpoint=event.endpoint,
+            route=_scrub(event.route),
+            endpoint=None if event.endpoint is None else _scrub(event.endpoint),
             status=event.status,
             version=report.version,
             platform=platform,
