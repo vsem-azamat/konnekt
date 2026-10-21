@@ -165,5 +165,9 @@ async def run_metrics_server() -> None:
     logger.info("metrics_serving", port=settings.observability.metrics_port)
     try:
         await server.serve()
+    except SystemExit:
+        # uvicorn ends the process when it cannot bind (the port is taken). A
+        # scrape that cannot start must not take moderation down with it.
+        logger.error("metrics_server_failed", port=settings.observability.metrics_port)
     finally:
         logger.info("metrics_stopped")

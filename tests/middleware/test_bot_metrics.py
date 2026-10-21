@@ -127,3 +127,18 @@ async def test_the_scrape_app_is_closed_by_the_token_and_serves_one_path(monkeyp
         # Nothing else is served from here, the control plane's path included.
         assert (await client.get("/api/mcp", headers=auth)).status_code == 404
         assert (await client.post("/metrics", headers=auth)).status_code == 405
+
+
+async def test_a_scrape_port_that_is_taken_does_not_take_moderation_down(monkeypatch: pytest.MonkeyPatch) -> None:
+    import socket
+
+    taken = socket.socket()
+    taken.bind(("0.0.0.0", 0))  # noqa: S104
+    taken.listen()
+    monkeypatch.setattr(type(settings.observability), "metrics_port", taken.getsockname()[1])
+    monkeypatch.setattr(settings.observability, "metrics_secret", SecretStr("s" * 32))
+    try:
+        # uvicorn answers a port it cannot bind with SystemExit; this must come back.
+        await bot_metrics.run_metrics_server()
+    finally:
+        taken.close()

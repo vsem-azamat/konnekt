@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, ClassVar, Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -409,8 +409,24 @@ class ObservabilitySettings(Settings):
 
     # Not configurable, like the MCP plane's: the compose port mapping hard-codes
     # the container side, and the bot is the one process with no web front.
-    metrics_host: str = "0.0.0.0"  # noqa: S104 — inside the container; the mapping is loopback-only
-    metrics_port: int = 8789
+    metrics_host: ClassVar[str] = "0.0.0.0"  # noqa: S104 — inside the container; the mapping is loopback-only
+    metrics_port: ClassVar[int] = 8789
+
+    @field_validator("metrics_secret", mode="before")
+    @classmethod
+    def _strong_or_off(cls, value: object) -> object:
+        """Spaces around it dropped, blank is off, and a short one refuses to start.
+
+        A token pasted with a newline would never match, and a short one is a
+        guess away from reading every counter.
+        """
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str):
+            return value
+        raw = raw.strip()
+        if raw and len(raw) < 32:
+            raise ValueError("OBSERVABILITY_METRICS_SECRET must be 32 characters or more, or unset")
+        return raw
 
     model_config = SettingsConfigDict(
         env_prefix="OBSERVABILITY_",

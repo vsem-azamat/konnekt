@@ -79,7 +79,42 @@ def test_setup_logging_counts_the_root_loggers_lines() -> None:
     assert sum(isinstance(h, metrics.LogCounter) for h in root.handlers) == 1
 
 
-def test_no_label_carries_a_person_or_a_chat() -> None:
-    """Series are per route and per kind, never per id: ids come from the logs."""
-    allowed = {"method", "route", "status", "level", "outcome", "update_type", "event", "queue", "handler"}
-    assert allowed >= metrics.LABEL_NAMES
+def test_no_label_of_any_series_can_carry_a_person_or_a_chat() -> None:
+    """Series are per kind; ids come from the logs. Reads the labels of every metric this app defines."""
+    import app.captcha.metrics as captcha_metrics
+    import app.presentation.telegram.metrics as bot_metrics
+    from prometheus_client.metrics import MetricWrapperBase
+
+    allowed = {"method", "route", "status", "level", "outcome", "update_type", "event", "queue"}
+    labels: set[str] = set()
+    for module in (metrics, captcha_metrics, bot_metrics):
+        for value in vars(module).values():
+            if isinstance(value, MetricWrapperBase):
+                labels |= set(value._labelnames)  # noqa: SLF001 — the only list of them there is
+
+    assert labels
+    assert labels <= allowed, labels - allowed
+
+
+@pytest.mark.parametrize("short", ["x", "a" * 31, " " + "a" * 30 + " "])
+def test_a_short_secret_refuses_to_start(short: str) -> None:
+    from app.core.config import ObservabilitySettings
+
+    with pytest.raises(ValueError, match="32 characters"):
+        ObservabilitySettings(metrics_secret=short)
+
+
+def test_a_long_enough_secret_is_kept_and_blank_is_off() -> None:
+    from app.core.config import ObservabilitySettings
+
+    assert ObservabilitySettings(metrics_secret=" " + "k" * 32 + "\n").metrics_secret.get_secret_value() == "k" * 32
+    assert ObservabilitySettings(metrics_secret="  ").metrics_secret.get_secret_value() == ""
+
+
+def test_the_scrape_port_cannot_be_moved_by_an_environment_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The compose mapping hard-codes the container side."""
+    from app.core.config import ObservabilitySettings
+
+    monkeypatch.setenv("OBSERVABILITY_METRICS_PORT", "9999")
+
+    assert ObservabilitySettings().metrics_port == 8789

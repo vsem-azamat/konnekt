@@ -35,9 +35,6 @@ HTTP_IN_PROGRESS = Gauge("http_requests_in_progress", "HTTP requests being serve
 LOG_RECORDS = Counter("app_log_records_total", "Log records written, by level", ["level"])
 ALERTS = Counter("alerts_total", "Error alerts sent to the report chat", ["outcome"])
 
-# What the tests hold to: no label may be able to carry an id.
-LABEL_NAMES = frozenset({"method", "route", "status", "level", "outcome"})
-
 
 def observe_request(method: str, route: str | None, status: int, seconds: float) -> None:
     method = method if method in _METHODS else "other"

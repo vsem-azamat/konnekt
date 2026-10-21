@@ -279,7 +279,7 @@ async def _serve() -> None:
 
     # What Prometheus reads: the scrape (returns at once without a secret) and
     # the queue gauges it cannot compute at scrape time.
-    tasks.append(run_metrics_server())
+    tasks.append(_contained(run_metrics_server(), name="metrics"))
     tasks.append(run_queue_depths(session_maker))
 
     polling = _run_polling(
