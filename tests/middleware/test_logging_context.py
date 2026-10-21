@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -21,8 +22,6 @@ def uncached_logger(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _update(update_id: int = 77) -> Update:
-    from datetime import UTC, datetime
-
     message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=-1001, type="supergroup"), text="secret words")
     return Update(update_id=update_id, message=message)
 
@@ -104,16 +103,23 @@ async def test_cancellation_is_not_a_failure() -> None:
     assert [log for log in logs if log["event"] == "update_failed"] == []
 
 
-def test_aiograms_own_report_of_a_failed_update_is_dropped_as_a_duplicate() -> None:
+def test_aiograms_own_report_is_dropped_only_for_a_failure_this_middleware_reported() -> None:
     import logging
 
-    from app.presentation.telegram.bot import _ALREADY_REPORTED
+    exc = ValueError("boom")
 
-    def record(msg: str) -> logging.LogRecord:
-        return logging.LogRecord("aiogram.event", logging.ERROR, __file__, 1, msg, None, None)
+    def record(msg: str, error: BaseException | None) -> logging.LogRecord:
+        info = (type(error), error, None) if error else None
+        return logging.LogRecord("aiogram.event", logging.ERROR, __file__, 1, msg, None, info)
 
-    assert _ALREADY_REPORTED.filter(record("Cause exception while process update id=1 by bot id=2\nX: y")) is False
-    assert _ALREADY_REPORTED.filter(record("Update id=1 is handled. Duration 5 ms")) is True
+    report = "Cause exception while process update id=1 by bot id=2\nX: y"
+    filter_ = logging_context.AlreadyReported()
+
+    # A dispatcher without the middleware (the ads desk, the retired bots): aiogram's is the only report.
+    assert filter_.filter(record(report, exc)) is True
+    setattr(exc, logging_context.REPORTED, True)
+    assert filter_.filter(record(report, exc)) is False
+    assert filter_.filter(record("Update id=1 is handled. Duration 5 ms", None)) is True
 
 
 def test_the_dispatcher_names_handlers_on_every_event_but_updates_and_errors() -> None:
@@ -147,8 +153,6 @@ async def test_a_handler_in_an_included_router_is_named_and_a_failure_is_reporte
         raise ValueError("boom")
 
     dp.include_router(child)
-    from datetime import UTC, datetime
-
     update = Update(
         update_id=77,
         message=Message(
@@ -167,3 +171,30 @@ async def test_a_handler_in_an_included_router_is_named_and_a_failure_is_reporte
     [failed] = [log for log in logs if log["event"] == "update_failed"]
     assert failed["handler"].endswith("ban_command")
     assert failed["chat_id"] == -1001
+
+
+async def test_a_private_chat_is_not_bound_because_its_id_is_the_persons() -> None:
+    private = Update(
+        update_id=5,
+        message=Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=4242, type="private"), text="hi"),
+    )
+
+    async def handler(event: Any, data: dict[str, Any]) -> None:
+        structlog.get_logger("test").info("inside")
+
+    with _capture() as logs:
+        await LoggingContextMiddleware()(handler, private, {})
+
+    assert logs[0]["update_id"] == 5
+    assert "chat_id" not in logs[0]
+    assert "4242" not in str(logs)
+
+
+async def test_a_failure_marks_its_exception_as_reported() -> None:
+    async def failing(event: Any, data: dict[str, Any]) -> None:
+        raise ValueError("boom")
+
+    with _capture(), pytest.raises(ValueError, match="boom") as raised:
+        await LoggingContextMiddleware()(failing, _update(), {})
+
+    assert getattr(raised.value, logging_context.REPORTED) is True

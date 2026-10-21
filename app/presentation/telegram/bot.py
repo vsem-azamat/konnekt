@@ -39,25 +39,14 @@ from app.presentation.telegram.middlewares import (
     LoggingContextMiddleware,
     ManagedChatsMiddleware,
 )
+from app.presentation.telegram.middlewares.logging_context import AlreadyReported
 from app.presentation.telegram.profile import publish_profile
 
 setup_logging()
 logger = get_logger("bot")
 
 
-class _AlreadyReported(logging.Filter):
-    """Drop aiogram's own report of an update that failed.
-
-    `LoggingContextMiddleware` has logged it, with the update, the chat and the
-    handler; this one has the traceback and none of that, and would be a second
-    alert for the same failure.
-    """
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        return not str(record.msg).startswith("Cause exception while process update")
-
-
-_ALREADY_REPORTED = _AlreadyReported()
+_ALREADY_REPORTED = AlreadyReported()
 
 
 # ---------------------------------------------------------------------------

@@ -142,8 +142,9 @@ async def test_a_failed_write_does_not_hold_back_the_next_launch(
         raise RuntimeError("database is down")
 
     monkeypatch.setattr(seen.record, "seen", broken)
-    with pytest.raises(RuntimeError):
-        await _seen(client, _init_data(bot_token))
+    # Answered 500 by the server-error middleware; RequestLog does not hand the
+    # exception on to the server a second time.
+    assert (await _seen(client, _init_data(bot_token))).status_code == 500
     monkeypatch.undo()
 
     assert (await _seen(client, _init_data(bot_token))).status_code == 204
