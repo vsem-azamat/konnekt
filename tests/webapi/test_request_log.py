@@ -167,3 +167,28 @@ async def test_an_answer_the_api_gives_on_purpose_is_a_warning_not_an_alert(stat
 
     [line] = [log for log in logs if log["event"] == "http_request"]
     assert line["log_level"] == "warning"
+
+
+async def test_two_different_unhandled_errors_are_two_alert_names() -> None:
+    from fastapi import APIRouter
+
+    router = APIRouter()
+
+    @router.get("/api/_e1")
+    async def first() -> None:
+        raise KeyError("a")
+
+    @router.get("/api/_e2")
+    async def second() -> None:
+        raise ValueError("b")
+
+    app.include_router(router)
+    try:
+        with _capture() as logs:
+            for path in ("/api/_e1", "/api/_e2"):
+                async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+                    await c.get(path)
+    finally:
+        app.router.routes[:] = [r for r in app.router.routes if getattr(r, "path", "") not in ("/api/_e1", "/api/_e2")]
+
+    assert [log["error_type"] for log in logs if log["event"] == "http_request"] == ["KeyError", "ValueError"]

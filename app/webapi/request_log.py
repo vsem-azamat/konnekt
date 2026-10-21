@@ -91,8 +91,8 @@ class RequestLog:
         with structlog.contextvars.bound_contextvars(request_id=request_id):
             try:
                 await self.app(scope, receive, send_with_id)
-            except Exception:
-                self._log(scope, status, started, failed=True)
+            except Exception as err:
+                self._log(scope, status, started, failed=True, error_type=type(err).__name__)
                 if not answered:
                     raise
                 # The error middleware has answered 500 and re-raised for the
@@ -101,7 +101,7 @@ class RequestLog:
                 self._log(scope, status, started)
 
     @staticmethod
-    def _log(scope: Scope, status: int, started: float, *, failed: bool = False) -> None:
+    def _log(scope: Scope, status: int, started: float, *, failed: bool = False, error_type: str | None = None) -> None:
         path = scope["path"]
         if path in QUIET_PATHS and not failed and status < 400:
             return
@@ -114,7 +114,9 @@ class RequestLog:
             "duration_ms": round((time.perf_counter() - started) * 1000, 1),
         }
         if failed:
-            logger.error("http_request", exc_info=True, **fields)
+            # The class is in the alert's name, so a second, different bug
+            # inside the throttle window is not hidden behind the first.
+            logger.error("http_request", exc_info=True, error_type=error_type, **fields)
         elif status == 500:
             logger.error("http_request", **fields)
         elif status >= 400:
