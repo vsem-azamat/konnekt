@@ -130,7 +130,7 @@ http://{$ADMIN_HOST:admin.invalid} {
 		Strict-Transport-Security "max-age=31536000"
 	}
 
-	@notOurs path /api/v1/* /api/public/* /healthz
+	@notOurs path /api/v1/* /api/public/* /api/internal/* /healthz
 	handle @notOurs {
 		respond 404
 	}

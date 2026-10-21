@@ -203,6 +203,8 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "MCP_TOKEN",
         "WEBAPI_OIDC_CLIENT_SECRET",
         "CATALOG_SERVICE_TOKEN",
+        # Prometheus's bearer token: whoever has it reads every counter.
+        "OBSERVABILITY_METRICS_SECRET",
     }
 
     for name, expression in step["env"].items():
@@ -786,3 +788,24 @@ def test_the_catalog_service_token_reaches_webapi_and_the_catalog_alone() -> Non
 
     # The bot and migrate merge the runtime block, so it being there shows here.
     assert holders == {"webapi", "catalog-api"}
+
+
+def test_the_metrics_secret_reaches_the_three_processes_that_serve_a_scrape_and_nothing_else() -> None:
+    """Not the shared runtime block: the migrations and the web UI serve no scrape."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    holders = {
+        name
+        for name, service in services.items()
+        if "OBSERVABILITY_METRICS_SECRET" in (service.get("environment") or {})
+    }
+
+    assert holders == {"bot", "webapi", "catalog-api"}
+
+
+def test_the_bots_scrape_is_published_on_loopback_beside_the_control_plane_not_through_it() -> None:
+    """The edge reaches it at 127.0.0.1:8789; the MCP plane stays a port of its own."""
+    ports = yaml.safe_load(COMPOSE.read_text())["services"]["bot"]["ports"]
+
+    assert "127.0.0.1:8789:8789" in ports
+    assert "127.0.0.1:8788:8788" in ports
+    assert all(port.startswith("127.0.0.1:") for port in ports)

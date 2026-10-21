@@ -111,11 +111,16 @@ services:
       # Who /start and /contacts send people to: the variable the ads pages
       # use too (catalog-api's ADS_CONTACT), so the two cannot disagree.
       ADS_BOT_CONTACT: ${CATALOG_ADS_CONTACT:-}
+      # What Prometheus presents to read this process; unset, nothing is served.
+      OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
     # The MCP control plane is served here rather than by webapi: Telegram
     # answers a confirmation button to the identity that sent it, and that
     # identity is this process. Loopback only — not published to the internet.
+    # The scrape beside it, on its own port: the edge proxies that one to
+    # Prometheus, and the control plane stays reachable from this host alone.
     ports:
       - "127.0.0.1:8788:8788"
+      - "127.0.0.1:8789:8789"
     # A network of its own: the MCP plane listens on every interface inside
     # the container, so on the shared network the catalog API and every other
     # container could reach it. Nothing in the stack calls the bot; it needs
@@ -151,6 +156,7 @@ services:
       # How the console in a browser reads the catalog's screens: the catalog's
       # SERVICE_TOKEN, shared by these two containers alone.
       WEBAPI_CATALOG_SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
+      OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
     volumes:
       - bot-logs:/app/logs
     healthcheck:
@@ -294,6 +300,7 @@ services:
       SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
       # Never true here. It would let anyone claim to be anyone.
       ALLOW_UNSIGNED_INIT_DATA: "false"
+      OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
       LOG_LEVEL: INFO
     depends_on:
       catalog-postgres: {condition: service_healthy}

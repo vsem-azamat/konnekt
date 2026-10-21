@@ -57,6 +57,9 @@ def console() -> dict[str, str]:
         "/api/v1/me": "404",
         "/api/public/catalog": "404",
         "/healthz": "404",
+        # Prometheus reads the metrics on the Mini App's host; this one has no business with them.
+        "/api/internal/metrics": "404",
+        "/api/v1/internal/metrics": "404",
         "/console": APP,
         "/console/chats/-100123": APP,
         "/login": APP,
@@ -78,6 +81,9 @@ def mini_app() -> dict[str, str]:
         # Everything else under /api is this repository's webapi.
         "/api/public/catalog": WEBAPI,
         "/api/auth/webapp": WEBAPI,
+        # What Prometheus scrapes (each closed by its own bearer token): the web API's and the catalog's.
+        "/api/internal/metrics": WEBAPI,
+        "/api/v1/internal/metrics": CATALOG,
         # The browser's sign-in is the console host's: here the client address is Cloudflare's.
         "/api/auth/telegram/login": "404",
         "/api/auth/telegram/callback": "404",

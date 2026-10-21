@@ -368,6 +368,26 @@ proxy, where enabling the flag was enough to expose it. Do not restore that
 convenience — the toolset now includes privileged moderation, and its safety
 rests on more than a bearer token.
 
+## Observability
+
+**Telemetry names kinds, never people.** A metric label is a route template, an
+update type, an outcome: never a chat or a user id, and no search on a person
+needs one, because the logs carry the ids that moderation itself names. The
+update context bound into every log line (`update_id`, `update_type`,
+`chat_id`, handler) leaves the user out on purpose, for the same reason the
+audience's ids stay out of the logs. A label that can carry an id makes a series
+for everyone who ever wrote, in a store that outlives the chat's own retention.
+
+**The scrape token is also the switch.** `OBSERVABILITY_METRICS_SECRET` unset
+means the endpoints answer nothing (404), and the bot starts no server. There
+is no flag beside it: one that disagreed with the secret could only fail in the
+direction that leaves a door open. The same token reads all three endpoints;
+rotating it is one repository secret and one file on the monitoring host.
+
+**The bot's metrics are not the control plane's port.** The bot has no web
+front, so its scrape has a port of its own (8789), which the edge may proxy to
+Prometheus. The MCP plane (8788) must stay unproxied, see «Approval».
+
 ## Deployment
 
 **The web UI port is loopback-only.** It is reached by the server-level edge
