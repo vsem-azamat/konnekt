@@ -60,6 +60,20 @@ export type AdminCounts = {
 };
 
 /**
+ * AdminDecision
+ *
+ * Keeping or restoring approves the profile as the operator read it. With
+ * `seen`, its `updated_at` then, an owner's save in between is a 409 rather
+ * than an edit approved unread.
+ */
+export type AdminDecision = {
+    /**
+     * Seen
+     */
+    seen?: string | null;
+};
+
+/**
  * AdminHide
  *
  * Why, from the list, or in words for «Другое» and only for it: the owner
@@ -217,6 +231,10 @@ export type AdminProfileDetail = {
      * Reviewed At
      */
     reviewed_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
     hidden_reason: HideReason | null;
     /**
      * Hidden Note
@@ -2386,7 +2404,10 @@ export type ReadProfileApiV1AdminProfilesUserIdGetResponses = {
 export type ReadProfileApiV1AdminProfilesUserIdGetResponse = ReadProfileApiV1AdminProfilesUserIdGetResponses[keyof ReadProfileApiV1AdminProfilesUserIdGetResponses];
 
 export type KeepProfileApiV1AdminProfilesUserIdReviewPostData = {
-    body?: never;
+    /**
+     * Decision
+     */
+    body?: AdminDecision | null;
     headers?: {
         /**
          * Authorization
@@ -2458,7 +2479,10 @@ export type HideProfileApiV1AdminProfilesUserIdHidePostResponses = {
 export type HideProfileApiV1AdminProfilesUserIdHidePostResponse = HideProfileApiV1AdminProfilesUserIdHidePostResponses[keyof HideProfileApiV1AdminProfilesUserIdHidePostResponses];
 
 export type RestoreProfileApiV1AdminProfilesUserIdRestorePostData = {
-    body?: never;
+    /**
+     * Decision
+     */
+    body?: AdminDecision | null;
     headers?: {
         /**
          * Authorization

@@ -105,10 +105,10 @@ export default function MyHelperPage() {
     setCity(data.city ?? '');
     setPlaceNote(data.place_note ?? '');
     setWorkFormat(data.work_format);
-    // A new profile starts listed; an operator's hide is not the owner's to keep.
-    setListed(
-      data.status !== 'hidden' && data.status !== 'draft' && data.status !== 'banned',
-    );
+    // On while an operator keeps it hidden too: the server ignores it then,
+    // and if they list it again while this screen is open, the next save must
+    // not take it down.
+    setListed(data.status !== 'hidden' && data.status !== 'draft');
     setRows(data.offers.map(toDraft));
     setLoaded(true);
   }, [data, loaded]);

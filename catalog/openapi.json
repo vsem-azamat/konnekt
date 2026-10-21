@@ -1709,6 +1709,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AdminDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Decision"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1839,6 +1856,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AdminDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Decision"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2164,6 +2198,25 @@
         ],
         "title": "AdminCounts"
       },
+      "AdminDecision": {
+        "properties": {
+          "seen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seen"
+          }
+        },
+        "type": "object",
+        "title": "AdminDecision",
+        "description": "Keeping or restoring approves the profile as the operator read it. With\n`seen`, its `updated_at` then, an owner's save in between is a 409 rather\nthan an edit approved unread."
+      },
       "AdminHide": {
         "properties": {
           "reason": {
@@ -2434,6 +2487,11 @@
             ],
             "title": "Reviewed At"
           },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "hidden_reason": {
             "anyOf": [
               {
@@ -2467,6 +2525,7 @@
           "institution",
           "published_at",
           "reviewed_at",
+          "updated_at",
           "hidden_reason",
           "hidden_note"
         ],

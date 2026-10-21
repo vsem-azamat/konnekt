@@ -14,6 +14,7 @@ function profile(over: Partial<AdminProfileDetail> = {}): AdminProfileDetail {
     institution: null,
     published_at: '2026-10-19T10:00:00Z',
     reviewed_at: null,
+    updated_at: '2026-10-19T10:00:00Z',
     hidden_reason: null,
     hidden_note: null,
     ...over,

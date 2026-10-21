@@ -38,11 +38,13 @@ export function ProfileSheet({
   const why = hideBody(reason, note);
 
   const change = useMutation({
+    // Keeping and restoring approve what is on screen: an owner's save since
+    // is a 409, and the sheet then shows the profile as it is now.
     mutationFn: (action: 'keep' | { hide: AdminHide } | 'restore') =>
       action === 'keep'
-        ? api.keepProfile(userId)
+        ? api.keepProfile(userId, { seen: profile.data?.updated_at })
         : action === 'restore'
-          ? api.restoreProfile(userId)
+          ? api.restoreProfile(userId, { seen: profile.data?.updated_at })
           : api.hideProfile(userId, action.hide),
     onSuccess: async (updated) => {
       queryClient.setQueryData(adminProfileQuery(userId).queryKey, updated);
