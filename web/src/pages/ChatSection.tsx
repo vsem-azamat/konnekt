@@ -16,6 +16,7 @@ import {
   Sub,
   Title,
 } from '@/components/Ui';
+import { useReportEmpty } from '@/hooks/useReportEmpty';
 import { chatsQuery } from '@/lib/api';
 import { byOwner } from '@/lib/chats';
 
@@ -38,6 +39,9 @@ export default function ChatSectionPage() {
   // Somebody else's chats go below ours, under a heading that says so, rather
   // than marked one by one among them.
   const { ours, others } = byOwner(chats);
+  // The name came from the address, so this is often an old link, but it is
+  // also what a directory gone empty under the reader looks like.
+  useReportEmpty(data !== undefined && chats.length === 0, 'chat section');
 
   return (
     <>

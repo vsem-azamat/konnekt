@@ -1,6 +1,7 @@
 import { i18n } from '@lingui/core';
 import { retrieveRawInitData } from '@tma.js/sdk-react';
 import { type PublicChat, sanitize } from './chats';
+import { type ClientErrorReport, describeError, reportApiFailure } from './clientErrors';
 import type {
   AdminCatalog,
   AdminDecision,
@@ -165,7 +166,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const response = await fetch(`${BASE_URL}${call.url}`, {
+  const response = await reported(call.url, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -191,6 +192,23 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return payload as T;
+}
+
+/**
+ * `fetch` on this origin, with every failure told to `clientErrors`: the
+ * endpoint's pattern and the status, 0 when nothing came back. Never the body,
+ * which can be anybody's profile.
+ */
+async function reported(url: string, init: RequestInit): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${url}`, init);
+  } catch (error) {
+    if (!describeError(error).ignore) reportApiFailure(url, 0);
+    throw error;
+  }
+  if (!response.ok) reportApiFailure(url, response.status);
+  return response;
 }
 
 async function readBody(response: Response): Promise<unknown> {
@@ -225,7 +243,7 @@ async function publicRequest<T>(
   path: string,
   init: Pick<RequestInit, 'method' | 'body' | 'signal'> = {},
 ): Promise<T> {
-  const response = await fetch(`${BASE_URL}/api/public${path}`, {
+  const response = await reported(`/api/public${path}`, {
     ...init,
     headers: {
       Accept: 'application/json',
@@ -235,6 +253,11 @@ async function publicRequest<T>(
   const payload = await readBody(response);
   if (!response.ok) throw new ApiError(response.status, payload, detailOf(payload));
   return payload as T;
+}
+
+/** A path the server gave for a picture, as the browser must ask for it. */
+export function assetUrl(path: string): string {
+  return `${BASE_URL}${path}`;
 }
 
 // ── endpoints ───────────────────────────────────────────────────────────
@@ -283,6 +306,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ init_data: initData }),
     });
+  },
+
+  /**
+   * What failed in this app, for the log (lib/clientErrors.ts). Plain `fetch`
+   * rather than `publicRequest`, so that a report that fails is not itself
+   * reported; `keepalive` so that one sent as the app goes away arrives.
+   */
+  reportClientErrors: (report: ClientErrorReport, keepalive: boolean): void => {
+    void fetch(`${BASE_URL}/api/public/client-errors`, {
+      method: 'POST',
+      keepalive,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+    }).catch(() => undefined);
   },
 
   /** Who a business writes to about advertising, if anyone. */

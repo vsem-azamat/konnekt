@@ -18,6 +18,7 @@ function chat(
     member_count: null,
     is_forum: false,
     external: false,
+    avatar: null,
   };
 }
 

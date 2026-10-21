@@ -2,7 +2,7 @@
 
 Two things are being pinned here. What gets in — approved, and carrying a link,
 with neither condition sufficient alone. And what comes back for each row, which
-is seven fields: a page cannot leak a Telegram id or who is in a room when the
+is nine fields: a page cannot leak a Telegram id or who is in a room when the
 response never contained them.
 """
 
@@ -138,7 +138,7 @@ class TestWhatGetsIn:
 
 
 class TestWhatComesBack:
-    async def test_the_row_carries_eight_fields_and_no_more(self, client_factory, db_session_maker) -> None:
+    async def test_the_row_carries_nine_fields_and_no_more(self, client_factory, db_session_maker) -> None:
         """Whatever a page does with this, it cannot show what is not here."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
 
@@ -154,6 +154,7 @@ class TestWhatComesBack:
             "member_count",
             "is_forum",
             "external",
+            "avatar",
         }
 
     @pytest.mark.parametrize(

@@ -33,7 +33,14 @@ HTTP_DURATION = Histogram(
 )
 HTTP_IN_PROGRESS = Gauge("http_requests_in_progress", "HTTP requests being served now")
 LOG_RECORDS = Counter("app_log_records_total", "Log records written, by level", ["level"])
+AVATAR_SYNCS = Counter("chat_avatar_syncs_total", "Chat photo syncs, by what became of the photo", ["outcome"])
 ALERTS = Counter("alerts_total", "Error alerts sent to the report chat", ["outcome"])
+# What the Mini App reported failing (app/webapi/routes/client_errors.py), and
+# what the limits there turned away rather than wrote.
+CLIENT_ERRORS = Counter("mini_app_client_errors_total", "Failures the Mini App reported", ["kind", "platform"])
+CLIENT_ERRORS_DROPPED = Counter(
+    "mini_app_client_errors_dropped_total", "Mini App failure reports past a limit, not written", ["reason"]
+)
 
 
 def observe_request(method: str, route: str | None, status: int, seconds: float) -> None:

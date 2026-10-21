@@ -11,11 +11,21 @@ from urllib.parse import quote
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
-from aiogram.types import ChatJoinRequest, ChatMemberUpdated, Message
+from aiogram.types import (
+    ChatJoinRequest,
+    ChatMemberAdministrator,
+    ChatMemberOwner,
+    ChatMemberUnion,
+    ChatMemberUpdated,
+    Message,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
+from app.chats import invite_links
+from app.chats.avatars import sync_photo
+from app.chats.metadata import fetch_metadata, username_of
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -66,6 +76,29 @@ async def user_left(event: ChatMemberUpdated) -> None:
     logger.info("user_left", chat_id=event.chat.id, user_id=event.new_chat_member.user.id)
 
 
+def _may_invite(member: ChatMemberUnion) -> bool:
+    if isinstance(member, ChatMemberOwner):
+        return True
+    return isinstance(member, ChatMemberAdministrator) and member.can_invite_users
+
+
+@router.my_chat_member(ChatTypeFilter(["group", "supergroup"]))
+async def bot_rights_changed(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """Mend a listed chat's link the moment the bot gets the right to.
+
+    A bot without the invite right cannot replace a link that died meanwhile,
+    and waiting for the next sweep would leave the catalogue pointing at a dead
+    link for up to a quarter of an hour after the right came back. Losing the
+    right needs no reaction: the sweep reports what it can no longer mend.
+    """
+    if _may_invite(event.old_chat_member) or not _may_invite(event.new_chat_member):
+        return
+    chat = await db.get(Chat, event.chat.id)
+    if chat is None or chat.public_link is None or chat.resource_status not in invite_links.MANAGED_STATUSES:
+        return
+    await invite_links.sync_chat(db, bot, chat)
+
+
 @router.message(ChatTypeFilter(["group", "supergroup"]), F.new_chat_members | F.left_chat_member)
 async def remove_membership_notice(message: Message, db: AsyncSession) -> None:
     """Take Telegram's own "joined"/"left" notice out of the chat.
@@ -90,6 +123,26 @@ async def remove_membership_notice(message: Message, db: AsyncSession) -> None:
         logger.debug(
             "service_notice_not_removed", chat_id=message.chat.id, error=str(err), error_type=type(err).__name__
         )
+
+
+@router.message(ChatTypeFilter(["group", "supergroup"]), F.new_chat_photo | F.delete_chat_photo)
+async def chat_photo_changed(message: Message, bot: Bot, db: AsyncSession) -> None:
+    """Take a changed chat photo on the notice instead of at the next daily sync.
+
+    The notice carries the message's own photo sizes, which are not the chat's,
+    so Telegram is asked again. Nothing here is shown in the chat and nothing
+    is removed: only the stored picture follows.
+    """
+    chat = await db.scalar(select(Chat).where(Chat.id == message.chat.id))
+    if chat is None:
+        return
+    metadata = await fetch_metadata(
+        bot=bot, chat_id=chat.id, username=username_of(chat.public_link) if chat.public_link else None
+    )
+    if metadata is None:
+        return
+    await sync_photo(session=db, bot=bot, chat=chat, metadata=metadata)
+    await db.commit()
 
 
 @router.chat_join_request()

@@ -54,6 +54,28 @@ moderates real chats. No test can catch this.
 
 ## Mini App
 
+**The app's height is only as fresh as Telegram's last report, so it has to
+recover on its own.** Minimising, backgrounding and restoring a Mini App send
+events whose order and completeness differ by client. On Android an app sized
+by the last *stable* height stayed the height of the minimised bottom bar after
+it was expanded again, and the catalogue showed a heading with no list under it
+(October 2026; the device's exact event sequence was not captured). So the
+viewport is asked for again on `visibility_changed` (Telegram's own script calls
+it `activated`) and on `visibilitychange` to visible, and a settled live height
+replaces a stale stable one: `web/src/lib/appHeight.ts`. The safe-area insets
+are not re-asked yet; if they turn out to go stale the same way, they get the
+same treatment.
+
+**A chat's photo is served from our address, and an address names one picture
+forever.** The catalog shows `/api/public/avatars/<file_unique_id>` with a
+year-long `immutable` cache. That is only safe because Telegram changes the
+unique id when the photo changes; serving different bytes at an existing id, or
+keying the address by chat, would leave every browser and Telegram WebView
+showing the old photo with nothing to invalidate it. A Telegram file URL or file
+id must never reach a client instead: the URL carries the bot token. The bytes
+live in the database because the bot writes them and the web API, a different
+container, reads them.
+
 **A Mini App secret is `hmac(key="WebAppData", msg=bot_token)`.** The other
 derivation anyone reaches for, `sha256(bot_token)`, belonged to the Login
 Widget and fails every signature here. "Fixing" that by relaxing the check is
@@ -98,11 +120,14 @@ super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram
 signed rather than any id the payload volunteers elsewhere.
 
-**Two public endpoints write, and only about the caller.** The join check and
+**Three public endpoints write, and only about the caller.** The join check and
 `/api/public/seen` take a signed `initData` and act on the id Telegram signed,
 never on one the body names. `/seen` is idempotent: the visit is dated by
 `auth_date`, which names one launch, so a payload sent again counts once; and
-it writes a person at most once per half minute. A new public endpoint that
+it writes a person at most once per half minute. `/api/public/client-errors`
+writes only a log line and a counter, signed so that only a Telegram launch
+can fill them, and keeps nothing of the caller: the signed id is a key of its
+in-memory rate limit and appears in no line. A new public endpoint that
 writes joins this list or is not public.
 
 **The audience holds what Telegram tells us, never what people wrote.** Names,
@@ -146,6 +171,29 @@ is reach: nobody buying a post can be sold a room our posts do not go to. The
 price of that honesty is accepted: a group's chat count on the ads page can be
 smaller than in the catalogue, which shows which of its chats are not
 moderated.
+
+**A private chat's catalogue link is the bot's, and the bot never lists a chat.**
+`public_link` is both the decision to list and the address served. For a chat
+without a username the bot keeps that address a link it made itself, and
+replaces it when Telegram says it no longer works; it does so only for chats
+already carrying one. A flag beside the link was considered and left out for
+the reason on the column: the two would disagree. So a link pasted into the
+console for a private chat is only a request to list it — the next sweep swaps
+it for the bot's own — and clearing the column still takes the chat down.
+Telegram sends no update when a link is revoked, so the sweep is the detector.
+`editChatInviteLink` succeeds only for a link the bot created and that is
+live, which is why the same call adopts links made by hand with the bot's token
+(no recreating, no churn) and finds the dead ones. An error reaches the report
+chat only when the bot cannot mend the link, once per problem and not per
+sweep, with the chat in the event's name (alerts are throttled per name); a
+lost invite right is the usual cause. Only approved chats are swept: observed
+ones are another bot's to act in. The sweep writes a new link only where the
+row still holds the link and status it started from, because an operator may
+unlist the chat while Telegram is being asked, and more than a few dead links
+in one sweep halts the sweeps until the process restarts, instead of minting
+links across the catalogue. An edit replaces the whole link, so the chat's own
+settings are the authority for join requests: turn the captcha on for a
+chat, do not set it by hand on the bot's link.
 
 **Moderation is the one meaning of `approved`, read when the action runs.**
 Every path that acts in a chat asks whether it is approved at the moment it
@@ -367,6 +415,28 @@ so: the endpoint used to live on the web API behind the existing `/api/*`
 proxy, where enabling the flag was enough to expose it. Do not restore that
 convenience — the toolset now includes privileged moderation, and its safety
 rests on more than a bearer token.
+
+## Observability
+
+**Telemetry names kinds, never people.** A metric label is a route template, an
+update type, an outcome: never a chat or a user id, and no search on a person
+needs one, because the logs carry the ids that moderation itself names. The
+update context bound into every log line (`update_id`, `update_type`,
+`chat_id` of a group or channel, handler) leaves the user out on purpose, for
+the same reason the audience's ids stay out of the logs, and leaves the chat out
+of a private conversation, where its id is the person's. An access line names a
+route template, not a path, for the same reason. A label that can carry an id makes a series
+for everyone who ever wrote, in a store that outlives the chat's own retention.
+
+**The scrape token is also the switch.** `OBSERVABILITY_METRICS_SECRET` unset
+means the endpoints answer nothing (404), and the bot starts no server. There
+is no flag beside it: one that disagreed with the secret could only fail in the
+direction that leaves a door open. The same token reads all three endpoints;
+rotating it is one repository secret and one file on the monitoring host.
+
+**The bot's metrics are not the control plane's port.** The bot has no web
+front, so its scrape has a port of its own (8789), which the edge may proxy to
+Prometheus. The MCP plane (8788) must stay unproxied, see «Approval».
 
 ## Deployment
 

@@ -13,6 +13,8 @@ interface ImportMetaEnv {
    * Read only in development.
    */
   readonly VITE_MOCK_INIT_DATA?: string;
+  /** The commit this build was made from, set by the image build; reported with a failure. */
+  readonly VITE_APP_VERSION?: string;
 }
 
 interface ImportMeta {

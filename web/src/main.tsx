@@ -12,6 +12,9 @@ import {
   isTMA,
   mainButton,
   miniApp,
+  on,
+  postEvent,
+  retrieveLaunchParams,
   swipeBehavior,
   themeParams,
   viewport,
@@ -26,6 +29,17 @@ import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
 import { ApiError, api, rawInitData, routeCatalogCalls } from '@/lib/api';
+import { followAppHeight } from '@/lib/appHeight';
+import {
+  createReporter,
+  describeError,
+  flushClientEvents,
+  layoutLooksBroken,
+  type Reporter,
+  reportClientEvent,
+  scrub,
+  startReporting,
+} from '@/lib/clientErrors';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -60,6 +74,7 @@ async function bootstrap(): Promise<void> {
   }
 
   initSdk();
+  reportFailures();
   reportLaunch();
   await initLocale();
   render();
@@ -69,6 +84,90 @@ async function bootstrap(): Promise<void> {
 function reportLaunch(): void {
   const raw = rawInitData();
   if (raw) void api.reportLaunch(raw).catch(() => undefined);
+}
+
+/**
+ * Tell the server what fails in this app (lib/clientErrors.ts), from here on.
+ *
+ * Inside Telegram and in a build only: the console in a browser has no
+ * initData to sign a report with, and the development mock's is unsigned, so
+ * the server would refuse every one.
+ */
+function reportFailures(): void {
+  if (import.meta.env.DEV) return;
+  const initData = rawInitData();
+  if (!initData) return;
+  const { tgWebAppPlatform, tgWebAppVersion } = retrieveLaunchParams();
+  const reporter = createReporter({
+    send: (events, leaving) =>
+      api.reportClientErrors(
+        {
+          init_data: initData,
+          version: import.meta.env.VITE_APP_VERSION || 'unknown',
+          platform: tgWebAppPlatform,
+          tg_version: tgWebAppVersion,
+          events,
+        },
+        leaving,
+      ),
+    route: routePattern,
+  });
+  startReporting(reporter);
+
+  window.addEventListener('error', (event) => {
+    report(reporter, 'error', event.error ?? event.message);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    report(reporter, 'unhandled_rejection', event.reason);
+  });
+  // A batch still waiting when the app is put away or closed goes now: a
+  // Mini App is often never seen again after that.
+  window.addEventListener('pagehide', reporter.flush);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') reporter.flush();
+    else setTimeout(checkLayout, LAYOUT_CHECK_MS);
+  });
+  // Restored from minimised, Android may say so only through Telegram's own
+  // event, and that return is exactly where the height went stale before.
+  on('visibility_changed', ({ is_visible }) => {
+    if (is_visible) setTimeout(checkLayout, LAYOUT_CHECK_MS);
+  });
+  setTimeout(checkLayout, LAYOUT_CHECK_MS);
+}
+
+function report(
+  reporter: Reporter,
+  kind: 'error' | 'unhandled_rejection',
+  thrown: unknown,
+) {
+  const { message, stack, ignore } = describeError(thrown);
+  if (!ignore) reporter.report({ kind, message, stack });
+}
+
+/** The screen as the router names it, `/chats/:group`: never the address itself. */
+function routePattern(): string {
+  const paths = router.state.matches.map((match) => match.route.path).filter(Boolean);
+  return `/${paths.join('/')}`.replace(/\/+/g, '/');
+}
+
+/** Long enough for a client that answers the viewport request to have answered. */
+const LAYOUT_CHECK_MS = 1500;
+let layoutReported = false;
+
+/**
+ * Once per session, if the app is a sliver of its window: the bug where a
+ * stale viewport height left a heading and nothing under it.
+ */
+function checkLayout(): void {
+  const root = document.getElementById('root');
+  if (layoutReported || !root || document.visibilityState !== 'visible') return;
+  const height = root.getBoundingClientRect().height;
+  if (!layoutLooksBroken(height, window.innerHeight)) return;
+  layoutReported = true;
+  reportClientEvent({
+    kind: 'layout',
+    message: `app ${Math.round(height)}px in a ${window.innerHeight}px window`,
+  });
 }
 
 /**
@@ -208,37 +307,34 @@ function initSdk(): void {
 }
 
 /**
- * Publish the height the app is allowed to occupy, as `--app-height`.
+ * Publish the height the app is allowed to occupy, as `--app-height`: the
+ * rules are in `lib/appHeight.ts`.
  *
- * Telegram's number rather than the webview's. On iOS and Android the SDK does
- * not trust `window.innerHeight` either — it asks the client and waits for
- * `viewport_changed` — so `100dvh`, which is that same untrusted number, can
- * be taller than what the person can actually see. An app sized to the webview
- * then puts its last rows below the visible edge with nothing able to scroll
- * to them, and `index.css` has deliberately left the document unable to.
+ * Subscribed without waiting for the mount: the signals exist before it, and
+ * this way a client that never answers `web_app_request_viewport` leaves the
+ * page on its `100dvh` fallback instead of on nothing at all.
  *
- * `stableHeight` and not `height`: the plain one follows the drag gesture and
- * would make everything pinned to the bottom jitter.
- *
- * Subscribed rather than read once, and subscribed without waiting for the
- * mount: the signal exists before it, and this way a client that never answers
- * `web_app_request_viewport` leaves the page on its `100dvh` fallback instead
- * of on nothing at all.
- *
- * Zero is not an answer, and skipping it is the whole reason this is not left
- * to `bindCssVars`. The signal reads 0 until the client has reported a stable
- * state, and a variable set to `0px` is *defined* — `var(--app-height, 100dvh)`
- * would resolve to zero rather than fall back, and the app would be one frame
- * of nothing.
+ * And asked again whenever the app comes back: active again after being
+ * minimised, or visible again after the phone was put away. A height is only
+ * as fresh as the client's last report, and a client that restores the sheet
+ * without sending one would otherwise leave the app at the height it had while
+ * it was away. See docs/invariants.md, «Mini App».
  */
 function bindAppHeight(): void {
-  const publish = (height: number): void => {
-    if (height > 0) {
-      document.documentElement.style.setProperty('--app-height', `${height}px`);
-    }
+  followAppHeight(viewport, (height) => {
+    document.documentElement.style.setProperty('--app-height', `${height}px`);
+  });
+  const askAgain = (): void => {
+    postEvent('web_app_request_viewport');
   };
-  publish(viewport.stableHeight());
-  viewport.stableHeight.sub(publish);
+  // Telegram's own `activated`: the client's word for this app being the one
+  // in front again, which is what restoring a minimised one does.
+  on('visibility_changed', ({ is_visible }) => {
+    if (is_visible) askAgain();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') askAgain();
+  });
 }
 
 /** Load the one catalog we need before the first paint, to avoid a flash. */
@@ -294,11 +390,30 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * A render error, with the component stack in place of the script's: in a
+ * minified build the components are what still says where it happened.
+ */
+function renderFailed(error: unknown, info: { componentStack?: string }): void {
+  console.error(error);
+  const { message, stack, ignore } = describeError(error);
+  if (ignore) return;
+  reportClientEvent({
+    kind: 'render',
+    message,
+    stack: info.componentStack ? scrub(info.componentStack, 2000) : stack,
+  });
+}
+
 function render(): void {
   const container = document.getElementById('root');
   if (!container) throw new Error('#root is missing from index.html');
 
-  createRoot(container).render(
+  createRoot(container, {
+    // React logs these itself unless told what to do with them; it still should.
+    onCaughtError: renderFailed,
+    onUncaughtError: renderFailed,
+  }).render(
     <StrictMode>
       <I18nProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
@@ -314,6 +429,10 @@ bootstrap().catch((error: unknown) => {
   // to catch it and no UI to report it in. Say something in plain text rather
   // than leaving a white screen.
   console.error('[boot] failed to start', error);
+  // Reported when the reporter got that far: nothing else would tell us.
+  const { message, stack } = describeError(error);
+  reportClientEvent({ kind: 'error', message, stack });
+  flushClientEvents();
 
   const container = document.getElementById('root');
   if (container) {

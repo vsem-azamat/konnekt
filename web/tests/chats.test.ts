@@ -5,12 +5,14 @@ import {
   byOwner,
   chipFor,
   directory,
+  type Entry,
   initials,
   ownUniversity,
   type PublicChat,
   placeOf,
   sanitize,
   search,
+  sectionAvatar,
   sectionHint,
 } from '../src/lib/chats.ts';
 
@@ -28,6 +30,7 @@ function chat(
     member_count: null,
     is_forum: false,
     external: false,
+    avatar: null,
     ...over,
   };
 }
@@ -312,4 +315,32 @@ test("a chat's place is its university and that university's city", () => {
   // Not yet in the taxonomy, or no university at all: nothing rather than a code.
   assert.equal(placeOf(chat('MUNI', 'MUNI', { institution: 'muni' }), taxonomy), null);
   assert.equal(placeOf(chat('Strahov', null), taxonomy), null);
+});
+
+test("a chat's photo is the address supervisor gave, and only an address of ours", () => {
+  const base = { title: 'ČVUT FIT', link: 'https://t.me/cvut_fit', group: null };
+  const [own, absolute, traversal, missing, wrongType] = sanitize([
+    { ...base, avatar: '/api/public/avatars/AQAD-x_1' },
+    // A page must not be handed somebody else's image host, whatever the server says.
+    { ...base, avatar: 'https://example.com/a.jpg' },
+    { ...base, avatar: '/api/public/avatars/../../console' },
+    base,
+    { ...base, avatar: 42 },
+  ]);
+  assert.equal(own?.avatar, '/api/public/avatars/AQAD-x_1');
+  assert.equal(absolute?.avatar, null);
+  assert.equal(traversal?.avatar, null);
+  assert.equal(missing?.avatar, null);
+  assert.equal(wrongType?.avatar, null);
+});
+
+test('a section shows the photo of its own chat, and none when that has no photo', () => {
+  const section = (chats: PublicChat[]) =>
+    ({ kind: 'section', name: CVUT, chats }) as Extract<Entry, { kind: 'section' }>;
+  const own = chat(CVUT, CVUT, { avatar: '/api/public/avatars/own' });
+  const fit = chat('ČVUT FIT', CVUT, { avatar: '/api/public/avatars/fit' });
+  assert.equal(sectionAvatar(section([fit, own])), '/api/public/avatars/own');
+  // A faculty's photo says nothing about the university: the letters stay.
+  assert.equal(sectionAvatar(section([fit, chat(CVUT, CVUT)])), null);
+  assert.equal(sectionAvatar(section([fit])), null);
 });

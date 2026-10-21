@@ -6,8 +6,9 @@
  * without the client having to remember anything.
  */
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
+import { assetUrl } from '@/lib/api';
 import type { Avatar, Price } from '@/lib/types';
 
 import { CheckIcon, ChevronIcon, CloseIcon } from './icons';
@@ -181,20 +182,48 @@ export function Letters({ text }: { text: string }) {
 export function Tile({
   tone,
   large = false,
+  round = false,
+  photo = null,
   children,
 }: {
   tone: number;
   /** The head of a preview, where the tile stands for the whole chat. */
   large?: boolean;
+  /** A chat's tile: round, and carrying its photo when it has one. */
+  round?: boolean;
+  /** A picture's path from the server. The letters stay underneath it. */
+  photo?: string | null;
   children: ReactNode;
 }) {
+  const classes = [css.tile];
+  if (large) classes.push(css.tileLarge);
+  if (round) classes.push(css.tileRound);
+  if (photo) classes.push(css.tilePhoto);
   return (
-    <span
-      className={large ? `${css.tile} ${css.tileLarge}` : css.tile}
-      style={toneStyle(tone)}
-    >
+    <span className={classes.join(' ')} style={toneStyle(tone)}>
       {children}
+      {/* Keyed by address: a photo that changed gets a fresh try, not the
+          verdict of the one before it. */}
+      {photo ? <TilePhoto key={photo} src={photo} /> : null}
     </span>
+  );
+}
+
+/** The picture over a tile's letters; if it does not load, the letters stay. */
+function TilePhoto({ src }: { src: string }) {
+  const [shown, setShown] = useState(false);
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      className={shown ? `${css.tileImg} ${css.tileImgShown}` : css.tileImg}
+      src={assetUrl(src)}
+      // The name is next to it; a description would be read twice.
+      alt=""
+      decoding="async"
+      onLoad={() => setShown(true)}
+      onError={() => setFailed(true)}
+    />
   );
 }
 

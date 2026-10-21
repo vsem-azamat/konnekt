@@ -25,10 +25,11 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.chats.metadata import fetch_member_count, fetch_metadata
+from app.chats.avatars import sync_photo
+from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, ChatMemberSnapshot
+from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -76,6 +77,7 @@ async def snapshot_once(
 
     async with session_maker() as session:
         chats = (await session.execute(select(Chat))).scalars().all()
+        pictured = set((await session.execute(select(ChatAvatar.chat_id))).scalars())
         for index, chat in enumerate(chats):
             if index:
                 await asyncio.sleep(PAUSE_BETWEEN_CHATS_SECONDS)
@@ -84,18 +86,26 @@ async def snapshot_once(
                 session.add(ChatMemberSnapshot(chat_id=chat.id, member_count=members))
                 written += 1
 
-            if chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
+            # A chat with a photo and no picture is asked about at once rather
+            # than at its next daily turn: the rows that existed before pictures
+            # were kept, and one whose download failed, are all in that state.
+            unpictured = chat.photo_file_id is not None and chat.id not in pictured
+            if not unpictured and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
                 continue
 
-            metadata = await fetch_metadata(bot=bot, chat_id=chat.id)
+            metadata = await fetch_metadata(
+                bot=bot, chat_id=chat.id, username=username_of(chat.public_link) if chat.public_link else None
+            )
             if metadata is None:
                 continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
-            if metadata.photo_file_id and metadata.photo_file_id != chat.photo_file_id:
-                chat.photo_file_id = metadata.photo_file_id
+            outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
+            if outcome in {"fetched", "removed"}:
                 photo_refreshed += 1
-            chat.last_synced_at = now
+            if outcome != "failed":
+                # A picture that could not be fetched leaves the chat due, so the next tick tries again.
+                chat.last_synced_at = now
 
         await session.commit()
 
