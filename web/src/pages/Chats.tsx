@@ -1,15 +1,14 @@
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
-import { ChatRow } from '@/components/ChatRow';
+import { ChatRow, Members } from '@/components/ChatRow';
 import { SearchIcon } from '@/components/icons';
 import { TabBar } from '@/components/TabBar';
 import {
   Chevron,
-  Count,
   Empty,
   Label,
   Letters,
@@ -27,11 +26,13 @@ import { chatsQuery, institutionsQuery, meQuery } from '@/lib/api';
 import {
   cities,
   directory,
+  type Entry,
   initials,
   ownUniversity,
   search,
   sectionAvatar,
   sectionHint,
+  sectionMembers,
 } from '@/lib/chats';
 
 /**
@@ -139,10 +140,10 @@ export default function ChatsPage() {
                           </Tile>
                         }
                         title={entry.name}
-                        hint={sectionHint(entry)}
+                        hint={<SectionHint section={entry} />}
                         trailing={
                           <>
-                            <Count>{entry.chats.length}</Count>
+                            <Members count={sectionMembers(entry)} />
                             <Chevron />
                           </>
                         }
@@ -160,7 +161,7 @@ export default function ChatsPage() {
             {rest.length > 0 ? (
               <>
                 <Label>
-                  <Trans>Остальные</Trans>
+                  <Trans>Общие</Trans>
                 </Label>
                 <Rows>
                   {rest.map((chat, index) => (
@@ -174,5 +175,27 @@ export default function ChatsPage() {
       </Screen>
       <TabBar />
     </>
+  );
+}
+
+/** «ещё 6 чатов: Kajetánka, …»: «ещё» because the row's title is one of them. */
+function SectionHint({ section }: { section: Extract<Entry, { kind: 'section' }> }) {
+  const { count, names, more } = sectionHint(section);
+  return more ? (
+    <Plural
+      value={count}
+      one={`ещё # чат: ${names}`}
+      few={`ещё # чата: ${names}`}
+      many={`ещё # чатов: ${names}`}
+      other={`ещё # чата: ${names}`}
+    />
+  ) : (
+    <Plural
+      value={count}
+      one={`# чат: ${names}`}
+      few={`# чата: ${names}`}
+      many={`# чатов: ${names}`}
+      other={`# чата: ${names}`}
+    />
   );
 }

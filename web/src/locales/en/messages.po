@@ -394,6 +394,10 @@ msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 #~ msgstr "Change anything whenever you like. Empty fields simply are not shown."
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
+msgstr "{count, plural, one {# chat: {names}} other {# chats: {names}}}"
+
 #: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
 msgstr "What is happening in the chats and the catalog."
@@ -1260,9 +1264,12 @@ msgid "Этого аккаунта нет среди операторов кат
 msgstr "This account is not one of the catalog's operators."
 
 #: src/console/pages/Chats.tsx
-#: src/pages/Chats.tsx
 msgid "Остальные"
 msgstr "Other chats"
+
+#: src/components/ChatRow.tsx
+msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
+msgstr "{count, plural, one {member} other {members}}"
 
 #. placeholder {0}: date(touch.first_at)
 #. placeholder {1}: date(touch.last_at)
@@ -1851,6 +1858,10 @@ msgstr "City"
 msgid "{0, plural, one {# занятие через нас} few {# занятия через нас} many {# занятий через нас} other {# занятия через нас}}"
 msgstr "{0, plural, one {# lesson through us} other {# lessons through us}}"
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
+msgstr "{count, plural, one {# more chat: {names}} other {# more chats: {names}}}"
+
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
 msgstr "refresh it from Telegram"
@@ -2403,6 +2414,10 @@ msgstr "Remove"
 #: src/console/pages/Chat.tsx
 msgid "не задан"
 msgstr "not set"
+
+#: src/pages/Chats.tsx
+msgid "Общие"
+msgstr "General"
 
 #. placeholder {0}: alsoProps.named
 #: src/pages/Results.tsx
