@@ -15,8 +15,8 @@
  * on Android, the app stayed the height of the bottom bar after it was
  * expanded again: a heading and nothing under it. The sequence that reproduces
  * it is a stable height for the bar, then only moving heights on the way back
- * up. So the live height counts too, once it has held still for
- * {@link SETTLE_MS}.
+ * up. So the app ends at the live height once it has held still for
+ * {@link SETTLE_MS}, and a stable height only gets it there sooner.
  *
  * Zero is not an answer. The signals read 0 until the client has reported, and
  * a variable set to `0px` is *defined* — `var(--app-height, 100dvh)` would
@@ -45,7 +45,11 @@ export function followAppHeight(
   let settling: ReturnType<typeof setTimeout> | undefined;
   const settle = (height: number): void => {
     clearTimeout(settling);
-    settling = setTimeout(() => offer(height), SETTLE_MS);
+    // Telegram calls this height stable: nothing to wait for. Not left to the
+    // stable signal, which says nothing when the sheet springs back to the
+    // stable height it already had.
+    if (height === viewport.stableHeight()) offer(height);
+    else settling = setTimeout(() => offer(height), SETTLE_MS);
   };
 
   offer(viewport.stableHeight());

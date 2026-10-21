@@ -3,7 +3,7 @@ import { mock, test } from 'node:test';
 
 import { followAppHeight, SETTLE_MS } from '../src/lib/appHeight.ts';
 
-/** A number signal the way the SDK's viewport hands one out. */
+/** A number signal the way the SDK's viewport hands one out: silent when nothing changed. */
 function signal(initial: number) {
   let value = initial;
   const subscribers = new Set<(value: number) => void>();
@@ -14,6 +14,7 @@ function signal(initial: number) {
       return () => subscribers.delete(fn);
     },
     set(next: number) {
+      if (next === value) return;
       value = next;
       for (const fn of subscribers) fn(next);
     },
@@ -52,11 +53,26 @@ test('a drag does not move the app on every frame', (t) => {
     mock.timers.tick(SETTLE_MS / 4);
   }
   assert.deepEqual(published, []);
+  mock.timers.tick(SETTLE_MS);
+  assert.deepEqual(published, [740]);
 });
 
-// Azamat's bug: minimised on Android, the sheet settles at the bottom bar and
-// Telegram reports that as stable. Expanded again, it reported only moving
-// heights, so the app stayed the height of the bar: a heading and nothing.
+test('a height Telegram already had is published at once', (t) => {
+  t.after(() => mock.timers.reset());
+  assert.deepEqual(setup(800, 800).published, [800]);
+});
+
+// Dragged, held, let go: the sheet springs back to the stable height it had,
+// so the stable signal does not move and only the live one says so.
+test('a sheet that springs back is its full height again without waiting', (t) => {
+  t.after(() => mock.timers.reset());
+  const { viewport, published } = setup(800, 800);
+  viewport.height.set(600);
+  mock.timers.tick(SETTLE_MS);
+  viewport.height.set(800);
+  assert.equal(published.at(-1), 800);
+});
+
 test('expanded after minimising, the app takes the height it settled at', (t) => {
   t.after(() => mock.timers.reset());
   const { viewport, published } = setup(800, 800);
