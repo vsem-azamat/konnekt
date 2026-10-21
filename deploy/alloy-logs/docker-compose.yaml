@@ -1,0 +1,41 @@
+# The log shipper on the azamat VPS: ~/deploy/alloy-logs, started by hand.
+#
+# It is a host-level agent rather than a service of this stack: the deploy
+# workflow recreates the stack's containers, and a shipper recreated with them
+# would lose the tail of the very deploy that needed watching. The credentials
+# for the monitoring server are in `.env` beside it (0600, never in git):
+#   LOKI_PUSH_USER, LOKI_PUSH_PASSWORD
+name: alloy-logs
+
+services:
+  alloy:
+    image: grafana/alloy:v1.19.2
+    container_name: alloy-logs
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12346
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    # Host networking so the HTTP port above is loopback of the host and not
+    # of a container nobody can reach; nothing is published.
+    network_mode: host
+    env_file: .env
+    # Read-only mount of the socket still lets Alloy read every container's
+    # metadata on this host, which is why the config keeps one project only.
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    # The socket's group on the host (`stat -c %g /var/run/docker.sock`), set
+    # in `.env` as DOCKER_GID.
+    group_add:
+      - ${DOCKER_GID:?Set DOCKER_GID in .env to the docker socket's group id}
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+volumes:
+  alloy-data:

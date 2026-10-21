@@ -1,0 +1,93 @@
+// Ships this project's container logs to Loki on the monitoring server.
+//
+// Only the supervisor-telegram Compose project leaves this machine: the other
+// stacks on this host (khromberry, urf, ...) are not this project's to ship.
+// The lines are JSON, so `level` becomes a label and the request, update and
+// chat ids stay inside the line, where a query reads them.
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "supervisor_telegram" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "supervisor-telegram"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+
+  rule {
+    target_label = "machine"
+    replacement  = "azamat"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.supervisor_telegram.output
+  forward_to = [loki.process.json.receiver]
+}
+
+loki.process "json" {
+  // A fresh start must not backfill what Docker still holds.
+  stage.drop {
+    older_than          = "24h"
+    drop_counter_reason = "stale_docker_log"
+  }
+
+  // Lines that are not JSON (a startup banner, a library's last words) pass
+  // through without a level.
+  stage.json {
+    expressions = {
+      level = "level",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  forward_to = [loki.write.monitoring.receiver]
+}
+
+loki.write "monitoring" {
+  endpoint {
+    url = "https://loki-push.azamat.io/loki/api/v1/push"
+
+    basic_auth {
+      username = sys.env("LOKI_PUSH_USER")
+      password = sys.env("LOKI_PUSH_PASSWORD")
+    }
+  }
+}
