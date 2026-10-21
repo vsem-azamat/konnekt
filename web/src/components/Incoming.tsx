@@ -18,7 +18,16 @@ import {
 } from '@/components/Ui';
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
+import { requestName } from '@/lib/requestHeading';
 import type { FeedRequest } from '@/lib/types';
+
+/** Two lines until the card is opened. */
+const CLAMP = {
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+} as const;
 
 /**
  * What people are asking for, for someone who could answer.
@@ -118,8 +127,9 @@ function FeedCard({
     },
   });
 
-  const title =
-    [request.subject, request.institution].filter(Boolean).join(', ') || request.text;
+  // Without a subject or institution the text is the heading, and says
+  // itself once: printing it again as the body made every such card read twice.
+  const name = requestName(request);
   const amount = Number(price);
   const priceValid = !price.trim() || (Number.isFinite(amount) && amount >= 0);
   const ready = message.trim().length >= 3 && priceValid && !respond.isPending;
@@ -133,7 +143,9 @@ function FeedCard({
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <AvatarView avatar={request.author} size={34} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className={ui.cardName}>{title}</div>
+          <div className={ui.cardName} style={isOpen ? undefined : CLAMP}>
+            {name ?? request.text}
+          </div>
           <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
             {request.author_name}
             {request.deadline_on ? (
@@ -153,24 +165,19 @@ function FeedCard({
 
       {/* The words they typed, not our parse of them — collapsed to two
           lines until the card is opened. */}
-      <p
-        style={{
-          margin: '8px 0 0',
-          fontSize: 13,
-          lineHeight: 1.45,
-          color: 'var(--ink-soft)',
-          ...(isOpen
-            ? {}
-            : {
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }),
-        }}
-      >
-        {request.text}
-      </p>
+      {name ? (
+        <p
+          style={{
+            margin: '8px 0 0',
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: 'var(--ink-soft)',
+            ...(isOpen ? {} : CLAMP),
+          }}
+        >
+          {request.text}
+        </p>
+      ) : null}
 
       {request.reason ? (
         <Reason>
@@ -191,7 +198,10 @@ function FeedCard({
 
       {isOpen ? (
         <div style={{ marginTop: 12 }}>
-          <div className={ui.field} style={{ alignItems: 'flex-start' }}>
+          <div
+            className={`${ui.field} ${ui.fieldOnCard}`}
+            style={{ alignItems: 'flex-start' }}
+          >
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -202,7 +212,7 @@ function FeedCard({
             />
           </div>
 
-          <div className={ui.field} style={{ marginTop: 8 }}>
+          <div className={`${ui.field} ${ui.fieldOnCard}`} style={{ marginTop: 8 }}>
             <input
               value={price}
               onChange={(event) => setPrice(event.target.value)}
