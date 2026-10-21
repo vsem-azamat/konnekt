@@ -303,8 +303,17 @@ export function Chevron() {
   return <ChevronIcon size={17} className={css.chevron} />;
 }
 
-export function Badge({ children }: { children: ReactNode }) {
-  return <span className={css.badge}>{children}</span>;
+/**
+ * `inline` for a badge beside a name: the default overhangs the edge of the
+ * positioned row it sits in, and with no such ancestor it lands at the top of
+ * the screen.
+ */
+export function Badge({ children, inline }: { children: ReactNode; inline?: boolean }) {
+  return (
+    <span className={inline ? `${css.badge} ${css.badgeInline}` : css.badge}>
+      {children}
+    </span>
+  );
 }
 
 // ── rows ────────────────────────────────────────────────────────────────
