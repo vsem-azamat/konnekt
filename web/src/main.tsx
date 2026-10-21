@@ -12,6 +12,8 @@ import {
   isTMA,
   mainButton,
   miniApp,
+  on,
+  postEvent,
   swipeBehavior,
   themeParams,
   viewport,
@@ -26,6 +28,7 @@ import { isFinal } from '@/console/session';
 import { paintChrome } from '@/hooks/useTelegram';
 import { activateLocale, i18n, resolveLocale } from '@/i18n';
 import { ApiError, api, rawInitData, routeCatalogCalls } from '@/lib/api';
+import { followAppHeight } from '@/lib/appHeight';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -208,37 +211,34 @@ function initSdk(): void {
 }
 
 /**
- * Publish the height the app is allowed to occupy, as `--app-height`.
+ * Publish the height the app is allowed to occupy, as `--app-height`: the
+ * rules are in `lib/appHeight.ts`.
  *
- * Telegram's number rather than the webview's. On iOS and Android the SDK does
- * not trust `window.innerHeight` either — it asks the client and waits for
- * `viewport_changed` — so `100dvh`, which is that same untrusted number, can
- * be taller than what the person can actually see. An app sized to the webview
- * then puts its last rows below the visible edge with nothing able to scroll
- * to them, and `index.css` has deliberately left the document unable to.
+ * Subscribed without waiting for the mount: the signals exist before it, and
+ * this way a client that never answers `web_app_request_viewport` leaves the
+ * page on its `100dvh` fallback instead of on nothing at all.
  *
- * `stableHeight` and not `height`: the plain one follows the drag gesture and
- * would make everything pinned to the bottom jitter.
- *
- * Subscribed rather than read once, and subscribed without waiting for the
- * mount: the signal exists before it, and this way a client that never answers
- * `web_app_request_viewport` leaves the page on its `100dvh` fallback instead
- * of on nothing at all.
- *
- * Zero is not an answer, and skipping it is the whole reason this is not left
- * to `bindCssVars`. The signal reads 0 until the client has reported a stable
- * state, and a variable set to `0px` is *defined* — `var(--app-height, 100dvh)`
- * would resolve to zero rather than fall back, and the app would be one frame
- * of nothing.
+ * And asked again whenever the app comes back: active again after being
+ * minimised, or visible again after the phone was put away. A height is only
+ * as fresh as the client's last report, and a client that restores the sheet
+ * without sending one would otherwise leave the app at the height it had while
+ * it was away. See docs/invariants.md, «Mini App».
  */
 function bindAppHeight(): void {
-  const publish = (height: number): void => {
-    if (height > 0) {
-      document.documentElement.style.setProperty('--app-height', `${height}px`);
-    }
+  followAppHeight(viewport, (height) => {
+    document.documentElement.style.setProperty('--app-height', `${height}px`);
+  });
+  const askAgain = (): void => {
+    postEvent('web_app_request_viewport');
   };
-  publish(viewport.stableHeight());
-  viewport.stableHeight.sub(publish);
+  // Telegram's own `activated`: the client's word for this app being the one
+  // in front again, which is what restoring a minimised one does.
+  on('visibility_changed', ({ is_visible }) => {
+    if (is_visible) askAgain();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') askAgain();
+  });
 }
 
 /** Load the one catalog we need before the first paint, to avoid a flash. */
