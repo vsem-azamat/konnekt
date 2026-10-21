@@ -50,6 +50,8 @@ def _bot_with_photo(big: str, small: str, unique: str):
 
     async def _get_chat(chat_id):
         chat = MagicMock()
+        chat.id = -100
+        chat.type = "supergroup"
         chat.title = "A"
         chat.photo = MagicMock(big_file_id=big, small_file_id=small, small_file_unique_id=unique)
         return chat
@@ -288,6 +290,26 @@ class TestAvatars:
         await snapshot_once(session_maker=db_session_maker, bot=_bot(photo=None))
 
         assert await self._avatar(db_session_maker) is None
+
+    async def test_a_failed_download_is_tried_again_next_tick_not_tomorrow(self, db_session_maker) -> None:
+        chat = Chat(id=-100, title="A")
+        chat.photo_file_id = "big-0"
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=METADATA_STALENESS_HOURS + 1)
+        await _seed(db_session_maker, chat)
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+        bot.download = AsyncMock(side_effect=_refused())
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+        async with db_session_maker() as session:
+            session.add(ChatAvatar(chat_id=-100, unique_id="uniq-0", content=b"\xff\xd8\xff"))
+            await session.commit()
+        bot2 = _bot_with_photo("big-1", "small-1", "uniq-1")
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot2)
+
+        bot2.get_chat.assert_awaited()
+        avatar = await self._avatar(db_session_maker)
+        assert avatar is not None
+        assert avatar.unique_id == "uniq-1"
 
     async def test_a_download_that_fails_does_not_stop_the_tick(self, db_session_maker) -> None:
         await _seed(db_session_maker, Chat(id=-100, title="A"), Chat(id=-200, title="B"))

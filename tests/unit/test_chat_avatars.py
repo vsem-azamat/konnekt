@@ -10,9 +10,11 @@ broken picture instead of the letters it had.
 from __future__ import annotations
 
 import io
+import logging
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
+import aiohttp
 import pytest
 from aiogram.exceptions import TelegramBadRequest
 from app.chats.avatars import MAX_AVATAR_BYTES, sync_photo
@@ -140,3 +142,56 @@ class TestFailureKeepsWhatWeHad:
         bot.download.assert_not_awaited()
         assert avatar is None
         assert chat.photo_file_id == "big-1"
+
+
+class TestTheFileServerFailing:
+    """Telegram's file server is plain HTTP: its failures are aiohttp's, and their text carries the bot token in the URL."""
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            aiohttp.ClientResponseError(
+                request_info=MagicMock(), history=(), status=502, message="Bad Gateway", headers=None
+            ),
+            aiohttp.ClientConnectionError("cannot reach https://api.telegram.org/file/bot123456:SECRET-TOKEN/p.jpg"),
+            TimeoutError(),
+        ],
+        ids=["502", "connection", "timeout"],
+    )
+    async def test_it_is_a_failed_sync_not_an_exception(self, seeded, error, caplog) -> None:
+        bot = AsyncMock()
+        bot.download = AsyncMock(side_effect=error)
+
+        with caplog.at_level(logging.DEBUG):
+            outcome, _chat, avatar = await _run(seeded, bot, _meta())
+
+        assert outcome == "failed"
+        assert avatar is None
+        assert "SECRET-TOKEN" not in caplog.text
+
+    async def test_the_log_names_the_kind_of_failure_and_not_its_text(self, seeded, capsys) -> None:
+        bot = AsyncMock()
+        bot.download = AsyncMock(side_effect=aiohttp.ClientConnectionError("https://x/file/bot1:SECRET-TOKEN/p.jpg"))
+
+        await _run(seeded, bot, _meta())
+
+        out = capsys.readouterr()
+        assert "SECRET-TOKEN" not in out.out + out.err
+
+
+async def test_a_second_writer_for_the_same_chat_does_not_fail(seeded) -> None:
+    """The tick, the console's refresh and the photo handler can all insert the first picture at once."""
+    async with seeded() as first, seeded() as second:
+        a = await first.get(Chat, CHAT)
+        b = await second.get(Chat, CHAT)
+        assert a is not None
+        assert b is not None
+        await sync_photo(session=first, bot=_bot(), chat=a, metadata=_meta())
+        await first.commit()
+        await sync_photo(session=second, bot=_bot(JPEG + b"2"), chat=b, metadata=_meta(unique="uniq-2"))
+        await second.commit()
+
+    async with seeded() as session:
+        avatar = await session.get(ChatAvatar, CHAT)
+    assert avatar is not None
+    assert avatar.unique_id == "uniq-2"

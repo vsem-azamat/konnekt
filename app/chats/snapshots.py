@@ -100,9 +100,12 @@ async def snapshot_once(
                 continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
-            if await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata) in {"fetched", "removed"}:
+            outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
+            if outcome in {"fetched", "removed"}:
                 photo_refreshed += 1
-            chat.last_synced_at = now
+            if outcome != "failed":
+                # A picture that could not be fetched leaves the chat due, so the next tick tries again.
+                chat.last_synced_at = now
 
         await session.commit()
 

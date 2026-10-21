@@ -102,6 +102,11 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
                 "get_chat_by_username_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
             )
             return None
+        # A name can be dropped and taken by somebody else; what it resolves to
+        # now is only this chat if it is the same id and still a group.
+        if chat.id != chat_id or chat.type not in ("group", "supergroup"):
+            logger.warning("get_chat_by_username_other_chat", chat_id=chat_id, found_type=chat.type)
+            return None
 
     photo = getattr(chat, "photo", None)
     return ChatMetadata(

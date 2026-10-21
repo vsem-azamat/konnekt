@@ -335,6 +335,8 @@ async def refresh_chat_from_telegram(
     chat.last_synced_at = utc_now()
     await session.commit()
     await session.refresh(chat)
+    # The public catalog remembers its answer for a minute, and it carries the picture's address.
+    public_answers.forget()
 
     member_count = await fetch_member_count(bot=bot, chat_id=chat.id)
     if member_count is None:

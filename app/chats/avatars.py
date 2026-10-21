@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+import aiohttp
 from aiogram.exceptions import TelegramAPIError
 
 from app.chats.metadata import ask
@@ -21,6 +22,7 @@ from app.core.logging import get_logger
 from app.core.metrics import AVATAR_SYNCS
 from app.core.time import utc_now
 from app.db.models import ChatAvatar
+from app.db.upsert import insert_for
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -45,6 +47,15 @@ async def _download(bot: Bot, file_id: str) -> bytes | None:
         buffer = await ask(lambda: bot.download(file_id))
     except TelegramAPIError as err:
         logger.warning("avatar_download_failed", error=str(err), error_type=type(err).__name__)
+        return None
+    except (aiohttp.ClientError, TimeoutError) as err:
+        # The file server is plain HTTP, and the text of its errors is the URL,
+        # which has the bot token in it: the kind of failure is all that is logged.
+        logger.warning(
+            "avatar_download_failed",
+            error_type=type(err).__name__,
+            status=getattr(err, "status", None),
+        )
         return None
     if buffer is None:
         return None
@@ -90,11 +101,21 @@ async def _sync(*, session: AsyncSession, bot: Bot, chat: Chat, metadata: ChatMe
     data = await _download(bot, metadata.avatar_file_id)
     if data is None:
         return "failed"
-    if stored is None:
-        session.add(ChatAvatar(chat_id=chat.id, unique_id=metadata.avatar_unique_id, content=data))
-    else:
-        stored.unique_id = metadata.avatar_unique_id
-        stored.content = data
-        stored.content_type = "image/jpeg"
-        stored.fetched_at = utc_now()
+    # An upsert, because the hourly tick, the console's refresh and the photo
+    # handler can each be putting a chat's first picture in at once.
+    insert = insert_for(session, ChatAvatar.__table__).values(
+        chat_id=chat.id,
+        unique_id=metadata.avatar_unique_id,
+        content=data,
+        content_type="image/jpeg",
+        fetched_at=utc_now(),
+    )
+    await session.execute(
+        insert.on_conflict_do_update(
+            index_elements=["chat_id"],
+            set_={name: insert.excluded[name] for name in ("unique_id", "content", "content_type", "fetched_at")},
+        )
+    )
+    if stored is not None:
+        session.expire(stored)
     return "fetched"
