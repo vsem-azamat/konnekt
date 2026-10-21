@@ -132,3 +132,49 @@ def test_the_scrape_port_cannot_be_moved_by_an_environment_variable(monkeypatch:
     monkeypatch.setenv("OBSERVABILITY_METRICS_PORT", "9999")
 
     assert ObservabilitySettings().metrics_port == 8789
+
+
+def test_failure_counters_exist_before_the_first_failure() -> None:
+    """`increase()` counts nothing for a series whose first sample is already 1, so a rare
+    failure's first report would never reach an alert. Every series is there from the start.
+
+    A fresh interpreter: in this process earlier tests have already incremented some series.
+    """
+    import subprocess
+    import sys
+    import textwrap
+
+    script = textwrap.dedent(
+        """
+        from typing import get_args
+
+        from app.captcha import metrics as _captcha  # noqa: F401
+        from app.db.models import JoinCaptcha
+        from app.webapi.routes import client_errors
+        from prometheus_client import REGISTRY
+
+        def has(name, **labels):
+            return REGISTRY.get_sample_value(name, labels) is not None
+
+        statuses = {v for k, v in vars(JoinCaptcha).items() if k.startswith("STATUS_")} - {JoinCaptcha.STATUS_PENDING}
+        missing = [("captcha", e) for e in statuses | {"sent", "retry"} if not has("captcha_events_total", event=e)]
+        missing += [
+            ("client", k, p)
+            for k in get_args(client_errors.Kind)
+            for p in (*client_errors.PLATFORMS, "other")
+            if not has("mini_app_client_errors_total", kind=k, platform=p)
+        ]
+        missing += [
+            ("dropped", r)
+            for r in ("invalid", "rate_limited", "overall_limit")
+            if not has("mini_app_client_errors_dropped_total", reason=r)
+        ]
+        print(missing)
+        raise SystemExit(1 if missing else 0)
+        """
+    )
+    done = subprocess.run(  # noqa: S603  (our own interpreter, our own script)
+        [sys.executable, "-c", script], capture_output=True, text=True, check=False
+    )
+
+    assert done.returncode == 0, done.stdout + done.stderr

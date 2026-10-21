@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, get_args
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
@@ -55,6 +55,15 @@ _PATH = r"^/[A-Za-z0-9/_:.{}*\-]{0,119}$"
 _BUILD_WORD = r"^[A-Za-z0-9._+-]{1,40}$"
 
 Kind = Literal["error", "unhandled_rejection", "render", "api", "empty", "layout"]
+
+
+# Every series starts at 0: one that first appears at 1 is invisible to
+# `increase()`, so the first report of a kind would never reach an alert.
+for _kind in get_args(Kind):
+    for _platform in (*PLATFORMS, "other"):
+        metrics.CLIENT_ERRORS.labels(kind=_kind, platform=_platform)
+for _reason in ("invalid", "rate_limited", "overall_limit"):
+    metrics.CLIENT_ERRORS_DROPPED.labels(reason=_reason)
 
 
 class ClientEvent(BaseModel):
