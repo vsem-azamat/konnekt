@@ -7,26 +7,52 @@
 		# sending one first.
 		trusted_proxies_strict
 	}
-}
-
-# What the access line leaves out. A sign-in callback's `code` and `state` ride
-# in the query string, and the browser sends cookies and an Authorization header
-# with initData: none of it belongs in a log, so the line keeps the path and
-# drops the query, every header, and the TLS details.
-(access_log) {
+	# Caddy's own log, errors included. Spelled out: a snippet cannot be
+	# imported here, the global block being first; keep it the same as below.
 	log {
-		output stdout
+		output stderr
 		format filter {
 			wrap json
 			fields {
-				request>uri regexp \?.* ""
+				request>uri delete
 				request>headers delete
 				request>tls delete
 				request>remote_ip delete
 				request>remote_port delete
+				request>client_ip delete
 				resp_headers delete
 			}
 		}
+	}
+}
+
+# What a log line leaves out, in the access log and in Caddy's own error log
+# alike: a proxy error carries the request it failed on, and a sign-in
+# callback's `code` and `state` ride in its query string, a path names the
+# person it is about (/api/audience/<id>), and the browser sends cookies and an
+# Authorization header with initData. None of it belongs in a log. The line
+# keeps what happened to the request: its method, host, status, time, an id,
+# and which backend (`handler`) it went to; the backend's own line, found by the
+# id, has the route.
+(without_the_request) {
+	format filter {
+		wrap json
+		fields {
+			request>uri delete
+			request>headers delete
+			request>tls delete
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			resp_headers delete
+		}
+	}
+}
+
+(access_log) {
+	log {
+		output stdout
+		import without_the_request
 	}
 	# One id per request, here, so the line below and the backends' lines agree.
 	log_append request_id {http.request.uuid}
@@ -62,6 +88,7 @@
 	# they are a guess at its token, so they never get through here.
 	@catalog path /api/v1/* /healthz
 	handle @catalog {
+		log_append handler catalog
 		reverse_proxy catalog-api:8000 {
 			header_up X-Request-Id {http.request.uuid}
 			header_up -Cookie
@@ -90,6 +117,7 @@
 	}
 
 	handle /api/* {
+		log_append handler webapi
 		reverse_proxy webapi:8787 {
 			header_up X-Request-Id {http.request.uuid}
 			# One address, the one this proxy believes, rather than the chain.
@@ -166,6 +194,7 @@ http://{$ADMIN_HOST:admin.invalid} {
 	}
 
 	handle /api/* {
+		log_append handler webapi
 		reverse_proxy webapi:8787 {
 			header_up X-Request-Id {http.request.uuid}
 			header_up X-Forwarded-For {client_ip}

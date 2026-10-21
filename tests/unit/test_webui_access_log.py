@@ -71,41 +71,47 @@ def _get(base: str, path: str, **headers: str) -> int:
         return err.code
 
 
-def _access_lines(container: str) -> list[dict]:
+def _log_lines(container: str) -> list[dict]:
+    """Every JSON line Caddy wrote, access and error alike."""
     time.sleep(0.5)
     out = subprocess.run(["docker", "logs", container], capture_output=True, text=True, check=True)
     lines = []
     for text in (out.stdout + out.stderr).splitlines():
         try:
-            parsed = json.loads(text)
+            lines.append(json.loads(text))
         except ValueError:
             continue
-        if str(parsed.get("logger", "")).startswith("http.log.access"):
-            lines.append(parsed)
     return lines
 
 
-def test_a_request_leaves_a_line_without_the_query_or_the_credentials(caddy) -> None:
+def _access_lines(container: str) -> list[dict]:
+    return [line for line in _log_lines(container) if str(line.get("logger", "")).startswith("http.log.access")]
+
+
+def test_a_request_leaves_a_line_with_no_path_query_or_credentials_in_any_log(caddy) -> None:
     container, base = caddy
 
     status = _get(
         base,
-        "/api/chats?code=SECRETCODE&state=SECRETSTATE",
+        "/api/audience/987654321?code=SECRETCODE&state=SECRETSTATE",
         Authorization="tma SECRETINITDATA",
         Cookie="session=SECRETCOOKIE",
     )
 
-    ours = [line for line in _access_lines(container) if line["request"]["uri"].startswith("/api/chats")]
+    lines = _log_lines(container)
+    # The backend is not there: the proxy's error log is written too, and it
+    # used to carry the request's uri and headers.
+    assert any(str(line.get("logger", "")).startswith("http.log.error") for line in lines)
+    ours = [line for line in _access_lines(container) if line.get("handler") == "webapi"]
     assert len(ours) == 1
     line = ours[0]
-    assert line["status"] == status == 502  # webapi is not there, which is what the line is for
-    assert line["request"]["uri"] == "/api/chats"
+    assert line["status"] == status == 502
     assert line["request"]["method"] == "GET"
     assert "duration" in line
     assert "request_id" in line
-    everything = json.dumps(line)
-    for secret in ("SECRETCODE", "SECRETSTATE", "SECRETINITDATA", "SECRETCOOKIE"):
-        assert secret not in everything
+    everything = json.dumps(lines)
+    for secret in ("SECRETCODE", "SECRETSTATE", "SECRETINITDATA", "SECRETCOOKIE", "987654321", "/api/audience"):
+        assert secret not in everything, secret
 
 
 def test_the_health_check_and_static_assets_are_not_logged(caddy) -> None:
@@ -114,9 +120,10 @@ def test_the_health_check_and_static_assets_are_not_logged(caddy) -> None:
     _get(base, "/healthz")
     _get(base, "/assets/missing.js")
 
-    uris = [line["request"]["uri"] for line in _access_lines(container)]
-    assert "/healthz" not in uris
-    assert "/assets/missing.js" not in uris
+    handlers = {line.get("handler") for line in _access_lines(container)}
+    assert "catalog" not in handlers  # /healthz is the catalog's
+    assert json.dumps(_access_lines(container)).count("missing.js") == 0
+    assert all("assets" not in json.dumps(line) for line in _access_lines(container))
 
 
 def test_the_backends_are_told_the_id_the_line_carries() -> None:
