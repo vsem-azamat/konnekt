@@ -64,7 +64,8 @@ async def test_a_request_is_logged_once_with_its_route_status_and_time() -> None
 
     [line] = [log for log in logs if log["event"] == "http_request"]
     assert line["method"] == "GET"
-    assert line["path"] == "/api/_item/7"  # never the query string
+    assert "path" not in line  # the path carries the ids of the people it is about
+    assert "/api/_item/7" not in str(line)
     assert line["route"] == "/api/_item/{item}"
     assert line["status"] == response.status_code
     assert line["duration_ms"] >= 0
@@ -116,7 +117,9 @@ async def test_a_failing_route_is_logged_with_its_traceback_and_a_500() -> None:
     assert line["status"] == 500
     assert line["log_level"] == "error"
     assert line["exc_info"]
-    assert line["path"] == "/api/_boom"
+    assert line["route"] == "/api/_boom"
+    # Answered by the server-error middleware, which RequestLog sits outside of.
+    assert response.headers["x-request-id"] == line["request_id"]
 
 
 async def test_the_route_is_the_template_with_the_prefixes_of_its_routers() -> None:
@@ -127,3 +130,40 @@ async def test_the_route_is_the_template_with_the_prefixes_of_its_routers() -> N
     found, scanner = [log for log in logs if log["event"] == "http_request"]
     assert found["route"] == "/api/_nest/{a}/mid/{b}"
     assert scanner["route"] is None
+
+
+async def test_the_server_error_is_reported_once_and_not_handed_on_to_the_server() -> None:
+    """Raised again, uvicorn would log the same failure a second time: a second alert."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
+        response = await client.get("/api/_boom")  # raise_app_exceptions is on: it would raise here
+
+    assert response.status_code == 500
+
+
+async def test_the_route_does_not_mistake_a_parameter_for_a_literal_of_the_same_name() -> None:
+    with _capture() as logs:
+        await _get("/api/_nest/api/mid/api")
+
+    [line] = [log for log in logs if log["event"] == "http_request"]
+    assert line["route"] == "/api/_nest/{a}/mid/{b}"
+
+
+@pytest.mark.parametrize("status", [502, 503])
+async def test_an_answer_the_api_gives_on_purpose_is_a_warning_not_an_alert(status: int) -> None:
+    from fastapi import HTTPException
+
+    router = APIRouter()
+
+    @router.get(f"/api/_{status}")
+    async def refuse() -> None:
+        raise HTTPException(status_code=status)
+
+    app.include_router(router)
+    try:
+        with _capture() as logs:
+            await _get(f"/api/_{status}")
+    finally:
+        app.router.routes[:] = [r for r in app.router.routes if getattr(r, "path", "") != f"/api/_{status}"]
+
+    [line] = [log for log in logs if log["event"] == "http_request"]
+    assert line["log_level"] == "warning"

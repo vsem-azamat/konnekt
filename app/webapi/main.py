@@ -109,8 +109,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # Outermost, so a refusal by anything inside is still a line with its id.
-    app.add_middleware(RequestLog)
+    # Outside the server-error middleware that FastAPI puts around everything,
+    # which `add_middleware` cannot reach: a 500 then gets its id and one line.
+    build = app.build_middleware_stack
+    app.build_middleware_stack = lambda: RequestLog(build())  # ty: ignore[invalid-assignment]
 
     app.include_router(auth.router, prefix="/api")
     app.include_router(auth_telegram.router, prefix="/api")

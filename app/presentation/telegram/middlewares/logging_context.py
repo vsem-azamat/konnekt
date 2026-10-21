@@ -9,6 +9,8 @@ their own line.
 
 from __future__ import annotations
 
+import contextlib
+import logging
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 
@@ -25,14 +27,41 @@ if TYPE_CHECKING:
 
 logger = get_logger("bot.update")
 
+# Set on an exception this module has logged, so that aiogram's own report of
+# the same exception can be told apart from one of a dispatcher without it.
+REPORTED = "_konnekt_reported"
+
+
+class AlreadyReported(logging.Filter):
+    """Drop aiogram's report of an update that failed, if `update_failed` has it.
+
+    That line has the traceback and none of the context, and would be a second
+    alert for the same failure. A dispatcher without `LoggingContextMiddleware`
+    (the ads desk, the retired bots) never marks its exceptions, so aiogram's
+    report of those stays.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        error = record.exc_info[1] if record.exc_info else None
+        return not (
+            str(record.msg).startswith("Cause exception while process update") and getattr(error, REPORTED, False)
+        )
+
+
 # The handler is only known once a filter has matched, which is inside the
 # outer middleware that has to report the failure: they share a cell.
 _handler: ContextVar[list[str] | None] = ContextVar("update_handler", default=None)
 
 
 def _chat_id(update: Update) -> int | None:
+    """The group or channel the update is about; never a private chat.
+
+    There the chat's id is the person's, and the user stays out of the logs.
+    """
     inner: Any = update.event
     chat = getattr(inner, "chat", None) or getattr(getattr(inner, "message", None), "chat", None)
+    if chat is None or getattr(chat, "type", "private") == "private":
+        return None
     return getattr(chat, "id", None)
 
 
@@ -72,6 +101,8 @@ class LoggingContextMiddleware(BaseMiddleware):
                         error_type=type(err).__name__,
                         exc_info=True,
                     )
+                    with contextlib.suppress(AttributeError):
+                        setattr(err, REPORTED, True)
                     raise
         finally:
             _handler.reset(token)

@@ -29,6 +29,11 @@ def _keep_event_name(renderer: Processor) -> Processor:
 
     def render(logger: Any, method_name: str, event_dict: EventDict) -> Any:
         event = str(event_dict.pop(_EVENT_NAME, "?"))
+        # The class is the difference between two bugs: an alert is throttled
+        # by this name, and a different failure must not hide behind the last.
+        kind = event_dict.get("error_type")
+        if isinstance(kind, str):
+            event = f"{event} ({kind})"
         return (renderer(logger, method_name, event_dict),), {"extra": {"structlog_event": event}}
 
     return render
@@ -41,21 +46,6 @@ def _remember_event_name(_logger: Any, _method_name: str, event_dict: EventDict)
     """The event as written, before positional arguments are formatted into it."""
     event_dict[_EVENT_NAME] = event_dict.get("event", "?")
     return event_dict
-
-
-class QuietHealthChecks(logging.Filter):
-    """Drop the container healthcheck's requests from uvicorn's access log.
-
-    It asks every 30 s for as long as the container runs, and the lines it
-    leaves push real requests out of the rotated log within days.
-    """
-
-    PATHS = ("/api/health",)
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        args = record.args if isinstance(record.args, tuple) else ()
-        path = str(args[2]).split("?", 1)[0] if len(args) > 2 else ""
-        return path not in self.PATHS
 
 
 class ForeignRecordFormatter(logging.Formatter):
@@ -183,8 +173,6 @@ def setup_logging() -> None:
         # No colour codes when a log file shares the rendered line.
         colors = not settings.logging.file_path
         processors.append(_keep_event_name(structlog.dev.ConsoleRenderer(colors=colors)))
-
-    logging.getLogger("uvicorn.access").addFilter(QuietHealthChecks())
 
     # Configure structlog
     structlog.configure(
