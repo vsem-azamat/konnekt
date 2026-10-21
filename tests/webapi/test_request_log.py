@@ -26,9 +26,18 @@ def probe_routes():
         raise RuntimeError("boom")
 
     app.include_router(router)
+    prefixed = APIRouter(prefix="/api/_nest")
+
+    @prefixed.get("/{a}/mid/{b}")
+    async def nested(a: str, b: str) -> dict[str, str]:
+        return {"a": a, "b": b}
+
+    app.include_router(prefixed)
     yield
     app.router.routes[:] = [
-        r for r in app.router.routes if not getattr(r, "path", "").startswith(("/api/_item", "/api/_boom"))
+        r
+        for r in app.router.routes
+        if not getattr(r, "path", "").startswith(("/api/_item", "/api/_boom", "/api/_nest"))
     ]
 
 
@@ -108,3 +117,13 @@ async def test_a_failing_route_is_logged_with_its_traceback_and_a_500() -> None:
     assert line["log_level"] == "error"
     assert line["exc_info"]
     assert line["path"] == "/api/_boom"
+
+
+async def test_the_route_is_the_template_with_the_prefixes_of_its_routers() -> None:
+    with _capture() as logs:
+        await _get("/api/_nest/7/mid/9")
+        await _get("/wp-login.php")
+
+    found, scanner = [log for log in logs if log["event"] == "http_request"]
+    assert found["route"] == "/api/_nest/{a}/mid/{b}"
+    assert scanner["route"] is None
