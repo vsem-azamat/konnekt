@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import time
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +20,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import Update
 
 from app.core.logging import get_logger
+from app.presentation.telegram import metrics as bot_metrics
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -88,11 +90,13 @@ class LoggingContextMiddleware(BaseMiddleware):
             context["chat_id"] = chat_id
         named: list[str] = []
         token = _handler.set(named)
+        started = time.perf_counter()
         try:
             with structlog.contextvars.bound_contextvars(**context):
                 try:
-                    return await handler(event, data)
+                    result = await handler(event, data)
                 except Exception as err:
+                    bot_metrics.UPDATES.labels(update_type=event.event_type, outcome="failed").inc()
                     # Here, where the context still holds: by the time aiogram's
                     # own error path logs it, the update is already forgotten.
                     logger.error(
@@ -104,7 +108,10 @@ class LoggingContextMiddleware(BaseMiddleware):
                     with contextlib.suppress(AttributeError):
                         setattr(err, REPORTED, True)
                     raise
+                bot_metrics.UPDATES.labels(update_type=event.event_type, outcome="ok").inc()
+                return result
         finally:
+            bot_metrics.UPDATE_DURATION.labels(update_type=event.event_type).observe(time.perf_counter() - started)
             _handler.reset(token)
 
 

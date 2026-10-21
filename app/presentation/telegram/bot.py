@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 from app.db.session import close_db, get_session_maker
 from app.presentation.telegram import heartbeat
 from app.presentation.telegram.handlers import router
+from app.presentation.telegram.metrics import ApiCallMetrics, run_metrics_server, run_queue_depths
 from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
     AudienceMiddleware,
@@ -120,6 +121,7 @@ def _setup_main_bot(session_maker: async_sessionmaker[AsyncSession]) -> tuple[Bo
     """Create and configure the moderation bot — the only bot in this process."""
     bot = Bot(token=settings.telegram.token, default=DefaultBotProperties(parse_mode="HTML"))
     bot.session.middleware(heartbeat.PollingHeartbeat())
+    bot.session.middleware(ApiCallMetrics())
     return bot, build_dispatcher(bot, session_maker)
 
 
@@ -274,6 +276,11 @@ async def _serve() -> None:
 
     # A stalled poller ends the process, so the container restarts it.
     tasks.append(heartbeat.watch())
+
+    # What Prometheus reads: the scrape (returns at once without a secret) and
+    # the queue gauges it cannot compute at scrape time.
+    tasks.append(_contained(run_metrics_server(), name="metrics"))
+    tasks.append(run_queue_depths(session_maker))
 
     polling = _run_polling(
         main_bot,

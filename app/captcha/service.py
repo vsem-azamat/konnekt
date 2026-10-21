@@ -21,6 +21,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.captcha import challenge, waves
+from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -84,6 +85,7 @@ async def admit(
 
     if row.status == JoinCaptcha.STATUS_HELD:
         assert wave is not None
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_HELD).inc()
         if wave.decision == JoinWave.DECISION_DECLINE:
             await _decline_on_sight(bot, db, row, now)
         return
@@ -102,6 +104,7 @@ async def admit(
         row.status = JoinCaptcha.STATUS_UNDELIVERED
         row.resolved_at = now
         await db.commit()
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_UNDELIVERED).inc()
         # Reported by the sweep, summed up per chat: a second captcha bot in
         # the chat makes every request land here.
         logger.warning(
@@ -110,6 +113,7 @@ async def admit(
         return
     row.message_id = sent.message_id
     await db.commit()
+    CAPTCHA_EVENTS.labels(event="sent").inc()
     logger.info("captcha_sent", chat_id=chat.id, user_id=user_id, captcha_id=row.id)
 
 
@@ -162,6 +166,7 @@ async def _decline_on_sight(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: d
         row.status = JoinCaptcha.STATUS_DECLINED
     row.resolved_at = now
     await db.commit()
+    CAPTCHA_EVENTS.labels(event=row.status).inc()
 
 
 async def answer(
@@ -213,6 +218,8 @@ async def answer(
         return Outcome.PASSED
 
     row.attempts_left -= 1
+    if row.attempts_left > 0:
+        CAPTCHA_EVENTS.labels(event="retry").inc()
     if row.attempts_left <= 0:
         try:
             await with_retry(lambda: bot.decline_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
@@ -387,6 +394,7 @@ async def _close(
     row.status = status
     row.resolved_at = now
     await db.commit()
+    CAPTCHA_EVENTS.labels(event=status).inc()
     await _edit(bot, row, text, markup)
 
 

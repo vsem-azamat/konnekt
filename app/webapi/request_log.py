@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from app.core import metrics
 from app.core.logging import get_logger
 
 if TYPE_CHECKING:
@@ -22,8 +23,8 @@ if TYPE_CHECKING:
 
 logger = get_logger("webapi.request")
 
-# The container check, every 30 s for as long as it runs.
-QUIET_PATHS = frozenset({"/api/health"})
+# The container check every 30 s and Prometheus's scrape: neither is traffic.
+QUIET_PATHS = frozenset({"/api/health", "/api/internal/metrics"})
 
 # What a caller may supply: long enough to be unique, short and plain enough to
 # be safe in a log line and a header.
@@ -88,6 +89,9 @@ class RequestLog:
                 answered = True
             await send(message)
 
+        quiet = scope["path"] in QUIET_PATHS
+        if not quiet:
+            metrics.HTTP_IN_PROGRESS.inc()
         with structlog.contextvars.bound_contextvars(request_id=request_id):
             try:
                 await self.app(scope, receive, send_with_id)
@@ -99,19 +103,25 @@ class RequestLog:
                 # server to report; the report is this line.
             else:
                 self._log(scope, status, started)
+            finally:
+                if not quiet:
+                    metrics.HTTP_IN_PROGRESS.dec()
 
     @staticmethod
     def _log(scope: Scope, status: int, started: float, *, failed: bool = False, error_type: str | None = None) -> None:
         path = scope["path"]
         if path in QUIET_PATHS and not failed and status < 400:
             return
+        route = route_template(scope)
+        seconds = time.perf_counter() - started
+        metrics.observe_request(scope["method"], route, status, seconds)
         # The route, never the path: a path carries the ids of the people it
         # is about (/api/audience/<id>), and the logs keep those out.
         fields = {
             "method": scope["method"],
-            "route": route_template(scope),
+            "route": route,
             "status": status,
-            "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+            "duration_ms": round(seconds * 1000, 1),
         }
         if failed:
             # The class is in the alert's name, so a second, different bug
