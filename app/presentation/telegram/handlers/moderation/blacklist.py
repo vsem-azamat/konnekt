@@ -123,7 +123,7 @@ async def process_blacklist_confirm(
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception as err:
-        logger.warning("message_delete_failed", error=str(err), message_id=message_id, chat_id=chat_id)
+        logger.warning("message_delete_failed", error=str(err), exc_info=True, message_id=message_id, chat_id=chat_id)
 
     try:
         if not callback.message or not isinstance(callback.message, types.Message):
@@ -153,7 +153,7 @@ async def process_blacklist_confirm(
     except Exception as err:
         if callback.message and isinstance(callback.message, types.Message):
             await callback.message.edit_text("Произошла ошибка. Попробуйте позже.")
-        logger.error("blacklist_add_failed", error=str(err), user_id=user_id, chat_id=chat_id)
+        logger.error("blacklist_add_failed", error=str(err), exc_info=True, user_id=user_id, chat_id=chat_id)
 
     await callback.answer()
 
@@ -261,7 +261,9 @@ async def unblock_user_callback(
         member = await bot.get_chat_member(callback.message.chat.id, user_id)
         user = member.user
         user_identifier = user.username or user.first_name or str(user.id)
-    except Exception:
+    except Exception as err:
+        # The unblock went through; only the name for the reply is missing.
+        logger.warning("unblock_member_lookup_failed", user_id=user_id, error_type=type(err).__name__)
         user_identifier = str(user_id)
 
     if callback.message and isinstance(callback.message, types.Message):

@@ -63,7 +63,7 @@ async def ban_user(message: types.Message, bot: Bot, db: AsyncSession, admin_rep
         await message.answer(f"Пользователь {other.get_user_mention(target)} забанен")
     except Exception as err:
         error_msg = await message.answer("Что-то пошло не так. Попробуйте позже.")
-        logger.error("ban_failed", error=str(err), user_id=target.id, chat_id=message.chat.id)
+        logger.error("ban_failed", error=str(err), exc_info=True, user_id=target.id, chat_id=message.chat.id)
         other.sleep_and_delete(error_msg, 10)
 
     await message.delete()
@@ -92,7 +92,7 @@ async def unban_user(message: types.Message, bot: Bot, db: AsyncSession) -> None
         await message.answer(f"Пользователь {other.get_user_mention(target)} разбанен")
     except Exception as err:
         error_msg = await message.answer("Что-то пошло не так. Попробуйте позже.")
-        logger.error("unban_failed", error=str(err), user_id=target.id, chat_id=message.chat.id)
+        logger.error("unban_failed", error=str(err), exc_info=True, user_id=target.id, chat_id=message.chat.id)
         other.sleep_and_delete(error_msg, 10)
 
     await message.delete()
@@ -117,7 +117,9 @@ async def _act_on_channel(
         await message.answer(f"Канал {title} {'забанен' if ban else 'разбанен'}")
     except Exception as err:
         error_msg = await message.answer("Что-то пошло не так. Попробуйте позже.")
-        logger.error("channel_ban_failed", error=str(err), channel_id=channel.id, chat_id=message.chat.id, ban=ban)
+        logger.error(
+            "channel_ban_failed", error=str(err), exc_info=True, channel_id=channel.id, chat_id=message.chat.id, ban=ban
+        )
         other.sleep_and_delete(error_msg, 10)
 
     await message.delete()

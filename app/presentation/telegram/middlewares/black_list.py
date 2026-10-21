@@ -83,11 +83,11 @@ class BlacklistMiddleware(BaseMiddleware):
             try:
                 await bot.ban_chat_member(event.chat.id, event.from_user.id)
             except Exception as e:
-                logger.error("ban_failed", user_id=event.from_user.id, error=str(e))
+                logger.error("ban_failed", user_id=event.from_user.id, error=str(e), exc_info=True)
             try:
                 await event.delete()
             except Exception as e:
-                logger.error("delete_failed", user_id=event.from_user.id, error=str(e))
+                logger.error("delete_failed", user_id=event.from_user.id, error=str(e), exc_info=True)
             return None  # Stop further handler processing for blacklisted user
 
         if isinstance(event, types.ChatMemberUpdated):
@@ -100,7 +100,9 @@ class BlacklistMiddleware(BaseMiddleware):
                 try:
                     await bot.ban_chat_member(event.chat.id, joining.id)
                 except Exception as e:
-                    logger.error("ban_on_join_failed", user_id=joining.id, chat_id=event.chat.id, error=str(e))
+                    logger.error(
+                        "ban_on_join_failed", user_id=joining.id, chat_id=event.chat.id, error=str(e), exc_info=True
+                    )
                 return None
 
         return await handler(event, data)

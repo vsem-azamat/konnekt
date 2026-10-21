@@ -85,6 +85,7 @@ async def mute_user(message: types.Message, bot: Bot, db: AsyncSession, admin_re
         logger.error(
             "mute_failed",
             error=str(err),
+            exc_info=True,
             user_id=target.id,
             chat_id=message.chat.id,
         )
@@ -118,6 +119,7 @@ async def unmute_user(message: types.Message, bot: Bot, db: AsyncSession) -> Non
         logger.error(
             "unmute_failed",
             error=str(err),
+            exc_info=True,
             user_id=target.id,
             chat_id=message.chat.id,
         )

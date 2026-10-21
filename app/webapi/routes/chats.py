@@ -381,10 +381,10 @@ async def add_external_chat(
     try:
         found = await bot.get_chat(f"@{username}")
     except (TelegramRetryAfter, TelegramNetworkError, TelegramServerError, ClientDecodeError) as err:
-        logger.warning("external_chat_lookup_failed", username=username, error=str(err))
+        logger.warning("external_chat_lookup_failed", username=username, error=str(err), error_type=type(err).__name__)
         raise HTTPException(status_code=503, detail="telegram_unavailable") from err
     except TelegramAPIError as err:
-        logger.info("external_chat_not_found", username=username, error=str(err))
+        logger.info("external_chat_not_found", username=username, error=str(err), error_type=type(err).__name__)
         raise HTTPException(status_code=422, detail="not_found") from err
     if found.type not in ("group", "supergroup"):
         raise HTTPException(status_code=422, detail="not_a_group")

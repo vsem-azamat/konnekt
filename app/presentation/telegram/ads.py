@@ -181,7 +181,7 @@ async def publish_profile(bot: Bot) -> None:
         try:
             await run()
         except Exception as e:
-            logger.warning("ads_profile_step_failed", step=step, error=str(e))
+            logger.warning("ads_profile_step_failed", step=step, error=str(e), exc_info=True)
 
 
 async def check_group(bot: Bot, group_id: int) -> None:
@@ -191,7 +191,7 @@ async def check_group(bot: Bot, group_id: int) -> None:
         member = await bot.get_chat_member(group_id, bot.id)
     except Exception as e:
         # Anything, as in `publish_profile`: this is a startup handler.
-        logger.warning("ads_group_unreachable", error=str(e))
+        logger.warning("ads_group_unreachable", error=str(e), exc_info=True)
         return
     if not chat.is_forum:
         logger.warning("ads_group_not_a_forum")
