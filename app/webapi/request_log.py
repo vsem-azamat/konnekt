@@ -30,6 +30,27 @@ QUIET_PATHS = frozenset({"/api/health"})
 _WELL_FORMED = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
+def route_template(scope: Scope) -> str | None:
+    """`/api/chats/{chat_id}` for `/api/chats/-100`; `None` if no route took it.
+
+    FastAPI keeps a route's own path without the prefixes of the routers it was
+    included through, so the template is rebuilt from the request's path and
+    the parameters it matched. A path no route took has none, which keeps a
+    scanner's guesses from becoming values to search on.
+    """
+    if scope.get("route") is None:
+        return None
+    segments = scope["path"].split("/")
+    at = 0
+    for name, value in scope.get("path_params", {}).items():
+        for i in range(at, len(segments)):
+            if segments[i] == str(value):
+                segments[i] = "{" + name + "}"
+                at = i + 1
+                break
+    return "/".join(segments)
+
+
 class RequestLog:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -63,7 +84,7 @@ class RequestLog:
         path = scope["path"]
         if path in QUIET_PATHS and not failed and status < 400:
             return
-        route = getattr(scope.get("route"), "path", None)
+        route = route_template(scope)
         fields = {
             "method": scope["method"],
             "path": path,
