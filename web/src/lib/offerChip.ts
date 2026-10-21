@@ -10,7 +10,7 @@ interface OfferChipSource {
  * takes the subject's place so the chip still says what is offered.
  */
 export function offerChipText(offer: OfferChipSource): string {
-  return [offer.subject ?? offer.service_type_name, offer.institution]
+  return [offer.subject || offer.service_type_name, offer.institution]
     .filter(Boolean)
     .join(' · ');
 }
