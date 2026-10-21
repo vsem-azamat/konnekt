@@ -12,10 +12,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from students_cz.api.request_log import RequestLog
 from students_cz.api.v1 import router as api_router
 from students_cz.api.v1.health import health_router
 from students_cz.bot import build_bot
 from students_cz.core.config import get_settings
+from students_cz.core.logs import JsonFormatter
 from students_cz.db.session import dispose_engine
 from students_cz.services import errors
 from students_cz.services.embedding import get_embedder
@@ -36,7 +38,7 @@ class QuietHealthChecks(logging.Filter):
         return path != "/healthz"
 
 
-def configure_logging(level: str) -> None:
+def configure_logging(level: str, log_format: str = "json") -> None:
     """Give this application's logger somewhere to write.
 
     Uvicorn configures its own loggers and nothing else, so without this the
@@ -48,16 +50,31 @@ def configure_logging(level: str) -> None:
     Records still propagate. Uvicorn does not configure the root logger, so
     there is nothing to duplicate against, and cutting propagation would also
     cut off whatever a deployment attaches there with `--log-config`.
+
+    Each record is a JSON line (`LOG_FORMAT=text` for a terminal), uvicorn's own
+    included. Its access log is off: `RequestLog` writes the line for every
+    request, with the route and the id, and its would be a second, poorer one.
     """
     log.setLevel(level)
+    formatter: logging.Formatter = (
+        JsonFormatter()
+        if log_format == "json"
+        else logging.Formatter("%(levelname)s:     %(name)s: %(message)s")
+    )
     access = logging.getLogger("uvicorn.access")
+    access.disabled = True
+    for name in ("uvicorn", "uvicorn.error"):
+        for handler in logging.getLogger(name).handlers:
+            handler.setFormatter(formatter)
     if not any(isinstance(f, QuietHealthChecks) for f in access.filters):
         access.addFilter(QuietHealthChecks())
-    if any(isinstance(handler, logging.StreamHandler) for handler in log.handlers):
-        # `create_app()` runs once per process, and once per test.
-        return
+    for handler in log.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            # `create_app()` runs once per process, and once per test.
+            handler.setFormatter(formatter)
+            return
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+    handler.setFormatter(formatter)
     log.addHandler(handler)
 
 
@@ -117,7 +134,7 @@ def status_for(exc: BaseException) -> int:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.log_format)
     app = FastAPI(
         title="Students CZ",
         description="Student help catalog for the Czech Republic",
@@ -132,6 +149,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Outermost, so a refusal by anything inside is still a line with its id.
+    app.add_middleware(RequestLog)
 
     # The one place a service's vocabulary becomes a status code. Services
     # raise rules, not protocols, so that the bot can call the same code and
