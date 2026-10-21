@@ -3,6 +3,7 @@ import { retrieveRawInitData } from '@tma.js/sdk-react';
 import { type PublicChat, sanitize } from './chats';
 import type {
   AdminCatalog,
+  AdminHide,
   AdminPlacement,
   AdminPlacementIn,
   AdminPlacementSwitch,
@@ -396,8 +397,11 @@ export const api = {
     request<AdminProfileDetail>(`/admin/profiles/${userId}/review`, { method: 'POST' }),
 
   /** Out of the catalog; its owner cannot list it again. Operators only. */
-  hideProfile: (userId: number) =>
-    request<AdminProfileDetail>(`/admin/profiles/${userId}/hide`, { method: 'POST' }),
+  hideProfile: (userId: number, why: AdminHide) =>
+    request<AdminProfileDetail>(`/admin/profiles/${userId}/hide`, {
+      method: 'POST',
+      body: why,
+    }),
 
   /** A hidden profile listed again. Operators only. */
   restoreProfile: (userId: number) =>

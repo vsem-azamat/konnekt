@@ -3,19 +3,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { HIDE_REASONS, HideReasonText } from '@/components/HideReasonText';
 import { Sheet } from '@/components/Sheet';
 import { Action, Actions, Hint, Letters, Sub, Tile, ui } from '@/components/Ui';
 import { FailureText } from '@/console/FailureText';
-import { profileActions } from '@/console/profile';
+import { HIDE_NOTE_MAX, hideBody, profileActions } from '@/console/profile';
 import { adminCatalogQuery, adminProfileQuery } from '@/console/queries';
 import { daysSince } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
+import type { AdminHide, HideReason } from '@/lib/generated/types.gen';
 
 /**
  * A catalog profile in the console, with what an operator does about it:
- * keep it, hide it (asked once more), or see it as students do. A hidden one
- * only comes back. The owner is told nothing either way.
+ * keep it, hide it (asked once more, and why), or see it as students do. A
+ * hidden one comes back, or, once its owner has changed it, stays hidden on
+ * purpose. Nobody messages the owner; «Моя анкета» shows them it was hidden
+ * and why.
  */
 export function ProfileSheet({
   userId,
@@ -29,14 +33,17 @@ export function ProfileSheet({
   const queryClient = useQueryClient();
   const profile = useQuery(adminProfileQuery(userId));
   const [confirmHide, setConfirmHide] = useState(false);
+  const [reason, setReason] = useState<HideReason | null>(null);
+  const [note, setNote] = useState('');
+  const why = hideBody(reason, note);
 
   const change = useMutation({
-    mutationFn: (action: 'keep' | 'hide' | 'restore') =>
+    mutationFn: (action: 'keep' | { hide: AdminHide } | 'restore') =>
       action === 'keep'
         ? api.keepProfile(userId)
-        : action === 'hide'
-          ? api.hideProfile(userId)
-          : api.restoreProfile(userId),
+        : action === 'restore'
+          ? api.restoreProfile(userId)
+          : api.hideProfile(userId, action.hide),
     onSuccess: async (updated) => {
       queryClient.setQueryData(adminProfileQuery(userId).queryKey, updated);
       await queryClient.invalidateQueries({ queryKey: adminCatalogQuery.queryKey });
@@ -71,9 +78,43 @@ export function ProfileSheet({
         <Sub>
           <Trans>
             Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова.
-            Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем.
+            Вернуть её можно здесь же, в «Скрытых». Автору мы не пишем, но в «Моей анкете»
+            будет видно, что её скрыли, и причина.
           </Trans>
         </Sub>
+        <fieldset
+          className={ui.banChoices}
+          disabled={change.isPending}
+          aria-label={t`Причина`}
+        >
+          {HIDE_REASONS.map((option) => (
+            <label key={option} className={ui.banOption}>
+              <input
+                type="radio"
+                name="hide-reason"
+                checked={reason === option}
+                onChange={() => setReason(option)}
+              />
+              <span>
+                <b>
+                  <HideReasonText reason={option} />
+                </b>
+              </span>
+            </label>
+          ))}
+          {reason === 'other' ? (
+            <div className={ui.field}>
+              <input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t`Что не так, своими словами`}
+                aria-label={t`Причина своими словами`}
+                maxLength={HIDE_NOTE_MAX}
+                style={{ all: 'unset', width: '100%' }}
+              />
+            </div>
+          ) : null}
+        </fieldset>
         {failure}
         <Actions>
           <Action
@@ -85,7 +126,10 @@ export function ProfileSheet({
           >
             <Trans>Отмена</Trans>
           </Action>
-          <Action disabled={change.isPending} onClick={() => change.mutate('hide')}>
+          <Action
+            disabled={change.isPending || why === null}
+            onClick={() => why && change.mutate({ hide: why })}
+          >
             <Trans>Скрыть</Trans>
           </Action>
         </Actions>
@@ -129,7 +173,20 @@ export function ProfileSheet({
           {data.about ? <blockquote className={ui.quote}>{data.about}</blockquote> : null}
           {data.status === 'banned' ? (
             <Hint>
-              <Trans>Скрыта из каталога: автор не может опубликовать её сам.</Trans>
+              {data.hidden_reason === 'other' && data.hidden_note ? (
+                <Trans>Скрыта из каталога: «{data.hidden_note}».</Trans>
+              ) : data.hidden_reason ? (
+                <Trans>
+                  Скрыта из каталога: <HideReasonText reason={data.hidden_reason} />.
+                </Trans>
+              ) : (
+                <Trans>Скрыта из каталога.</Trans>
+              )}{' '}
+              {data.reviewed_at === null ? (
+                <Trans>Автор изменил её после этого: вернуть или оставить скрытой?</Trans>
+              ) : (
+                <Trans>Автор может её править, но не опубликовать сам.</Trans>
+              )}
             </Hint>
           ) : data.status !== 'published' ? (
             <Hint>
@@ -142,16 +199,30 @@ export function ProfileSheet({
               action === 'keep' ? (
                 <Action
                   key={action}
+                  // Next to «Вернуть», leaving it hidden is the second choice.
+                  quiet={data.status === 'banned'}
                   disabled={change.isPending}
                   onClick={() => {
                     hapticSelection();
                     change.mutate('keep');
                   }}
                 >
-                  <Trans>Оставить</Trans>
+                  {data.status === 'banned' ? (
+                    <Trans>Оставить скрытой</Trans>
+                  ) : (
+                    <Trans>Оставить</Trans>
+                  )}
                 </Action>
               ) : action === 'hide' ? (
-                <Action key={action} quiet onClick={() => setConfirmHide(true)}>
+                <Action
+                  key={action}
+                  quiet
+                  onClick={() => {
+                    setReason(null);
+                    setNote('');
+                    setConfirmHide(true);
+                  }}
+                >
                   <Trans>Скрыть из каталога…</Trans>
                 </Action>
               ) : action === 'view' ? (
