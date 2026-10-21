@@ -549,6 +549,14 @@ export function Action({
 
 // ── states ──────────────────────────────────────────────────────────────
 
+/** Text cut to two lines, for a card that shows the rest when opened. */
+export const CLAMP_TWO_LINES = {
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+} as const;
+
 export function Empty({
   title,
   body,

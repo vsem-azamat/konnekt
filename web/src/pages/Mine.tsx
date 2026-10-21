@@ -11,6 +11,7 @@ import {
   AvatarStack,
   Card,
   Cards,
+  CLAMP_TWO_LINES,
   Empty,
   Reason,
   Screen,
@@ -153,7 +154,16 @@ function RequestCard({
           <Icon size={19} />
         </Tile>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 680, letterSpacing: '-0.015em' }}>
+          <div
+            style={{
+              fontSize: 14.5,
+              fontWeight: 680,
+              letterSpacing: '-0.015em',
+              // A request with no subject is titled by its own text, which can
+              // run to a thousand characters; the card opens to the whole of it.
+              ...CLAMP_TWO_LINES,
+            }}
+          >
             {title}
           </div>
           <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
