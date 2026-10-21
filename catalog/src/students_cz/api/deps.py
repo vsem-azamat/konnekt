@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException, Path, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from students_cz.api.request_log import route_template
 from students_cz.core.config import Settings, get_settings
 from students_cz.core.security import InitDataError, TelegramIdentity, parse_init_data
 from students_cz.db.models import User
@@ -175,7 +176,13 @@ def _service_operator(
         ) from exc
     # What was done, and as whom: the console's server acts for an operator,
     # and this is the catalog's own record of it.
-    log.info("service_call operator=%s %s %s", tg_id, request.method, request.url.path)
+    # The route, not the path: a path names the person whose screen it is.
+    log.info(
+        "service_call operator=%s %s %s",
+        tg_id,
+        request.method,
+        route_template(request.scope),
+    )
     return Operator(tg_id=tg_id, lang=ui_lang)
 
 
