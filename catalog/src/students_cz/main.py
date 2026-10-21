@@ -23,23 +23,11 @@ from students_cz.services import errors
 from students_cz.services.embedding import get_embedder
 
 log = logging.getLogger("students_cz")
-
-
-class QuietHealthChecks(logging.Filter):
-    """Drop the container healthcheck's requests from uvicorn's access log.
-
-    It asks every 15 s; in one week 39,593 of 39,603 lines were it, and the
-    rotated log kept three days of anything else.
-    """
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        args = record.args if isinstance(record.args, tuple) else ()
-        path = str(args[2]).split("?", 1)[0] if len(args) > 2 else ""
-        return path != "/healthz"
+_OURS = "_students_cz_handler"
 
 
 def configure_logging(level: str, log_format: str = "json") -> None:
-    """Give this application's logger somewhere to write.
+    """Give this application's logs, and every library's, somewhere to write.
 
     Uvicorn configures its own loggers and nothing else, so without this the
     `students_cz` logger has no handler and falls back to Python's last-resort
@@ -47,13 +35,14 @@ def configure_logging(level: str, log_format: str = "json") -> None:
     went nowhere, including the one that says semantic search is off because
     the image carries no model.
 
-    Records still propagate. Uvicorn does not configure the root logger, so
-    there is nothing to duplicate against, and cutting propagation would also
-    cut off whatever a deployment attaches there with `--log-config`.
+    The handler is on the root logger, so SQLAlchemy's and aiogram's warnings
+    leave in the same shape as ours instead of as bare text through the
+    last-resort handler. Uvicorn's own loggers keep their handlers (they do not
+    propagate) and get the same formatter.
 
-    Each record is a JSON line (`LOG_FORMAT=text` for a terminal), uvicorn's own
-    included. Its access log is off: `RequestLog` writes the line for every
-    request, with the route and the id, and its would be a second, poorer one.
+    Each record is a JSON line (`LOG_FORMAT=text` for a terminal). Uvicorn's
+    access log is off: `RequestLog` writes the line for every request, with the
+    route and the id, and its would be a second, poorer one.
     """
     log.setLevel(level)
     formatter: logging.Formatter = (
@@ -61,21 +50,20 @@ def configure_logging(level: str, log_format: str = "json") -> None:
         if log_format == "json"
         else logging.Formatter("%(levelname)s:     %(name)s: %(message)s")
     )
-    access = logging.getLogger("uvicorn.access")
-    access.disabled = True
+    logging.getLogger("uvicorn.access").disabled = True
     for name in ("uvicorn", "uvicorn.error"):
         for handler in logging.getLogger(name).handlers:
             handler.setFormatter(formatter)
-    if not any(isinstance(f, QuietHealthChecks) for f in access.filters):
-        access.addFilter(QuietHealthChecks())
-    for handler in log.handlers:
-        if isinstance(handler, logging.StreamHandler):
+    root = logging.getLogger()
+    for handler in root.handlers:
+        if getattr(handler, _OURS, False):
             # `create_app()` runs once per process, and once per test.
             handler.setFormatter(formatter)
             return
     handler = logging.StreamHandler()
+    setattr(handler, _OURS, True)
     handler.setFormatter(formatter)
-    log.addHandler(handler)
+    root.addHandler(handler)
 
 
 @asynccontextmanager
@@ -149,8 +137,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # Outermost, so a refusal by anything inside is still a line with its id.
-    app.add_middleware(RequestLog)
+    # Outside the server-error middleware that FastAPI puts around everything,
+    # which `add_middleware` cannot reach: a 500 then gets its id and one line.
+    build = app.build_middleware_stack
+    app.build_middleware_stack = lambda: RequestLog(build())  # ty: ignore[invalid-assignment]
 
     # The one place a service's vocabulary becomes a status code. Services
     # raise rules, not protocols, so that the bot can call the same code and

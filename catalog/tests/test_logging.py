@@ -68,7 +68,7 @@ def test_fields_and_bound_context_are_merged() -> None:
     assert "request_id" not in json.loads(JsonFormatter().format(_record("later")))
 
 
-def test_configuring_puts_the_formatter_where_uvicorn_writes() -> None:
+def test_configuring_puts_the_formatter_where_logs_are_written() -> None:
     uvicorn_handler = logging.StreamHandler()
     logging.getLogger("uvicorn.error").addHandler(uvicorn_handler)
     try:
@@ -77,7 +77,7 @@ def test_configuring_puts_the_formatter_where_uvicorn_writes() -> None:
 
         ours = [
             h
-            for h in logging.getLogger("students_cz").handlers
+            for h in logging.getLogger().handlers
             if isinstance(h.formatter, JsonFormatter)
         ]
         assert len(ours) == 1
@@ -86,11 +86,44 @@ def test_configuring_puts_the_formatter_where_uvicorn_writes() -> None:
         logging.getLogger("uvicorn.error").removeHandler(uvicorn_handler)
 
 
+def test_a_librarys_record_leaves_in_the_same_shape() -> None:
+    import io
+
+    configure_logging("INFO")
+    ours = next(
+        h
+        for h in logging.getLogger().handlers
+        if getattr(h, "_students_cz_handler", False)
+    )
+    assert isinstance(ours, logging.StreamHandler)
+    out = io.StringIO()
+    previous = ours.setStream(out)
+    try:
+        logging.getLogger("sqlalchemy.engine").warning("slow query")
+    finally:
+        ours.setStream(previous)
+
+    line = json.loads(out.getvalue())
+    assert line["event"] == "slow query"
+    assert line["logger"] == "sqlalchemy.engine"
+    assert line["level"] == "warning"
+
+
+def test_database_errors_do_not_quote_their_parameters() -> None:
+    from students_cz.db.session import get_engine
+
+    assert get_engine().sync_engine.hide_parameters is True
+
+
 def test_text_is_still_there_for_a_terminal() -> None:
     configure_logging("INFO", log_format="text")
     try:
-        formatters = [h.formatter for h in logging.getLogger("students_cz").handlers]
-        assert not any(isinstance(f, JsonFormatter) for f in formatters)
+        ours = next(
+            h
+            for h in logging.getLogger().handlers
+            if getattr(h, "_students_cz_handler", False)
+        )
+        assert not isinstance(ours.formatter, JsonFormatter)
     finally:
         configure_logging("INFO", log_format="json")
 
@@ -125,7 +158,7 @@ async def test_a_request_is_one_line_with_route_status_time_and_id(
 
     [line] = [entry for entry in collected if entry["event"] == "http_request"]
     assert line["method"] == "GET"
-    assert line["path"] == "/api/v1/taxonomy/languages"  # never the query string
+    assert "path" not in line  # a path carries the ids of the people it is about
     assert line["route"] == "/api/v1/taxonomy/languages"
     assert line["status"] == response.status_code
     assert line["duration_ms"] >= 0
@@ -139,7 +172,7 @@ async def test_the_route_is_the_template_with_its_prefixes(
     await client.get("/api/v1/requests/999999/responses", headers=auth_header())
 
     [line] = [entry for entry in collected if entry["event"] == "http_request"]
-    assert line["path"] == "/api/v1/requests/999999/responses"
+    assert "999999" not in str(line)
     assert line["route"] == "/api/v1/requests/{request_id}/responses"
 
 
@@ -202,3 +235,34 @@ async def test_a_failing_route_is_an_error_line_with_its_traceback(
     assert line["level"] == "error"
     assert line["status"] == 500
     assert "RuntimeError: boom" in line["exception"]
+
+
+async def test_a_500_has_its_id_and_is_not_handed_on_to_the_server_again(
+    session,
+) -> None:
+    """Raised again, uvicorn would log the same failure a second time."""
+    from httpx import ASGITransport
+
+    from .conftest import app_for
+
+    app = app_for(session)
+
+    @app.get("/_boom")
+    async def boom() -> None:
+        raise RuntimeError("boom")
+
+    transport = ASGITransport(app=app)  # raise_app_exceptions is on
+    async with AsyncClient(transport=transport, base_url="http://test") as http:
+        response = await http.get("/_boom")
+
+    assert response.status_code == 500
+    assert len(response.headers["x-request-id"]) == 32
+
+
+async def test_the_route_does_not_mistake_a_parameter_for_a_literal_of_its_name(
+    client: AsyncClient, collected: list[dict]
+) -> None:
+    await client.get("/api/v1/requests/api/responses", headers=auth_header())
+
+    [line] = [entry for entry in collected if entry["event"] == "http_request"]
+    assert line["route"] == "/api/v1/requests/{request_id}/responses"
