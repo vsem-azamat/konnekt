@@ -8,6 +8,7 @@ counts — all of which need a long-lived bot, which is what this process is.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 from aiogram import Bot, Dispatcher
@@ -33,13 +34,30 @@ from app.presentation.telegram.middlewares import (
     AudienceMiddleware,
     BlacklistMiddleware,
     DependenciesMiddleware,
+    HandlerNameMiddleware,
     HistoryMiddleware,
+    LoggingContextMiddleware,
     ManagedChatsMiddleware,
 )
 from app.presentation.telegram.profile import publish_profile
 
 setup_logging()
 logger = get_logger("bot")
+
+
+class _AlreadyReported(logging.Filter):
+    """Drop aiogram's own report of an update that failed.
+
+    `LoggingContextMiddleware` has logged it, with the update, the chat and the
+    handler; this one has the traceback and none of that, and would be a second
+    alert for the same failure.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not str(record.msg).startswith("Cause exception while process update")
+
+
+_ALREADY_REPORTED = _AlreadyReported()
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +138,14 @@ def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) 
     """The moderator dispatcher, middlewares in their order, for any bot."""
     dp = Dispatcher()
 
+    # First, so everything below logs with the update in hand, and a failure
+    # is reported once, here, with it.
+    dp.update.outer_middleware(LoggingContextMiddleware())
+    for observer in dp.observers.values():
+        if observer is not dp.update and observer is not dp.errors:
+            observer.middleware(HandlerNameMiddleware())
+    # aiogram logs the same exception again, without any of that.
+    logging.getLogger("aiogram.event").addFilter(_ALREADY_REPORTED)
     dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT))
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
