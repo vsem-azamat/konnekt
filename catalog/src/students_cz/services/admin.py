@@ -6,7 +6,7 @@ See docs/architecture.md, «The operator reads the catalog and runs the partner 
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, case, exists, func, select, update
+from sqlalchemy import ColumnElement, and_, case, exists, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import QueryableAttribute, selectinload
 
@@ -71,7 +71,20 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         SearchQuery.results_count == 0, SearchQuery.created_at >= now - MONTH
     )
     return AdminCatalog(
-        profiles=await _new_profiles(session, lang, to_review),
+        # A hidden one is new again when its owner changed it, not when it
+        # first went out.
+        profiles=await _new_profiles(
+            session,
+            lang,
+            to_review,
+            newest=case(
+                (
+                    HelperProfile.status == PublishStatus.BANNED,
+                    HelperProfile.updated_at,
+                ),
+                else_=HelperProfile.published_at,
+            ),
+        ),
         hidden=await _new_profiles(
             session, lang, hidden, newest=HelperProfile.updated_at
         ),
@@ -110,7 +123,7 @@ async def _new_profiles(
     lang: UiLang,
     where: ColumnElement[bool],
     *,
-    newest: QueryableAttribute[Any] = HelperProfile.published_at,
+    newest: ColumnElement[Any] | QueryableAttribute[Any] = HelperProfile.published_at,
 ) -> list[AdminProfile]:
     rows = (
         await session.execute(
@@ -216,20 +229,24 @@ async def profile(
         institution=institution,
         published_at=helper.published_at,
         reviewed_at=helper.reviewed_at,
+        updated_at=helper.updated_at,
         hidden_reason=helper.hidden_reason,
         hidden_note=helper.hidden_note,
     )
 
 
 async def keep_profile(
-    session: AsyncSession, lang: UiLang, user_id: int
+    session: AsyncSession, lang: UiLang, user_id: int, seen: datetime | None = None
 ) -> AdminProfileDetail:
     """An operator looked and left it as it is: off «Новые анкеты», still listed,
     or still hidden for the reason it was hidden."""
     await _moderate(
         session,
         user_id,
-        HelperProfile.status.in_((PublishStatus.PUBLISHED, PublishStatus.BANNED)),
+        and_(
+            HelperProfile.status.in_((PublishStatus.PUBLISHED, PublishStatus.BANNED)),
+            _as_read(seen),
+        ),
         reviewed_at=func.now(),
     )
     return await profile(session, lang, user_id)
@@ -256,7 +273,7 @@ async def hide_profile(
 
 
 async def restore_profile(
-    session: AsyncSession, lang: UiLang, user_id: int
+    session: AsyncSession, lang: UiLang, user_id: int, seen: datetime | None = None
 ) -> AdminProfileDetail:
     """Listed again, as it was when it was hidden. A profile banned before it
     was ever out gets its first publication now, so the owner's next save is
@@ -264,13 +281,21 @@ async def restore_profile(
     await _moderate(
         session,
         user_id,
-        HelperProfile.status == PublishStatus.BANNED,
+        and_(HelperProfile.status == PublishStatus.BANNED, _as_read(seen)),
         status=PublishStatus.PUBLISHED,
         published_at=func.coalesce(HelperProfile.published_at, func.now()),
+        # Restoring an edited one is a look at the edit: off «Новые анкеты»,
+        # and its owner is not told it is still on review.
+        reviewed_at=func.now(),
         hidden_reason=None,
         hidden_note=None,
     )
     return await profile(session, lang, user_id)
+
+
+def _as_read(seen: datetime | None) -> ColumnElement[bool]:
+    """Unchanged since the operator read it, when they say when that was."""
+    return true() if seen is None else HelperProfile.updated_at == seen
 
 
 async def _moderate(
@@ -303,6 +328,10 @@ async def _helper(session: AsyncSession, user_id: int) -> tuple[HelperProfile, U
             select(HelperProfile, User)
             .join(User, User.id == HelperProfile.user_id)
             .where(HelperProfile.user_id == user_id)
+            # Read again, not answered from memory: an owner's save in this
+            # session leaves its server-set `updated_at` expired, and an
+            # expired attribute is a lazy load an async session cannot do.
+            .execution_options(populate_existing=True)
         )
     ).first()
     if row is None:

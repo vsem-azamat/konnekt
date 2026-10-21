@@ -580,6 +580,8 @@ class AdminProfileDetail(BaseModel):
     institution: str | None
     published_at: datetime | None
     reviewed_at: datetime | None
+    # What the operator read, for `AdminDecision.seen`.
+    updated_at: datetime
     hidden_reason: HideReason | None
     hidden_note: str | None
 
@@ -631,6 +633,14 @@ class AdminPlacementIn(BaseModel):
     @classmethod
     def _url_is_https(cls, value: str) -> str:
         return _https_link(value)
+
+
+class AdminDecision(BaseModel):
+    """Keeping or restoring approves the profile as the operator read it. With
+    `seen`, its `updated_at` then, an owner's save in between is a 409 rather
+    than an edit approved unread."""
+
+    seen: datetime | None = None
 
 
 class AdminHide(BaseModel):

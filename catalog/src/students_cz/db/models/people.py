@@ -199,6 +199,14 @@ class HelperProfile(TimestampMixin, Base):
             "rating IS NULL OR (rating >= 0 AND rating <= 5)",
             name="rating_range",
         ),
+        # The reason is an operator's hide's and leaves with it; words only
+        # for «Другое».
+        CheckConstraint(
+            "hidden_reason IS NULL OR status = 'banned'", name="reason_only_when_banned"
+        ),
+        CheckConstraint(
+            "hidden_note IS NULL OR hidden_reason = 'other'", name="note_only_for_other"
+        ),
     )
 
 

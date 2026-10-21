@@ -11,12 +11,14 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.core.config import Settings, get_settings
 from students_cz.db.models import HelperProfile, Offer, User
 from students_cz.db.models.enums import (
+    HideReason,
     PlacementEventKind,
     PlacementSlot,
     PublishStatus,
@@ -670,6 +672,136 @@ async def test_an_owner_edit_to_a_hidden_profile_goes_back_to_the_operator(
     # Left hidden, for the same reason.
     assert kept.json()["hidden_reason"] == "spam"
     assert user.id not in [row["user_id"] for row in after["profiles"]]
+
+
+async def test_restoring_an_edited_profile_counts_as_looking_at_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Back in the catalog and off «Новые анкеты»: the operator read the
+    edit to restore it, so its owner is not told it is still on review."""
+    user = await _fresh_helper(helper_factory, session, 97613)
+
+    async with _client(session) as http:
+        await _hide(http, user.id)
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97613), json={"about": "Новая версия"}
+        )
+        restored = await http.post(
+            f"/api/v1/admin/profiles/{user.id}/restore", headers=auth_header(OPERATOR)
+        )
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+        mine = (await http.get("/api/v1/helper", headers=auth_header(97613))).json()
+
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["reviewed_at"] is not None
+    assert user.id not in [row["user_id"] for row in body["profiles"]]
+    assert mine["status"] == "published"
+    assert mine["under_review"] is False
+
+
+@pytest.mark.parametrize("action", ["review", "restore"])
+async def test_a_decision_on_a_profile_changed_since_it_was_read_is_409(
+    session: AsyncSession, helper_factory, action: str
+) -> None:
+    """Keeping or restoring approves what the operator read. An owner's save
+    in between is a different profile: show it, do not approve it unseen."""
+    # Kept as a number: the refused decision rolls the session back, and
+    # with it whatever it had loaded.
+    user_id = (await _fresh_helper(helper_factory, session, 97614)).id
+
+    async with _client(session) as http:
+        await _hide(http, user_id)
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97614), json={"about": "Первая правка"}
+        )
+        read = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        await http.put(
+            "/api/v1/helper", headers=auth_header(97614), json={"about": "Вторая правка"}
+        )
+        # One transaction here, so now() stands still between the two saves;
+        # two requests in production are two transactions and two times.
+        await session.execute(
+            update(HelperProfile)
+            .where(HelperProfile.user_id == user_id)
+            .values(updated_at=func.clock_timestamp())
+        )
+        stale = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/{action}",
+            headers=auth_header(OPERATOR),
+            json={"seen": read["updated_at"]},
+        )
+        fresh = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user_id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        decided = await http.post(
+            f"/api/v1/admin/profiles/{user_id}/{action}",
+            headers=auth_header(OPERATOR),
+            json={"seen": fresh["updated_at"]},
+        )
+
+    assert stale.status_code == 409
+    assert decided.status_code == 200, decided.text
+
+
+async def test_an_edited_hidden_profile_queues_by_when_it_was_edited(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Out a month ago, hidden, changed today: today's news, not last month's."""
+    old = await _fresh_helper(helper_factory, session, 97615)
+    newer = await _fresh_helper(helper_factory, session, 97616)
+    profile = await session.get(HelperProfile, old.id)
+    assert profile is not None
+    profile.published_at = datetime.now(UTC) - timedelta(days=30)
+    profile.status = PublishStatus.BANNED
+    profile.hidden_reason = HideReason.SPAM
+    profile.reviewed_at = None
+    profile.updated_at = datetime.now(UTC) + timedelta(seconds=1)
+    await session.flush()
+
+    async with _client(session) as http:
+        body = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()
+
+    ours = [
+        row["user_id"] for row in body["profiles"] if row["user_id"] in {old.id, newer.id}
+    ]
+    assert ours == [old.id, newer.id]
+
+
+@pytest.mark.parametrize(
+    ("status", "reason", "note"),
+    [
+        # A reason belongs to an operator's hide and goes with it.
+        (PublishStatus.PUBLISHED, HideReason.SPAM, None),
+        # Words only for «Другое».
+        (PublishStatus.BANNED, HideReason.SPAM, "и ещё"),
+    ],
+)
+async def test_the_database_keeps_a_reason_to_a_hidden_profile(
+    session: AsyncSession,
+    helper_factory,
+    status: PublishStatus,
+    reason: HideReason,
+    note: str | None,
+) -> None:
+    user = await _fresh_helper(helper_factory, session, 97617)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.status = status
+    profile.hidden_reason = reason
+    profile.hidden_note = note
+
+    with pytest.raises(IntegrityError):
+        await session.flush()
 
 
 # ── partner cards ───────────────────────────────────────────────────────

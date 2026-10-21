@@ -275,8 +275,9 @@ things: a profile's moderation (kept or hidden) and the partner cards, because
 otherwise the only way to do either is the database.
 
 - `/admin/catalog`: listed profiles no operator has kept or hidden yet,
-  and hidden ones their owner has changed since, however old, newest first (those out before the console moderated were
-  counted as looked at), and the profiles an operator hid;
+  however old, newest first (those out before the console moderated were
+  counted as looked at), with hidden ones their owner has changed since,
+  placed by when they changed it; and the profiles an operator hid;
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
   30 days, grouped by their text ignoring case and leading or trailing spaces, most frequent
@@ -287,8 +288,11 @@ otherwise the only way to do either is the database.
   new list, still listed or still hidden. `POST …/hide` takes a reason
   (`spam`, `misleading`, `rules`, or `other` with a note of up to 200
   characters, and a note only then) and sets it `banned`, which its owner
-  cannot lift by publishing again; `POST …/restore` lists it again and
-  forgets the reason. Only a published profile can be hidden and only a
+  cannot lift by publishing again; `POST …/restore` lists it again, counts
+  that as a look (`reviewed_at`), and forgets the reason. The database
+  holds a reason only on a banned profile and a note only for `other`.
+  `review` and `restore` approve the profile as the operator read it: sent
+  `{"seen": <its updated_at>}`, an owner's save since then is a 409. Only a published profile can be hidden and only a
   banned one restored (409 otherwise), so restoring never undoes an owner's
   own «hide me». Each is one conditional `UPDATE`, and the owner's save
   locks the row, so neither side overwrites the other in a race. Nobody

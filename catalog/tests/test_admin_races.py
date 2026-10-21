@@ -125,3 +125,9 @@ async def test_an_owner_saving_over_a_ban_keeps_the_ban(
 
     await saving
     assert await _status(engine, listed) == PublishStatus.BANNED
+    async with AsyncSession(engine) as session:
+        profile = await session.get(HelperProfile, listed)
+        assert profile is not None
+        # Back for an operator, for the reason it was hidden.
+        assert profile.reviewed_at is None
+        assert profile.hidden_reason == HideReason.SPAM
