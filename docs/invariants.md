@@ -374,8 +374,10 @@ rests on more than a bearer token.
 update type, an outcome: never a chat or a user id, and no search on a person
 needs one, because the logs carry the ids that moderation itself names. The
 update context bound into every log line (`update_id`, `update_type`,
-`chat_id`, handler) leaves the user out on purpose, for the same reason the
-audience's ids stay out of the logs. A label that can carry an id makes a series
+`chat_id` of a group or channel, handler) leaves the user out on purpose, for
+the same reason the audience's ids stay out of the logs, and leaves the chat out
+of a private conversation, where its id is the person's. An access line names a
+route template, not a path, for the same reason. A label that can carry an id makes a series
 for everyone who ever wrote, in a store that outlives the chat's own retention.
 
 **The scrape token is also the switch.** `OBSERVABILITY_METRICS_SECRET` unset

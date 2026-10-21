@@ -16,9 +16,16 @@ proxy's line and the backend's.
 
 An error is found by `level="error"`, and its traceback is in the same line
 (`exception`). Search on an id by parsing the JSON in the query; ids are not
-Loki labels, which must stay few. Passwords, tokens, query strings, cookies and
-the audience's ids are not logged; `tests/unit/test_no_silent_errors.py`
-holds the rule that a failure names its class.
+Loki labels, which must stay few.
+
+What is not logged: passwords, tokens, cookies, query strings, and the
+audience's ids. A request line names its route template, never the path (a
+path carries the ids of the people it is about); the bot's context leaves the
+chat id out of private chats, where it is the person's; Caddy's own lines, its
+error log included, carry no uri, headers or client address, only the backend
+(`handler`) and the id, and the backend's line has the route. Database errors
+do not quote their parameters. `tests/unit/test_no_silent_errors.py` holds the
+rule that a failure names its class.
 
 ## Metrics
 
@@ -26,10 +33,11 @@ holds the rule that a failure names its class.
 |---|---|
 | web API | `https://<site>/api/internal/metrics` |
 | catalog API | `https://<site>/api/v1/internal/metrics` |
-| bot | `https://<site>/internal/metrics/bot`, routed by the edge to the bot's own port on the host |
+| bot | `https://<site>/internal/metrics/bot`, routed by the edge to the bot's own port on the host (`127.0.0.1:8789`, free on azamat when this was written) |
 
 All three take `Authorization: Bearer $OBSERVABILITY_METRICS_SECRET`: one
-repository secret, forwarded by the deploy to the bot, the web API and the
+repository secret of 32 characters or more (a shorter one stops the process
+from starting), forwarded by the deploy to the bot, the web API and the
 catalog API alone. Unset, they answer nothing. The edge route for the bot is
 the only thing outside this repository: `/internal/metrics/bot` →
 `127.0.0.1:8789/metrics`. The console's own host answers 404 for all of them.
@@ -45,4 +53,5 @@ curl -fsS -H "Authorization: Bearer $OBSERVABILITY_METRICS_SECRET" https://<site
 ```
 
 Then the targets in Prometheus are up, and a line from each process appears in
-Loki within a minute. Without the secret all three answer 404, not 401.
+Loki within a minute. Without the secret the web API and the catalog answer
+404 (not 401); the bot starts no server, so the edge route to it answers 502.
