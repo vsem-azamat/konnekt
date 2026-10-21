@@ -10,6 +10,7 @@ import {
   AvatarView,
   Card,
   Cards,
+  CLAMP_TWO_LINES,
   Empty,
   formatMoney,
   Reason,
@@ -20,14 +21,6 @@ import { hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { requestName } from '@/lib/requestHeading';
 import type { FeedRequest } from '@/lib/types';
-
-/** Two lines until the card is opened. */
-const CLAMP = {
-  display: '-webkit-box',
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: 'vertical',
-  overflow: 'hidden',
-} as const;
 
 /**
  * What people are asking for, for someone who could answer.
@@ -143,7 +136,7 @@ function FeedCard({
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <AvatarView avatar={request.author} size={34} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className={ui.cardName} style={isOpen ? undefined : CLAMP}>
+          <div className={ui.cardName} style={isOpen ? undefined : CLAMP_TWO_LINES}>
             {name ?? request.text}
           </div>
           <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
@@ -172,7 +165,7 @@ function FeedCard({
             fontSize: 13,
             lineHeight: 1.45,
             color: 'var(--ink-soft)',
-            ...(isOpen ? {} : CLAMP),
+            ...(isOpen ? {} : CLAMP_TWO_LINES),
           }}
         >
           {request.text}
