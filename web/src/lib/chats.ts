@@ -164,32 +164,61 @@ export function byOwner(chats: PublicChat[]): {
 }
 
 /**
- * The photo for a section's row: that of the section's own chat, which is the
- * university itself. A faculty's photo would say the wrong thing, so a section
- * whose own chat has none keeps its letters.
+ * The section's own chat, which is the university itself: named like the
+ * section. Found by name rather than by position, because where supervisor
+ * puts it has changed before.
+ */
+function ownChat(section: Extract<Entry, { kind: 'section' }>): PublicChat | undefined {
+  return section.chats.find((chat) => chat.title === section.name);
+}
+
+/**
+ * The photo for a section's row: that of the section's own chat. A faculty's
+ * photo would say the wrong thing, so a section whose own chat has none keeps
+ * its letters.
  */
 export function sectionAvatar(
   section: Extract<Entry, { kind: 'section' }>,
 ): string | null {
-  return section.chats.find((chat) => chat.title === section.name)?.avatar ?? null;
+  return ownChat(section)?.avatar ?? null;
+}
+
+/**
+ * How many people a section's row shows: its own chat's, for the same reason
+ * as its photo. Adding up the faculties would count one student many times.
+ */
+export function sectionMembers(
+  section: Extract<Entry, { kind: 'section' }>,
+): number | null {
+  return ownChat(section)?.member_count ?? null;
 }
 
 /** How many chat names a section's row lists under its own. */
 const HINT_CHATS = 3;
 
 /**
- * A few of a section's chats, for the row that opens it.
+ * What a section's row says under its name: how many chats it holds and the
+ * first few of them, cut with «…» when there are more.
  *
- * The section's own general chat, named like the section, is skipped: the
- * row's title already says it. Found by name rather than by position, because
- * where supervisor puts it has changed before.
+ * The section's own chat is skipped, since the row's title already says it;
+ * `more` is whether there was one, so the rest are «ещё» chats.
  */
-export function sectionHint(section: Extract<Entry, { kind: 'section' }>): string {
-  return section.chats
-    .filter((chat) => chat.title !== section.name)
+export function sectionHint(section: Extract<Entry, { kind: 'section' }>): {
+  count: number;
+  names: string;
+  more: boolean;
+} {
+  const own = ownChat(section);
+  const others = section.chats.filter((chat) => chat !== own);
+  const names = others
     .slice(0, HINT_CHATS)
     .map((chat) => chat.title)
     .join(', ');
+  return {
+    count: others.length,
+    names: others.length > HINT_CHATS ? `${names}…` : names,
+    more: own !== undefined,
+  };
 }
 
 /** Lower case, without diacritics: «ČVUT» and «cvut» are the same word here. */
@@ -254,6 +283,14 @@ export function placeOf(
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */
 export function chipFor(activity: Activity): Exclude<Activity, 'unknown'> | null {
   return activity === 'unknown' ? null : activity;
+}
+
+/**
+ * Which chip a chat wears in a list. None for `quiet` either: most chats are,
+ * and next to the number of people the word adds nothing. Its sheet still says it.
+ */
+export function rowChipFor(activity: Activity): 'active' | 'busy' | null {
+  return activity === 'active' || activity === 'busy' ? activity : null;
 }
 
 /**

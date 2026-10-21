@@ -389,6 +389,10 @@ msgstr "matematická analýza na ČVUT do 14. února, do 600 Kč"
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 #~ msgstr "Vše můžeš kdykoli změnit. Prázdná pole prostě neukazujeme."
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
+msgstr "{count, plural, one {# chat: {names}} few {# chaty: {names}} many {# chatu: {names}} other {# chatů: {names}}}"
+
 #: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
 msgstr "Co se děje v chatech a v katalogu."
@@ -1255,9 +1259,12 @@ msgid "Этого аккаунта нет среди операторов кат
 msgstr "Tento účet nepatří mezi operátory katalogu."
 
 #: src/console/pages/Chats.tsx
-#: src/pages/Chats.tsx
 msgid "Остальные"
 msgstr "Ostatní"
+
+#: src/components/ChatRow.tsx
+msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
+msgstr "{count, plural, one {člen} few {členové} many {člena} other {členů}}"
 
 #. placeholder {0}: date(touch.first_at)
 #. placeholder {1}: date(touch.last_at)
@@ -1845,6 +1852,10 @@ msgstr "Město"
 msgid "{0, plural, one {# занятие через нас} few {# занятия через нас} many {# занятий через нас} other {# занятия через нас}}"
 msgstr "{0, plural, one {# lekce přes nás} few {# lekce přes nás} many {# lekce přes nás} other {# lekcí přes nás}}"
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
+msgstr "{count, plural, one {další # chat: {names}} few {další # chaty: {names}} many {dalšího # chatu: {names}} other {dalších # chatů: {names}}}"
+
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
 msgstr "obnovte ho z Telegramu"
@@ -2397,6 +2408,10 @@ msgstr "Odebrat"
 #: src/console/pages/Chat.tsx
 msgid "не задан"
 msgstr "není nastaven"
+
+#: src/pages/Chats.tsx
+msgid "Общие"
+msgstr "Obecné"
 
 #. placeholder {0}: alsoProps.named
 #: src/pages/Results.tsx

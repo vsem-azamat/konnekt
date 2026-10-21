@@ -429,6 +429,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.people {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.people svg {
+  flex: none;
+  color: var(--muted-soft);
+}
+
 .chevron {
   color: var(--muted-soft);
   flex: none;

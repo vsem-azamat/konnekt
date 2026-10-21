@@ -6,10 +6,17 @@ import { useLocation, useNavigate } from 'react-router';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { institutionsQuery } from '@/lib/api';
 import { chatPreview } from '@/lib/chatPreview';
-import { type Activity, chipFor, initials, type PublicChat, placeOf } from '@/lib/chats';
-
+import {
+  type Activity,
+  chipFor,
+  initials,
+  type PublicChat,
+  placeOf,
+  rowChipFor,
+} from '@/lib/chats';
+import { PersonIcon } from './icons';
 import { Sheet } from './Sheet';
-import { Action, Chevron, Hint, Letters, Row, Tile } from './Ui';
+import { Action, Chevron, Count, Hint, Letters, Row, Tile } from './Ui';
 import css from './ui.module.css';
 
 /** Supervisor's word for how much a chat talks, and nothing for `unknown`. */
@@ -28,6 +35,30 @@ export function ActivityChip({ activity }: { activity: Activity }) {
         <Trans>тихий</Trans>
       )}
     </span>
+  );
+}
+
+/** How many people a row's chat has, beside its chevron. Nothing when never measured. */
+export function Members({ count }: { count: number | null }) {
+  const { i18n } = useLingui();
+  if (count === null) return null;
+  return (
+    <Count>
+      <span className={css.people}>
+        <PersonIcon size={13} />
+        {i18n.number(count)}
+        <span className={css.srOnly}>
+          {' '}
+          <Plural
+            value={count}
+            one="участник"
+            few="участника"
+            many="участников"
+            other="участника"
+          />
+        </span>
+      </span>
+    </Count>
   );
 }
 
@@ -70,9 +101,16 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
           )
         }
         hint={
-          chipFor(chat.activity) ? <ActivityChip activity={chat.activity} /> : undefined
+          rowChipFor(chat.activity) ? (
+            <ActivityChip activity={chat.activity} />
+          ) : undefined
         }
-        trailing={<Chevron />}
+        trailing={
+          <>
+            <Members count={chat.member_count} />
+            <Chevron />
+          </>
+        }
         outline={chat.external}
         onClick={() => {
           hapticSelection();

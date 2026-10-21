@@ -389,6 +389,10 @@ msgstr "математический анализ на ČVUT к 14 феврал�
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 #~ msgstr "Всё можно менять когда угодно. Пустые поля просто не показываем."
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
+msgstr "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
+
 #: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
 msgstr "Что происходит в чатах и в каталоге."
@@ -1255,9 +1259,12 @@ msgid "Этого аккаунта нет среди операторов кат
 msgstr "Этого аккаунта нет среди операторов каталога."
 
 #: src/console/pages/Chats.tsx
-#: src/pages/Chats.tsx
 msgid "Остальные"
 msgstr "Остальные"
+
+#: src/components/ChatRow.tsx
+msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
+msgstr "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
 
 #. placeholder {0}: date(touch.first_at)
 #. placeholder {1}: date(touch.last_at)
@@ -1845,6 +1852,10 @@ msgstr "Город"
 msgid "{0, plural, one {# занятие через нас} few {# занятия через нас} many {# занятий через нас} other {# занятия через нас}}"
 msgstr "{0, plural, one {# занятие через нас} few {# занятия через нас} many {# занятий через нас} other {# занятия через нас}}"
 
+#: src/pages/Chats.tsx
+msgid "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
+msgstr "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
+
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
 msgstr "обновите его из Telegram"
@@ -2397,6 +2408,10 @@ msgstr "Убрать"
 #: src/console/pages/Chat.tsx
 msgid "не задан"
 msgstr "не задан"
+
+#: src/pages/Chats.tsx
+msgid "Общие"
+msgstr "Общие"
 
 #. placeholder {0}: alsoProps.named
 #: src/pages/Results.tsx
