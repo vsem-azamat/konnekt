@@ -25,7 +25,8 @@
  *   - nothing is wider than the screen;
  *   - an open sheet lies inside the visible area;
  *   - a screen opened from a scrolled list starts at its top, and Back
- *     returns to the list where it was left;
+ *     returns to the list where it was left, even when the list has to be
+ *     loaded again;
  *   - after a minimise and restore, the app is as tall as what is visible.
  *
  * What it cannot do: the keyboard, which on iOS shrinks only the visual
@@ -198,8 +199,7 @@ function launchHash(profile) {
  * Where everything is, with the scroller at its end.
  *
  * The scroller is found rather than named: the tallest element that scrolls
- * vertically. Today that is #root; after a shell refactor it may be a `main`
- * inside it, and this should not have to change with it.
+ * vertically, #root or the shell's `main`.
  */
 function measureScreen() {
   const scrollers = [...document.querySelectorAll('*')].filter((el) => {
@@ -315,7 +315,13 @@ async function serve() {
   }
 }
 
-async function open(browser, base, profile, path) {
+async function open(
+  browser,
+  base,
+  profile,
+  path,
+  { slowCatalog = false, clock = false } = {},
+) {
   const context = await browser.newContext({
     viewport: { width: profile.width, height: profile.height },
     deviceScaleFactor: 2,
@@ -324,9 +330,14 @@ async function open(browser, base, profile, path) {
   });
   await context.addInitScript(telegramBridge, profile);
   const unknown = new Set();
-  await context.route('**/api/**', (route) => {
+  let catalogCalls = 0;
+  await context.route('**/api/**', async (route) => {
     const request = route.request();
     const key = `${request.method()} ${new URL(request.url()).pathname}`;
+    // Asked again after the cache dropped it: the screen is a skeleton first.
+    if (key === 'GET /api/public/catalog' && slowCatalog && catalogCalls++ > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
     if (key in FIXTURES) {
       const body = FIXTURES[key];
       return body === null
@@ -337,6 +348,7 @@ async function open(browser, base, profile, path) {
     return route.fulfill({ status: 404, json: { detail: 'no fixture' } });
   });
   const page = await context.newPage();
+  if (clock) await page.clock.install();
   await page.goto(`${base}${path}#${launchHash(profile)}`);
   return { page, context, unknown };
 }
@@ -478,6 +490,43 @@ async function checkNavigation(browser, base, profile) {
 }
 
 /**
+ * Back from a screen without tabs after the list's data has gone from the
+ * cache (five minutes unused): the list comes back as a skeleton first, and
+ * the position has to survive until the rows arrive.
+ */
+async function checkReturn(browser, base, profile) {
+  const { page, context } = await open(browser, base, profile, '/chats', {
+    slowCatalog: true,
+    clock: true,
+  });
+  try {
+    await page.getByText(LAST_CHAT).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+    const row = page.getByText(SECTION, { exact: true }).first();
+    await row.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    const left = await page.evaluate(scrolled);
+    if (left <= 0) throw new Error('the list did not scroll, so nothing is measured');
+    await page.getByRole('button', { name: 'Разместить' }).click();
+    await page.getByRole('dialog').getByRole('button').first().click();
+    await page.waitForURL('**/ask**');
+    await page.clock.fastForward('06:00');
+    await page.goBack();
+    await page.getByText(LAST_CHAT).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(300);
+    const back = await page.evaluate(scrolled);
+    if (Math.abs(back - left) > TOLERANCE) {
+      fail(
+        profile,
+        `Back after six minutes away returned to the list at ${back}px, it was left at ${left}px`,
+      );
+    } else ok('Back after six minutes away returns to where the list was left');
+  } catch (error) {
+    fail(profile, `return: ${error.message.split('\n')[0]}`);
+  }
+  await context.close();
+}
+
+/**
  * Minimised to the bottom bar and brought back, in the order #328 was seen in:
  * a stable height for the bar, then only moving heights on the way back up.
  */
@@ -516,6 +565,7 @@ try {
     );
     for (const list of LISTS) await checkList(browser, base, profile, list);
     await checkNavigation(browser, base, profile);
+    await checkReturn(browser, base, profile);
     if (profile.platform === 'android') {
       await checkRestore(browser, base, profile);
     }
