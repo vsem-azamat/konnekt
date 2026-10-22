@@ -67,10 +67,10 @@ export default function RequestPage() {
     enabled: validId,
   });
 
-  // Asked only once the request is known to have no answers, and only when
-  // someone sees it: the count and the list are the same people (the server
-  // counts them as the search finds them), so «видят 0» comes with no list.
-  const suggest = request && request.helpers_seeing > 0 ? dontWait(request) : null;
+  // Asked only once the request is known to have no answers. The server counts
+  // `helpers_seeing` the way the search finds them, so «видят 0» comes with no
+  // list; the two are read at different moments, so they can still disagree.
+  const suggest = request ? dontWait(request) : null;
   const others = useQuery({
     queryKey: ['dont-wait', suggest],
     queryFn: ({ signal }) => api.search(suggest ?? {}, signal),
@@ -129,7 +129,7 @@ export default function RequestPage() {
         <SkeletonRows count={2} />
       ) : isError ? (
         <Empty title={<Trans>Не получилось загрузить</Trans>} />
-      ) : data.length === 0 && request?.status !== 'open' ? (
+      ) : data.length === 0 && request && request.status !== 'open' ? (
         <Empty title={<Trans>Без откликов</Trans>} />
       ) : data.length === 0 ? (
         <>
