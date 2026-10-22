@@ -21,6 +21,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
+import { useBrowserConsole } from '@/console/browserContext';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { FailureText } from '@/console/FailureText';
 import { PingSheet } from '@/console/Pings';
@@ -32,6 +33,7 @@ import {
   spamCountQuery,
   spamQueueQuery,
 } from '@/console/queries';
+import css from '@/console/Spam.module.css';
 import {
   ConsoleError,
   personName,
@@ -50,10 +52,12 @@ import { hapticSelection } from '@/hooks/useTelegram';
 export default function ConsoleSpamPage() {
   return (
     <ConsoleGate>
-      <Title>
-        <Trans>Реклама</Trans>
-      </Title>
-      <Spam />
+      <div data-wide>
+        <Title>
+          <Trans>Реклама</Trans>
+        </Title>
+        <Spam />
+      </div>
     </ConsoleGate>
   );
 }
@@ -70,6 +74,7 @@ function Spam() {
   const { t } = useLingui();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const inBrowser = useBrowserConsole();
   const [filters, setFilters] = useState<PingFilters>({
     status: 'unreviewed',
     chatId: null,
@@ -133,7 +138,7 @@ function Spam() {
           <Trans>Что поймал детектор. Разобранное уходит из очереди.</Trans>
         </Sub>
       </div>
-      <div className={ui.column} style={{ marginTop: 12 }}>
+      <div className={inBrowser ? css.filters : ui.column} style={{ marginTop: 12 }}>
         <Chips>
           {statusChip(
             'unreviewed',

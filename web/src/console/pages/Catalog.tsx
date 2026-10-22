@@ -30,10 +30,12 @@ import { hapticSelection } from '@/hooks/useTelegram';
 export default function ConsoleCatalogPage() {
   return (
     <ConsoleGate>
-      <Title>
-        <Trans>Каталог</Trans>
-      </Title>
-      <Catalog />
+      <div data-wide>
+        <Title>
+          <Trans>Каталог</Trans>
+        </Title>
+        <Catalog />
+      </div>
     </ConsoleGate>
   );
 }
