@@ -133,6 +133,8 @@ async def search_offers(
     sort: catalog.SortKey = Query(default="relevance"),
     limit: int = Query(default=20, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
+    # Who else could help with my own request: never me.
+    exclude_self: bool = False,
 ) -> SearchOut:
     _searches.note(user.id)
     total, results = await catalog.search(
@@ -147,6 +149,7 @@ async def search_offers(
         sort=sort,
         limit=limit,
         offset=offset,
+        exclude_self=exclude_self,
     )
     return SearchOut(
         total=total,

@@ -460,8 +460,17 @@ class RequestBase(BaseModel):
 class RequestOut(RequestBase):
     """Your own request. Who answered is the whole point of the screen."""
 
+    # The ids beside the names in RequestBase: what the catalog's /search
+    # takes to show who else could help.
+    subject_id: int | None = None
+    service_type_id: int | None = None
     responses_count: int = 0
     responders: list[Avatar] = Field(default_factory=list)
+    # How many people /search lists on subject_id and service_type_id, the
+    # author aside. Counted only while it is open; 0 after.
+    helpers_seeing: int = 0
+    expires_at: datetime | None = None
+    closed_at: datetime | None = None
 
 
 class FeedRequestOut(RequestBase):

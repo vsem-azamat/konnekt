@@ -1160,6 +1160,14 @@ export type RequestOut = {
      */
     created_at: string;
     /**
+     * Subject Id
+     */
+    subject_id?: number | null;
+    /**
+     * Service Type Id
+     */
+    service_type_id?: number | null;
+    /**
      * Responses Count
      */
     responses_count?: number;
@@ -1167,6 +1175,18 @@ export type RequestOut = {
      * Responders
      */
     responders?: Array<Avatar>;
+    /**
+     * Helpers Seeing
+     */
+    helpers_seeing?: number;
+    /**
+     * Expires At
+     */
+    expires_at?: string | null;
+    /**
+     * Closed At
+     */
+    closed_at?: string | null;
 };
 
 /**
@@ -1782,6 +1802,10 @@ export type SearchOffersApiV1SearchGetData = {
          * Offset
          */
         offset?: number;
+        /**
+         * Exclude Self
+         */
+        exclude_self?: boolean;
     };
     url: '/api/v1/search';
 };
@@ -2252,6 +2276,42 @@ export type CloseRequestApiV1RequestsRequestIdClosePostResponses = {
 };
 
 export type CloseRequestApiV1RequestsRequestIdClosePostResponse = CloseRequestApiV1RequestsRequestIdClosePostResponses[keyof CloseRequestApiV1RequestsRequestIdClosePostResponses];
+
+export type DeleteRequestApiV1RequestsRequestIdDeleteData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Request Id
+         */
+        request_id: number;
+    };
+    query?: never;
+    url: '/api/v1/requests/{request_id}';
+};
+
+export type DeleteRequestApiV1RequestsRequestIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteRequestApiV1RequestsRequestIdDeleteError = DeleteRequestApiV1RequestsRequestIdDeleteErrors[keyof DeleteRequestApiV1RequestsRequestIdDeleteErrors];
+
+export type DeleteRequestApiV1RequestsRequestIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteRequestApiV1RequestsRequestIdDeleteResponse = DeleteRequestApiV1RequestsRequestIdDeleteResponses[keyof DeleteRequestApiV1RequestsRequestIdDeleteResponses];
 
 export type PlacementsForSlotApiV1PlacementsGetData = {
     body?: never;

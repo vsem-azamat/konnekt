@@ -37,7 +37,7 @@ from students_cz.db.models.enums import (
     UiLang,
     UserEventKind,
 )
-from students_cz.services import parser
+from students_cz.services import catalog, parser
 from students_cz.services.errors import (
     BadRequest,
     Conflict,
@@ -526,11 +526,49 @@ async def decline(
 
 async def close(session: AsyncSession, *, user: User, request_id: int) -> HelpRequest:
     """Stop taking answers."""
+    request = await _own_request(session, user=user, request_id=request_id)
+    if request.status is not RequestStatus.CLOSED:
+        request.status = RequestStatus.CLOSED
+        request.closed_at = datetime.now(UTC)
+    return request
+
+
+async def delete(session: AsyncSession, *, user: User, request_id: int) -> None:
+    """Remove a request and every answer to it, for good."""
+    await session.delete(await _own_request(session, user=user, request_id=request_id))
+
+
+async def _own_request(
+    session: AsyncSession, *, user: User, request_id: int
+) -> HelpRequest:
+    """404 for someone else's as for a missing one, as with responses below."""
     request = await session.get(HelpRequest, request_id)
     if request is None or request.author_id != user.id:
         raise NotFound("no such request")
-    request.status = RequestStatus.CLOSED
     return request
+
+
+async def helpers_seeing(
+    session: AsyncSession, requests: list[HelpRequest]
+) -> dict[int, int]:
+    """How many people the catalog lists for each request, its author aside.
+
+    Exactly the `/search` on the request's subject and kind of help that the
+    screen offers beneath the number, so the two never disagree. A request
+    naming neither has nobody to count.
+    """
+    counts: dict[int, int] = {}
+    for request in requests:
+        if request.subject_id is None and request.service_type_id is None:
+            counts[request.id] = 0
+            continue
+        counts[request.id] = await catalog.count_helpers(
+            session,
+            subject_id=request.subject_id,
+            service_type_id=request.service_type_id,
+            exclude_helper_id=request.author_id,
+        )
+    return counts
 
 
 async def _own_response(
