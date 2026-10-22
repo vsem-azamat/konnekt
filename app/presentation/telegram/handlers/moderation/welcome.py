@@ -4,6 +4,7 @@ from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.utils.text_decorations import html_decoration
 
+from app.chats import welcome
 from app.db.repositories import ChatRepository
 
 router = Router()
@@ -50,5 +51,8 @@ async def welcome_change(message: types.Message, chat_repo: ChatRepository) -> N
         return
     await chat_repo.update_welcome_message(message.chat.id, welcome_message)
     await message.answer("<b>Приветствие сохранено и включено.</b> Так его увидят новые участники:")
-    await message.answer(welcome_message)
+    # The whole greeting, the admin standing in for the newcomer: their text
+    # is its last paragraph, not all of it.
+    newcomer = message.from_user.mention_html(message.from_user.first_name) if message.from_user else "Новичок"
+    await message.answer(welcome.text([newcomer], 0, welcome_message), disable_web_page_preview=True)
     await message.delete()

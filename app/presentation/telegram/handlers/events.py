@@ -23,7 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
-from app.chats import invite_links
+from app.chats import invite_links, welcome
 from app.chats.avatars import sync_photo
 from app.chats.metadata import fetch_metadata, username_of
 from app.core.config import settings
@@ -31,7 +31,6 @@ from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, JoinCheck, User
 from app.presentation.telegram.utils.filters import ChatTypeFilter
-from app.presentation.telegram.utils.other import sleep_and_delete
 
 logger = get_logger("handler.events")
 router = Router()
@@ -54,21 +53,12 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     logger.info("user_joined", chat_id=event.chat.id, user_id=joined.id)
 
     chat = await db.scalar(select(Chat).where(Chat.id == event.chat.id))
-    if chat is None or not chat.is_welcome_enabled or not chat.welcome_message:
+    if chat is None or not chat.is_welcome_enabled:
         return
-
-    try:
-        message = await bot.send_message(
-            chat_id=event.chat.id,
-            text=f"{joined.mention_html()}, {chat.welcome_message}",
-        )
-    except Exception as err:
-        # A greeting Telegram refuses is the chat's problem, not the join's.
-        logger.warning("welcome_not_sent", chat_id=event.chat.id, error=str(err), error_type=type(err).__name__)
-        return
-
-    if chat.time_delete:
-        sleep_and_delete(message, chat.time_delete)
+    chat_text, lifetime = chat.welcome_message, chat.time_delete
+    # Done with the database before waiting on Telegram and on other joiners.
+    await db.commit()
+    await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
 
 
 @router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))

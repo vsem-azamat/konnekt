@@ -94,7 +94,11 @@ class TelegramSettings(Settings):
     # A placeholder until the final video is approved, so a setting and off by
     # default. A file_id this bot received, or an https URL Telegram fetches.
     intro_video: str = Field(
-        default="", description="Video sent with the /start greeting (file_id or https URL); unset sends text only"
+        default="",
+        description=(
+            "Video under the /start greeting, the chat greeting and the note after the captcha "
+            "(file_id or https URL); unset sends text only"
+        ),
     )
 
     model_config = SettingsConfigDict(

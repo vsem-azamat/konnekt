@@ -9,10 +9,11 @@ turned off for them; a second answer to one press is an error.
 from aiogram import Bot, Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.captcha import service, waves
+from app.captcha import challenge, service, waves
 from app.captcha.challenge import CaptchaPick
 from app.captcha.waves import WaveDecision
 from app.core.config import settings
+from app.db.models import JoinCaptcha
 
 router = Router()
 
@@ -32,6 +33,10 @@ async def captcha_pick(callback: types.CallbackQuery, callback_data: CaptchaPick
     outcome = await service.answer(
         bot, db, challenge_id=callback_data.challenge_id, user_id=callback.from_user.id, pick=callback_data.pick
     )
+    if outcome is service.Outcome.RETRY and (row := await db.get(JoinCaptcha, callback_data.challenge_id)):
+        # Not an alert: it goes by itself and the board stays usable under it.
+        await callback.answer(challenge.retry_hint(row.answer, row.attempts_left))
+        return
     await callback.answer(_REPLIES[outcome])
 
 
