@@ -34,6 +34,8 @@ export interface AudienceSummary {
   new_by_week: number[];
   new_this_week: number;
   languages: { code: string; count: number }[];
+  /** People who have written to the ads bot; not part of the audience. */
+  ads_conversations: number;
 }
 
 export interface AudienceMember {

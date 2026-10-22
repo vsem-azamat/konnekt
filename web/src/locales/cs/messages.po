@@ -69,6 +69,7 @@ msgid "Входят сразу"
 msgstr "Vstupují hned"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Старые боты"
 msgstr "Staré boty"
 
@@ -156,6 +157,11 @@ msgstr "Zatím žádná. Přidej ji níž — bez nich tě vyhledávání nenajd
 msgid "{0, plural, one {новая анкета} few {новые анкеты} many {новых анкет} other {новых анкет}}"
 msgstr "{0, plural, one {nový profil} few {nové profily} many {nového profilu} other {nových profilů}}"
 
+#. placeholder {0}: wave.held
+#: src/console/pages/Summary.tsx
+msgid "{0, plural, one {# заявка ждёт} few {# заявки ждут} many {# заявок ждут} other {# заявки ждут}}"
+msgstr "{0, plural, one {# žádost čeká} few {# žádosti čekají} many {# žádostí čeká} other {# žádostí čeká}}"
+
 #: src/console/pages/Spam.tsx
 msgid "Детектор ничего не находил."
 msgstr "Detektor nic nenašel."
@@ -236,6 +242,7 @@ msgid "предмет"
 msgstr "předmět"
 
 #: src/console/BrowserShell.tsx
+#: src/console/pages/Summary.tsx
 msgid "Обзор"
 msgstr "Přehled"
 
@@ -317,6 +324,10 @@ msgstr "Odpověď nedorazila. Než to zkusíte znovu, zkontrolujte seznam: karta
 #~ msgid "Капча при входе"
 #~ msgstr "Captcha při vstupu"
 
+#: src/console/pages/Summary.tsx
+msgid "Бот рекламы"
+msgstr "Reklamní bot"
+
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Tento kanál nespravuje Konnekt, pravidla má vlastní."
@@ -392,6 +403,11 @@ msgstr "Skrýt"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Neprovedeno: hlavního administrátora nelze zabanovat."
+
+#. placeholder {0}: n(audience.reach.blocked)
+#: src/console/pages/Summary.tsx
+msgid "{0} заблокировали"
+msgstr "{0} zablokovalo"
 
 #: src/components/Place.tsx
 msgid "вся Чехия"
@@ -526,6 +542,10 @@ msgstr "Reklama nebo spam"
 msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
 msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět i tam."
 
+#: src/console/pages/Summary.tsx
+msgid "могут получить сообщение"
+msgstr "mohou dostat zprávu"
+
 #: src/pages/Profile.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Umíš něco, co ostatní potřebují?"
@@ -552,12 +572,24 @@ msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {#
 msgstr "{count, plural, one {# chat: {names}} few {# chaty: {names}} many {# chatu: {names}} other {# chatů: {names}}}"
 
 #: src/console/pages/Summary.tsx
+msgid "{held} · только что"
+msgstr "{held} · právě teď"
+
+#: src/console/pages/Summary.tsx
+msgid "Основной бот"
+msgstr "Hlavní bot"
+
+#: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
 msgstr "Co se děje v chatech a v katalogu."
 
 #: src/pages/Profile.tsx
 #~ msgid "На каких языках тебе удобно"
 #~ msgstr "Ve kterých jazycích se ti mluví dobře"
+
+#: src/console/pages/Summary.tsx
+msgid "Капча на паузе"
+msgstr "Captcha pozastavena"
 
 #: src/console/pages/Catalog.tsx
 msgid "Искали и не нашли"
@@ -574,6 +606,10 @@ msgstr "Odkaz musí vést na chat v Telegramu: https://t.me/…"
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
 msgstr "Přihlašovací údaje vypršely."
+
+#: src/console/pages/Summary.tsx
+msgid "Ждёт нажатия"
+msgstr "Čeká na stisknutí"
 
 #: src/components/Phrase.tsx
 msgid "первый год"
@@ -616,6 +652,7 @@ msgid "Добавить в каталог"
 msgstr "Přidat do katalogu"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бот"
 msgstr "Bot"
 
@@ -760,6 +797,10 @@ msgstr "Plzeň"
 msgid "Реклама для студентов"
 msgstr "Reklama pro studenty"
 
+#: src/console/pages/Summary.tsx
+msgid "Число"
+msgstr "Počet"
+
 #: src/console/BanSheet.tsx
 msgid "{name} забанен не везде"
 msgstr "{name} není zabanován všude"
@@ -871,6 +912,10 @@ msgstr "Poprvé: {0}"
 msgid "Показан в «Чатах»"
 msgstr "Zobrazen v «Chatech»"
 
+#: src/console/pages/Summary.tsx
+msgid "переехавшие подписчики"
+msgstr "přesunutí odběratelé"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
 msgstr "U chatu vysoké školy to není potřeba: do „Vysoké školy“ ho zařadí jeho škola."
@@ -890,6 +935,10 @@ msgstr "Fronty"
 #: src/components/HideReasonText.tsx
 msgid "Неправдивые сведения"
 msgstr "Nepravdivé údaje"
+
+#: src/console/pages/Summary.tsx
+msgid "предложено через MCP · истекает через {left} мин"
+msgstr "navrženo přes MCP · vyprší za {left} min"
 
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
@@ -915,6 +964,10 @@ msgstr "Jen sledovat?"
 #: src/pages/AdsApp.tsx
 msgid "«Не про учёбу»"
 msgstr "«Ne o studiu»"
+
+#: src/console/pages/Summary.tsx
+msgid "бот для действий консоли: не настроен"
+msgstr "bot pro akce konzole: nenastaven"
 
 #: src/console/BanSheet.tsx
 msgid "{name} в чёрном списке"
@@ -1028,6 +1081,10 @@ msgstr "Napsat nám"
 #: src/pages/OfferPrices.tsx
 msgid "Сохранить"
 msgstr "Uložit"
+
+#: src/console/pages/Summary.tsx
+msgid "бот и Mini App"
+msgstr "bot a Mini App"
 
 #: src/console/BanSheet.tsx
 msgid "Готово"
@@ -1374,6 +1431,7 @@ msgid "скрыта, автор изменил анкету"
 msgstr "skrytý, autor ho upravil"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бан {who} в {chat}"
 msgstr "Ban {who} v {chat}"
 
@@ -1737,6 +1795,7 @@ msgid "Поиск по чатам и людям"
 msgstr "Hledat chaty a lidi"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бот связи"
 msgstr "Kontaktní bot"
 
@@ -1935,6 +1994,10 @@ msgstr "Sledujeme"
 msgid "Вход в консоль действует час после открытия приложения."
 msgstr "Přihlášení do konzole platí hodinu po otevření aplikace."
 
+#: src/console/pages/Summary.tsx
+msgid "вопросы и «Написать нам»"
+msgstr "dotazy a „Napište nám“"
+
 #: src/pages/AdsChats.tsx
 msgid "чатов · людей"
 msgstr "chatů · lidí"
@@ -1985,6 +2048,7 @@ msgid "Название или id"
 msgstr "Název nebo id"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "каталог"
 msgstr "katalog"
 
@@ -2082,6 +2146,10 @@ msgstr "Přihlášení vypršelo: otevřete aplikaci znovu."
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "V katalogu není vidět. Profil můžeš upravovat a změny se uloží, ale zpět do katalogu ho může vrátit jen administrátor."
 
+#: src/console/pages/Summary.tsx
+msgid "диалогов в группе"
+msgstr "konverzací ve skupině"
+
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
 msgstr "Odpovíme, ve kterých chatech se to hodí a kolik to stojí."
@@ -2149,6 +2217,7 @@ msgid "Чт"
 msgstr "Čt"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Набег на {title}"
 msgstr "Nájezd na {title}"
 
@@ -2378,6 +2447,7 @@ msgid "в месяц"
 msgstr "za měsíc"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бан {who} во всех чатах"
 msgstr "Ban {who} ve všech chatech"
 
@@ -2421,6 +2491,10 @@ msgstr "Autor ho může upravovat, ale sám ho nezveřejní."
 #~ msgid "Этот чат ведёт не Konnekt, и правила там свои."
 #~ msgstr "Tento chat nespravuje Konnekt a pravidla jsou tam jeho vlastní."
 
+#: src/console/pages/Summary.tsx
+msgid "Заблокировали"
+msgstr "Zablokovali"
+
 #: src/lib/turnaround.tsx
 msgid "{days} дн."
 msgstr "{days} dní"
@@ -2457,6 +2531,10 @@ msgstr "Nenastaveno: jen společné uvítání"
 msgid "Попробовать ещё раз"
 msgstr "Zkusit znovu"
 
+#: src/console/pages/Summary.tsx
+msgid "{held} · {hoursAgo} ч назад"
+msgstr "{held} · před {hoursAgo} h"
+
 #: src/pages/Mine.tsx
 msgid "Закрытых заявок нет"
 msgstr "Žádné uzavřené poptávky"
@@ -2470,6 +2548,7 @@ msgid "Нарушает правила"
 msgstr "Porušuje pravidla"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Чёрный список: {who}"
 msgstr "Černá listina: {who}"
 
@@ -2575,6 +2654,10 @@ msgstr "Profil je uložený, ale v katalogu není. Vrátit ho můžeš níže."
 #: src/console/pages/Summary.tsx
 msgid "Заявки без откликов"
 msgstr "Žádosti bez odpovědi"
+
+#: src/console/pages/Summary.tsx
+msgid "первых касаний"
+msgstr "prvních kontaktů"
 
 #: src/console/pages/Catalog.tsx
 msgid "без откликов"
@@ -2827,8 +2910,13 @@ msgstr "bot v nich je, ale nejsou schválené"
 msgid "Поиск чата"
 msgstr "Hledat chat"
 
+#: src/console/pages/Summary.tsx
+msgid "{held} · {ago} мин назад"
+msgstr "{held} · před {ago} min"
+
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Новые анкеты"
 msgstr "Nové profily"
 
@@ -2934,6 +3022,10 @@ msgstr "Poslední aktivita"
 #: src/console/BanSheet.tsx
 msgid "{name} не забанен ни в одном чате"
 msgstr "{name} není zabanován v žádném chatu"
+
+#: src/console/pages/Summary.tsx
+msgid "Боты"
+msgstr "Boti"
 
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"
@@ -3257,6 +3349,10 @@ msgstr "Chat: {0} ▾"
 msgid "Это главный администратор."
 msgstr "Toto je hlavní administrátor."
 
+#: src/console/pages/Summary.tsx
+msgid "диалоги с компаниями"
+msgstr "konverzace s firmami"
+
 #: src/lib/turnaround.tsx
 msgid "3 дня"
 msgstr "3 dny"
@@ -3472,6 +3568,10 @@ msgstr "Seznam škol se nenačetl. Zkus to prosím později."
 msgid "Обновляем…"
 msgstr "Obnovujeme…"
 
+#: src/console/pages/Summary.tsx
+msgid "бот для действий консоли: готов"
+msgstr "bot pro akce konzole: připraven"
+
 #: src/console/pages/Partners.tsx
 msgid "Выключить карточку?"
 msgstr "Vypnout kartu?"
@@ -3565,6 +3665,10 @@ msgstr "Uloženo. Profil je dál skrytý, administrátor se na něj podívá zno
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"
 msgstr "Černá listina"
+
+#: src/console/pages/Summary.tsx
+msgid "Что считаем"
+msgstr "Co počítáme"
 
 #: src/console/BanSheet.tsx
 msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."

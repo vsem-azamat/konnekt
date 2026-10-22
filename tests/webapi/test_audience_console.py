@@ -9,6 +9,7 @@ from app.audience import record
 from app.audience.record import Person
 from app.core.enums import Touchpoint
 from app.core.time import utc_now
+from app.db.models import AdsTopic
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
 
@@ -79,6 +80,22 @@ async def test_an_empty_audience_still_names_every_status(client) -> None:
     assert summary["total"] == 0
     assert summary["reach"] == {"reachable": 0, "never_started": 0, "blocked": 0, "opted_out": 0}
     assert summary["new_by_week"] == [0] * 8
+    assert summary["ads_conversations"] == 0
+
+
+async def test_the_summary_counts_people_who_wrote_to_the_ads_bot(client, db_session_maker) -> None:
+    async with db_session_maker() as db:
+        db.add(AdsTopic(group_id=-1001, user_id=ANNA.id, thread_id=10))
+        db.add(AdsTopic(group_id=-1001, user_id=TARAS.id, thread_id=11))
+        # The desk moved to another group and Anna wrote again: still one person.
+        db.add(AdsTopic(group_id=-1002, user_id=ANNA.id, thread_id=3))
+        await db.commit()
+
+    summary = (await client.get("/api/audience/summary")).json()
+
+    assert summary["ads_conversations"] == 2
+    # Writing to the ads bot does not make anyone part of the audience.
+    assert summary["total"] == 0
 
 
 async def test_the_list_is_newest_activity_first_with_each_persons_status(client, audience) -> None:

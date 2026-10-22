@@ -277,12 +277,16 @@ export interface HomeStats {
 
 // ── what the summary says ─────────────────────────────────────────────────
 
-export type AttentionKey = 'ads' | 'review' | 'requests';
+export type AttentionKey = 'ads' | 'review' | 'profiles' | 'requests';
 
-/** What needs a look, in the order the summary lists it; zero is not news. */
+/**
+ * What needs a look, in the order the summary lists it; zero is not news.
+ * New profiles are the browser's: the Mini App's summary leaves them out.
+ */
 export function attention(input: {
   adsUnreviewed: number;
   chats: Pick<ConsoleChat, 'resource_status'>[];
+  profilesToReview?: number;
   requestsUnanswered: number;
 }): { key: AttentionKey; count: number }[] {
   const items: { key: AttentionKey; count: number }[] = [
@@ -291,6 +295,7 @@ export function attention(input: {
       key: 'review',
       count: input.chats.filter((chat) => chat.resource_status === 'discovered').length,
     },
+    { key: 'profiles', count: input.profilesToReview ?? 0 },
     { key: 'requests', count: input.requestsUnanswered },
   ];
   return items.filter((item) => item.count > 0);

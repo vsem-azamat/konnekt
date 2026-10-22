@@ -457,6 +457,8 @@ class AudienceSummary(BaseModel):
     new_by_week: list[int]
     new_this_week: int
     languages: list[AudienceLanguage]
+    # People who have written to the ads bot; not members of the audience.
+    ads_conversations: int
 
 
 class AudienceMemberRead(BaseModel):
