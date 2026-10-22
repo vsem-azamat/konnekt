@@ -69,43 +69,21 @@ def _answered(message) -> tuple[str, list]:
 
 @pytest.mark.handlers
 class TestStart:
-    async def test_a_stranger_gets_buttons_not_a_command_list(self, telegram_factory, admin_repo, site):
-        """The greeting answers "what is this", not "what can you type"."""
+    async def test_a_stranger_gets_one_way_in(self, telegram_factory, admin_repo, site):
+        """Advertising and «Написать нам» live in the Mini App's profile and /contacts."""
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
         text, buttons = _answered(message)
-        assert "/mute" not in text
-        assert "/banall" not in text
-        assert "/help" in text
-        assert len(buttons) >= 2
+        assert text == start_handlers.GREETING
+        assert [b.text for b in buttons] == ["Открыть Konnekt"]
 
-    async def test_the_greeting_speaks_as_us(self, telegram_factory, admin_repo, site):
-        """A stranger's greeting says what happens to spam, not who does it."""
-        message = _private(telegram_factory, "start", create_normal_user(id=556))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        text, _ = _answered(message)
-        assert "модер" not in text.lower()
-
-    async def test_the_greeting_is_plain_language(self, telegram_factory, admin_repo, site):
-        """With the site configured, so the line about who helps is in it."""
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        text, buttons = _answered(message)
-        assert slang(text) == []
-        assert [b.text for b in buttons if slang(b.text)] == []
-
-    async def test_the_first_button_goes_to_the_catalogue(self, telegram_factory, admin_repo, site):
-        """The question people arrive with is "where is my faculty's chat".
+    async def test_the_way_in_is_the_catalogue(self, telegram_factory, admin_repo, site):
+        """Where the menu button «Открыть» goes too: most people come for a chat.
 
         As a Mini App rather than a link: opened as a site, a tap on a chat
-        leaves Telegram for a browser which then reopens Telegram. At /chats:
-        the Mini App's first screen is help with studies.
+        leaves Telegram for a browser which then reopens Telegram.
         """
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
@@ -116,13 +94,56 @@ class TestStart:
         assert buttons[0].web_app.url == f"{SITE}/chats"
         assert buttons[0].url is None
 
-    async def test_an_advertiser_has_somewhere_to_go(self, telegram_factory, admin_repo, site):
+    async def test_a_stranger_is_not_handed_the_command_list(self, telegram_factory, admin_repo, site):
+        """The greeting answers "what is this", not "what can you type"."""
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        _, buttons = _answered(message)
-        assert any(b.web_app and b.web_app.url == f"{SITE}/ads" for b in buttons)
+        text, _ = _answered(message)
+        assert "/help" not in text
+        assert "/mute" not in text
+
+    async def test_a_moderator_is_pointed_at_help(self, telegram_factory, admin_repo, site):
+        admin_repo.is_admin.return_value = True
+        admin_repo.chats_for.return_value = [-100_1, -100_2]
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        text, buttons = _answered(message)
+        assert text.startswith(start_handlers.GREETING)
+        assert "Вы модерируете 2 чата" in text
+        assert "/help" in text
+        assert [b.text for b in buttons] == ["Открыть Konnekt"]
+
+    async def test_a_deep_link_gets_the_same_answer(self, telegram_factory, admin_repo, site):
+        """?start=<source> is recorded by the audience middleware; the greeting ignores it."""
+        message = telegram_factory.create_command_message(
+            command="start",
+            args="matfyz",
+            user=create_normal_user(id=555),
+            chat=telegram_factory.create_chat(id=555, type="private", title=None),
+        )
+
+        await start_handlers.start_private(message, admin_repo)
+
+        text, buttons = _answered(message)
+        assert text == start_handlers.GREETING
+        assert buttons[0].web_app.url == f"{SITE}/chats"
+
+    async def test_the_greeting_speaks_as_us(self, telegram_factory, admin_repo, site):
+        """A stranger's greeting says what happens to spam, not who does it."""
+        assert "модер" not in start_handlers.GREETING.lower()
+
+    async def test_the_greeting_is_plain_language(self, telegram_factory, admin_repo, site):
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        text, buttons = _answered(message)
+        assert slang(text) == []
+        assert [b.text for b in buttons if slang(b.text)] == []
 
     async def test_in_a_group_the_site_stays_an_ordinary_link(self, telegram_factory, admin_repo, site):
         """Telegram refuses a web_app button outside a private chat.
@@ -150,26 +171,6 @@ class TestStart:
         assert all(b.web_app is None for b in buttons)
         assert buttons[0].url == "http://localhost:5173/chats"
 
-    async def test_the_two_asides_share_a_row(self, telegram_factory, admin_repo, site):
-        """Four identical full-width buttons is a wall, evenly weighted.
-
-        Finding a chat is why anybody opened this. Advertising and the contact
-        link are not, and a column gives all three the same emphasis.
-        """
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        assert [len(row) for row in _rows(message)] == [1, 1, 2]
-
-    async def test_the_console_does_not_disturb_that(self, telegram_factory, admin_repo, site):
-        """It is one button more, drawn for one person, and it keeps its row."""
-        message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        assert [len(row) for row in _rows(message)] == [1, 1, 1, 2]
-
     async def test_the_greeting_is_not_deleted(self, telegram_factory, admin_repo, site):
         """It is the first screen of the product, not a service reply.
 
@@ -191,20 +192,23 @@ class TestStart:
         _, buttons = _answered(message)
         assert not any("онсол" in b.text for b in buttons)
 
-    async def test_a_super_admin_is_offered_the_console(self, telegram_factory, admin_repo, site):
+    async def test_a_super_admin_is_offered_the_console_on_top(self, telegram_factory, admin_repo, site):
         """This replaces having to know that `/adminlink` exists."""
         message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
 
         await start_handlers.start_private(message, admin_repo)
 
-        _, buttons = _answered(message)
-        console = [b for b in buttons if "онсол" in b.text]
-        assert len(console) == 1
+        text, buttons = _answered(message)
+        assert "/help" in text
+        assert [len(row) for row in _rows(message)] == [1, 1]
+        console, way_in = buttons
+        assert "онсол" in console.text
         # Straight into the console as a Mini App. It used to be a callback that
         # minted a sign-in link; the console now reads the signature Telegram
         # already attached, so there is no link to mint and none to leak.
-        assert console[0].web_app is not None
-        assert console[0].web_app.url == f"{SITE}/console"
+        assert console.web_app is not None
+        assert console.web_app.url == f"{SITE}/console"
+        assert way_in.web_app.url == f"{SITE}/chats"
 
     async def test_the_console_is_not_offered_where_it_cannot_open(self, telegram_factory, admin_repo, site):
         """Signing in means handing over `initData`, which only a Mini App has.
@@ -227,9 +231,8 @@ class TestStart:
 
         await start_handlers.start_private(message, admin_repo)
 
-        _, buttons = _answered(message)
-        assert all(b.url != "" for b in buttons)
-        assert not any(b.url and b.url.endswith("/ads") for b in buttons)
+        assert message.answer.call_args[0][0] == start_handlers.GREETING
+        assert message.answer.call_args[1]["reply_markup"] is None
 
 
 @pytest.mark.handlers
@@ -293,70 +296,12 @@ class TestHelp:
 
 
 @pytest.mark.handlers
-class TestHelpWithStudies:
-    """Help with studies is the same Mini App as the chats: its first screen.
-
-    Second, after the chats: finding a chat is why most people open this bot.
-    """
-
-    async def test_the_second_button_opens_the_app_itself(self, telegram_factory, admin_repo, site):
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        text, buttons = _answered(message)
-        assert buttons[0].web_app.url == f"{SITE}/chats"
-        assert buttons[1].web_app is not None
-        assert buttons[1].web_app.url == SITE
-        assert "учёб" in text, "the greeting says the help exists"
-
-    async def test_in_a_group_it_is_a_link(self, telegram_factory, admin_repo, site):
-        message = _in_group(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        _, buttons = _answered(message)
-        assert buttons[1].web_app is None
-        assert buttons[1].url == SITE
-
-    async def test_without_a_site_it_is_not_mentioned(self, telegram_factory, admin_repo, monkeypatch):
-        """The greeting names only what it offers."""
-        monkeypatch.setattr(start_handlers.settings.webapi, "public_url", "")
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        text, _ = _answered(message)
-        assert "учёб" not in text
-
-
-@pytest.mark.handlers
 class TestTheContact:
     """Where advertisers and anybody with a question write: one configured username.
 
     The same variable gives the web's ads pages their button, so the bot and
     the site cannot point to different people.
     """
-
-    async def test_start_offers_the_configured_contact(self, telegram_factory, admin_repo, site):
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        _, buttons = _answered(message)
-        assert buttons[-1].url == f"https://t.me/{CONTACT}"
-
-    async def test_without_a_contact_start_offers_no_button_to_nobody(
-        self, telegram_factory, admin_repo, site, monkeypatch
-    ):
-        monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", "")
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        _, buttons = _answered(message)
-        assert not any(b.url and b.url.startswith("https://t.me/") for b in buttons)
-        assert [len(row) for row in _rows(message)] == [1, 1, 1]
 
     async def test_contacts_names_the_configured_contact(self, telegram_factory, site):
         message = _in_group(telegram_factory, "contacts", create_normal_user(id=555))

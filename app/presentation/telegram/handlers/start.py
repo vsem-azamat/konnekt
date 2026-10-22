@@ -52,30 +52,35 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
     return types.InlineKeyboardButton(text=text, url=url)
 
 
+# The whole greeting, so a change of copy is a change of this line alone.
+GREETING = (
+    "<b>Konnekt</b> — студенческие чаты Чехии и помощь с учёбой.\n\n"
+    "Чаты по университетам, факультетам и общежитиям, спам, скам и фишинг оттуда мы вычищаем. "
+    "Там же репетиторы, подготовка к вступительным экзаменам, нострификация."
+)
+OPEN_BUTTON = "Открыть Konnekt"
+CONSOLE_BUTTON = "⚙️ Открыть консоль"
+
+
 @router.message(Command("start", prefix="/!"))
 async def start_private(message: types.Message, admin_repo: AdminRepository) -> None:
-    """Say what this is, and offer the two places worth going."""
+    """Say what this is, and offer one way in: the chats.
+
+    A deep link (`/start <source>`) gets the same answer; the audience
+    middleware has already recorded the source.
+    """
     if not message.from_user:
         return
 
-    text = (
-        "<b>Konnekt</b>\n\n"
-        "Каталог студенческих чатов Чехии — по университетам, факультетам "
-        "и общежитиям. Спам, скам и фишинг из чатов мы вычищаем.\n\n"
-    )
-    # Said only when its button is there: the greeting names what it offers.
-    if settings.webapi.public_url:
-        text += "А ещё здесь люди, которые помогут с учёбой: репетиторы, подготовка к вступительным экзаменам, нострификация.\n\n"
-
+    text = GREETING
+    # Only those who have more to type than a stranger are pointed at /help.
     is_super_admin = message.from_user.id in settings.admin.super_admins
     if is_super_admin:
-        text += "Вы главный администратор. Все команды — /help"
+        text += "\n\nВы главный администратор. Все команды — /help"
     elif await admin_repo.is_admin(message.from_user.id):
         chats = await admin_repo.chats_for(message.from_user.id)
         moderates = plural(len(chats), "чат", "чата", "чатов")
-        text += f"Вы модерируете {len(chats)} {moderates}. Все команды — /help"
-    else:
-        text += "Все команды — /help"
+        text += f"\n\nВы модерируете {len(chats)} {moderates}. Все команды — /help"
 
     private = message.chat.type == "private"
 
@@ -87,28 +92,17 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
 
     builder = InlineKeyboardBuilder()
     if shows_console:
-        builder.add(_open_button("⚙️ Открыть консоль", f"{_site()}/console", private=private))
+        builder.row(_open_button(CONSOLE_BUTTON, f"{_site()}/console", private=private))
+    # «Чаты», where the menu button «Открыть» goes too: finding a chat is why
+    # most people come. «Помощь» is the tab beside it; advertising and
+    # «Написать нам» live in the Mini App's profile and /contacts.
     if settings.webapi.public_url:
-        builder.add(_open_button("🔎 Найти свой чат", f"{_site()}/chats", private=private))
-        # The Mini App's first screen. Its own row, second: finding a chat is
-        # why most people come.
-        builder.add(_open_button("🎓 Помощь с учёбой", _site(), private=private))
-        builder.add(_open_button("📣 Реклама в чатах", f"{_site()}/ads", private=private))
-    # Where somebody who wants to place an advertisement, or to say anything
-    # else, is sent. The bot answers questions about chats; people answer the rest.
-    if contact := settings.ads_bot.contact_username:
-        builder.add(types.InlineKeyboardButton(text="✉️ Написать нам", url=f"https://t.me/{contact}"))
-
-    # A column of identical full-width buttons reads as a wall, and gives the
-    # same weight to the reason somebody opened the bot and to the two things
-    # nobody did. Advertising and the contact link share the last row; the
-    # shape depends on the console, which only a super administrator is shown.
-    lead = [1] * (int(shows_console) + int(bool(settings.webapi.public_url)))
-    builder.adjust(*(lead + [1, 2]))
+        builder.row(_open_button(OPEN_BUTTON, f"{_site()}/chats", private=private))
 
     # Deliberately not scheduled for deletion. This is the message somebody
     # comes back to; the справочник below is the one that may go.
-    await message.answer(text, disable_web_page_preview=True, reply_markup=builder.as_markup())
+    markup = builder.as_markup()
+    await message.answer(text, disable_web_page_preview=True, reply_markup=markup if markup.inline_keyboard else None)
 
 
 @router.message(Command("help", prefix="/!"))
@@ -126,7 +120,7 @@ async def help_command(message: types.Message, admin_repo: AdminRepository) -> N
         "<b>Команды</b>\n\n"
         "<b>Всем</b>\n"
         "/chats — чаты списком\n"
-        "/contacts — связаться\n"
+        "/contacts — написать нам\n"
         "/report — в ответ на сообщение, пожаловаться на него (в группе)\n"
     )
 
