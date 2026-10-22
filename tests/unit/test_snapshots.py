@@ -515,11 +515,18 @@ class TestFloodControl:
         from aiogram.exceptions import TelegramRetryAfter
         from app.chats import metadata
 
+        waited: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            waited.append(seconds)
+
+        monkeypatch.setattr(metadata.asyncio, "sleep", fake_sleep)
         bot = AsyncMock()
         bot.get_chat = AsyncMock(side_effect=TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=4837))
 
         assert await metadata.fetch_metadata(bot=bot, chat_id=-100, username="jcu_chat") is None
         assert bot.get_chat.await_count == 1
+        assert waited == []
 
 
 class TestBotNotInChat:
