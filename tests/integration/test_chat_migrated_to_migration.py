@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 
 
 def test_every_chat_starts_as_itself(database) -> None:  # noqa: F811
-    command.upgrade(_alembic(), "dc297231ecfd")
+    command.upgrade(_alembic(), "a7d3e5f1c2b9")
     with database.begin() as conn:
         _insert(conn, id=-1, status="approved")
     command.upgrade(_alembic(), "head")
@@ -23,7 +23,7 @@ def test_every_chat_starts_as_itself(database) -> None:  # noqa: F811
 
 def test_it_downgrades_cleanly(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), "head")
-    command.downgrade(_alembic(), "dc297231ecfd")
+    command.downgrade(_alembic(), "a7d3e5f1c2b9")
     with database.connect() as conn:
         columns = {column["name"] for column in sa.inspect(conn).get_columns("chats")}
     assert "migrated_to_chat_id" not in columns

@@ -6,7 +6,7 @@ row stays, with its history; this says where the chat went, so the hourly
 loop stops asking it.
 
 Revision ID: b8e1f4c6d2a0
-Revises: dc297231ecfd
+Revises: a7d3e5f1c2b9
 Create Date: 2026-10-22
 """
 
@@ -17,7 +17,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "b8e1f4c6d2a0"
-down_revision: str | None = "dc297231ecfd"
+down_revision: str | None = "a7d3e5f1c2b9"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
