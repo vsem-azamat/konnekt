@@ -992,3 +992,45 @@ async def test_a_request_on_a_shelf_is_priced_from_what_it_holds(
 
     request_id = await _asking(client, session, subject_id=maths, service_type_id=None)
     assert (await _suggested(client, request_id) or {}).get("amount") == 650
+
+
+async def test_several_fitting_offers_give_the_lowest_or_nothing(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    """The lowest within one unit; across units there is no honest guess."""
+    from students_cz.db.models import Offer, Subject
+    from students_cz.db.models.enums import PriceUnit
+
+    helper = await helper_factory(tg_id=HELPER, price=650)
+    maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
+    probability, exam_prep = await _ids(
+        session, subject="pravdepodobnost-a-statistika", service="exam_prep"
+    )
+    _, tutoring = await _ids(session, subject="matematicka-analyza", service="tutoring")
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=tutoring,
+            subject_id=probability,
+            price_amount=500,
+            langs=["ru"],
+        )
+    )
+    await session.commit()
+
+    tutored = await _asking(client, session, subject_id=maths, service_type_id=tutoring)
+    assert (await _suggested(client, tutored) or {}).get("amount") == 500
+
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=exam_prep,
+            subject_id=probability,
+            price_amount=3000,
+            price_unit=PriceUnit.SEMESTER,
+            langs=["ru"],
+        )
+    )
+    await session.commit()
+    anything = await _asking(client, session, subject_id=maths, service_type_id=None)
+    assert await _suggested(client, anything) is None
