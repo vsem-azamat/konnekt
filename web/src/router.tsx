@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { createBrowserRouter } from 'react-router';
+import { TabsLayout } from '@/components/TabsLayout';
 import BrowserNotFound from '@/console/BrowserNotFound';
 import BrowserShell from '@/console/BrowserShell';
 import { BROWSER_PATHS, type BrowserPath } from '@/console/browser';
@@ -49,23 +50,28 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Root />,
     children: [
-      { index: true, element: <HomePage /> },
+      {
+        element: <TabsLayout />,
+        children: [
+          { index: true, element: <HomePage /> },
+          { path: 'chats', element: <ChatsPage /> },
+          { path: 'chats/:group', element: <ChatSectionPage /> },
+          { path: 'results', element: <ResultsPage /> },
+          { path: 'mine', element: <MinePage /> },
+          { path: 'profile', element: <ProfilePage /> },
+        ],
+      },
       { path: 'ads', element: <AdsPage /> },
       { path: 'ads/chats', element: <AdsChatsPage /> },
       { path: 'ads/app', element: <AdsAppPage /> },
       { path: 'ask', element: <AskPage /> },
-      { path: 'chats', element: <ChatsPage /> },
-      { path: 'chats/:group', element: <ChatSectionPage /> },
-      { path: 'results', element: <ResultsPage /> },
       { path: 'helper/:id', element: <HelperPage /> },
       { path: 'join', element: <JoinPage /> },
-      { path: 'mine', element: <MinePage /> },
       { path: 'request/:id', element: <RequestPage /> },
       { path: 'offer', element: <OfferPage /> },
       { path: 'offer/prices', element: <OfferPricesPage /> },
       { path: 'my-helper', element: <MyHelperPage /> },
       { path: 'life', element: <LifePage /> },
-      { path: 'profile', element: <ProfilePage /> },
       { path: 'console', element: <ConsoleSummaryPage /> },
       { path: 'console/audience', element: <ConsoleAudiencePage /> },
       { path: 'console/audience/people', element: <ConsoleAudiencePeoplePage /> },
