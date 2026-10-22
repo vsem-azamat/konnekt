@@ -13,6 +13,8 @@ function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): Conso
     public_link: null,
     parent_chat_id: null,
     institution_code: null,
+    city: null,
+    topic: null,
     is_captcha_enabled: false,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,

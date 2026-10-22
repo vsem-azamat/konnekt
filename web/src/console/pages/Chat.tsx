@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import { CityName, TopicHeading } from '@/components/Place';
 import { Pick, Sheet } from '@/components/Sheet';
 import {
   Action,
@@ -48,7 +49,7 @@ import {
 } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { chatsQuery, institutionsQuery } from '@/lib/api';
-import { initials } from '@/lib/chats';
+import { initials, TOPICS } from '@/lib/chats';
 import type { Institution } from '@/lib/types';
 
 /**
@@ -97,6 +98,8 @@ type Sheets =
   | { kind: 'ping'; ping: SpamPing }
   | { kind: 'parent' }
   | { kind: 'institution' }
+  | { kind: 'city' }
+  | { kind: 'topic' }
   | null;
 
 function ChatScreen({ chatId }: { chatId: number }) {
@@ -231,6 +234,12 @@ function ChatScreen({ chatId }: { chatId: number }) {
     const university = institutions.data?.find((row) => row.code === code);
     return university ? (university.short_name ?? university.name) : code;
   };
+  // The public catalogue files and filters by these, so it is asked again.
+  const saveListing = (change: ChatUpdate) =>
+    save(change, () => {
+      void queryClient.invalidateQueries({ queryKey: chatsQuery.queryKey });
+      close();
+    });
   const goTo = (id: number) => {
     hapticSelection();
     navigate(`/console/chats/${id}`);
@@ -493,6 +502,44 @@ function ChatScreen({ chatId }: { chatId: number }) {
             }
           />
         )}
+        <Row
+          title={<Trans>Город</Trans>}
+          hint={
+            chat.city !== null ? (
+              <CityName city={chat.city} />
+            ) : parent ? (
+              <Trans>
+                как у родителя: <CityName city={parent.city} />
+              </Trans>
+            ) : (
+              <CityName city={null} />
+            )
+          }
+          trailing={<Chevron />}
+          onClick={() => {
+            if (!busy) open({ kind: 'city' });
+          }}
+        />
+        <Row
+          title={<Trans>Раздел каталога</Trans>}
+          hint={
+            chat.topic !== null ? (
+              <TopicHeading topic={chat.topic} />
+            ) : parent?.topic ? (
+              <Trans>
+                как у родителя: <TopicHeading topic={parent.topic} />
+              </Trans>
+            ) : (chat.institution_code ?? parent?.institution_code) ? (
+              <Trans>Вузы, по вузу</Trans>
+            ) : (
+              <Trans>не указан: стоит в «Общее»</Trans>
+            )
+          }
+          trailing={<Chevron />}
+          onClick={() => {
+            if (!busy) open({ kind: 'topic' });
+          }}
+        />
         {chat.children.map((child) => (
           <Row
             key={child.id}
@@ -826,6 +873,44 @@ function ChatScreen({ chatId }: { chatId: number }) {
           onClose={close}
         />
       ) : null}
+      {sheet?.kind === 'city' ? (
+        <ChoiceSheet
+          title={t`Город`}
+          note={<Trans>Пусто — вся Чехия: чат виден в каталоге при любом городе.</Trans>}
+          options={[
+            { value: null, name: <CityName city={null} /> },
+            ...taxonomyCities(institutions.data ?? [], chat.city).map((city) => ({
+              value: city,
+              name: <CityName city={city} />,
+            })),
+          ]}
+          current={chat.city}
+          busy={busy}
+          error={sheetError}
+          onPick={(city) => (city === chat.city ? close() : saveListing({ city }))}
+          onClose={close}
+        />
+      ) : null}
+      {sheet?.kind === 'topic' ? (
+        <ChoiceSheet
+          title={t`Раздел каталога`}
+          note={
+            <Trans>Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу.</Trans>
+          }
+          options={[
+            { value: null, name: <Trans>Не указан</Trans> },
+            ...TOPICS.map((topic) => ({
+              value: topic,
+              name: <TopicHeading topic={topic} />,
+            })),
+          ]}
+          current={chat.topic}
+          busy={busy}
+          error={sheetError}
+          onPick={(topic) => (topic === chat.topic ? close() : saveListing({ topic }))}
+          onClose={close}
+        />
+      ) : null}
       {sheet?.kind === 'parent' ? (
         <ParentSheet
           chat={chat}
@@ -988,6 +1073,57 @@ function InstitutionSheet({
       )}
     </Sheet>
   );
+}
+
+/** One choice from a short list, the current one marked. */
+function ChoiceSheet<T extends string>({
+  title,
+  note,
+  options,
+  current,
+  busy,
+  error,
+  onPick,
+  onClose,
+}: {
+  title: string;
+  note: ReactNode;
+  options: { value: T | null; name: ReactNode }[];
+  current: T | null;
+  busy: boolean;
+  error: ReactNode;
+  onPick: (value: T | null) => void;
+  onClose: () => void;
+}) {
+  const { t } = useLingui();
+  return (
+    <Sheet title={title} closeLabel={t`Отмена`} onClose={onClose}>
+      <Hint>{note}</Hint>
+      {error ? <Hint>{error}</Hint> : null}
+      <div className={ui.sheetList}>
+        {options.map((option) => (
+          <Pick
+            key={option.value ?? ''}
+            name={option.name}
+            selected={current === option.value}
+            disabled={busy}
+            onClick={() => onPick(option.value)}
+          />
+        ))}
+      </div>
+    </Sheet>
+  );
+}
+
+/**
+ * The cities a chat can be put in: those the catalog's universities are in,
+ * spelled as it spells them, so a student's university matches. A city set
+ * before and no longer among them stays pickable.
+ */
+function taxonomyCities(institutions: Institution[], current: string | null): string[] {
+  const all = new Set(institutions.flatMap((row) => (row.city ? [row.city] : [])));
+  if (current) all.add(current);
+  return [...all].sort((a, b) => a.localeCompare(b, 'cs'));
 }
 
 /** Why a parent was refused: the list moved on under the sheet. */
