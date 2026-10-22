@@ -105,6 +105,10 @@ export default function ChatsPage() {
       },
       { replace: true },
     );
+  // The default is the reader's university's city, which needs the profile
+  // and the taxonomy. Until both answered the list waits rather than show
+  // «Все» and jump under a finger to another city.
+  const waitingForHome = picked === null && (me.isPending || institutions.isPending);
   const shown = useMemo(() => blocks(data ?? [], { mine, city }), [data, mine, city]);
   const searching = query.trim() !== '';
   // Where a loose chat is, under its name: «вся Чехия» always, its city only
@@ -159,13 +163,18 @@ export default function ChatsPage() {
         {choices.length > 1 && !searching ? (
           <fieldset className={ui.cities} aria-label={t`Город`}>
             <Chips>
-              <ChipView active={city === null} onClick={() => pick(null)}>
+              <ChipView
+                active={city === null}
+                pressed={city === null}
+                onClick={() => pick(null)}
+              >
                 <Trans>Все</Trans>
               </ChipView>
               {choices.map((choice) => (
                 <ChipView
                   key={choice}
                   active={city === choice}
+                  pressed={city === choice}
                   onClick={() => pick(choice)}
                 >
                   <CityName city={choice} />
@@ -175,7 +184,7 @@ export default function ChatsPage() {
           </fieldset>
         ) : null}
 
-        {isPending ? (
+        {isPending || waitingForHome ? (
           <>
             <Label>
               <Trans>Загружаем</Trans>

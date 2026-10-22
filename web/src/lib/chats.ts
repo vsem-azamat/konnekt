@@ -214,12 +214,21 @@ export function blocks(
 }
 
 /**
- * The cities a reader can pick: those that have chats of their own, the one
- * with most chats first. Chats for all of Czechia name no city.
+ * The cities a reader can pick: those that have entries of their own, the one
+ * with most first. Chats for all of Czechia name no city.
  */
 export function cityChoices(chats: PublicChat[]): string[] {
+  // By the same chat {@link blocks} filters by: a faculty in another city
+  // than its university's would otherwise offer a chip that shows nothing.
+  const { entries, rest } = directory(chats);
   const counts = new Map<string, number>();
-  for (const { city } of chats) if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
+  for (const entry of [
+    ...entries,
+    ...rest.map((chat) => ({ kind: 'chat' as const, chat })),
+  ]) {
+    const city = lead(entry)?.city;
+    if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
+  }
   return [...counts]
     .sort(([a, x], [b, y]) => y - x || a.localeCompare(b, 'cs'))
     .map(([city]) => city);
@@ -348,6 +357,7 @@ export function search(
       chat.group,
       chat.institution,
       { exact: chat.institution === null ? null : cityOf.get(chat.institution) },
+      { exact: chat.city },
     ],
     query,
   );
@@ -364,13 +374,13 @@ export function cities(
 
 /**
  * Where a chat is, for its preview: the university's full name when it is a
- * university's chat, and its city — its own, or else its university's, from
- * the catalog's taxonomy. A null city is all of Czechia. No name when the
- * taxonomy has not heard of the university: a bare code says nothing to a reader.
+ * university's chat, and the city supervisor gave, null being all of Czechia —
+ * the same value the list filters by, so the two never disagree. No name when
+ * the taxonomy has not heard of the university: a bare code says nothing.
  */
 export function placeOf(
   chat: PublicChat,
-  taxonomy: readonly { code: string; name: string; city: string | null }[],
+  taxonomy: readonly { code: string; name: string }[],
 ): { university: string | null; city: string | null } {
   const university =
     chat.institution === null
@@ -378,7 +388,7 @@ export function placeOf(
       : taxonomy.find(({ code }) => code === chat.institution);
   return {
     university: chat.topic === 'university' ? (university?.name ?? null) : null,
-    city: chat.city ?? university?.city ?? null,
+    city: chat.city,
   };
 }
 

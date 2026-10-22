@@ -316,7 +316,7 @@ test("a section's own chats come apart from the ones it only lists", () => {
   );
 });
 
-test("a chat's place is its university, or its topic, and its city", () => {
+test("a chat's place is its university, or its topic, and the city supervisor gave", () => {
   const taxonomy = [
     {
       code: 'cvut',
@@ -324,25 +324,27 @@ test("a chat's place is its university, or its topic, and its city", () => {
       short_name: 'ČVUT',
       city: 'Praha',
     },
-    { code: 'vut', name: 'Vysoké učení technické v Brně', short_name: null, city: null },
   ];
   const university = { topic: 'university' } as const;
   assert.deepEqual(
-    placeOf(chat('ČVUT FIT', CVUT, { ...university, institution: 'cvut' }), taxonomy),
-    { university: 'České vysoké učení technické v Praze', city: 'Praha' },
-  );
-  // The chat's own city stands; the taxonomy's only fills a gap.
-  assert.deepEqual(
     placeOf(
-      chat('VUT FEKT', 'VUT', { ...university, institution: 'vut', city: 'Brno' }),
+      chat('ČVUT FIT', CVUT, { ...university, institution: 'cvut', city: 'Praha' }),
       taxonomy,
     ),
-    { university: 'Vysoké učení technické v Brně', city: 'Brno' },
+    { university: 'České vysoké učení technické v Praze', city: 'Praha' },
+  );
+  // No city is all of Czechia here too, as in the list: never the taxonomy's in its place.
+  assert.deepEqual(
+    placeOf(chat('ČVUT FEL', CVUT, { ...university, institution: 'cvut' }), taxonomy),
+    { university: 'České vysoké učení technické v Praze', city: null },
   );
   // Not yet in the taxonomy: no name rather than a code.
   assert.deepEqual(
-    placeOf(chat('MUNI', 'MUNI', { ...university, institution: 'muni' }), taxonomy),
-    { university: null, city: null },
+    placeOf(
+      chat('MUNI', 'MUNI', { ...university, institution: 'muni', city: 'Brno' }),
+      taxonomy,
+    ),
+    { university: null, city: 'Brno' },
   );
   // A dormitory is a dormitory, whichever university its residents attend.
   assert.deepEqual(
@@ -472,4 +474,23 @@ test('a city and a topic are checked at the boundary too', () => {
   ]);
   assert.deepEqual([kept?.city, kept?.topic], ['Praha', 'dorms']);
   assert.deepEqual([odd?.city, odd?.topic], [null, null]);
+});
+
+test('a faculty in another city than its university offers no chip of its own', () => {
+  const chats = [
+    chat('ČVUT | ЧВУТ', CVUT, { city: 'Praha', topic: 'university' }),
+    chat('ČVUT Děčín', CVUT, { city: 'Děčín', topic: 'university' }),
+  ];
+  assert.deepEqual(cityChoices(chats), ['Praha']);
+});
+
+test('a search finds a chat by its own city', () => {
+  const chats = [
+    chat('Kolej', null, { city: 'Brno', topic: 'dorms' }),
+    chat('Other', null),
+  ];
+  assert.deepEqual(
+    search(chats, 'brno').map((c) => c.title),
+    ['Kolej'],
+  );
 });

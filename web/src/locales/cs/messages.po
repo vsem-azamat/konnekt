@@ -432,8 +432,8 @@ msgid "Показываем тому, кому она нужна сейчас, �
 msgstr "Ukazujeme ji tomu, kdo ji právě potřebuje, ne všem."
 
 #: src/pages/ChatSection.tsx
-msgid "Их ведёт не Konnekt, и правила там свои."
-msgstr "Nespravuje je Konnekt a pravidla jsou tam jejich vlastní."
+#~ msgid "Их ведёт не Konnekt, и правила там свои."
+#~ msgstr "Nespravuje je Konnekt a pravidla jsou tam jejich vlastní."
 
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
@@ -463,6 +463,10 @@ msgstr "Zrušit ban ve všech chatech?"
 #: src/pages/Ask.tsx
 msgid "математический анализ на ČVUT к 14 февраля, до 600 Kč"
 msgstr "matematická analýza na ČVUT do 14. února, do 600 Kč"
+
+#: src/pages/ChatSection.tsx
+msgid "Их ведёт не Konnekt: спам там чистим не мы, правила свои."
+msgstr "Ty nespravuje Konnekt: spam tam neuklízíme my a pravidla mají vlastní."
 
 #: src/pages/MyHelper.tsx
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
@@ -1151,6 +1155,10 @@ msgstr "Liberec"
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
 msgstr "Nikam"
+
+#: src/console/pages/Chat.tsx
+msgid "Пусто — город родителя. Свой город нужен, только если он другой."
+msgstr "Prázdné znamená město nadřazeného chatu. Vlastní je potřeba, jen když je jiné."
 
 #: src/pages/Ads.tsx
 msgid "Форматы"
@@ -2930,6 +2938,10 @@ msgstr "Tento účet není mezi správci. Přihlaste se jiným účtem Telegramu
 #: src/console/pages/Chats.tsx
 msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
 msgstr "Je potřeba veřejný odkaz ve tvaru https://t.me/jmeno nebo @jmeno. Podle pozvánky chat najít nejde."
+
+#: src/console/pages/Chat.tsx
+msgid "как у родителя"
+msgstr "jako u nadřazeného"
 
 #: src/console/pages/Chat.tsx
 msgid "Не указан"

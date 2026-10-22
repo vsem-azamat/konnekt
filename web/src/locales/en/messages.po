@@ -432,8 +432,8 @@ msgid "Показываем тому, кому она нужна сейчас, �
 msgstr "Shown to whoever needs it right now, not to everyone."
 
 #: src/pages/ChatSection.tsx
-msgid "Их ведёт не Konnekt, и правила там свои."
-msgstr "Konnekt doesn't run these, and their rules are their own."
+#~ msgid "Их ведёт не Konnekt, и правила там свои."
+#~ msgstr "Konnekt doesn't run these, and their rules are their own."
 
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
@@ -463,6 +463,10 @@ msgstr "Lift the ban in every chat?"
 #: src/pages/Ask.tsx
 msgid "математический анализ на ČVUT к 14 февраля, до 600 Kč"
 msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
+
+#: src/pages/ChatSection.tsx
+msgid "Их ведёт не Konnekt: спам там чистим не мы, правила свои."
+msgstr "Konnekt doesn't run these: we don't clean spam there, and their rules are their own."
 
 #: src/pages/MyHelper.tsx
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
@@ -1151,6 +1155,10 @@ msgstr "Liberec"
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
 msgstr "Nothing"
+
+#: src/console/pages/Chat.tsx
+msgid "Пусто — город родителя. Свой город нужен, только если он другой."
+msgstr "Empty means the parent's city. Set one only if it differs."
 
 #: src/pages/Ads.tsx
 msgid "Форматы"
@@ -2930,6 +2938,10 @@ msgstr "This account is not among the administrators. Sign in with another Teleg
 #: src/console/pages/Chats.tsx
 msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
 msgstr "It needs a public link like https://t.me/name or @name. A chat can't be found by an invite link."
+
+#: src/console/pages/Chat.tsx
+msgid "как у родителя"
+msgstr "same as the parent"
 
 #: src/console/pages/Chat.tsx
 msgid "Не указан"

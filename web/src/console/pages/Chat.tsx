@@ -507,12 +507,14 @@ function ChatScreen({ chatId }: { chatId: number }) {
           hint={
             chat.city !== null ? (
               <CityName city={chat.city} />
+            ) : chat.parent_chat_id === null ? (
+              <CityName city={null} />
             ) : parent ? (
               <Trans>
                 как у родителя: <CityName city={parent.city} />
               </Trans>
             ) : (
-              <CityName city={null} />
+              <Trans>задаётся у родителя</Trans>
             )
           }
           trailing={<Chevron />}
@@ -525,11 +527,19 @@ function ChatScreen({ chatId }: { chatId: number }) {
           hint={
             chat.topic !== null ? (
               <TopicHeading topic={chat.topic} />
-            ) : parent?.topic ? (
+            ) : chat.parent_chat_id === null ? (
+              chat.institution_code ? (
+                <Trans>Вузы, по вузу</Trans>
+              ) : (
+                <Trans>не указан: стоит в «Общее»</Trans>
+              )
+            ) : !parent ? (
+              <Trans>задаётся у родителя</Trans>
+            ) : parent.topic ? (
               <Trans>
                 как у родителя: <TopicHeading topic={parent.topic} />
               </Trans>
-            ) : (chat.institution_code ?? parent?.institution_code) ? (
+            ) : parent.institution_code ? (
               <Trans>Вузы, по вузу</Trans>
             ) : (
               <Trans>не указан: стоит в «Общее»</Trans>
@@ -876,14 +886,33 @@ function ChatScreen({ chatId }: { chatId: number }) {
       {sheet?.kind === 'city' ? (
         <ChoiceSheet
           title={t`Город`}
-          note={<Trans>Пусто — вся Чехия: чат виден в каталоге при любом городе.</Trans>}
+          note={
+            chat.parent_chat_id === null ? (
+              <Trans>Пусто — вся Чехия: чат виден в каталоге при любом городе.</Trans>
+            ) : (
+              <Trans>
+                Пусто — город родителя. Свой город нужен, только если он другой.
+              </Trans>
+            )
+          }
           options={[
-            { value: null, name: <CityName city={null} /> },
+            {
+              value: null,
+              name:
+                chat.parent_chat_id === null ? (
+                  <CityName city={null} />
+                ) : (
+                  <Trans>как у родителя</Trans>
+                ),
+            },
             ...taxonomyCities(institutions.data ?? [], chat.city).map((city) => ({
               value: city,
               name: <CityName city={city} />,
             })),
           ]}
+          loading={institutions.isPending}
+          failed={institutions.error}
+          retry={() => void institutions.refetch()}
           current={chat.city}
           busy={busy}
           error={sheetError}
@@ -1080,6 +1109,9 @@ function ChoiceSheet<T extends string>({
   title,
   note,
   options,
+  loading = false,
+  failed = null,
+  retry,
   current,
   busy,
   error,
@@ -1089,6 +1121,10 @@ function ChoiceSheet<T extends string>({
   title: string;
   note: ReactNode;
   options: { value: T | null; name: ReactNode }[];
+  /** The list comes from a query: shown as loading, or failed with a retry. */
+  loading?: boolean;
+  failed?: unknown;
+  retry?: () => void;
   current: T | null;
   busy: boolean;
   error: ReactNode;
@@ -1100,17 +1136,23 @@ function ChoiceSheet<T extends string>({
     <Sheet title={title} closeLabel={t`Отмена`} onClose={onClose}>
       <Hint>{note}</Hint>
       {error ? <Hint>{error}</Hint> : null}
-      <div className={ui.sheetList}>
-        {options.map((option) => (
-          <Pick
-            key={option.value ?? ''}
-            name={option.name}
-            selected={current === option.value}
-            disabled={busy}
-            onClick={() => onPick(option.value)}
-          />
-        ))}
-      </div>
+      {failed && retry ? (
+        <ConsoleFailure error={failed} retry={retry} />
+      ) : loading ? (
+        <SkeletonRows count={3} />
+      ) : (
+        <div className={ui.sheetList}>
+          {options.map((option) => (
+            <Pick
+              key={option.value ?? ''}
+              name={option.name}
+              selected={current === option.value}
+              disabled={busy}
+              onClick={() => onPick(option.value)}
+            />
+          ))}
+        </div>
+      )}
     </Sheet>
   );
 }
