@@ -421,3 +421,63 @@ async def test_only_the_owner_may_pause_an_offer(
         "offers"
     ]
     assert kept["paused"] is False
+
+
+async def test_a_paused_offer_leaves_the_public_profile_and_its_languages(
+    client: AsyncClient, helper_factory
+) -> None:
+    helper = await helper_factory(tg_id=OWNER, langs=("en",))
+    [offer] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    page = (
+        await client.get(f"/api/v1/helpers/{helper.id}", headers=auth_header(91599))
+    ).json()
+    assert len(page["offers"]) == 1
+    assert page["langs"] == ["en"]
+
+    await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": True},
+        headers=auth_header(OWNER),
+    )
+
+    page = (
+        await client.get(f"/api/v1/helpers/{helper.id}", headers=auth_header(91599))
+    ).json()
+    assert page["offers"] == []
+    assert page["langs"] == []
+
+
+async def test_a_paused_offer_no_longer_brings_requests_up_the_feed(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=OWNER)
+    [offer] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    posted = await client.post(
+        "/api/v1/requests",
+        json={"text": "нужна помощь с матаном"},
+        headers=auth_header(91599),
+    )
+    assert posted.status_code == 201, posted.text
+
+    async def reason() -> dict | None:
+        feed = (
+            await client.get(
+                "/api/v1/requests/feed",
+                params={"limit": 50},
+                headers=auth_header(OWNER, username="owner91501"),
+            )
+        ).json()
+        [item] = [item for item in feed if item["id"] == posted.json()["id"]]
+        return item["reason"]
+
+    assert (await reason() or {}).get("code") == "feed.same_subject"
+    await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": True},
+        headers=auth_header(OWNER),
+    )
+    assert (await reason() or {}).get("code") != "feed.same_subject"
