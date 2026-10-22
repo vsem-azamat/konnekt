@@ -84,6 +84,9 @@
      iOS, which it leaves out of the height it reports. Whatever is fixed to
      the bottom and must stay readable rises by this much. */
   --hidden-bottom: max(0px, 100vh - var(--app-height, 100vh));
+  /* What the iOS keyboard covers at the bottom of the window, which keeps its
+     height while the keyboard is up. Published by lib/keyboard.ts. */
+  --keyboard: 0px;
 
   /* Telegram's header overlaps the page in fullscreen, so a screen's first
      element has to clear it. The device notch is handled once on #root. */

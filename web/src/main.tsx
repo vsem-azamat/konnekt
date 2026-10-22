@@ -40,6 +40,7 @@ import {
   scrub,
   startReporting,
 } from '@/lib/clientErrors';
+import { followKeyboard } from '@/lib/keyboard';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -267,6 +268,7 @@ function initSdk(): void {
   // so a request that never comes back costs a fallback height rather than a
   // page with no height at all.
   bindAppHeight();
+  bindKeyboard();
 
   // Async: the viewport has to ask the client for its dimensions. Nothing
   // downstream waits on it, so the promise is deliberately not awaited — the
@@ -335,6 +337,21 @@ function bindAppHeight(): void {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') askAgain();
   });
+}
+
+/**
+ * Publish what the on-screen keyboard covers, as `--keyboard`: the rules are
+ * in `lib/keyboard.ts`. Inside Telegram only, where the sheets it lifts are.
+ */
+function bindKeyboard(): void {
+  if (!window.visualViewport) return;
+  followKeyboard(
+    window.visualViewport,
+    () => window.innerHeight,
+    (covered) => {
+      document.documentElement.style.setProperty('--keyboard', `${covered}px`);
+    },
+  );
 }
 
 /** Load the one catalog we need before the first paint, to avoid a flash. */

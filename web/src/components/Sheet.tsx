@@ -69,7 +69,7 @@ export function Sheet({
         <span id={titleId} className={css.sheetTitle}>
           {title}
         </span>
-        {children}
+        <div className={css.sheetBody}>{children}</div>
       </div>
     </>
   );
