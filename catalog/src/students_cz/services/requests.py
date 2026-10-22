@@ -46,7 +46,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import held_by, shelves_of
+from students_cz.services.lookup import held_by, shelves_by_subject, shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -66,11 +66,8 @@ class FeedRow:
     on_institution: bool
     on_service: bool
     responded: bool = False
-
-    @property
-    def on_my_services(self) -> bool:
-        """«По твоим услугам»: the subject or the kind of help, not the school."""
-        return self.on_subject or self.on_service
+    # «По твоим услугам»: one of the helper's offers fits it — see `_fits_an_offer`.
+    on_my_services: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +75,9 @@ class FeedFilters:
     """The chips over the feed, every one of them narrowing it further."""
 
     mine: bool = False
+    # Those the helper already answered. Off unless asked for: a client that
+    # does not mark them offers to answer again and gets a 409.
+    with_responded: bool = False
     service_type_id: int | None = None
     # A shelf takes in what it holds, as in the catalog's search.
     subject_id: int | None = None
@@ -149,8 +149,9 @@ async def feed_for(
 ) -> list[FeedRow]:
     """Open requests, for someone who could answer them, best fit first.
 
-    Those already answered stay, marked: «Отклик отправлен» is what the
-    helper looks for after answering.
+    Those already answered are left out unless asked for, and then come
+    after every unanswered one, marked: «Отклик отправлен» is what the helper
+    looks for after answering, but it must not push a new request off the page.
     """
     await _may_read_feed(session, user)
 
@@ -169,24 +170,18 @@ async def feed_for(
     ]
 
     now = datetime.now(UTC)
-    answered = (
-        select(RequestResponse.id)
-        .where(
-            RequestResponse.request_id == HelpRequest.id,
-            RequestResponse.helper_id == user.id,
-        )
-        .exists()
-    )
+    answered = _answered_by(user)
 
     filters = filters or FeedFilters()
     narrowing = await _narrowing(session, filters)
+    fits = await _fits_an_offer(session, user)
     if filters.mine:
-        narrowing.append(
-            or_(
-                subject_match if subject_match is not None else false(),
-                service_match if service_match is not None else false(),
-            )
-        )
+        narrowing.append(fits if fits is not None else false())
+    if filters.with_responded:
+        # False sorts first: the unanswered, then the answered.
+        ranking.insert(0, answered.asc())
+    else:
+        narrowing.append(~answered)
 
     rows = (
         await session.execute(
@@ -197,6 +192,7 @@ async def feed_for(
                 institution_match if institution_match is not None else false(),
                 service_match if service_match is not None else false(),
                 answered,
+                fits if fits is not None else false(),
             )
             .join(User, User.id == HelpRequest.author_id)
             .where(
@@ -224,8 +220,11 @@ async def feed_for(
             on_institution=bool(on_institution),
             on_service=bool(on_service),
             responded=bool(responded),
+            on_my_services=bool(mine),
         )
-        for request, author, on_subject, on_institution, on_service, responded in rows
+        for request, author, on_subject, on_institution, on_service, responded, mine in (
+            rows
+        )
     ]
 
 
@@ -257,10 +256,9 @@ async def suggested_offers(
         return {}
     # Per offer and not per request: a helper has a handful of offers, a page
     # has fifty requests. `shelves_of` is `held_by` read the other way.
-    shelves = {
-        subject_id: await shelves_of(session, {subject_id})
-        for subject_id in {o.subject_id for o in offers if o.subject_id is not None}
-    }
+    shelves = await shelves_by_subject(
+        session, {o.subject_id for o in offers if o.subject_id is not None}
+    )
     suggested: dict[int, Offer] = {}
     for request in requests:
         if request.subject_id is None and request.service_type_id is None:
@@ -282,6 +280,55 @@ async def suggested_offers(
     return suggested
 
 
+def _answered_by(user: User):
+    return (
+        select(RequestResponse.id)
+        .where(
+            RequestResponse.request_id == HelpRequest.id,
+            RequestResponse.helper_id == user.id,
+        )
+        .exists()
+    )
+
+
+async def _fits_an_offer(session: AsyncSession, user: User) -> ColumnElement[bool] | None:
+    """One of the helper's offers fits every axis the request names.
+
+    The rule `suggested_offers` prices by: a calculus tutor's offer fits a
+    calculus or maths request, not every tutoring request on any subject. A
+    request naming neither axis fits nothing. None when the helper has no
+    active offer.
+    """
+    offers = set(
+        (
+            await session.execute(
+                select(Offer.subject_id, Offer.service_type_id).where(
+                    Offer.helper_id == user.id, Offer.is_active.is_(True)
+                )
+            )
+        ).tuples()
+    )
+    if not offers:
+        return None
+    shelves = await shelves_by_subject(
+        session, {subject_id for subject_id, _ in offers if subject_id is not None}
+    )
+    no_subject = HelpRequest.subject_id.is_(None)
+    no_service = HelpRequest.service_type_id.is_(None)
+    each = [
+        and_(
+            no_subject
+            if subject_id is None
+            else or_(no_subject, HelpRequest.subject_id.in_(shelves[subject_id])),
+            no_service
+            if service_type_id is None
+            else or_(no_service, HelpRequest.service_type_id == service_type_id),
+        )
+        for subject_id, service_type_id in sorted(offers, key=str)
+    ]
+    return and_(~and_(no_subject, no_service), or_(*each))
+
+
 async def _narrowing(session: AsyncSession, filters: FeedFilters) -> list:
     where: list = []
     if filters.service_type_id is not None:
@@ -299,14 +346,22 @@ async def _narrowing(session: AsyncSession, filters: FeedFilters) -> list:
     return where
 
 
-async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
+async def feed_facets(
+    session: AsyncSession, *, user: User, with_responded: bool = False
+) -> FeedFacets:
     """Counts for the chips, each over the whole feed and not the chosen one.
+
+    Over the same requests the feed shows: without those already answered
+    unless asked for, so `mine` is what is still waiting for this helper.
 
     The feed is every open request of others, a few hundred at most, so it is
     read once and counted here rather than once per chip in SQL.
     """
     await _may_read_feed(session, user)
-    subject_ids, _, service_ids = await _axes_of(session, user)
+    fits = await _fits_an_offer(session, user)
+    where = [live(datetime.now(UTC)), HelpRequest.author_id != user.id]
+    if not with_responded:
+        where.append(~_answered_by(user))
     rows = (
         await session.execute(
             select(
@@ -315,15 +370,16 @@ async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
                 HelpRequest.work_format,
                 HelpRequest.city,
                 HelpRequest.budget_max,
-            ).where(live(datetime.now(UTC)), HelpRequest.author_id != user.id)
+                (fits if fits is not None else false()).label("fits"),
+            ).where(*where)
         )
     ).all()
 
     # Chips name shelves: «Математика» over calculus and linear algebra both,
     # and a request on a leaf two shelves hold counts under each.
-    shelves: dict[int, set[int]] = {}
-    for subject_id in {row.subject_id for row in rows if row.subject_id is not None}:
-        shelves[subject_id] = await shelves_of(session, {subject_id})
+    shelves = await shelves_by_subject(
+        session, {row.subject_id for row in rows if row.subject_id is not None}
+    )
     groups = set(
         await session.scalars(
             select(Subject.id).where(
@@ -341,7 +397,7 @@ async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
     city_label: dict[str, str] = {}
     mine = online = offline = 0
     for row in rows:
-        if row.subject_id in subject_ids or row.service_type_id in service_ids:
+        if row.fits:
             mine += 1
         for shelf in shelves.get(row.subject_id, set()) & groups:
             by_shelf[shelf] = by_shelf.get(shelf, 0) + 1

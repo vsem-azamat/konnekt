@@ -126,6 +126,7 @@ async def request_feed(
     user: UserDep,
     limit: int = Query(20, ge=1, le=50),
     mine: bool = False,
+    with_responded: bool = False,
     service_type_id: IdQuery = None,
     subject_id: IdQuery = None,
     work_format: WorkFormat | None = None,
@@ -141,6 +142,7 @@ async def request_feed(
         limit=limit,
         filters=requests_service.FeedFilters(
             mine=mine,
+            with_responded=with_responded,
             service_type_id=service_type_id,
             subject_id=subject_id,
             work_format=work_format,
@@ -202,10 +204,12 @@ def _offer_price(offer: Offer | None) -> Price | None:
 
 @router.get("/requests/feed/facets", response_model=FeedFacetsOut, tags=["requests"])
 async def request_feed_facets(
-    session: SessionDep, lang: LangDep, user: UserDep
+    session: SessionDep, lang: LangDep, user: UserDep, with_responded: bool = False
 ) -> FeedFacetsOut:
     """The numbers on the chips over the feed, each over the whole feed."""
-    facets = await requests_service.feed_facets(session, user=user)
+    facets = await requests_service.feed_facets(
+        session, user=user, with_responded=with_responded
+    )
     subject_names = await names_by_id(
         session, Subject, [facet.id for facet in facets.subjects], lang
     )

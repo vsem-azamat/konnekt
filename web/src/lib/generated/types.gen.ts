@@ -2248,6 +2248,10 @@ export type RequestFeedApiV1RequestsFeedGetData = {
          */
         mine?: boolean;
         /**
+         * With Responded
+         */
+        with_responded?: boolean;
+        /**
          * Service Type Id
          */
         service_type_id?: number | null;
@@ -2300,7 +2304,12 @@ export type RequestFeedFacetsApiV1RequestsFeedFacetsGetData = {
         authorization?: string | null;
     };
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * With Responded
+         */
+        with_responded?: boolean;
+    };
     url: '/api/v1/requests/feed/facets';
 };
 

@@ -99,11 +99,12 @@ async def test_feed_ranks_your_subject_first_and_says_why(
     assert "responders" not in feed[0] or feed[0]["responders"] == []
 
 
-async def test_feed_keeps_a_request_you_already_answered_marked(
-    client: AsyncClient, helper_factory
+async def test_an_answered_request_is_shown_only_when_asked_for_and_last(
+    client: AsyncClient, session: AsyncSession, helper_factory
 ) -> None:
     await helper_factory(tg_id=HELPER)
     created = await post_request(client, "матан, нужна помощь")
+    before = await client.get("/api/v1/requests/feed/facets", headers=helper_header())
 
     answered = await client.post(
         f"/api/v1/requests/{created['id']}/respond",
@@ -111,10 +112,20 @@ async def test_feed_keeps_a_request_you_already_answered_marked(
         headers=helper_header(),
     )
     assert answered.status_code == 201, answered.text
+    # Posted after, and naming nothing: ranked below it otherwise.
+    fresh = {"id": await _asking(client, session, subject_id=None, service_type_id=None)}
 
-    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
-    [item] = [item for item in feed if item["id"] == created["id"]]
-    assert item["responded"] is True
+    assert created["id"] not in [item["id"] for item in await _feed(client)]
+    feed = await _feed(client, with_responded="true")
+    ids = [item["id"] for item in feed]
+    assert ids.index(fresh["id"]) < ids.index(created["id"])
+    assert all(item["responded"] for item in feed[ids.index(created["id"]) :])
+    assert feed[ids.index(created["id"])]["on_my_services"] is True
+
+    # `mine` is what still waits for an answer.
+    after = await _facets(client)
+    assert after["mine"] == before.json()["mine"] - 1
+    assert (await _facets(client, with_responded="true"))["mine"] == after["mine"] + 1
 
 
 async def test_feed_hides_closed_requests(client: AsyncClient, helper_factory) -> None:
@@ -1050,26 +1061,57 @@ async def _feed(client: AsyncClient, **params) -> list[dict]:
     return response.json()
 
 
-async def _facets(client: AsyncClient) -> dict:
-    response = await client.get("/api/v1/requests/feed/facets", headers=helper_header())
+async def _facets(client: AsyncClient, **params) -> dict:
+    response = await client.get(
+        "/api/v1/requests/feed/facets", params=params, headers=helper_header()
+    )
     assert response.status_code == 200, response.text
     return response.json()
 
 
-async def test_the_feed_says_which_requests_are_on_the_helpers_services(
-    client: AsyncClient, helper_factory
+async def test_on_my_services_means_one_offer_fits_every_axis_named(
+    client: AsyncClient, session: AsyncSession, helper_factory
 ) -> None:
+    from students_cz.db.models import Subject
+
+    # One offer: calculus tutoring.
     await helper_factory(tg_id=HELPER)
-    theirs = await post_request(client, "нужна помощь с матаном")
-    other = await post_request(client, "помогите с нострификацией аттестата")
+    calculus, tutoring = await _ids(
+        session, subject="matematicka-analyza", service="tutoring"
+    )
+    maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
+    law = await session.scalar(select(Subject.id).where(Subject.slug == "pravo"))
+    before = (await _facets(client))["mine"]
+
+    fits = {
+        "calculus tutoring": (calculus, tutoring, True),
+        "maths tutoring": (maths, tutoring, True),
+        "calculus, any help": (calculus, None, True),
+        # Tutoring, but not on anything this helper teaches.
+        "law tutoring": (law, tutoring, False),
+        "nothing named": (None, None, False),
+        # Last: it is what the text posted parses as, so one more would be a
+        # duplicate.
+        "any subject, tutoring": (None, tutoring, True),
+    }
+    ids = {
+        name: await _asking(client, session, subject_id=subject, service_type_id=service)
+        for name, (subject, service, _) in fits.items()
+    }
 
     by_id = {item["id"]: item for item in await _feed(client)}
-    assert by_id[theirs["id"]]["on_my_services"] is True
-    assert by_id[other["id"]]["on_my_services"] is False
+    mine = {item["id"] for item in await _feed(client, mine="true")}
+    for name, (_, _, expected) in fits.items():
+        assert by_id[ids[name]]["on_my_services"] is expected, name
+        assert (ids[name] in mine) is expected, name
+    assert (await _facets(client))["mine"] == before + 4
 
-    mine = [item["id"] for item in await _feed(client, mine="true")]
-    assert theirs["id"] in mine
-    assert other["id"] not in mine
+
+async def test_facets_are_for_helpers_only(client: AsyncClient) -> None:
+    response = await client.get(
+        "/api/v1/requests/feed/facets", headers=helper_header(tg_id=STUDENT)
+    )
+    assert response.status_code == 403
 
 
 async def test_a_shelf_chip_takes_in_what_the_shelf_holds(
@@ -1103,28 +1145,33 @@ async def test_format_city_and_budget_narrow_the_feed_and_are_counted(
     assert request is not None
     request.work_format = WorkFormat.OFFLINE
     request.city = "Testov"
-    request.budget_max = 400
+    # Exactly on a step: «До 500 Kč» takes it in.
+    request.budget_max = 500
     # The same city spelled differently: one chip, as one filter matches both.
+    # Either format: under both chips.
     twin = await post_request(client, "помогите с нострификацией аттестата")
     twin_request = await session.get(HelpRequest, twin["id"])
     assert twin_request is not None
     twin_request.city = "testov"
-    twin_request.work_format = WorkFormat.ONLINE
+    twin_request.work_format = WorkFormat.BOTH
     await session.commit()
 
-    def shown(items: list[dict]) -> bool:
-        return created["id"] in [item["id"] for item in items]
+    def shown(items: list[dict], which: dict = created) -> bool:
+        return which["id"] in [item["id"] for item in items]
 
     assert shown(await _feed(client, work_format="offline"))
     assert not shown(await _feed(client, work_format="online"))
+    assert shown(await _feed(client, work_format="online"), twin)
+    assert shown(await _feed(client, work_format="offline"), twin)
     assert shown(await _feed(client, city="testov"))
     assert not shown(await _feed(client, city="Brno"))
     assert shown(await _feed(client, budget_upto=500))
-    assert not shown(await _feed(client, budget_upto=300))
+    assert not shown(await _feed(client, budget_upto=499))
 
     after = await _facets(client)
     assert after["all"] == before["all"] + 2
-    assert after["formats"]["offline"] == before["formats"]["offline"] + 1
+    assert after["formats"]["offline"] == before["formats"]["offline"] + 2
+    assert after["formats"]["online"] == before["formats"]["online"] + 1
     assert {"name": "Testov", "count": 2} in after["cities"]
     assert not [c for c in after["cities"] if c["name"] == "testov"]
     steps = {b["amount"]: b["count"] for b in after["budget_upto"]}

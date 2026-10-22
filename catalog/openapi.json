@@ -1132,6 +1132,16 @@
             }
           },
           {
+            "name": "with_responded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "With Responded"
+            }
+          },
+          {
             "name": "service_type_id",
             "in": "query",
             "required": false,
@@ -1272,6 +1282,16 @@
         "description": "The numbers on the chips over the feed, each over the whole feed.",
         "operationId": "request_feed_facets_api_v1_requests_feed_facets_get",
         "parameters": [
+          {
+            "name": "with_responded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "With Responded"
+            }
+          },
           {
             "name": "authorization",
             "in": "header",
