@@ -674,16 +674,18 @@ async def parse(
                     and _only_names_shelf(result, norm, keyword, stems, numbered, set())
                 ):
                     result.institution = None
-        elif stems and subjects:
+        elif stems:
             # A kind of help the shelf cannot go with, a shelf named beside it,
             # and a guess from another shelf: «вступительные по химии» answered
             # the physics entrance exam. The guess goes; what the shelf holds,
             # or was named, stays. Only here — a plain query naming two shelves,
             # «математика и физика», keeps the guess it had.
-            subjects = await _within_shelf(session, subjects, shelves[0].id)
-            # Emptied by it, the list must stay empty: the embedder would only
-            # bring another guess from somewhere else — it answered «Chemie –
-            # střední škola» beside entrance exams, which matches nobody.
+            if subjects:
+                subjects = await _within_shelf(session, subjects, shelves[0].id)
+            # Emptied by it, or empty already, the list must stay empty: the
+            # embedder would only bring another guess from somewhere else — it
+            # answered «Chemie – střední škola» beside entrance exams, which
+            # matches nobody.
             shelf_spoke = not subjects
     # Every entrance offer sits on the admissions shelf, so a guess from
     # anywhere else beside entrance exams matches nobody: «поступление на ЧВУТ
