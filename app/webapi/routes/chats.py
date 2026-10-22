@@ -423,8 +423,13 @@ async def refresh_chat_from_telegram(
     chat.last_synced_at = utc_now()
     await session.commit()
     if chat.migrated_to_chat_id is not None:
-        # Retires this row and moves its settings over, as the hourly loop would.
-        await follow_upgrade(session, old_id=chat.id, new_id=chat.migrated_to_chat_id)
+        # Retires this row and moves its settings over, as the hourly loop would;
+        # if that fails, the loop tries again within the hour.
+        try:
+            await follow_upgrade(session, old_id=chat.id, new_id=chat.migrated_to_chat_id)
+        except Exception:
+            await session.rollback()
+            logger.exception("chat_upgrade_not_followed", old_id=chat.id, new_id=chat.migrated_to_chat_id)
     await session.refresh(chat)
     # The public catalog remembers its answer for a minute, and it carries the picture's address.
     public_answers.forget()

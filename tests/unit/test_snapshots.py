@@ -702,3 +702,53 @@ class TestUpgradedToSupergroup:
             -1004394473356,
         )
         assert (new.resource_status, new.public_link) == (Chat.STATUS_APPROVED, "https://t.me/old")
+
+    async def test_a_follow_that_failed_is_tried_again_next_run(
+        self, db_session_maker: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The mark is committed before the follow, so a failed follow must not leave the old row listed for good."""
+        import app.chats.snapshots as snapshots
+        from aiogram.exceptions import TelegramMigrateToChat
+
+        await _seed(
+            db_session_maker,
+            Chat(id=-5319178881, title="Old", resource_status=Chat.STATUS_APPROVED, public_link="https://t.me/old"),
+        )
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=TelegramMigrateToChat(method=MagicMock(), message="upgraded", migrate_to_chat_id=-1004394473356)
+        )
+        monkeypatch.setattr(snapshots, "follow_upgrade", AsyncMock(side_effect=RuntimeError("database went away")))
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        old = await _chat(db_session_maker, -5319178881)
+        assert (old.resource_status, old.migrated_to_chat_id) == (Chat.STATUS_APPROVED, -1004394473356)
+
+        monkeypatch.undo()
+        bot.get_chat_member_count = AsyncMock(return_value=80)
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        old = await _chat(db_session_maker, -5319178881)
+        assert (old.resource_status, old.public_link) == (Chat.STATUS_DISABLED, None)
+        assert (await _chat(db_session_maker, -1004394473356)).public_link == "https://t.me/old"
+        # The old id was not asked about again; the new one is counted from the next run.
+        bot.get_chat_member_count.assert_not_awaited()
+
+    async def test_a_disabled_group_is_marked_and_left_alone(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Nothing to follow for a chat nobody listed, but it is still not asked about again."""
+        from aiogram.exceptions import TelegramMigrateToChat
+
+        await _seed(db_session_maker, Chat(id=-5319178881, title="Old", resource_status=Chat.STATUS_DISABLED))
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=TelegramMigrateToChat(method=MagicMock(), message="upgraded", migrate_to_chat_id=-1004394473356)
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -5319178881)).migrated_to_chat_id == -1004394473356
+        bot.get_chat_member_count.assert_awaited_once_with(-5319178881)

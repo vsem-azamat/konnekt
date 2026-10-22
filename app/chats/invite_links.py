@@ -269,7 +269,6 @@ async def sync_once(
                     select(Chat.id)
                     .where(Chat.resource_status.in_(MANAGED_STATUSES))
                     .where(Chat.public_link.is_not(None))
-                    .where(Chat.migrated_to_chat_id.is_(None))
                     .order_by(Chat.id)
                 )
             )
