@@ -548,13 +548,15 @@ async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
         )
         session.add(chat)
         try:
-            # The insert goes out with sync's first query, so a twin added a
-            # moment earlier is refused there rather than at the commit.
-            await previews.sync(session, http, chat)
-            await session.commit()
+            # Sent before the picture, which Postgres checks against it at
+            # once; a twin added a moment earlier is refused here, and only
+            # here: any other failure is no twin and must not read as one.
+            await session.flush()
         except IntegrityError as err:
             await session.rollback()
             raise HTTPException(status_code=409, detail="already_known") from err
+        await previews.sync(session, http, chat)
+        await session.commit()
     public_answers.forget()
     await session.refresh(chat)
     return _as_read(chat, member_count=preview.member_count)

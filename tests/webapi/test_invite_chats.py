@@ -171,6 +171,17 @@ class TestAdding:
         assert avatar.unique_id == "tme-abc"
         assert counts == [90]
 
+    async def test_its_picture_waits_for_its_row(self, client_factory, db_engine, page) -> None:  # noqa: F811
+        """Postgres checks the picture's chat at once; SQLite only when asked to."""
+        make, _ = client_factory
+        async with db_engine.connect() as conn:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+        async with make() as client:
+            resp = await client.post("/api/chats/external", json={"public_link": LINK})
+
+        assert resp.status_code == 201
+
     async def test_it_shows_up_in_the_public_catalogue(self, client_factory, page) -> None:  # noqa: F811
         make, _ = client_factory
 
