@@ -517,6 +517,10 @@ msgstr "Appearance: follows the system. Tap to change"
 msgid "Ссылка должна начинаться с https://, вести на сайт и быть без пробелов, не длиннее 1024 знаков."
 msgstr "The link must start with https://, lead to a site, have no spaces and be at most 1024 characters."
 
+#: src/pages/Chats.tsx
+msgid "Ищи по вузу, факультету или общежитию: {EXAMPLES}."
+msgstr "Search by university, faculty or dorm: {EXAMPLES}."
+
 #: src/pages/Results.tsx
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Try other words — or post a request and let them find you."
@@ -815,6 +819,10 @@ msgstr "Done"
 #: src/pages/Request.tsx
 msgid "Отмена"
 msgstr "Cancel"
+
+#: src/pages/MyHelper.tsx
+msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
+msgstr "Only you can see it for now. «In the catalog» is already chosen below: tap «Save» and your profile will show up in search."
 
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
@@ -1403,8 +1411,8 @@ msgid "Куда попадёт"
 msgstr "Where it goes"
 
 #: src/pages/Chats.tsx
-msgid "ČVUT, FIT, Strahov…"
-msgstr "ČVUT, FIT, Strahov…"
+#~ msgid "ČVUT, FIT, Strahov…"
+#~ msgstr "ČVUT, FIT, Strahov…"
 
 #: src/console/AudienceLabels.tsx
 msgid "Бот связи"
@@ -2016,6 +2024,10 @@ msgstr "Banned in every chat. Bans are made with /banall or from a chat's screen
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram refused in every chat: check the bot's rights and ban again."
 
+#: src/pages/Chats.tsx
+msgid "Попробовать ещё раз"
+msgstr "Try again"
+
 #: src/components/HideReasonText.tsx
 msgid "Нарушает правила"
 msgstr "Breaks the rules"
@@ -2420,7 +2432,6 @@ msgstr "Help on exam day"
 msgid "Профиль недоступен"
 msgstr "Profile unavailable"
 
-#: src/pages/Chats.tsx
 #: src/pages/ChatSection.tsx
 #: src/pages/Home.tsx
 msgid "Нажми, чтобы попробовать ещё раз"
@@ -2500,6 +2511,10 @@ msgstr "How you work"
 msgid "Пояснение над карточкой"
 msgstr "Note above the card"
 
+#: src/pages/Chats.tsx
+msgid "Список не пришёл. Попробуй ещё раз через минуту."
+msgstr "The list did not arrive. Try again in a minute."
+
 #: src/pages/Life.tsx
 msgid "Не про учёбу"
 msgstr "Not about school"
@@ -2546,6 +2561,10 @@ msgstr "Where they come from"
 #: src/pages/Request.tsx
 msgid "Ты отказался"
 msgstr "You declined"
+
+#: src/pages/Chats.tsx
+msgid "Очистить поиск"
+msgstr "Clear search"
 
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
