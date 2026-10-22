@@ -26,7 +26,6 @@
     "noUnusedParameters": true,
     "exactOptionalPropertyTypes": false,
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
