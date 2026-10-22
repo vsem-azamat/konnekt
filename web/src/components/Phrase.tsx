@@ -46,18 +46,18 @@ export function PhraseView({
       return (
         <Plural
           value={num(p.deals)}
-          one="Готовил к этому же экзамену # человека"
-          few="Готовил к этому же экзамену # человек"
-          many="Готовил к этому же экзамену # человек"
-          other="Готовил к этому же экзамену # человека"
+          one="Опыт с этим экзаменом: # человек"
+          few="Опыт с этим экзаменом: # человека"
+          many="Опыт с этим экзаменом: # человек"
+          other="Опыт с этим экзаменом: # человека"
         />
       );
     case 'reason.same_institution':
       return <Trans>Работает именно с этим вузом</Trans>;
     case 'reason.cheapest_but_unproven':
-      return <Trans>Дешевле остальных, но этот экзамен не вёл</Trans>;
+      return <Trans>Дешевле остальных, но опыта с этим экзаменом пока нет</Trans>;
     case 'reason.subject_only':
-      return <Trans>Ведёт предмет, но не привязан к этому вузу</Trans>;
+      return <Trans>Ведёт предмет, но без привязки к этому вузу</Trans>;
     case 'reason.your_faculty':
       return <Trans>С твоего факультета</Trans>;
     case 'feed.same_subject':
@@ -76,8 +76,10 @@ export function PhraseView({
           other="# занятия через нас"
         />
       );
-    case 'availability.free_on':
-      return <Trans>Свободен {formatDay(str(p.date), locale)}</Trans>;
+    case 'availability.free_on': {
+      const day = formatDay(str(p.date), locale);
+      return <Trans>Есть время {day}</Trans>;
+    }
     case 'availability.responds_in':
       return (
         <Plural
@@ -91,8 +93,8 @@ export function PhraseView({
     case 'parse.nothing_recognised':
       return (
         <Trans>
-          Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština
-          B2», «физика».
+          Не получилось разобрать запрос. Попробуй назвать предмет — «математический
+          анализ», «čeština B2», «физика».
         </Trans>
       );
     case 'clarify.when':

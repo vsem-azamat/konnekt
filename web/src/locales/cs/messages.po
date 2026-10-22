@@ -34,6 +34,10 @@ msgstr "Jazyky"
 msgid "Не получилось обновить список."
 msgstr "Seznam se nepodařilo obnovit."
 
+#: src/components/Phrase.tsx
+msgid "Ведёт предмет, но без привязки к этому вузу"
+msgstr "Učí ten předmět, ale bez vazby na tuhle školu"
+
 #. placeholder {0}: blocked.data.length
 #. placeholder {0}: data.new_this_week
 #: src/console/pages/Audience.tsx
@@ -349,6 +353,10 @@ msgstr "jako u nadřazeného: <0/>"
 #: src/components/Incoming.tsx
 msgid "Цена <0/>, Kč <1>из анкеты, можно изменить</1>"
 msgstr "Cena <0/>, Kč <1>z profilu, lze změnit</1>"
+
+#: src/components/Phrase.tsx
+msgid "Есть время {day}"
+msgstr "Má čas {day}"
 
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
@@ -667,6 +675,11 @@ msgstr "Zadej poptávku — ozvou se sami"
 msgid "Добавить в каталог"
 msgstr "Přidat do katalogu"
 
+#. placeholder {0}: num(p.deals)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {Опыт с этим экзаменом: # человек} few {Опыт с этим экзаменом: # человека} many {Опыт с этим экзаменом: # человек} other {Опыт с этим экзаменом: # человека}}"
+msgstr "{0, plural, one {Zkušenost s touto zkouškou: # člověk} few {Zkušenost s touto zkouškou: # lidé} many {Zkušenost s touto zkouškou: # člověka} other {Zkušenost s touto zkouškou: # lidí}}"
+
 #: src/console/AudienceLabels.tsx
 #: src/console/pages/Summary.tsx
 msgid "Бот"
@@ -783,6 +796,10 @@ msgstr "Online nebo osobně"
 msgid "7 дней"
 msgstr "7 dní"
 
+#: src/console/BanSheet.tsx
+msgid "{name}: бан не прошёл ни в одном чате"
+msgstr "{name}: ban neprošel v žádném chatu"
+
 #: src/components/AppHeader.tsx
 msgid "Язык"
 msgstr "Jazyk"
@@ -803,6 +820,10 @@ msgstr "Bez odpovědí"
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
 msgstr "Přihlášení se neuložilo"
+
+#: src/components/Phrase.tsx
+msgid "Не получилось разобрать запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Dotaz se nepodařilo rozebrat. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
 
 #: src/console/pages/Chat.tsx
 msgid "За неделю здесь никто не писал."
@@ -826,8 +847,8 @@ msgid "Число"
 msgstr "Počet"
 
 #: src/console/BanSheet.tsx
-msgid "{name} забанен не везде"
-msgstr "{name} není zabanován všude"
+#~ msgid "{name} забанен не везде"
+#~ msgstr "{name} není zabanován všude"
 
 #: src/pages/Ask.tsx
 msgid "Оставить заявку"
@@ -903,6 +924,10 @@ msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
 #: src/components/RequestSheet.tsx
 msgid "Другой…"
 msgstr "Jiné…"
+
+#: src/console/BanSheet.tsx
+msgid "{name}: бан прошёл не во всех чатах"
+msgstr "{name}: ban prošel jen v některých chatech"
 
 #: src/console/TopSearch.tsx
 msgid "Чат, человек, @username или id"
@@ -1430,8 +1455,8 @@ msgid "И то, и другое"
 msgstr "Obojí"
 
 #: src/console/BanSheet.tsx
-msgid "Забанить и стереть все его сообщения"
-msgstr "Zabanovat a smazat všechny jeho zprávy"
+#~ msgid "Забанить и стереть все его сообщения"
+#~ msgstr "Zabanovat a smazat všechny jeho zprávy"
 
 #: src/components/Phrase.tsx
 #: src/components/ServiceSheet.tsx
@@ -1809,8 +1834,8 @@ msgid "Кто найдётся"
 msgstr "Koho to najde"
 
 #: src/components/Phrase.tsx
-msgid "Ведёт предмет, но не привязан к этому вузу"
-msgstr "Učí ten předmět, ale na tuhle školu není vázaný"
+#~ msgid "Ведёт предмет, но не привязан к этому вузу"
+#~ msgstr "Učí ten předmět, ale na tuhle školu není vázaný"
 
 #: src/pages/Chats.tsx
 msgid "Такого чата нет"
@@ -1946,8 +1971,8 @@ msgstr "Poptávka"
 
 #. placeholder {0}: formatDay(str(p.date), locale)
 #: src/components/Phrase.tsx
-msgid "Свободен {0}"
-msgstr "Volný {0}"
+#~ msgid "Свободен {0}"
+#~ msgstr "Volný {0}"
 
 #: src/pages/Life.tsx
 msgid "Пока пусто"
@@ -2295,8 +2320,8 @@ msgid "Отметь всё, что умеешь. Цены спросим на с
 msgstr "Označ všechno, co umíš. Na ceny se zeptáme na dalším kroku."
 
 #: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
-msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
+#~ msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+#~ msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -2833,8 +2858,8 @@ msgstr "poptávka i odpovědi zmizí, nelze vrátit"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
-msgid "{0, plural, one {Готовил к этому же экзамену # человека} few {Готовил к этому же экзамену # человек} many {Готовил к этому же экзамену # человек} other {Готовил к этому же экзамену # человека}}"
-msgstr "{0, plural, one {Připravil na tuhle zkoušku # člověka} few {Připravil na tuhle zkoušku # lidi} many {Připravil na tuhle zkoušku # člověka} other {Připravil na tuhle zkoušku # lidí}}"
+#~ msgid "{0, plural, one {Готовил к этому же экзамену # человека} few {Готовил к этому же экзамену # человек} many {Готовил к этому же экзамену # человек} other {Готовил к этому же экзамену # человека}}"
+#~ msgstr "{0, plural, one {Připravil na tuhle zkoušku # člověka} few {Připravil na tuhle zkoušku # lidi} many {Připravil na tuhle zkoušku # člověka} other {Připravil na tuhle zkoušku # lidí}}"
 
 #: src/console/pages/Chat.tsx
 msgid "Такого чата нет."
@@ -2886,6 +2911,10 @@ msgstr "+ rozpočet"
 #: src/console/pages/Spam.tsx
 msgid "За 30 дней"
 msgstr "Za 30 dní"
+
+#: src/components/Phrase.tsx
+msgid "Дешевле остальных, но опыта с этим экзаменом пока нет"
+msgstr "Levnější než ostatní, ale s touto zkouškou zatím nemá zkušenost"
 
 #: src/pages/Join.tsx
 msgid "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
@@ -2963,6 +2992,10 @@ msgstr "neuvedena: chaty pod ním se jejím studentům nezobrazí první"
 #: src/console/pages/Spam.tsx
 msgid "За сутки"
 msgstr "Za 24 hodin"
+
+#: src/console/BanSheet.tsx
+msgid "Забанить и стереть все сообщения"
+msgstr "Zabanovat a smazat všechny zprávy"
 
 #: src/pages/AdsApp.tsx
 msgid "страховка, визы, банк, переводы"
@@ -3121,8 +3154,8 @@ msgid "Последняя активность"
 msgstr "Poslední aktivita"
 
 #: src/console/BanSheet.tsx
-msgid "{name} не забанен ни в одном чате"
-msgstr "{name} není zabanován v žádném chatu"
+#~ msgid "{name} не забанен ни в одном чате"
+#~ msgstr "{name} není zabanován v žádném chatu"
 
 #: src/console/pages/Summary.tsx
 msgid "Боты"
@@ -3247,8 +3280,8 @@ msgid "Вступительные экзамены"
 msgstr "Přijímací zkoušky"
 
 #: src/components/Phrase.tsx
-msgid "Дешевле остальных, но этот экзамен не вёл"
-msgstr "Levnější než ostatní, ale tuhle zkoušku nevedl"
+#~ msgid "Дешевле остальных, но этот экзамен не вёл"
+#~ msgstr "Levnější než ostatní, ale tuhle zkoušku nevedl"
 
 #: src/components/AppHeader.tsx
 msgid "Язык приложения"
@@ -3491,6 +3524,11 @@ msgstr "Captcha, uvítání a černá listina tu přestanou fungovat."
 #: src/console/pages/Chat.tsx
 msgid "Включить модерацию?"
 msgstr "Zapnout moderaci?"
+
+#. placeholder {0}: num(p.deals)
+#: src/components/Phrase.tsx
+#~ msgid "{0, plural, one {Опыт с этим экзаменом: # студент} few {Опыт с этим экзаменом: # студента} many {Опыт с этим экзаменом: # студентов} other {Опыт с этим экзаменом: # студента}}"
+#~ msgstr "{0, plural, one {Zkušenost s touto zkouškou: # student} few {Zkušenost s touto zkouškou: # studenti} many {Zkušenost s touto zkouškou: # studenta} other {Zkušenost s touto zkouškou: # studentů}}"
 
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"

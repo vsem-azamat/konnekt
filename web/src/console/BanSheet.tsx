@@ -71,7 +71,7 @@ export function BanSheet({
           />
           <span>
             <b>
-              <Trans>Забанить и стереть все его сообщения</Trans>
+              <Trans>Забанить и стереть все сообщения</Trans>
             </b>
             <span className={ui.banOptionHint}>
               <Trans>Во всех чатах, за всё время. Отменить нельзя.</Trans>
@@ -142,9 +142,9 @@ export function BanOutcomeSheet({
   const { t } = useLingui();
   const title =
     outcome === 'partial'
-      ? t`${name} забанен не везде`
+      ? t`${name}: бан прошёл не во всех чатах`
       : outcome === 'nowhere'
-        ? t`${name} не забанен ни в одном чате`
+        ? t`${name}: бан не прошёл ни в одном чате`
         : t`${name} в чёрном списке`;
   return (
     <Sheet title={title} closeLabel={t`Готово`} onClose={onClose}>
