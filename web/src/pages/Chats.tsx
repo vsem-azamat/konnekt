@@ -50,6 +50,12 @@ export default function ChatsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const field = useRef<HTMLInputElement>(null);
+  // Back in the field either way: the empty block holding one of the two
+  // buttons disappears with the query, and focus would fall to the page.
+  const clear = () => {
+    setQuery('');
+    field.current?.focus();
+  };
 
   // The error as soon as it happens, with its own button to ask again. The
   // default two silent retries kept the skeleton up for seconds, and a person
@@ -103,10 +109,10 @@ export default function ChatsPage() {
               type="button"
               className={ui.fieldClear}
               aria-label={t`Очистить поиск`}
-              onClick={() => {
-                setQuery('');
-                field.current?.focus();
-              }}
+              // Keeps the field focused, so the keyboard does not drop and
+              // come back, moving Telegram's viewport with it.
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={clear}
             >
               <CloseIcon size={14} />
             </button>
@@ -140,7 +146,7 @@ export default function ChatsPage() {
                 title={<Trans>Такого чата нет</Trans>}
                 body={<Trans>Ищи по вузу, факультету или общежитию: {EXAMPLES}.</Trans>}
                 action={
-                  <Action quiet onClick={() => setQuery('')}>
+                  <Action quiet onClick={clear}>
                     <Trans>Очистить поиск</Trans>
                   </Action>
                 }

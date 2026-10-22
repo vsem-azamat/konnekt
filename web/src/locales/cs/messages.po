@@ -805,7 +805,7 @@ msgstr "Zrušit"
 
 #: src/pages/MyHelper.tsx
 msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
-msgstr "Zatím ho vidíš jen ty. Níže už je vybráno «V katalogu»: stiskni «Uložit» a profil se objeví ve vyhledávání."
+msgstr "Zatím ho vidíš jen ty. Níže už je vybráno «V katalogu»: klepni na «Uložit» a profil se objeví ve vyhledávání."
 
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx

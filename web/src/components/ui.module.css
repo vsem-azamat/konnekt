@@ -1105,7 +1105,8 @@
 }
 
 /* A cross at the end of a row: the drawing stays small, the place to press is
-   44 px, as a finger needs. */
+   44 px, as a finger needs. Only 10 px reach left, the gap to the control
+   beside it; the rest goes right, into the row's padding and the page edge. */
 .rowRemove {
   position: relative;
 }
@@ -1114,6 +1115,8 @@
   content: '';
   position: absolute;
   inset: calc((44px - 100%) / -2);
+  left: -10px;
+  right: calc(100% - 34px);
 }
 
 /* ── cards ──────────────────────────────────────────────────────────── */

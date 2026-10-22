@@ -506,7 +506,7 @@ function SubjectRow({
       {/* The currency stays once a price is typed: the placeholder alone
           left a bare «600 за час». */}
       {row.price !== '' ? (
-        <span style={{ marginLeft: -6, fontSize: 15, color: 'var(--ink)' }}>Kč</span>
+        <span style={{ marginLeft: -6, color: 'var(--ink)' }}>{t`Kč`}</span>
       ) : null}
       <select
         value={row.unit}
