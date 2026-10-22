@@ -1,9 +1,11 @@
-// Ships this project's container logs to Loki on the monitoring server.
+// Ships container logs of this host to Loki on the monitoring server.
 //
-// Only the supervisor-telegram Compose project leaves this machine: the other
-// stacks on this host (khromberry, urf, ...) are not this project's to ship.
-// The lines are JSON, so `level` becomes a label and the request, update and
-// chat ids stay inside the line, where a query reads them.
+// Only the Compose projects listed in the keep rule leave this machine
+// (supervisor-telegram and gov-cz-bot); the other stacks on this host
+// (khromberry, urf, ...) are not shipped. Each gets a `project` label, the one
+// its metrics carry, so a dashboard filters logs and metrics alike. The lines
+// are JSON, so `level` becomes a label and the request, update and chat ids
+// stay inside the line, where a query reads them.
 
 logging {
   level  = "info"
@@ -15,12 +17,12 @@ discovery.docker "containers" {
   refresh_interval = "30s"
 }
 
-discovery.relabel "supervisor_telegram" {
+discovery.relabel "shipped" {
   targets = discovery.docker.containers.targets
 
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    regex         = "supervisor-telegram"
+    regex         = "supervisor-telegram|gov-cz-bot"
     action        = "keep"
   }
 
@@ -53,7 +55,7 @@ discovery.relabel "supervisor_telegram" {
 
 loki.source.docker "containers" {
   host       = "tcp://socket-proxy:2375"
-  targets    = discovery.relabel.supervisor_telegram.output
+  targets    = discovery.relabel.shipped.output
   forward_to = [loki.process.json.receiver]
 }
 
@@ -75,6 +77,25 @@ loki.process "json" {
   stage.labels {
     values = {
       level = "",
+    }
+  }
+
+  // Set here, not in discovery.relabel: the source keeps its read positions
+  // per target label set, so a new target label would make it read every
+  // container's log again from the start.
+  stage.match {
+    selector = "{compose_project=\"supervisor-telegram\"}"
+
+    stage.static_labels {
+      values = { project = "konnekt" }
+    }
+  }
+
+  stage.match {
+    selector = "{compose_project=\"gov-cz-bot\"}"
+
+    stage.static_labels {
+      values = { project = "gov-cz" }
     }
   }
 

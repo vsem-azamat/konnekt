@@ -6,8 +6,13 @@ only). It lives in `~/deploy/alloy-logs` on the VPS and is started by hand: the
 deploy workflow recreates the stack's containers, and a shipper recreated with
 them would lose the tail of the deploy that needed watching.
 
-It ships the `supervisor-telegram` Compose project only (the stack's compose
-file states that name itself, so the filter does not depend on a directory).
+It ships two Compose projects of this host: `supervisor-telegram` (label
+`project="konnekt"`) and `gov-cz-bot` (`project="gov-cz"`, the Czech Status
+bot); the `project` label matches the one on their metrics. This stack's
+compose file states its project name; gov-cz-bot's comes from its directory,
+`~/deploy/gov-cz-bot`, so moving that directory renames the project and stops
+its logs. gov-cz-bot writes `level` in upper case (`INFO`, `ERROR`) and only
+its `backend` and `backup` write JSON.
 Alloy runs as root and a read-only mount of the Docker socket does not limit
 the API, so it never sees the socket: a `docker-socket-proxy` on an internal
 network does, and answers only GETs for containers and networks. Loki keeps
@@ -35,7 +40,8 @@ docker run --rm --network alloy-logs_docker-api curlimages/curl -s http://alloy:
 ```
 
 Sent entries rise and dropped stay at zero; in Grafana, `{compose_project="supervisor-telegram"}`
-shows lines from `bot`, `webapi`, `catalog-api` and `webui`.
+shows lines from `bot`, `webapi`, `catalog-api` and `webui`, and
+`{compose_project="gov-cz-bot"}` lines from `backend`, `backup`, `frontend` and `caddy`.
 
 ## Roll back
 
