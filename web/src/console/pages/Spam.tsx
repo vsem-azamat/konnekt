@@ -138,7 +138,6 @@ function Spam() {
           <Trans>Что поймал детектор. Разобранное уходит из очереди.</Trans>
         </Sub>
       </div>
-      {/* In a browser the status and the chat and period chips share a line. */}
       <div className={inBrowser ? css.filters : ui.column} style={{ marginTop: 12 }}>
         <Chips>
           {statusChip(

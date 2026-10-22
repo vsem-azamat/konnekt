@@ -1,5 +1,10 @@
+/*
+ * The ads queue in a browser (#288, layout A): the status chips and the chat
+ * and period chips share a line, with a wider gap between the groups than
+ * inside them. A narrow window wraps them.
+ */
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--gap-row) 16px;
 }
