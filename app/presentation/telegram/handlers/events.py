@@ -55,7 +55,10 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     chat = await db.scalar(select(Chat).where(Chat.id == event.chat.id))
     if chat is None or not chat.is_welcome_enabled:
         return
-    await welcome.greet(bot, chat, joined)
+    chat_text, lifetime = chat.welcome_message, chat.time_delete
+    # Done with the database before waiting on Telegram and on other joiners.
+    await db.commit()
+    await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
 
 
 @router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))

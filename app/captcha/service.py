@@ -21,7 +21,7 @@ import html
 import math
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import AiogramError, TelegramAPIError
 from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup, ReplyParameters
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -189,6 +189,7 @@ async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: C
             lambda: bot.send_message(
                 chat_id=row.user_chat_id,
                 text=challenge.passed_text(title, _link(chat)),
+                disable_web_page_preview=True,
             )
         )
     except TelegramAPIError as err:
@@ -353,7 +354,7 @@ async def _introduce(bot: Bot, row: JoinCaptcha, now: datetime.datetime) -> None
         return
     try:
         await intro.send(bot, row.user_chat_id, challenge.INTRO, intro.private_markup())
-    except TelegramAPIError as err:
+    except AiogramError as err:
         logger.warning("captcha_intro_not_sent", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
 
 
@@ -574,7 +575,14 @@ async def _edit(bot: Bot, row: JoinCaptcha, text: str, markup: InlineKeyboardMar
     if row.message_id is None:
         return
     try:
-        await bot.edit_message_text(chat_id=row.user_chat_id, message_id=row.message_id, text=text, reply_markup=markup)
+        # The chat's link in «Готово» needs no preview card under it.
+        await bot.edit_message_text(
+            chat_id=row.user_chat_id,
+            message_id=row.message_id,
+            text=text,
+            reply_markup=markup,
+            disable_web_page_preview=True,
+        )
     except TelegramAPIError as err:
         # The decision stands either way; the applicant just sees stale buttons.
         logger.warning("captcha_message_not_edited", captcha_id=row.id, error=str(err), error_type=type(err).__name__)

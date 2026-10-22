@@ -8,7 +8,8 @@ edit notifies nobody, so only the first name in a burst is pinged.
 The greeting stays `Chat.time_delete` seconds after the last joiner and is
 then deleted; a chat that keeps its greetings (`time_delete` 0) starts a new
 one after `BURST_SECONDS` without joins. What is up lives in this process
-only: after a restart the next joiner simply gets a new greeting.
+only: after a restart the next joiner gets a new greeting, and one that was
+up when the bot stopped is not deleted.
 """
 
 import asyncio
@@ -20,7 +21,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
 
 from app.core import intro
 from app.core.logging import get_logger
-from app.db.models import Chat
 
 logger = get_logger("chats.welcome")
 
@@ -44,11 +44,14 @@ class _Greeting:
     chat_text: str | None
     names: list[str] = field(default_factory=list)
     others: int = 0
+    # Who is in it already: joining, leaving and joining again is one name.
+    user_ids: set[int] = field(default_factory=set)
     timer: asyncio.Task[None] | None = None
 
 
 _up: dict[int, _Greeting] = {}
 _locks: dict[int, asyncio.Lock] = {}
+_timers: set[asyncio.Task[None]] = set()
 
 
 def text(names: list[str], others: int, chat_text: str | None) -> str:
@@ -59,43 +62,60 @@ def text(names: list[str], others: int, chat_text: str | None) -> str:
     return "\n\n".join(lines)
 
 
-async def greet(bot: Bot, chat: Chat, user: User) -> None:
-    """Greet `user` in `chat`: in the greeting that is up, or in a new one."""
-    name = user.mention_html(user.first_name)
-    async with _locks.setdefault(chat.id, asyncio.Lock()):
-        greeting = _up.get(chat.id)
+async def greet(bot: Bot, chat_id: int, user: User, *, chat_text: str | None, lifetime: int) -> None:
+    """Greet `user`: in the greeting that is up, or in a new one.
+
+    Takes the chat's settings as values, not its row: joiners queue on the
+    lock while Telegram answers, and none of them should hold a database
+    connection meanwhile.
+    """
+    async with _locks.setdefault(chat_id, asyncio.Lock()):
+        greeting = _up.get(chat_id)
         if greeting is not None:
-            if await _add(bot, chat.id, greeting, name):
-                _keep(bot, chat, greeting)
+            if user.id in greeting.user_ids:
                 return
-            _drop(chat.id)
-        greeting = await _post(bot, chat, name)
+            if await _add(bot, chat_id, greeting, user):
+                _keep(bot, chat_id, greeting, lifetime)
+                return
+            _drop(chat_id)
+        greeting = await _post(bot, chat_id, user, chat_text)
         if greeting is not None:
-            _up[chat.id] = greeting
-            _keep(bot, chat, greeting)
+            _up[chat_id] = greeting
+            _keep(bot, chat_id, greeting, lifetime)
 
 
-async def _post(bot: Bot, chat: Chat, name: str) -> _Greeting | None:
+def _name(user: User) -> str:
+    return user.mention_html(user.first_name)
+
+
+async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _Greeting | None:
     markup = await _markup(bot)
     try:
-        sent, video = await intro.send(bot, chat.id, text([name], 0, chat.welcome_message), markup)
+        sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
     except TelegramAPIError as err:
         # A greeting Telegram refuses is the chat's problem, not the join's.
-        logger.warning("welcome_not_sent", chat_id=chat.id, error=str(err), error_type=type(err).__name__)
+        logger.warning("welcome_not_sent", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None
     return _Greeting(
-        message_id=sent.message_id, video=video, markup=markup, chat_text=chat.welcome_message, names=[name]
+        message_id=sent.message_id,
+        video=video,
+        markup=markup,
+        chat_text=chat_text,
+        names=[_name(user)],
+        user_ids={user.id},
     )
 
 
-async def _add(bot: Bot, chat_id: int, greeting: _Greeting, name: str) -> bool:
-    """Add a name to the greeting that is up; False when it cannot be edited any more."""
-    names, others = greeting.names, greeting.others
-    if len(names) < NAMED:
-        names = [*names, name]
-    else:
-        others += 1
+async def _add(bot: Bot, chat_id: int, greeting: _Greeting, user: User) -> bool:
+    """Add a name to the greeting that is up; False when it is gone and a new one is needed."""
+    names, others = [*greeting.names, _name(user)], greeting.others
     body = text(names, others, greeting.chat_text)
+    # A name that would not fit under the video is counted instead.
+    if len(names) > NAMED or (greeting.video and not intro.fits_caption(body)):
+        names, others = greeting.names, others + 1
+        body = text(names, others, greeting.chat_text)
+    greeting.names, greeting.others = names, others
+    greeting.user_ids.add(user.id)
     try:
         if greeting.video:
             await bot.edit_message_caption(
@@ -113,7 +133,10 @@ async def _add(bot: Bot, chat_id: int, greeting: _Greeting, name: str) -> bool:
         # Deleted by an admin, most likely. The newcomer gets a greeting of their own.
         logger.info("welcome_not_extended", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return False
-    greeting.names, greeting.others = names, others
+    except TelegramAPIError as err:
+        # Flood control, typically, which is what a burst of joins runs into.
+        # The name is counted all the same and shows with the next edit.
+        logger.warning("welcome_edit_skipped", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
     return True
 
 
@@ -125,11 +148,13 @@ async def _markup(bot: Bot) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=intro.OPEN_BUTTON, url=url)]])
 
 
-def _keep(bot: Bot, chat: Chat, greeting: _Greeting) -> None:
+def _keep(bot: Bot, chat_id: int, greeting: _Greeting, lifetime: int) -> None:
     """(Re)start the greeting's clock from now, the latest join."""
     if greeting.timer is not None:
         greeting.timer.cancel()
-    greeting.timer = asyncio.create_task(_run_out(bot, chat.id, greeting, chat.time_delete))
+    greeting.timer = asyncio.create_task(_run_out(bot, chat_id, greeting, lifetime))
+    _timers.add(greeting.timer)
+    greeting.timer.add_done_callback(_timers.discard)
 
 
 async def _run_out(bot: Bot, chat_id: int, greeting: _Greeting, lifetime: int) -> None:
@@ -151,9 +176,9 @@ def _drop(chat_id: int) -> None:
 
 
 def forget() -> None:
-    """Forget every greeting that is up, as a restart would."""
-    for greeting in _up.values():
-        if greeting.timer is not None:
-            greeting.timer.cancel()
+    """Forget every greeting and its clock, as a restart does."""
+    for timer in _timers:
+        timer.cancel()
+    _timers.clear()
     _up.clear()
     _locks.clear()

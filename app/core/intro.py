@@ -1,8 +1,9 @@
 """Konnekt introducing itself: the demo video and the one button into the app.
 
 Said in three places — `/start`, the greeting in a chat and the private chat
-after the captcha — and kept here so the button reads the same in all of them
-and the video is one setting, off until the final cut is approved.
+after the captcha. The button reads the same in all of them and the video is
+one setting, off until the final cut is approved; `/start` answers its own
+message and so keeps its own copy of `send`.
 """
 
 import html
