@@ -152,6 +152,41 @@ _SYNONYM_HIT = f"""EXISTS (
      ) > 0
 )"""
 
+# A name of two words or more, declined: «с линейной алгеброй» is «Линейная
+# алгебра», «s lineární algebrou» is «Lineární algebra». Each word of five
+# letters or more keeps all but its last two (never fewer than four), one of
+# four all but its last — «сети» is «сетями» — and either may take up to four
+# letters after; a shorter word — «b1», «pro» — stays whole.
+# The words in order, each a whole query word. Not for one-word names: «право»
+# cut to «прав» is «правда», and one word inflected is what the prefix and the
+# trigram branches already handle.
+_DECLINED = """(
+    SELECT count(*) >= 2 AND q.tokens ~ (
+        ' ' || string_agg(
+            CASE WHEN length(w) >= 5
+                 THEN left(w, greatest(4, length(w) - 2)) || '[[:alnum:]]{{0,4}}'
+                 WHEN length(w) = 4
+                 THEN left(w, 3) || '[[:alnum:]]{{0,4}}'
+                 ELSE w END,
+            ' ' ORDER BY n
+        ) || ' '
+    )
+      FROM regexp_split_to_table(
+               btrim(regexp_replace({expr}, '[^[:alnum:]]+', ' ', 'g')), ' '
+           ) WITH ORDINALITY AS t(w, n)
+     WHERE w <> ''
+)"""
+
+# A synonym of several words resembles the query only as much as its least
+# resembled word: «экзамен b1» is not half there because the query says
+# «экзамен», and scored whole it gave «экзамен через две недели» Czech B1 at
+# 0.67.
+_SYNONYM_LIKENESS = """(
+    SELECT MIN(word_similarity(w, q.raw))
+      FROM regexp_split_to_table(immutable_unaccent(lower(syn)), '[^[:alnum:]]+') w
+     WHERE w <> ''
+)"""
+
 _SUBJECT_SQL = text(
     f"""
     WITH q AS (
@@ -171,11 +206,18 @@ _SUBJECT_SQL = text(
                    -- covers that, scored just below an exact hit so exact
                    -- hits still sort first.
                    COALESCE((
-                       SELECT MAX(word_similarity(
-                           immutable_unaccent(lower(syn)), q.raw)) * 0.92
+                       SELECT MAX({_SYNONYM_LIKENESS}) * 0.92
                          FROM unnest(s.synonyms) syn
                         WHERE length(btrim(syn)) >= 5
                    ), 0.0),
+                   -- A name or synonym typed out in full, only declined, is
+                   -- named as surely as one typed in its own form.
+                   CASE WHEN bool_or({_DECLINED.format(expr=_NORM.format(expr="i.name"))})
+                          OR EXISTS (
+                              SELECT 1 FROM unnest(s.synonyms) syn
+                               WHERE {_DECLINED.format(expr=_NORM.format(expr="syn"))}
+                          )
+                        THEN 1.0 ELSE 0.0 END,
                    CASE WHEN s.external_code IS NOT NULL
                          AND strpos(
                              q.tokens,

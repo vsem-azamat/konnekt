@@ -1295,6 +1295,10 @@ def _shares_a_stem(word: str, stem: str) -> bool:
 # The shelf every entrance offer sits on.
 ADMISSIONS_SHELF = "admissions-prep"
 
+# A trigram guess this close is a name or synonym nearly typed out; one at the
+# bar of 0.5 only resembles the query.
+SURE_GUESS = 0.75
+
 
 async def _from_admissions(
     session: AsyncSession,
@@ -1335,10 +1339,14 @@ async def _from_admissions(
     listed = await _entrance_exams(
         session, admissions & set(await held_by(session, shelf_id))
     )
-    # A guess already among them stands. Any other — off the shelf, or on it
-    # but not the named shelf's (TSP for «подготовка к поступлению по
-    # математике») — gives way.
-    if not listed or subjects[0].id in listed:
+    # A sure guess already among them stands: «přijímačky na ČVUT z
+    # matematiky» is the technical admissions by a synonym nearly typed out.
+    # Any other gives way — off the shelf, on it but not the named shelf's (TSP
+    # for «подготовка к поступлению по математике»), or one that only cleared
+    # the bar on the entrance words every admissions leaf shares: «university
+    # admissions maths» guessed the technical admissions from «admissions»,
+    # over the maths exam the shelf has of its own.
+    if not listed or (subjects[0].id in listed and subjects[0].score >= SURE_GUESS):
         return subjects
     school = await _school_words(session, institution)
     kept = [token for token in tokens if not _is_school_word(token, school)]
