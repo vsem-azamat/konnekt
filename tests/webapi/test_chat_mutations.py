@@ -176,6 +176,50 @@ async def test_a_code_that_is_not_a_code_is_refused(client_factory, db_session_m
     assert resp.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("sent", "stored"),
+    [("Praha", "Praha"), ("  Brno ", "Brno"), ("Plzen\u030c", "Plze\u0148"), ("", None), (None, None)],
+)
+async def test_a_chat_is_placed_in_a_city_or_in_all_of_czechia(client_factory, db_session_maker, sent, stored) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2040, title="Strahov", city="Ostrava"))
+        await s.commit()
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2040", json={"city": sent})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["city"] == stored
+
+
+@pytest.mark.parametrize("sent", ["dorms", "university", None])
+async def test_a_chat_is_filed_under_a_topic(client_factory, db_session_maker, sent) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2041, title="Strahov", topic="general"))
+        await s.commit()
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2041", json={"topic": sent})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["topic"] == sent
+
+
+@pytest.mark.parametrize("sent", ["sport", "Dorms", ""])
+async def test_a_topic_outside_the_list_is_refused(client_factory, db_session_maker, sent) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2042, title="Strahov"))
+        await s.commit()
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2042", json={"topic": sent})
+    assert resp.status_code == 422
+
+
+async def test_a_city_name_is_not_a_paragraph(client_factory, db_session_maker) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2043, title="Strahov"))
+        await s.commit()
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2043", json={"city": "x" * 97})
+    assert resp.status_code == 422
+
+
 class TestPublishingAChat:
     """Setting the public link is what puts a chat on the public page.
 
@@ -282,3 +326,16 @@ async def test_update_chat_partial_keeps_other_fields(client_factory, db_session
         assert ch.welcome_message == "orig-welcome"
         assert ch.title == "orig"
         assert ch.is_welcome_enabled is True
+
+
+def test_the_api_and_the_database_know_the_same_topics() -> None:
+    """A topic the schema accepts and the CHECK refuses would answer 500, not 422."""
+    from typing import get_args
+
+    from app.webapi.schemas import ChatTopic
+    from sqlalchemy import CheckConstraint
+
+    checks = (c for c in Chat.__table_args__ if isinstance(c, CheckConstraint))
+    check = next(c for c in checks if c.name == "ck_chats_topic")
+    assert get_args(ChatTopic) == Chat.TOPICS
+    assert str(check.sqltext) == "topic IN ({})".format(", ".join(f"'{topic}'" for topic in Chat.TOPICS))

@@ -45,6 +45,7 @@ from app.webapi.schemas import (
     ChatRead,
     ChatResourceStatus,
     ChatSender,
+    ChatTopic,
     ChatUpdate,
     ExternalChatCreate,
     HeatmapCell,
@@ -67,6 +68,10 @@ _RECENT_SENDERS_LIMIT = 25
 
 def _resource_status(status: str) -> ChatResourceStatus:
     return cast("ChatResourceStatus", status)
+
+
+def _topic(topic: str | None) -> ChatTopic | None:
+    return cast("ChatTopic | None", topic)
 
 
 def _build_heatmap(timestamps: list[datetime.datetime]) -> list[HeatmapCell]:
@@ -97,6 +102,8 @@ async def list_chats(
             relation_notes=chat.relation_notes,
             public_link=chat.public_link,
             institution_code=chat.institution_code,
+            city=chat.city,
+            topic=_topic(chat.topic),
             member_count=counts.get(chat.id),
             has_photo=chat.photo_file_id is not None,
             last_synced_at=chat.last_synced_at,
@@ -204,6 +211,8 @@ async def get_chat(
         relation_notes=chat.relation_notes,
         public_link=chat.public_link,
         institution_code=chat.institution_code,
+        city=chat.city,
+        topic=_topic(chat.topic),
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
@@ -295,6 +304,8 @@ async def update_chat(
         relation_notes=chat.relation_notes,
         public_link=chat.public_link,
         institution_code=chat.institution_code,
+        city=chat.city,
+        topic=_topic(chat.topic),
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
@@ -353,6 +364,8 @@ async def refresh_chat_from_telegram(
         relation_notes=chat.relation_notes,
         public_link=chat.public_link,
         institution_code=chat.institution_code,
+        city=chat.city,
+        topic=_topic(chat.topic),
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
@@ -424,6 +437,8 @@ async def add_external_chat(
         relation_notes=chat.relation_notes,
         public_link=chat.public_link,
         institution_code=chat.institution_code,
+        city=chat.city,
+        topic=_topic(chat.topic),
         member_count=None,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,

@@ -216,6 +216,27 @@
   color: var(--muted);
 }
 
+/* Empties the field it sits in: a 28 px disc, pressable across 44 px. */
+.fieldClear {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-pressed);
+  color: var(--muted);
+}
+
+.fieldClear::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
 .fieldGhost {
   color: var(--muted);
 }
@@ -625,8 +646,9 @@
   display: grid;
   place-items: center;
   /* Off: an empty ring, so the tile reads as choosable before anything is
-     chosen. On: filled, and the tick inherits this colour. */
-  box-shadow: inset 0 0 0 1.5px var(--hairline);
+     chosen — darker than a hairline, which vanished on the grey tile. On:
+     filled, and the tick inherits this colour. */
+  box-shadow: inset 0 0 0 1.5px var(--muted-soft);
   color: transparent;
   transition:
     background-color 120ms ease,
@@ -1082,6 +1104,21 @@
   opacity: 1;
 }
 
+/* A cross at the end of a row: the drawing stays small, the place to press is
+   44 px, as a finger needs. Only 10 px reach left, the gap to the control
+   beside it; the rest goes right, into the row's padding and the page edge. */
+.rowRemove {
+  position: relative;
+}
+
+.rowRemove::after {
+  content: '';
+  position: absolute;
+  inset: calc((44px - 100%) / -2);
+  left: -10px;
+  right: calc(100% - 34px);
+}
+
 /* ── cards ──────────────────────────────────────────────────────────── */
 
 .cards {
@@ -1368,6 +1405,12 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* An error or an empty search under a field: set off from it rather than
+   reading as the field's own caption. */
+.stateBlock {
+  padding-top: 6px;
 }
 
 /* ── actions ────────────────────────────────────────────────────────── */
@@ -2091,4 +2134,80 @@
   color: var(--good);
   font-size: 15px;
   font-weight: 550;
+}
+
+/* ── answering a request ───────────────────────────────────────────── */
+
+/* Whose request it is, above what they wrote. */
+.requestFrom {
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+/* The request again at the top of the answer sheet, so the person answering
+   can read what they are answering while they type. */
+.requestQuote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--r-row);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.requestQuote .requestFrom {
+  margin: 0;
+}
+
+/* All of it, line breaks kept, but never so much that the sheet's title and
+   the scrim above it leave the screen: a request may be 2000 characters. */
+.requestQuoteText {
+  max-height: 30vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.respondForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink-soft);
+}
+
+.field + .fieldLabel {
+  margin-top: 4px;
+}
+
+.fieldLabelNote {
+  font-weight: 450;
+  color: var(--muted);
+}
+
+/* A field in a sheet: the sheet is the page's colour and the field the grey,
+   which on a phone in sunlight is no edge at all. */
+.fieldOutlined {
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+/* What happens once it is sent, under the button that sends it. */
+.sheetOutcome {
+  margin: 8px 0 0;
+}
+
+/* A response's buttons: the decision the screen exists for, at a size a
+   thumb hits without looking. */
+.actionTall {
+  min-height: 44px;
 }
