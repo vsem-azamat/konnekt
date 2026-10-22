@@ -61,7 +61,7 @@ export function PhraseView({
     case 'reason.your_faculty':
       return <Trans>С твоего факультета</Trans>;
     case 'feed.same_subject':
-      return <Trans>Твой предмет — {str(p.subject)}</Trans>;
+      return <Trans>Твой предмет: {str(p.subject)}</Trans>;
     case 'feed.same_institution':
       return <Trans>Вуз, с которым ты работаешь</Trans>;
     case 'feed.same_service':

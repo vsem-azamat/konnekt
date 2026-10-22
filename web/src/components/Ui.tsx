@@ -532,6 +532,7 @@ export function Action({
   quiet,
   danger,
   tall,
+  sent,
   disabled,
 }: {
   children: ReactNode;
@@ -541,14 +542,16 @@ export function Action({
   danger?: boolean;
   /** 44 px, for the buttons a screen exists to have pressed. */
   tall?: boolean;
+  /** Done already: disabled, but readable as a state rather than as greyed out. */
+  sent?: boolean;
   disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${tall ? css.actionTall : ''} ${css.pressable}`}
+      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${tall ? css.actionTall : ''} ${sent ? css.actionSent : ''} ${css.pressable}`}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || sent}
     >
       {children}
     </button>

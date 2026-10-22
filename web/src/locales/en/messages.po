@@ -1,17 +1,18 @@
+#
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2026-07-26 00:00+0000\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Generator: @lingui/cli\n"
-"Language: en\n"
 "Project-Id-Version: students-cz-web\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-26 00:00+0000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: @lingui/cli\n"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Новая карточка"
@@ -203,6 +204,7 @@ msgstr "not our chat"
 msgid "Проверь связь и попробуй ещё раз."
 msgstr "Check your connection and try again."
 
+#: src/components/Incoming.tsx
 #: src/components/Phrase.tsx
 #: src/lib/workFormat.tsx
 msgid "Онлайн"
@@ -320,7 +322,6 @@ msgstr "New requests in Telegram"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "The answer did not arrive. Before trying again, check the list: the card may have been saved."
 
-#: src/console/pages/Chat.tsx
 #~ msgid "Капча при входе"
 #~ msgstr "Captcha on joining"
 
@@ -350,7 +351,6 @@ msgstr "Price <0/>, Kč <1>from your profile, can be changed</1>"
 msgid "{0} за сутки · {1} за неделю"
 msgstr "{0} today · {1} this week"
 
-#: src/components/Incoming.tsx
 #~ msgid "Не сейчас"
 #~ msgstr "Not now"
 
@@ -407,6 +407,10 @@ msgstr "Hide"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Not done: the main administrator cannot be banned."
+
+#: src/components/Incoming.tsx
+msgid "Под этот фильтр сейчас заявок нет"
+msgstr "No requests match this filter right now"
 
 #: src/components/Place.tsx
 msgid "вся Чехия"
@@ -467,7 +471,6 @@ msgstr "lively"
 msgid "Вход в консоль"
 msgstr "Sign in to the console"
 
-#: src/console/pages/Signals.tsx
 #~ msgid "Решают кнопками в сообщении бота в чате отчётов."
 #~ msgstr "Decided with the buttons on the bot's message in the report chat."
 
@@ -517,7 +520,6 @@ msgstr "These aren't our services. We take a commission from the partner, nothin
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Shown to whoever needs it right now, not to everyone."
 
-#: src/pages/ChatSection.tsx
 #~ msgid "Их ведёт не Konnekt, и правила там свои."
 #~ msgstr "Konnekt doesn't run these, and their rules are their own."
 
@@ -562,7 +564,6 @@ msgstr "calculus at ČVUT by 14 February, up to 600 Kč"
 msgid "Их ведёт не Konnekt: спам там чистим не мы, правила свои."
 msgstr "Konnekt doesn't run these: we don't clean spam there, and their rules are their own."
 
-#: src/pages/MyHelper.tsx
 #~ msgid "Всё можно менять когда угодно. Пустые поля просто не показываем."
 #~ msgstr "Change anything whenever you like. Empty fields simply are not shown."
 
@@ -582,7 +583,6 @@ msgstr "Main bot"
 msgid "Что происходит в чатах и в каталоге."
 msgstr "What is happening in the chats and the catalog."
 
-#: src/pages/Profile.tsx
 #~ msgid "На каких языках тебе удобно"
 #~ msgstr "Which languages you're comfortable with"
 
@@ -609,6 +609,10 @@ msgstr "The sign-in data has expired."
 #: src/console/pages/Summary.tsx
 msgid "Ждёт нажатия"
 msgstr "Awaiting a tap"
+
+#: src/pages/Profile.tsx
+msgid "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
+msgstr "{waitingForMe, plural, one {# request for your services} other {# requests for your services}}"
 
 #: src/components/Phrase.tsx
 msgid "первый год"
@@ -730,7 +734,6 @@ msgstr "It did not go through — try again."
 msgid "Модерация"
 msgstr "Moderation"
 
-#: src/pages/Chats.tsx
 #~ msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
 #~ msgstr "Faculties, dorms, general chats. We clear out spam, scams and phishing."
 
@@ -817,10 +820,8 @@ msgstr "{name} is not banned everywhere"
 msgid "Оставить заявку"
 msgstr "Post a request"
 
-#. placeholder {0}: str(p.subject)
-#: src/components/Phrase.tsx
-msgid "Твой предмет — {0}"
-msgstr "Your subject — {0}"
+#~ msgid "Твой предмет — {0}"
+#~ msgstr "Your subject — {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -952,7 +953,6 @@ msgstr "proposed via MCP · expires in {left} min"
 msgid "репетиторство, работы, документы"
 msgstr "tutoring, written work, paperwork"
 
-#: src/pages/Profile.tsx
 #~ msgid "расскажи своими словами, анкету соберём сами"
 #~ msgstr "tell it in your own words, we'll build the profile"
 
@@ -1004,7 +1004,6 @@ msgstr "Let them wait"
 msgid "Сколько"
 msgstr "How much"
 
-#: src/console/pages/Signals.tsx
 #~ msgid "Подтвердить или отклонить можно в личном сообщении бота."
 #~ msgstr "Confirm or reject it in the bot's private message."
 
@@ -1063,7 +1062,6 @@ msgstr "in «Not about studies»"
 msgid "Ни набегов, ни предложенных банов."
 msgstr "No raids and no proposed bans."
 
-#: src/components/Phrase.tsx
 #~ msgid "сдали"
 #~ msgstr "passed"
 
@@ -1173,7 +1171,6 @@ msgstr "Too long for the catalog."
 msgid "И так, и так"
 msgstr "Either way"
 
-#: src/pages/Request.tsx
 #~ msgid "Заявку видят все, кто предлагает помощь. Отклики приходят сюда."
 #~ msgstr "Everyone who offers help sees your request. Answers arrive here."
 
@@ -1422,7 +1419,6 @@ msgstr "per hour"
 msgid "рядом с языками"
 msgstr "next to languages"
 
-#: src/pages/Profile.tsx
 #~ msgid "Предлагать услуги"
 #~ msgstr "Offer services"
 
@@ -1460,7 +1456,6 @@ msgstr "24 h"
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "It goes first in the «Not about school» section. Three cards show there: the lowest drops off until another is switched off."
 
-#: src/console/pages/Chats.tsx
 #~ msgid "Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
 #~ msgstr "A public link like https://t.me/name or @name. The bot is not added there: the chat goes into the catalogue marked as not ours."
 
@@ -1526,6 +1521,10 @@ msgstr "off"
 #: src/console/ProfileSheet.tsx
 msgid "Причина"
 msgstr "Reason"
+
+#: src/components/Incoming.tsx
+msgid "До {amount} Kč"
+msgstr "Up to {amount} Kč"
 
 #: src/pages/Join.tsx
 msgid "Готово, ты в чате"
@@ -1711,6 +1710,7 @@ msgstr "Decline all"
 msgid "Как занимаешься"
 msgstr "How you teach"
 
+#: src/components/Incoming.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
@@ -1803,7 +1803,6 @@ msgstr "not set up: bans and refreshes from Telegram will fail"
 msgid "Куда попадёт"
 msgstr "Where it goes"
 
-#: src/pages/Chats.tsx
 #~ msgid "ČVUT, FIT, Strahov…"
 #~ msgstr "ČVUT, FIT, Strahov…"
 
@@ -1897,7 +1896,6 @@ msgstr "{0, plural, one {# helper already sees the request. The first response u
 msgid "Ссылка"
 msgstr "Link"
 
-#: src/pages/Request.tsx
 #~ msgid "Выбрать {name}?"
 #~ msgstr "Choose {name}?"
 
@@ -2130,6 +2128,10 @@ msgstr "In every chat, ever. This cannot be undone."
 msgid "своих заявок нет"
 msgstr "no requests of your own"
 
+#: src/components/Incoming.tsx
+msgid "Остальные · {count}"
+msgstr "Others · {count}"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Take down"
@@ -2244,7 +2246,6 @@ msgstr "Thu"
 msgid "Набег на {title}"
 msgstr "Raid on {title}"
 
-#: src/components/Incoming.tsx
 #~ msgid "Цена за час, Kč <0>необязательно</0>"
 #~ msgstr "Price per hour, Kč <0>optional</0>"
 
@@ -2264,7 +2265,6 @@ msgstr "quiet"
 msgid "Дешевле"
 msgstr "Cheaper"
 
-#: src/console/pages/Chats.tsx
 #~ msgid "Telegram не знает публичного чата с таким именем."
 #~ msgstr "Telegram knows no public chat by that name."
 
@@ -2366,7 +2366,6 @@ msgstr "Ban only"
 msgid "Пост в чатах"
 msgstr "A post in chats"
 
-#: src/console/pages/Chat.tsx
 #~ msgid "Бот пишет его новичку: «@имя, ваш текст»."
 #~ msgstr "The bot sends it to a newcomer: «@name, your text»."
 
@@ -2486,6 +2485,10 @@ msgstr "Nostrification"
 msgid "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
 msgstr "The bot is not there. Only a link in the catalogue, marked as not ours."
 
+#: src/components/Incoming.tsx
+msgid "Отклик отправлен"
+msgstr "Response sent"
+
 #. placeholder {0}: formatDay(request.deadline_on, i18n.locale)
 #. placeholder {0}: formatDay(request.deadline_on, locale)
 #: src/components/Incoming.tsx
@@ -2510,7 +2513,6 @@ msgstr "Ban"
 msgid "Автор может её править, но не опубликовать сам."
 msgstr "The author can edit it but cannot publish it."
 
-#: src/components/ChatRow.tsx
 #~ msgid "Этот чат ведёт не Konnekt, и правила там свои."
 #~ msgstr "Konnekt doesn't run this chat, and its rules are its own."
 
@@ -2591,9 +2593,8 @@ msgstr "Awaiting a decision"
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "A couple of words about you — what you take on and what you do not"
 
-#: src/components/Incoming.tsx
-msgid "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
-msgstr "Requests from the whole catalog appear here. The ones in your subjects come first."
+#~ msgid "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
+#~ msgstr "Requests from the whole catalog appear here. The ones in your subjects come first."
 
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
@@ -2619,7 +2620,6 @@ msgstr "No access to the chats"
 msgid "Сколько берёшь?"
 msgstr "What do you charge?"
 
-#: src/pages/Request.tsx
 #~ msgid "Помощник получит уведомление. Отменить нельзя."
 #~ msgstr "The helper will be notified. This cannot be undone."
 
@@ -2646,6 +2646,11 @@ msgstr "This group is gone"
 #: src/console/pages/Chats.tsx
 msgid "на сайте"
 msgstr "listed"
+
+#. placeholder {0}: str(p.subject)
+#: src/components/Phrase.tsx
+msgid "Твой предмет: {0}"
+msgstr "Your subject: {0}"
 
 #: src/components/Incoming.tsx
 msgid "Могу на этой неделе"
@@ -2698,7 +2703,6 @@ msgstr "Add a card"
 msgid "Район или где удобно встречаться"
 msgstr "District, or where it suits you to meet"
 
-#: src/components/Incoming.tsx
 #~ msgid "Отправить"
 #~ msgstr "Send"
 
@@ -2730,7 +2734,6 @@ msgstr "Author banned"
 msgid "Капча"
 msgstr "Captcha"
 
-#: src/console/BrowserShell.tsx
 #~ msgid "консоль"
 #~ msgstr "console"
 
@@ -2889,6 +2892,10 @@ msgstr "What we do not place"
 msgid "Работает только в одобренном чате."
 msgstr "Works only in an approved chat."
 
+#: src/components/Incoming.tsx
+msgid "По твоим услугам · {count}"
+msgstr "For your services · {count}"
+
 #: src/console/pages/Spam.tsx
 msgid "Не разобрано · {unreviewed}"
 msgstr "To review · {unreviewed}"
@@ -2955,7 +2962,6 @@ msgstr "New profiles"
 msgid "Работа и IT"
 msgstr "Work and IT"
 
-#: src/console/pages/Chat.tsx
 #~ msgid "правила в закрепе, рекламу не публикуем."
 #~ msgstr "the rules are pinned, no ads please."
 
@@ -3096,11 +3102,9 @@ msgstr "No requests yet"
 msgid "Убрать"
 msgstr "Remove"
 
-#: src/console/pages/Chat.tsx
 #~ msgid "не задан"
 #~ msgstr "not set"
 
-#: src/pages/Chats.tsx
 #~ msgid "Общие"
 #~ msgstr "General"
 
@@ -3205,6 +3209,10 @@ msgstr "{0, plural, one {Replies in about # minute} other {Replies in about # mi
 #: src/console/pages/Audience.tsx
 msgid "Откуда приходят"
 msgstr "Where they come from"
+
+#: src/components/Incoming.tsx
+msgid "Здесь появятся заявки со всего каталога. Те, что по твоим услугам, будут выше."
+msgstr "Requests from the whole catalog appear here. The ones for your services come first."
 
 #: src/pages/Request.tsx
 msgid "Ты отказался"
@@ -3313,7 +3321,6 @@ msgstr "Not shown"
 msgid "Этого аккаунта нет среди администраторов. Войдите другим аккаунтом Telegram или попросите владельца добавить вас."
 msgstr "This account is not among the administrators. Sign in with another Telegram account or ask the owner to add you."
 
-#: src/console/pages/Chats.tsx
 #~ msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
 #~ msgstr "It needs a public link like https://t.me/name or @name. A chat can't be found by an invite link."
 
@@ -3358,11 +3365,9 @@ msgstr "No new profiles this week."
 msgid "Забанить…"
 msgstr "Ban…"
 
-#: src/components/Incoming.tsx
 #~ msgid "Цена за час, Kč — необязательно"
 #~ msgstr "Price per hour, Kč — optional"
 
-#: src/pages/Request.tsx
 #~ msgid "Откликов пока нет"
 #~ msgstr "No responses yet"
 
@@ -3384,7 +3389,6 @@ msgstr "This is a super admin."
 msgid "3 дня"
 msgstr "3 days"
 
-#: src/console/ProfileSheet.tsx
 #~ msgid "Скрыта из каталога: автор не может опубликовать её сам."
 #~ msgstr "Hidden from the catalog: the author cannot publish it again."
 
@@ -3467,7 +3471,6 @@ msgstr "Message texts are not kept: only what Telegram tells us, and when the pe
 msgid "Вступление в чат"
 msgstr "Joining the chat"
 
-#: src/console/ProfileSheet.tsx
 #~ msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
 #~ msgstr "It leaves the catalog and search, and the author cannot publish it again. It can be returned here, under «Hidden». We tell the author nothing."
 
@@ -3549,6 +3552,10 @@ msgstr "Nobody suited you?"
 msgid "Предлагаю услугу"
 msgstr "I am offering a service"
 
+#: src/components/Incoming.tsx
+msgid "Не твоя услуга"
+msgstr "Not your service"
+
 #: src/pages/Join.tsx
 msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
 msgstr "tutors, entrance exam preparation, nostrification"
@@ -3577,7 +3584,6 @@ msgstr "Tutors"
 msgid "Не удалось загрузить"
 msgstr "Could not load"
 
-#: src/components/Phrase.tsx
 #~ msgid "лет на площадке"
 #~ msgstr "years on the platform"
 
@@ -3665,6 +3671,7 @@ msgstr "Open it from the request"
 msgid "Обновлено только что"
 msgstr "Updated just now"
 
+#: src/components/Incoming.tsx
 #: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Spam.tsx

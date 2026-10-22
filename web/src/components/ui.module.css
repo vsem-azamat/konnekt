@@ -2396,3 +2396,58 @@
 .actionTall {
   min-height: 44px;
 }
+
+/* The chips over «Входящие»: one line that scrolls sideways, running to the
+   screen's edges so a chip cut off there reads as «more this way». */
+.feedChips {
+  display: flex;
+  gap: 6px;
+  margin: 0 calc(-1 * var(--pad-screen));
+  padding: 0 var(--pad-screen) 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.feedChips::-webkit-scrollbar {
+  display: none;
+}
+
+.feedChips .chip {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* How many a chip leaves, after its name. */
+.chipCount {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.chipOn .chipCount {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* «По твоим услугам · 5» over its cards. */
+.feedSubhead {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Only the first section's, right under the chips: each section is wrapped,
+   so the heading is a first child in every one of them. */
+.feedSection:first-child .feedSubhead {
+  margin-top: 0;
+}
+
+/* Answered already: still on the list, where the helper looks for it, but
+   with nothing left to press. */
+.actionSent:disabled {
+  opacity: 0.6;
+}

@@ -19,9 +19,17 @@ import {
   SkeletonRows,
   ui,
 } from '@/components/Ui';
-import { hapticSuccess } from '@/hooks/useTelegram';
+import { hapticSelection, hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
-import { requestName } from '@/lib/requestHeading';
+import {
+  chipKey,
+  defaultChip,
+  type FeedChip,
+  feedChips,
+  feedQuery,
+  feedSections,
+} from '@/lib/feedChips';
+import { requestName, requestQuote } from '@/lib/requestHeading';
 import {
   type Draft,
   MESSAGE_MAX,
@@ -55,8 +63,15 @@ export function Incoming() {
       api.respondToRequest(requestId, body),
     onSuccess: (_, { requestId }) => {
       hapticSuccess();
-      // The request drops out of the feed once answered, so the list is stale
-      // the moment this succeeds.
+      // Marked at once, so the card cannot offer to answer again while the
+      // lists come back.
+      queryClient.setQueriesData<FeedRequest[]>(
+        { queryKey: ['request-feed', 'list'] },
+        (rows) =>
+          rows?.map((row) => (row.id === requestId ? { ...row, responded: true } : row)),
+      );
+      // The request stays, now marked as answered and further down, and the
+      // counts on the chips and in «Профиль» move: all of it is stale.
       void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
       // Only if it is still this request on screen: by now the person may
       // have closed the sheet and opened another one.
@@ -65,17 +80,44 @@ export function Incoming() {
     },
   });
 
-  const { data, isPending, isError, error } = useQuery({
-    queryKey: ['request-feed'],
-    queryFn: ({ signal }) => api.getRequestFeed(signal),
-  });
-
   // `?request=<id>` is where the bot's message about a new request lands: that
   // request open to answer, once. Dropped from the URL after, so a reload or
   // a way back does not open it again. One already answered, or no longer in
   // the feed — closed, out of the list — leaves just the list.
   const [params, setParams] = useSearchParams();
   const linked = Number(params.get('request'));
+
+  // The numbers on the chips, answered requests included as the lists are.
+  const facets = useQuery({
+    queryKey: ['request-feed', 'facets', true],
+    queryFn: ({ signal }) => api.getFeedFacets(true, signal),
+  });
+  // Without them: what still waits, which picks the chip to open on. The
+  // same query as «Профиль», so its number and this choice agree.
+  const waiting = useQuery({
+    queryKey: ['request-feed', 'facets', false],
+    queryFn: ({ signal }) => api.getFeedFacets(false, signal),
+  });
+  // A linked request opens on «Все», since under «Мои услуги» it may not be
+  // there to open. Otherwise the default, chosen once: worked out again on
+  // every refetch, it would switch the list under someone who just answered.
+  const [chosen, setChosen] = useState<FeedChip | null>(() => (linked ? ALL : null));
+  const opening = waiting.data
+    ? defaultChip(waiting.data.mine)
+    : waiting.isError
+      ? ALL
+      : null;
+  useEffect(() => {
+    if (opening) setChosen((current) => current ?? opening);
+  }, [opening]);
+  const chip = chosen ?? opening;
+
+  const query = chip ? feedQuery(chip) : null;
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['request-feed', 'list', query],
+    queryFn: ({ signal }) => api.getRequestFeed(query ?? feedQuery(ALL), signal),
+    enabled: query !== null,
+  });
   useEffect(() => {
     if (!linked || !data) return;
     const found = data.find((request) => request.id === linked);
@@ -92,7 +134,9 @@ export function Incoming() {
 
   // 403 is not a failure here: it is the answer for someone who has no helper
   // profile, and the useful response is the invitation to make one.
-  if (isError && error instanceof ApiError && error.status === 403) {
+  const forbidden = (failure: unknown) =>
+    failure instanceof ApiError && failure.status === 403;
+  if (forbidden(error) || forbidden(facets.error) || forbidden(waiting.error)) {
     return (
       <Empty
         title={<Trans>Сначала заполни профиль</Trans>}
@@ -101,39 +145,76 @@ export function Incoming() {
     );
   }
 
-  if (isPending) return <SkeletonRows count={3} />;
-  if (isError) return <Empty title={<Trans>Не получилось загрузить</Trans>} />;
-  if (data.length === 0) {
-    return (
-      <Empty
-        title={<Trans>Пока никто ничего не просит</Trans>}
-        body={
-          <Trans>
-            Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут
-            выше.
-          </Trans>
-        }
-      />
-    );
-  }
+  const chips = facets.data ? feedChips(facets.data, chip) : [];
 
   return (
     <>
-      <Cards>
-        {data.map((request) => (
-          <FeedCard
-            key={request.id}
-            request={request}
-            locale={i18n.locale}
-            onRespond={() => {
-              if (draft.requestId !== request.id) {
-                setDraft(openDraft(request.id, request.suggested_price));
-              }
-              setAnswering(request);
-            }}
+      {chips.length > 1 && chip ? (
+        <>
+          <div className={ui.feedChips}>
+            {chips.map((option) => (
+              <ChipView
+                key={chipKey(option)}
+                active={chipKey(option) === chipKey(chip)}
+                pressed={chipKey(option) === chipKey(chip)}
+                onClick={() => {
+                  hapticSelection();
+                  setChosen(option);
+                }}
+              >
+                <ChipLabel chip={option} />
+                <em className={ui.chipCount}>{option.count}</em>
+              </ChipView>
+            ))}
+          </div>
+          <div style={{ height: 14 }} />
+        </>
+      ) : null}
+
+      {isPending ? (
+        <SkeletonRows count={3} />
+      ) : isError ? (
+        <Empty title={<Trans>Не получилось загрузить</Trans>} />
+      ) : data.length === 0 ? (
+        chip?.kind === 'all' ? (
+          <Empty
+            title={<Trans>Пока никто ничего не просит</Trans>}
+            body={
+              <Trans>
+                Здесь появятся заявки со всего каталога. Те, что по твоим услугам, будут
+                выше.
+              </Trans>
+            }
           />
-        ))}
-      </Cards>
+        ) : (
+          <Empty title={<Trans>Под этот фильтр сейчас заявок нет</Trans>} />
+        )
+      ) : chip ? (
+        feedSections(data, chip).map((section) => (
+          <div key={section.heading ?? 'all'} className={ui.feedSection}>
+            {section.heading ? (
+              <div className={ui.feedSubhead}>
+                <SectionHeading heading={section.heading} count={section.rows.length} />
+              </div>
+            ) : null}
+            <Cards>
+              {section.rows.map((request) => (
+                <FeedCard
+                  key={request.id}
+                  request={request}
+                  locale={i18n.locale}
+                  onRespond={() => {
+                    if (draft.requestId !== request.id) {
+                      setDraft(openDraft(request.id, request.suggested_price));
+                    }
+                    setAnswering(request);
+                  }}
+                />
+              ))}
+            </Cards>
+          </div>
+        ))
+      ) : null}
 
       {answering ? (
         <RespondSheet
@@ -151,6 +232,40 @@ export function Incoming() {
         />
       ) : null}
     </>
+  );
+}
+
+// The count is the row's to show; a chip held in state only names a filter.
+const ALL: FeedChip = { kind: 'all', count: 0 };
+
+function ChipLabel({ chip }: { chip: FeedChip }) {
+  switch (chip.kind) {
+    case 'mine':
+      return <Trans>Мои услуги</Trans>;
+    case 'all':
+      return <Trans>Все</Trans>;
+    case 'online':
+      return <Trans>Онлайн</Trans>;
+    case 'budget': {
+      const amount = formatMoney(chip.amount);
+      return <Trans>До {amount} Kč</Trans>;
+    }
+    default:
+      return chip.name;
+  }
+}
+
+function SectionHeading({
+  heading,
+  count,
+}: {
+  heading: 'mine' | 'others';
+  count: number;
+}) {
+  return heading === 'mine' ? (
+    <Trans>По твоим услугам · {count}</Trans>
+  ) : (
+    <Trans>Остальные · {count}</Trans>
   );
 }
 
@@ -225,15 +340,25 @@ function FeedCard({
         <Reason>
           <PhraseView phrase={request.reason} locale={locale} />
         </Reason>
+      ) : request.on_my_services === false ? (
+        <Reason weak>
+          <Trans>Не твоя услуга</Trans>
+        </Reason>
       ) : null}
 
       <Actions>
         {/* Quiet: the list is a page of these, and a column of filled
             buttons reads as a wall rather than as a choice. The filled one
             is the send inside the sheet, where there is exactly one. */}
-        <Action quiet onClick={onRespond}>
-          <Trans>Откликнуться</Trans>
-        </Action>
+        {request.responded ? (
+          <Action quiet sent onClick={() => {}}>
+            <Trans>Отклик отправлен</Trans>
+          </Action>
+        ) : (
+          <Action quiet onClick={onRespond}>
+            <Trans>Откликнуться</Trans>
+          </Action>
+        )}
       </Actions>
     </Card>
   );
@@ -279,7 +404,7 @@ function RespondSheet({
         <span className={ui.requestFrom}>
           <From request={request} />
         </span>
-        <span className={ui.requestQuoteText}>{request.text}</span>
+        <span className={ui.requestQuoteText}>{requestQuote(request)}</span>
       </div>
 
       <div className={ui.respondForm}>
