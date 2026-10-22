@@ -60,10 +60,14 @@ function isFilter(value: string | null): value is StatusFilter {
 export default function ConsoleChatsPage() {
   return (
     <ConsoleGate>
-      <Title>
-        <Trans>Чаты</Trans>
-      </Title>
-      <ChatList />
+      {/* Wide in a browser while it loads or finds nothing too, so the
+          screen does not jump between widths. */}
+      <div data-wide>
+        <Title>
+          <Trans>Чаты</Trans>
+        </Title>
+        <ChatList />
+      </div>
     </ConsoleGate>
   );
 }
@@ -130,23 +134,27 @@ function ChatList() {
           ))}
         </Chips>
       </div>
-      <div className={ui.field} style={{ marginTop: 12 }}>
-        <SearchIcon size={18} className={ui.fieldIcon} />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t`Название или id`}
-          maxLength={80}
-          style={{ all: 'unset', flex: 1, minWidth: 0 }}
-        />
-      </div>
+      {/* In a browser the search and the button share a row; stretched to
+          the table's width they were a phone's controls. */}
+      <div className={inBrowser ? table.toolbar : undefined}>
+        <div className={ui.field} style={{ marginTop: 12 }}>
+          <SearchIcon size={18} className={ui.fieldIcon} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t`Название или id`}
+            maxLength={80}
+            style={{ all: 'unset', flex: 1, minWidth: 0 }}
+          />
+        </div>
 
-      <div style={{ marginTop: 12 }}>
-        <Actions>
-          <Action quiet onClick={() => setAdding(true)}>
-            <Trans>+ Внешний чат</Trans>
-          </Action>
-        </Actions>
+        <div style={{ marginTop: 12 }}>
+          <Actions>
+            <Action quiet onClick={() => setAdding(true)}>
+              <Trans>+ Внешний чат</Trans>
+            </Action>
+          </Actions>
+        </div>
       </div>
       {adding ? (
         <AddExternalSheet
@@ -231,6 +239,9 @@ function useGuardText(): (chat: ConsoleChat) => string | null {
  * moves come from the summary's numbers, which count approved chats only;
  * a chat they miss, or a failed fetch, shows a dash.
  */
+/** The table's columns, for the section rows that span them all. */
+const COLUMNS = 6;
+
 function ChatTable({ sections }: { sections: ConsoleSection[] }) {
   const { t, i18n } = useLingui();
   const guardText = useGuardText();
@@ -251,7 +262,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
   };
 
   return (
-    <div className={table.wrap} data-wide>
+    <div className={table.wrap}>
       <table className={table.table}>
         <thead>
           <tr>
@@ -278,7 +289,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
         {sections.map((section) => (
           <tbody key={sectionKey(section)}>
             <tr className={table.section}>
-              <th colSpan={6} scope="colgroup">
+              <th colSpan={COLUMNS} scope="rowgroup">
                 <SectionName section={section} /> · {section.chats.length}
               </th>
             </tr>
@@ -298,7 +309,22 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
               return (
                 // The whole row opens the chat; the link in it is the way for
                 // the keys and for readers.
-                <tr key={chat.id} onClick={() => navigate(to)}>
+                <tr
+                  key={chat.id}
+                  onClick={(event) => {
+                    // A modified click is the link's to make, and a click
+                    // that ends a selection is copying, not opening.
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey
+                    )
+                      return;
+                    if (window.getSelection()?.toString()) return;
+                    navigate(to);
+                  }}
+                >
                   <td>
                     <span className={table.chat}>
                       <Tile tone={tileTone(chat)} round>

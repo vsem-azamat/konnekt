@@ -4,6 +4,7 @@
  */
 
 .wrap {
+  margin-top: 12px;
   overflow-x: auto;
 }
 
@@ -33,7 +34,8 @@
   cursor: pointer;
 }
 
-.table tbody tr:hover {
+.table tbody tr:hover,
+.table tbody tr:focus-within {
   background: var(--surface);
 }
 
@@ -121,5 +123,42 @@
 
   .narrow {
     display: block;
+  }
+}
+
+/* The search and the button in one row above the table. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar > :first-child {
+  flex: 0 1 360px;
+}
+
+.toolbar > :last-child {
+  margin-left: auto;
+}
+
+.toolbar > :last-child > * {
+  margin-top: 0;
+}
+
+.toolbar button {
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .toolbar {
+    display: block;
+  }
+
+  .toolbar > :last-child > * {
+    margin-top: 10px;
+  }
+
+  .toolbar button {
+    flex: 1;
   }
 }
