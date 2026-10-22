@@ -194,17 +194,18 @@ async def get_public_catalog(
 
 
 def _ordered(items: list[PublicCatalogItem]) -> list[PublicCatalogItem]:
-    """Ours before somebody else's, then the larger first, at every level.
+    """Groups and the chats inside them: ours first, then the larger.
 
     The page renders what the server decided instead of sorting again in the
     browser. A group goes by its lead, the chat named like it (the university's
     own room), or its largest when there is none: ours or not, then the count
     its row shows, which is that chat's rather than the faculties' sum, since a
-    sum would count one student many times. Inside a group the same rule orders
-    the chats. A chat in no group stands as a group of its own.
+    sum would count one student many times. Inside a group its own chat opens
+    it whatever its size, and the same rule orders the rest. A chat in no group
+    stands as a group of its own.
 
-    Ties, mostly chats never measured, keep the older order: a group's own chat
-    opens it, groups come before loose chats, and names decide the rest.
+    Ties, mostly chats never measured, keep the older order: groups come before
+    loose chats, and names decide the rest.
     """
 
     def rank(item: PublicCatalogItem) -> tuple[bool, int]:
@@ -219,7 +220,7 @@ def _ordered(items: list[PublicCatalogItem]) -> list[PublicCatalogItem]:
         else:
             groups.setdefault(item.group, []).append(item)
     for name, chats in groups.items():
-        chats.sort(key=lambda chat: (*rank(chat), chat.title != name, chat.title.lower()))
+        chats.sort(key=lambda chat: (chat.title != name, *rank(chat), chat.title.lower()))
 
     def lead(name: str) -> PublicCatalogItem:
         chats = groups[name]
