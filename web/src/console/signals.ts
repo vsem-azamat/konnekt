@@ -74,3 +74,14 @@ export function minutesSince(iso: string, now: Date = new Date()): number {
 export function minutesUntil(iso: string, now: Date = new Date()): number {
   return Math.max(0, Math.ceil((new Date(utc(iso)).getTime() - now.getTime()) / 60_000));
 }
+
+/** How long ago, as the screen says it: just now, in minutes, then in hours. */
+export function elapsed(
+  iso: string,
+  now: Date = new Date(),
+): { unit: 'now' } | { unit: 'minutes' | 'hours'; count: number } {
+  const minutes = minutesSince(iso, now);
+  if (minutes === 0) return { unit: 'now' };
+  if (minutes < 60) return { unit: 'minutes', count: minutes };
+  return { unit: 'hours', count: Math.floor(minutes / 60) };
+}

@@ -26,7 +26,7 @@ import { adminCatalogQuery, consoleSignalsQuery } from '@/console/queries';
 import css from '@/console/Signals.module.css';
 import { utc } from '@/console/session';
 import {
-  minutesSince,
+  elapsed,
   minutesUntil,
   type PendingActionSignal,
   type WaveSignal,
@@ -208,8 +208,9 @@ function WaveCard({
     hour: '2-digit',
     minute: '2-digit',
   });
-  const ago = minutesSince(wave.last_surge_at, now);
-  const hoursAgo = Math.floor(ago / 60);
+  const surge = elapsed(wave.last_surge_at, now);
+  const ago = surge.unit === 'minutes' ? surge.count : 0;
+  const hoursAgo = surge.unit === 'hours' ? surge.count : 0;
   const quiet = minutesUntil(wave.quiet_until, now);
   return (
     <section className={`${css.card} ${css.alert}`}>
@@ -222,9 +223,9 @@ function WaveCard({
             <Trans>Набег на {title}</Trans>
           </b>
           <span>
-            {ago === 0 ? (
+            {surge.unit === 'now' ? (
               <Trans>начался {started} · последний всплеск только что</Trans>
-            ) : ago < 60 ? (
+            ) : surge.unit === 'minutes' ? (
               <Trans>
                 начался {started} · последний всплеск {ago} мин назад
               </Trans>
