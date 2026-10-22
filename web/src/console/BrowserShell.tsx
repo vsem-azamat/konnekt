@@ -1,7 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router';
 import {
   BellIcon,
   BlockIcon,
@@ -39,14 +39,26 @@ import { menuCounts } from './signals';
 export default function BrowserShell() {
   const { t } = useLingui();
   const { pathname } = useLocation();
+  const navigation = useNavigationType();
   const menu = useRef<HTMLElement>(null);
+  const screen = useRef<HTMLElement>(null);
+  const bar = useRef<HTMLElement>(null);
   // On a narrow window the menu is a row that scrolls sideways: bring the
   // current screen's link into view rather than leave it off the edge.
+  // The screen is the one scroller, and it stays mounted across screens: a
+  // new one opens at its top (Back keeps where it was), and takes the focus
+  // from the menu link, so the keys scroll it and a reader lands on it.
   // biome-ignore lint/correctness/useExhaustiveDependencies: it re-runs on navigation; the current link is read from the DOM
   useEffect(() => {
     menu.current
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    if (!screen.current) return;
+    if (navigation !== 'POP') screen.current.scrollTop = 0;
+    const from = document.activeElement;
+    if (from && (menu.current?.contains(from) || bar.current?.contains(from))) {
+      screen.current.focus({ preventScroll: true });
+    }
   }, [pathname]);
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
@@ -140,8 +152,8 @@ export default function BrowserShell() {
           </div>
         ) : null}
       </aside>
-      <main className={css.main}>
-        <header className={css.top}>
+      <main ref={screen} tabIndex={-1} className={css.main}>
+        <header ref={bar} className={css.top}>
           <Link
             to="/console/signals"
             className={css.bell}
