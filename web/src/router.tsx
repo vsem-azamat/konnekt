@@ -31,6 +31,7 @@ import JoinPage from '@/pages/Join';
 import LifePage from '@/pages/Life';
 import MinePage from '@/pages/Mine';
 import MyHelperPage from '@/pages/MyHelper';
+import MyHelperAboutPage from '@/pages/MyHelperAbout';
 import NotFoundPage from '@/pages/NotFound';
 import OfferPage from '@/pages/Offer';
 import OfferPricesPage from '@/pages/OfferPrices';
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
           { path: 'offer', element: <OfferPage /> },
           { path: 'offer/prices', element: <OfferPricesPage /> },
           { path: 'my-helper', element: <MyHelperPage /> },
+          { path: 'my-helper/about', element: <MyHelperAboutPage /> },
           { path: 'life', element: <LifePage /> },
           { path: 'console', element: <ConsoleSummaryPage /> },
           { path: 'console/audience', element: <ConsoleAudiencePage /> },

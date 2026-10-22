@@ -403,6 +403,7 @@ export interface HelperUpsert {
  * for a card and useless for a form.
  */
 export interface MyOffer {
+  id: number;
   service_type_id: number;
   option_ids: number[];
   note: string | null;
@@ -416,6 +417,8 @@ export interface MyOffer {
   price_amount: number | null;
   price_unit: PriceUnit;
   langs: string[];
+  /** Switched off by its owner: kept, and out of the catalog. */
+  paused: boolean;
 }
 
 /** The caller's own profile, drafts and hidden ones included. */

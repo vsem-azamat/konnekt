@@ -1,9 +1,10 @@
 /**
  * What the app forgets and learns once a helper's services are saved.
  *
- * Both screens that save a profile end here. Here rather than in a page so it
- * can be proven without rendering: «Моя анкета» fills its form once from
- * whatever the cache holds when it mounts, and so does the «+» in Offer.
+ * Every screen that saves a profile ends here. Here rather than in a page so it
+ * can be proven without rendering: «О себе и как работаю» fills its form once
+ * from whatever the cache holds when it mounts, the «+» in Offer does the same,
+ * and «Мои услуги» saves its whole list from the cached copy.
  */
 
 import type { QueryClient } from '@tanstack/react-query';
@@ -19,4 +20,6 @@ export function afterHelperSaved(queryClient: QueryClient, me: Me): void {
   // Without a copy it waits for the server.
   queryClient.removeQueries({ queryKey: ['my-helper'] });
   void queryClient.invalidateQueries({ queryKey: ['home'] });
+  // «По твоим услугам» and the count on Profile are worked out from them.
+  void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
 }

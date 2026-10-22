@@ -94,6 +94,7 @@ const ROUTES = [
     },
   },
   { path: '/my-helper' },
+  { path: '/my-helper/about' },
   { path: '/nope' },
 ];
 

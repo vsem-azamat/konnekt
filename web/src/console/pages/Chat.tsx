@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router';
 
 import { CityName, TopicHeading } from '@/components/Place';
 import { Pick, Sheet } from '@/components/Sheet';
+import { Switch } from '@/components/Switch';
 import {
   Action,
   Actions,
@@ -38,7 +39,6 @@ import {
   consoleStatsQuery,
   consoleSystemQuery,
 } from '@/console/queries';
-import { Switch } from '@/console/Switch';
 import {
   type ChatSender,
   type ChatUpdate,

@@ -26,6 +26,7 @@ import { hapticSelection, hapticSuccess, useMainButton } from '@/hooks/useTelegr
 import { api } from '@/lib/api';
 import { groupRuns } from '@/lib/groups';
 import { afterHelperSaved } from '@/lib/helperSaved';
+import { asInput } from '@/lib/myServices';
 import { type Axis, addAxis, type Draft, dropRow, keyOf } from '@/lib/offerRows';
 import { splitNote } from '@/lib/subjectNote';
 import { TURNAROUNDS, TurnaroundLabel } from '@/lib/turnaround';
@@ -140,10 +141,10 @@ export default function OfferPricesPage() {
   const save = useMutation({
     mutationFn: () =>
       api.saveHelper({
-        // See MyHelper: a question the form did not ask is one the payload does
+        // See MyHelperAbout: a question the form did not ask is one the payload does
         // not answer.
         ...(asked === null ? {} : { work_format: workFormat }),
-        offers: [...rows.map(toOffer), ...unlisted.map(keep)],
+        offers: [...rows.map(toOffer), ...unlisted.map(asInput)],
         // Not an unconditional `true`. Somebody who hid their profile on
         // purpose and then adds a service from the cabinet is adding a
         // service, not asking to be listed again — and `false` here keeps a
@@ -683,21 +684,6 @@ function fromOffer(type: ServiceType, offer: MyOffer): Draft {
     langs: offer.langs,
   };
   return { ...row, key: keyOf(row) };
-}
-
-/** An offer we are not editing, sent back exactly as it came. */
-function keep(offer: MyOffer): OfferInput {
-  return {
-    service_type_id: offer.service_type_id,
-    subject_id: offer.subject_id,
-    institution_id: offer.institution_id,
-    price_amount: offer.price_amount,
-    price_unit: offer.price_unit,
-    langs: offer.langs,
-    option_ids: offer.option_ids,
-    note: offer.note,
-    turnaround_days: offer.turnaround_days,
-  };
 }
 
 function toOffer(row: Draft): OfferInput {

@@ -29,6 +29,7 @@ import type {
   Me,
   MeUpdate,
   MyHelper,
+  MyOffer,
   ParseResult,
   Placement,
   RequestCreate,
@@ -433,6 +434,10 @@ export const api = {
 
   saveHelper: (payload: HelperUpsert) =>
     request<Me>('/helper', { method: 'PUT', body: payload }),
+
+  /** One service out of the catalog, or back in, without touching the rest. */
+  pauseOffer: (offerId: number, paused: boolean) =>
+    request<MyOffer>(`/helper/offers/${offerId}`, { method: 'PATCH', body: { paused } }),
 
   // ── the console ───────────────────────────────────────────────────────
 

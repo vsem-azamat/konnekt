@@ -129,6 +129,13 @@ export const PlusIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Something of yours to change: a pencil. */
+export const EditIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 19l1-4L16 5l3 3L9 18z" />
+  </Svg>
+);
+
 export const CloseIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="m7 7 10 10M17 7 7 17" strokeWidth={2.2} />

@@ -1254,6 +1254,17 @@
   text-align: left;
 }
 
+/* A service in «Мои услуги»: its tile, its name and price, its switch. */
+.svcLine {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.svcLine .rowBody {
+  flex: 1;
+}
+
 .cardTop {
   display: flex;
   gap: 10px;
@@ -1703,8 +1714,8 @@
   font-size: 12.5px;
 }
 
-/* The console's on/off control. Drawn here, with the rest of the kit, so it
-   takes the same tokens in both themes. */
+/* An on/off control, saved when flipped. Drawn with the rest of the kit, so
+   it takes the same tokens in both themes. */
 .switch {
   position: relative;
   flex: none;
@@ -1724,7 +1735,9 @@
   width: 25px;
   height: 25px;
   border-radius: 50%;
-  background: var(--bg);
+  /* White in both themes, as on the phone's own switches: on the page colour
+     the dark theme's knob all but vanished, and «off» could not be read. */
+  background: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 20%);
   transition: transform 150ms ease;
 }
@@ -2274,12 +2287,6 @@
   background: currentColor;
 }
 
-.ownerStatus[data-status='review'] {
-  background: var(--tone-3-bg);
-}
-.ownerStatus[data-status='review'] .ownerStatusTitle {
-  color: var(--tone-3-fg);
-}
 .ownerStatus[data-status='listed'] {
   background: var(--good-soft);
 }

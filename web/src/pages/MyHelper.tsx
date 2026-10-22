@@ -1,159 +1,112 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
-import { HideReasonText } from '@/components/HideReasonText';
-import { CloseIcon, LockIcon, PlusIcon } from '@/components/icons';
+import { EditIcon, iconForService, PlusIcon } from '@/components/icons';
+import { OwnerStatusCard } from '@/components/OwnerStatusCard';
+import { PriceUnitLabel } from '@/components/Phrase';
+import { ServiceSheet } from '@/components/ServiceSheet';
+import { Switch } from '@/components/Switch';
 import {
+  Action,
+  Actions,
+  Cards,
   Empty,
+  formatMoney,
   Hint,
-  Label,
   Row,
   Rows,
   Screen,
-  Segmented,
   SkeletonRows,
   Tile,
   Title,
   ui,
 } from '@/components/Ui';
-import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
+import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
-import { afterHelperSaved } from '@/lib/helperSaved';
-import { type OwnerStatus, ownerStatus, startsListed } from '@/lib/ownerStatus';
-import type { MyHelper, MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
-import { askedFormat, formatOptions, formatQuestion } from '@/lib/workFormat';
+import { withPaused } from '@/lib/myServices';
+import { ownerStatus, startsListed } from '@/lib/ownerStatus';
+import type { MyHelper, MyOffer, ServiceType } from '@/lib/types';
 
 /**
- * The helper's own page: everything they have told us, editable.
+ * «Мои услуги»: what this person offers, each with a switch that takes it out
+ * of the catalog and puts it back, and «Изменить» for its price.
  *
- * One screen, not a wizard. Someone who has already decided to help should be
- * able to fix a price in ten seconds, and every step between them and that is a
- * step where they close the app instead. Nothing here is required — an empty
- * profile is a profile nobody finds, which is a fair consequence and not an
- * error message.
+ * Everything about the person rather than one service — the text, how and
+ * where they work, whether they are listed at all — is one row down, in «О
+ * себе и как работаю». A switch here hides one service; hiding everything is
+ * «Видимость» there.
  *
- * Adding a service is the one thing that leaves: it goes to `/offer`, the same
- * grid used when the person first joined. What used to be here was a subject
- * search that attached everything it found to tutoring, so somebody who writes
- * theses or fills in residence forms could not add what they actually do.
+ * Adding a service leaves for `/offer`, the same grid used when the person
+ * first joined, so somebody who writes theses or fills in residence forms can
+ * add what they actually do.
  */
 export default function MyHelperPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useLingui();
 
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['my-helper'],
     queryFn: ({ signal }) => api.getMyHelper(signal),
   });
 
-  // Which questions this person's services actually have. Cached for an hour
-  // and shared with every other screen that needs the reference list.
+  // The colour each category wears everywhere else. Cached for an hour and
+  // shared with every other screen that needs the reference list.
   const { data: serviceTypes } = useQuery({
     queryKey: ['service-types'],
     queryFn: ({ signal }) => api.getServiceTypes(signal),
     staleTime: 60 * 60 * 1000,
   });
 
-  const [headline, setHeadline] = useState('');
-  const [about, setAbout] = useState('');
-  const [city, setCity] = useState('');
-  const [placeNote, setPlaceNote] = useState('');
-  const [workFormat, setWorkFormat] = useState<WorkFormat>('both');
-  const [listed, setListed] = useState(true);
-  const [alerts, setAlerts] = useState(true);
-  const [rows, setRows] = useState<Draft[]>([]);
   // The profile as the server last said it was, kept across the refetch after
-  // a save (afterHelperSaved drops the cached copy), so the status above the
-  // form does not blink out while the new one loads.
+  // «Изменить» saves (afterHelperSaved drops the cached copy), so the list does
+  // not turn into a skeleton under the closing sheet.
+  //
+  // For showing only. A save sends the whole list, and until the refetch lands
+  // this copy still has the service just removed or the price just changed: a
+  // second save built from it would put them back. So the switches and
+  // «Изменить» wait for `data`.
   const [seen, setSeen] = useState<MyHelper>();
   useEffect(() => {
     if (data) setSeen(data);
   }, [data]);
   const status = seen ? ownerStatus(seen) : null;
-  // Only an operator lifts their hide; a save there keeps it hidden, and says so.
-  const banned = status === 'banned';
-  const [savedHidden, setSavedHidden] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
+  const edited = data?.offers.find((offer) => offer.id === editing);
 
-  // Worded by what is on the screen now, not by what the server last saw:
-  // deleting the last lesson row has to stop the question asking about
-  // teaching before the profile is refetched.
-  //
-  // Until the reference list is here — still loading, or failed — the neutral
-  // wording rather than nothing. Otherwise the question and the whole city
-  // block are missing from a screen that already renders a live Save button,
-  // and then appear: on a cold cache as a flicker, on a failure for ever, with
-  // the person never learning a question existed.
-  const asked = useMemo(
-    () =>
-      askedFormat(
-        rows.map((row) => row.code),
-        serviceTypes,
-      ),
-    [serviceTypes, rows],
-  );
-
-  // Filled once, from the server. Later renders must not clobber what the
-  // person is typing, which is what a plain `value={data.about}` would do.
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    if (!data || loaded) return;
-    setHeadline(data.headline ?? '');
-    setAbout(data.about ?? '');
-    setCity(data.city ?? '');
-    setPlaceNote(data.place_note ?? '');
-    setWorkFormat(data.work_format);
-    setListed(startsListed(data));
-    setAlerts(data.new_request_alerts ?? true);
-    setRows(data.offers.map(toDraft));
-    setLoaded(true);
-  }, [data, loaded]);
-
-  const save = useMutation({
-    mutationFn: () =>
-      api.saveHelper({
-        headline: headline.trim() || null,
-        about: about.trim() || null,
-        // Omitted, not defaulted, when the form did not ask: `HelperUpsert`
-        // reads `model_fields_set`, so a field absent from the payload leaves
-        // the stored value alone. Sending `both` for somebody who only writes
-        // theses would be the screen answering a question on their behalf.
-        ...(asked === null ? {} : { work_format: workFormat }),
-        city: city.trim() || null,
-        place_note: placeNote.trim() || null,
-        offers: rows.map(toOffer),
-        publish: listed,
-        new_request_alerts: alerts,
-      }),
-    onMutate: () => setSavedHidden(false),
-    onSuccess: (me) => {
-      hapticSuccess();
-      setSavedHidden(me.helper_status === 'banned');
-      afterHelperSaved(queryClient, me);
+  // Shown at once and put back if the server says no: a switch that waits for
+  // a round trip before it moves reads as one that did not take the tap.
+  const pause = useMutation({
+    mutationFn: ({ id, paused }: { id: number; paused: boolean }) =>
+      api.pauseOffer(id, paused),
+    onMutate: async ({ id, paused }) => {
+      hapticSelection();
+      await queryClient.cancelQueries({ queryKey: ['my-helper'] });
+      queryClient.setQueryData<MyHelper>(
+        ['my-helper'],
+        (current) => current && withPaused(current, id, paused),
+      );
+    },
+    // That one switch back, not a snapshot of the whole profile: a price saved
+    // while the request was out would be undone with it.
+    onError: (_error, { id, paused }) => {
+      queryClient.setQueryData<MyHelper>(
+        ['my-helper'],
+        (current) => current && withPaused(current, id, !paused),
+      );
+    },
+    onSettled: () => {
+      // «По твоим услугам», the count on Profile and the catalog's numbers
+      // all leave out a switched-off service.
+      void queryClient.invalidateQueries({ queryKey: ['my-helper'] });
+      void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
+      void queryClient.invalidateQueries({ queryKey: ['home'] });
     },
   });
 
-  // Null while the profile has not arrived, so the error screen below does not
-  // get a disabled Save button floating over it with nothing to save.
-  useMainButton(
-    loaded
-      ? {
-          text: t`Сохранить`,
-          isVisible: true,
-          isEnabled: !save.isPending,
-          isLoaderVisible: save.isPending,
-          onClick: () => save.mutate(),
-        }
-      : null,
-  );
-
-  // Keyed on the form, not on the query: a save drops the cached profile
-  // (afterHelperSaved), and the refetch after it must neither swap the form
-  // for a skeleton mid-edit nor replace a loaded form with an error.
-  if (isError && !loaded) {
+  if (isError && !seen) {
     return (
       <Screen>
         <AppHeader />
@@ -166,89 +119,66 @@ export default function MyHelperPage() {
     <Screen>
       <AppHeader />
       <Title>
-        <Trans>Моя анкета</Trans>
+        <Trans>Мои услуги</Trans>
       </Title>
       {seen && status ? (
-        <StatusCard status={status} helper={seen} listed={listed} />
+        <OwnerStatusCard
+          status={status}
+          helper={seen}
+          listed={startsListed(seen)}
+          place="services"
+        />
       ) : null}
 
-      {!loaded ? (
+      {!seen ? (
         <div style={{ marginTop: 16 }}>
-          <SkeletonRows count={5} />
+          <SkeletonRows count={4} />
         </div>
       ) : (
         <>
-          {/* The line under the name on every card in the catalog. It was
-              being written by nothing and read by three screens, which is how
-              it got silently erased; giving it an owner fixes that end too. */}
-          <Label>
-            <Trans>Строчка под именем</Trans>
-          </Label>
-          <div className={ui.field}>
-            <input
-              value={headline}
-              onChange={(event) => setHeadline(event.target.value)}
-              placeholder={t`ČVUT FEL, 3 курс`}
-              maxLength={160}
-              style={{ all: 'unset', width: '100%' }}
-            />
+          <div style={{ marginTop: 14 }}>
+            {seen.offers.length === 0 ? (
+              <Hint>
+                <Trans>
+                  Пока ни одной. Добавь ниже — без них тебя не найдут по поиску.
+                </Trans>
+              </Hint>
+            ) : (
+              <Cards>
+                {seen.offers.map((offer) => (
+                  <ServiceCard
+                    key={offer.id}
+                    offer={offer}
+                    type={serviceTypes?.find((type) => type.id === offer.service_type_id)}
+                    busy={!data || (pause.isPending && pause.variables?.id === offer.id)}
+                    onSwitch={(on) => pause.mutate({ id: offer.id, paused: !on })}
+                    ready={Boolean(data)}
+                    onEdit={() => setEditing(offer.id)}
+                  />
+                ))}
+              </Cards>
+            )}
+            {pause.isError ? (
+              <div style={{ marginTop: 10 }} role="status">
+                <Hint>
+                  <Trans>Не сохранилось — попробуй ещё раз.</Trans>
+                </Hint>
+              </div>
+            ) : null}
+            {isError && !data ? (
+              <div style={{ marginTop: 10 }} role="status">
+                <Hint>
+                  <Trans>Не получилось обновить список.</Trans>
+                </Hint>
+                <Actions>
+                  <Action quiet onClick={() => void refetch()}>
+                    <Trans>Попробовать ещё раз</Trans>
+                  </Action>
+                </Actions>
+              </div>
+            ) : null}
           </div>
 
-          <Label>
-            <Trans>О себе</Trans>
-          </Label>
-          <div className={ui.field} style={{ alignItems: 'flex-start' }}>
-            <textarea
-              value={about}
-              onChange={(event) => setAbout(event.target.value)}
-              placeholder={t`Что преподаёшь, где учишься, как проходят занятия. Своими словами.`}
-              rows={5}
-              maxLength={4000}
-              style={{ all: 'unset', width: '100%', resize: 'none', lineHeight: 1.5 }}
-            />
-          </div>
-          <div style={{ marginTop: 8 }}>
-            <Hint>
-              <Trans>
-                Это первое, что читают. Пара живых предложений работает лучше списка.
-              </Trans>
-            </Hint>
-          </div>
-
-          <Label>
-            <Trans>Мои услуги</Trans>
-          </Label>
-
-          {rows.length === 0 ? (
-            <Hint>
-              <Trans>
-                Пока ни одной. Добавь ниже — без них тебя не найдут по поиску.
-              </Trans>
-            </Hint>
-          ) : (
-            <Rows>
-              {rows.map((row) => (
-                <SubjectRow
-                  key={row.key}
-                  row={row}
-                  onPrice={(price) =>
-                    setRows(rows.map((r) => (r.key === row.key ? { ...r, price } : r)))
-                  }
-                  onUnit={(next) =>
-                    setRows(
-                      rows.map((r) => (r.key === row.key ? { ...r, unit: next } : r)),
-                    )
-                  }
-                  onRemove={() => setRows(rows.filter((r) => r.key !== row.key))}
-                />
-              ))}
-            </Rows>
-          )}
-
-          {/* Adding goes through the same grid the offer flow uses. The box
-              that used to be here searched subjects and attached every one of
-              them to tutoring, so a person who wrote theses could not add that
-              at all. */}
           <div style={{ marginTop: 10 }}>
             <Rows>
               <Row
@@ -261,373 +191,95 @@ export default function MyHelperPage() {
                 hint={<Trans>репетиторство, работы, документы</Trans>}
                 onClick={() => navigate('/offer')}
               />
+              <Row
+                leading={
+                  <Tile tone={3}>
+                    <EditIcon size={19} />
+                  </Tile>
+                }
+                title={<Trans>О себе и как работаю</Trans>}
+                hint={<Trans>текст, формат, город, видимость</Trans>}
+                onClick={() => navigate('/my-helper/about')}
+              />
             </Rows>
           </div>
-
-          {asked === null ? null : (
-            <>
-              <Label>{formatQuestion(asked)}</Label>
-              <Segmented
-                value={workFormat}
-                onChange={setWorkFormat}
-                options={formatOptions(asked)}
-              />
-            </>
-          )}
-
-          {asked === null || workFormat === 'online' ? null : (
-            <>
-              <Label>
-                <Trans>Где</Trans>
-              </Label>
-              <div className={ui.field}>
-                <input
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                  placeholder={t`Город`}
-                  maxLength={96}
-                  style={{ all: 'unset', width: '100%' }}
-                />
-              </div>
-              <div className={ui.field} style={{ marginTop: 8 }}>
-                <input
-                  value={placeNote}
-                  onChange={(event) => setPlaceNote(event.target.value)}
-                  placeholder={t`Район или где удобно встречаться`}
-                  maxLength={240}
-                  style={{ all: 'unset', width: '100%' }}
-                />
-              </div>
-            </>
-          )}
-
-          <Label>
-            <Trans>Видимость</Trans>
-          </Label>
-          {banned ? (
-            <div className={ui.ownerLocked}>
-              <LockIcon size={18} />
-              <span>
-                <Trans>Вернуть в каталог может только администратор</Trans>
-              </span>
-            </div>
-          ) : (
-            <>
-              <Segmented
-                value={listed ? 'on' : 'off'}
-                onChange={(value) => setListed(value === 'on')}
-                options={[
-                  { value: 'on', label: <Trans>В каталоге</Trans> },
-                  { value: 'off', label: <Trans>Скрыть</Trans> },
-                ]}
-              />
-              <div style={{ marginTop: 9 }}>
-                <Hint>
-                  {listed ? (
-                    <Trans>Тебя видят в поиске и могут написать.</Trans>
-                  ) : (
-                    <Trans>Анкета сохранится, но в каталоге её не будет.</Trans>
-                  )}
-                </Hint>
-              </div>
-            </>
-          )}
-
-          <Label>
-            <Trans>Новые заявки в Telegram</Trans>
-          </Label>
-          <Segmented
-            value={alerts ? 'on' : 'off'}
-            onChange={(value) => setAlerts(value === 'on')}
-            options={[
-              { value: 'on', label: <Trans>Присылать</Trans> },
-              { value: 'off', label: <Trans>Не присылать</Trans> },
-            ]}
-          />
-          <div style={{ marginTop: 9 }}>
-            <Hint>
-              {alerts ? (
-                <Trans>
-                  Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и
-                  не ночью.
-                </Trans>
-              ) : (
-                <Trans>Новые заявки будут только во «Входящих».</Trans>
-              )}
-            </Hint>
-          </div>
-
-          {savedHidden ? (
-            <div className={ui.ownerSaved} role="status">
-              <Trans>
-                Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз.
-              </Trans>
-            </div>
-          ) : null}
-
-          {save.isError ? (
-            <div style={{ marginTop: 12 }}>
-              <Hint>
-                <Trans>Не сохранилось — попробуй ещё раз.</Trans>
-              </Hint>
-            </div>
-          ) : null}
         </>
       )}
+
+      {data && edited ? (
+        <ServiceSheet offer={edited} helper={data} onClose={() => setEditing(null)} />
+      ) : null}
     </Screen>
   );
 }
 
 /**
- * Where the profile stands, and who can change that: the owner's own states,
- * «на проверке» (listed already, only not looked at yet), and an operator's
- * hide with its reason.
- */
-function StatusCard({
-  status,
-  helper,
-  listed,
-}: {
-  status: OwnerStatus;
-  helper: MyHelper;
-  /** «Видимость» below as it is now, which the draft's hint talks about. */
-  listed: boolean;
-}) {
-  return (
-    <div className={ui.ownerStatus} data-status={status}>
-      <span className={ui.ownerStatusTitle}>
-        {status === 'draft' ? (
-          <Trans>Черновик</Trans>
-        ) : status === 'review' ? (
-          <Trans>На проверке</Trans>
-        ) : status === 'listed' ? (
-          <Trans>В каталоге</Trans>
-        ) : status === 'hidden' ? (
-          <Trans>Скрыта тобой</Trans>
-        ) : (
-          <Trans>Скрыта администратором</Trans>
-        )}
-      </span>
-      {status === 'banned' && helper.hidden_reason ? (
-        <span>
-          {helper.hidden_reason === 'other' && helper.hidden_note ? (
-            <Trans>Причина: {helper.hidden_note}</Trans>
-          ) : (
-            <Trans>
-              Причина: <HideReasonText reason={helper.hidden_reason} />
-            </Trans>
-          )}
-        </span>
-      ) : null}
-      <span>
-        {status === 'draft' ? (
-          // A new profile starts on «В каталоге» (startsListed), so the hint
-          // says what saving does rather than ask for a choice already made.
-          listed ? (
-            <Trans>
-              Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и
-              анкета появится в поиске.
-            </Trans>
-          ) : (
-            <Trans>
-              Пока её видишь только ты. Выбери «В каталоге», когда всё готово.
-            </Trans>
-          )
-        ) : status === 'review' ? (
-          <Trans>Анкета уже в каталоге, администратор её ещё не смотрел.</Trans>
-        ) : status === 'listed' ? (
-          <Trans>Тебя видят в поиске и могут написать.</Trans>
-        ) : status === 'hidden' ? (
-          <Trans>Анкета сохранена, но в каталоге её нет. Вернуть можно ниже.</Trans>
-        ) : helper.under_review ? (
-          <Trans>
-            В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё
-            раз.
-          </Trans>
-        ) : (
-          <Trans>
-            В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её
-            в каталог может только администратор.
-          </Trans>
-        )}
-      </span>
-    </div>
-  );
-}
-
-/**
- * One thing this person offers: its price, what the price is per, and the way
- * to drop it.
+ * One service as the catalog lists it, with its switch.
  *
- * The unit lives on the row rather than on the screen. A profile really can
- * mix them — tutoring by the hour, a thesis by the job — and a single control
- * at the top would quietly rewrite "1500 за работу" as "1500 в час" the first
- * time anything else on the page was saved.
+ * A switched-off one looks like the rest: only the switch says so. Dimmed, it
+ * read as broken, and its «Изменить» as unavailable.
  */
-function SubjectRow({
-  row,
-  onPrice,
-  onUnit,
-  onRemove,
+function ServiceCard({
+  offer,
+  type,
+  busy,
+  ready,
+  onSwitch,
+  onEdit,
 }: {
-  row: Draft;
-  onPrice: (price: string) => void;
-  onUnit: (unit: PriceUnit) => void;
-  onRemove: () => void;
+  offer: MyOffer;
+  type: ServiceType | undefined;
+  busy: boolean;
+  /** The list is the server's own, not the copy kept across a refetch. */
+  ready: boolean;
+  onSwitch: (on: boolean) => void;
+  onEdit: () => void;
 }) {
   const { t } = useLingui();
-  /*
-   * A native select: it shows what the alternatives are, opens the platform's
-   * own picker on a phone, and follows `color-scheme` in both themes.
-   *
-   * Every unit, not the popular four. A select whose value is missing from its
-   * options renders the first one instead, so a profile priced per semester
-   * would show "за час" and be saved that way the next time anything else on
-   * the page changed.
-   */
-  const units: { value: PriceUnit; label: string }[] = [
-    { value: 'hour', label: t`за час` },
-    { value: 'lesson', label: t`за занятие` },
-    { value: 'work', label: t`за работу` },
-    { value: 'day', label: t`в день` },
-    { value: 'week', label: t`за неделю` },
-    { value: 'month', label: t`в месяц` },
-    { value: 'semester', label: t`за семестр` },
-    { value: 'item', label: t`за штуку` },
-    { value: 'negotiable', label: t`договорная` },
-  ];
-
+  const Icon = iconForService(offer.service_type);
+  // A service with no subject — writing a thesis, nostrification — is named
+  // by what it is, not by the blank where a subject would go.
+  const name = offer.subject_name ?? offer.service_type_name;
+  // The same subject can be offered at two schools.
+  const fullName = offer.institution_name ? `${name}, ${offer.institution_name}` : name;
   return (
-    <div className={ui.row}>
-      <span className={ui.rowBody}>
-        {/* A service with no subject — writing a thesis, nostrification — is
-            named by what it is, not by the blank where a subject would go. */}
-        <span className={ui.rowName}>{row.subject_name ?? row.service_type_name}</span>
-        {row.institution_name ? (
-          <span className={ui.rowHint}>{row.institution_name}</span>
-        ) : null}
-      </span>
-      <input
-        value={row.price}
-        /*
-         * Digits only, filtered as they are typed.
-         *
-         * Prices here are whole crowns, and parsing free text was a way to be
-         * quietly wrong in two directions at once: "1,500" became 1.5 Kč,
-         * because a comma is a decimal point on a Czech or Russian keyboard,
-         * and "1 500" became nothing at all. Both saved without complaint and
-         * left the field still showing what the person had typed. Refusing
-         * the characters is the version with no failure mode to explain.
-         */
-        onChange={(event) => onPrice(event.target.value.replace(/\D/g, '').slice(0, 7))}
-        placeholder={t`Kč`}
-        inputMode="numeric"
-        aria-label={t`Цена`}
-        style={{
-          all: 'unset',
-          width: 52,
-          textAlign: 'right',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      />
-      {/* The currency stays once a price is typed: the placeholder alone
-          left a bare «600 за час». */}
-      {row.price !== '' ? (
-        <span style={{ marginLeft: -6, color: 'var(--ink)' }}>{t`Kč`}</span>
-      ) : null}
-      <select
-        value={row.unit}
-        onChange={(event) => onUnit(event.target.value as PriceUnit)}
-        aria-label={t`За что цена`}
-        style={{
-          all: 'unset',
-          maxWidth: 92,
-          fontSize: 12,
-          color: 'var(--muted)',
-          cursor: 'pointer',
-        }}
-      >
-        {units.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        className={`${ui.chipRemove} ${ui.rowRemove}`}
-        aria-label={t`Убрать`}
-        onClick={onRemove}
-      >
-        <CloseIcon size={14} />
-      </button>
+    <div className={ui.card}>
+      <div className={ui.svcLine}>
+        <Tile tone={type?.tone ?? 0}>
+          <Icon size={19} />
+        </Tile>
+        <span className={ui.rowBody}>
+          <span className={ui.rowName}>{name}</span>
+          <span className={ui.rowHint}>
+            {offer.price_amount == null ? (
+              <Trans>цена не указана</Trans>
+            ) : (
+              <>
+                {formatMoney(offer.price_amount)} Kč{' '}
+                <PriceUnitLabel unit={offer.price_unit} />
+              </>
+            )}
+            {offer.institution_name ? ` · ${offer.institution_name}` : null}
+          </span>
+        </span>
+        <Switch
+          checked={!offer.paused}
+          busy={busy}
+          label={t`${fullName}: в каталоге`}
+          onChange={onSwitch}
+        />
+      </div>
+      <Actions>
+        <Action
+          quiet
+          tall
+          disabled={!ready}
+          label={t`Изменить: ${fullName}`}
+          onClick={onEdit}
+        >
+          <Trans>Изменить</Trans>
+        </Action>
+      </Actions>
     </div>
   );
-}
-
-/**
- * An offer while it is being edited.
- *
- * The price is a string, not a number: an input mid-typing legitimately holds
- * "" and "4", and parsing on every keystroke turns both into something the
- * field then has to render back.
- */
-interface Draft {
-  key: string;
-  service_type_id: number;
-  /** The service type's `code`, which is what the reference list is keyed by. */
-  code: string;
-  service_type_name: string;
-  subject_id: number | null;
-  subject_name: string | null;
-  institution_id: number | null;
-  institution_name: string | null;
-  option_ids: number[];
-  note: string | null;
-  turnaround_days: number | null;
-  price: string;
-  unit: PriceUnit;
-  langs: string[];
-}
-
-function toDraft(offer: MyOffer): Draft {
-  return {
-    // The subject alone is not unique — the same subject at two schools is two
-    // rows — so the key carries every axis the server keys on.
-    key: `${offer.service_type_id}:${offer.subject_id}:${offer.institution_id}`,
-    service_type_id: offer.service_type_id,
-    code: offer.service_type,
-    service_type_name: offer.service_type_name,
-    subject_id: offer.subject_id,
-    subject_name: offer.subject_name,
-    institution_id: offer.institution_id,
-    institution_name: offer.institution_name,
-    option_ids: offer.option_ids,
-    note: offer.note,
-    turnaround_days: offer.turnaround_days,
-    // Rounded, because the field holds digits: an older row saved as 550.5
-    // would otherwise render a decimal point the input then refuses to accept.
-    price: offer.price_amount == null ? '' : String(Math.round(offer.price_amount)),
-    unit: offer.price_unit,
-    langs: offer.langs,
-  };
-}
-
-function toOffer(row: Draft): OfferInput {
-  return {
-    service_type_id: row.service_type_id,
-    subject_id: row.subject_id,
-    institution_id: row.institution_id,
-    // The field holds digits and nothing else, so there is no parse to get
-    // wrong. An empty one means "did not say", not free.
-    price_amount: row.price ? Number(row.price) : null,
-    price_unit: row.unit,
-    langs: row.langs,
-    // Carried straight back: this screen edits neither the checklist nor the
-    // turnaround, and the server would keep both anyway, but sending what we
-    // hold means one save never depends on the other end remembering.
-    option_ids: row.option_ids,
-    note: row.note,
-    turnaround_days: row.turnaround_days,
-  };
 }

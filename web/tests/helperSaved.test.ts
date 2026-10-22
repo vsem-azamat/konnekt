@@ -58,3 +58,13 @@ test('the catalog front page is marked stale, its counts changed', () => {
   afterHelperSaved(client, me);
   assert.equal(client.getQueryState(['home'])?.isInvalidated, true);
 });
+
+test('«Входящие» is marked stale: which requests fit the services changed', () => {
+  const client = new QueryClient();
+  client.setQueryData(['request-feed', 'facets', false], { total: 5 });
+  afterHelperSaved(client, me);
+  assert.equal(
+    client.getQueryState(['request-feed', 'facets', false])?.isInvalidated,
+    true,
+  );
+});
