@@ -68,9 +68,10 @@ loki.process "json" {
 
   // gov-cz-bot's Caddy writes every request header to its access log, and the
   // Mini App sends its Telegram init data (a login valid for a day) in one.
-  // It never leaves this host.
+  // It never leaves this host. Caddy already hides the credential headers
+  // itself; they are listed too, in case its log settings change.
   stage.replace {
-    expression = "(?i)\"X-Telegram-Init-Data\":\\s*\\[([^\\]]*)\\]"
+    expression = "(?i)\"(?:X-Telegram-Init-Data|Authorization|Proxy-Authorization|Cookie|Set-Cookie)\":\\s*\\[([^\\]]*)\\]"
     replace    = "\"<redacted>\""
   }
 
@@ -80,6 +81,12 @@ loki.process "json" {
     expressions = {
       level = "level",
     }
+  }
+
+  // gov-cz-bot writes INFO, ERROR; the rest, and every query, lower case.
+  stage.template {
+    source   = "level"
+    template = "{{ ToLower .Value }}"
   }
 
   stage.labels {

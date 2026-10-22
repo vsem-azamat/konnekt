@@ -54,6 +54,10 @@ def test_the_mini_app_init_data_never_leaves_the_host() -> None:
     two = '{"x-telegram-init-data":["a", "b"],"Other": ["keep"]}'
     assert redact(one) == '{"request": {"headers": {"X-Telegram-Init-Data": ["<redacted>"], "Accept": ["*/*"]}}}'
     assert redact(two) == '{"x-telegram-init-data":["<redacted>"],"Other": ["keep"]}'
+    creds = '{"headers": {"Cookie": ["s=1"], "Proxy-Authorization": ["Basic x"], "Authorization": ["Bearer t"]}}'
+    assert redact(creds) == (
+        '{"headers": {"Cookie": ["<redacted>"], "Proxy-Authorization": ["<redacted>"], "Authorization": ["<redacted>"]}}'
+    )
     untouched = '{"level": "INFO", "message": "list [1, 2]"}'
     assert redact(untouched) == untouched
 
@@ -63,6 +67,11 @@ def test_the_credentials_are_read_from_the_environment_and_the_link_is_https() -
     assert 'password = sys.env("LOKI_PUSH_PASSWORD")' in CONFIG
     assert re.search(r'url\s*=\s*"https://', CONFIG)
     assert not re.search(r'password\s*=\s*"', CONFIG)
+
+
+def test_level_is_lower_case_before_it_becomes_a_label() -> None:
+    """gov-cz-bot writes ERROR, Konnekt error; one label value for both."""
+    assert CONFIG.index('template = "{{ ToLower .Value }}"') < CONFIG.index("stage.labels")
 
 
 def test_a_restart_does_not_backfill_old_logs() -> None:
