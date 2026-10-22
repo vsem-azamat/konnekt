@@ -2,6 +2,7 @@ import { i18n } from '@lingui/core';
 import { retrieveRawInitData } from '@tma.js/sdk-react';
 import { type PublicChat, sanitize } from './chats';
 import { type ClientErrorReport, describeError, reportApiFailure } from './clientErrors';
+import type { FeedQuery } from './feedChips';
 import type {
   AdminCatalog,
   AdminDecision,
@@ -11,6 +12,7 @@ import type {
   AdminPlacementSwitch,
   AdminProfileDetail,
   AdsInfo,
+  FeedFacetsOut,
 } from './generated/types.gen';
 import { isApproval } from './join';
 import { isReach, type Reach } from './reach';
@@ -397,8 +399,16 @@ export const api = {
     request<void>(`/requests/${requestId}`, { method: 'DELETE' }),
 
   /** Open requests worth answering. Helpers only; 403 for everyone else. */
-  getRequestFeed: (signal?: AbortSignal) =>
-    request<FeedRequest[]>('/requests/feed', { signal }),
+  getRequestFeed: (query: FeedQuery, signal?: AbortSignal) =>
+    // The most the server gives: the section headings count what is loaded.
+    request<FeedRequest[]>('/requests/feed', { query: { ...query, limit: 50 }, signal }),
+
+  /** The numbers on the feed's chips, over the whole feed. Helpers only. */
+  getFeedFacets: (withResponded: boolean, signal?: AbortSignal) =>
+    request<FeedFacetsOut>('/requests/feed/facets', {
+      query: { with_responded: withResponded },
+      signal,
+    }),
 
   respondToRequest: (requestId: number, payload: ResponseCreate) =>
     request<RequestResponse>(`/requests/${requestId}/respond`, {

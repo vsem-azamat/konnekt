@@ -203,6 +203,7 @@ msgstr "не наш чат"
 msgid "Проверь связь и попробуй ещё раз."
 msgstr "Проверь связь и попробуй ещё раз."
 
+#: src/components/Incoming.tsx
 #: src/components/Phrase.tsx
 #: src/lib/workFormat.tsx
 msgid "Онлайн"
@@ -407,6 +408,10 @@ msgstr "Скрыть"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Не выполнено: главного администратора забанить нельзя."
+
+#: src/components/Incoming.tsx
+msgid "Под этот фильтр сейчас заявок нет"
+msgstr "Под этот фильтр сейчас заявок нет"
 
 #: src/components/Place.tsx
 msgid "вся Чехия"
@@ -819,8 +824,8 @@ msgstr "Оставить заявку"
 
 #. placeholder {0}: str(p.subject)
 #: src/components/Phrase.tsx
-msgid "Твой предмет — {0}"
-msgstr "Твой предмет — {0}"
+#~ msgid "Твой предмет — {0}"
+#~ msgstr "Твой предмет — {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -1527,6 +1532,10 @@ msgstr "выкл."
 msgid "Причина"
 msgstr "Причина"
 
+#: src/components/Incoming.tsx
+msgid "До {amount} Kč"
+msgstr "До {amount} Kč"
+
 #: src/pages/Join.tsx
 msgid "Готово, ты в чате"
 msgstr "Готово, ты в чате"
@@ -1711,6 +1720,7 @@ msgstr "Отклонить все"
 msgid "Как занимаешься"
 msgstr "Как занимаешься"
 
+#: src/components/Incoming.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
@@ -2130,6 +2140,10 @@ msgstr "Во всех чатах, за всё время. Отменить не�
 msgid "своих заявок нет"
 msgstr "своих заявок нет"
 
+#: src/components/Incoming.tsx
+msgid "Остальные · {count}"
+msgstr "Остальные · {count}"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Снять"
@@ -2486,6 +2500,10 @@ msgstr "Нострификация"
 msgid "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
 msgstr "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
 
+#: src/components/Incoming.tsx
+msgid "Отклик отправлен"
+msgstr "Отклик отправлен"
+
 #. placeholder {0}: formatDay(request.deadline_on, i18n.locale)
 #. placeholder {0}: formatDay(request.deadline_on, locale)
 #: src/components/Incoming.tsx
@@ -2592,8 +2610,8 @@ msgid "Пара слов о себе — что берёшь и чего не б
 msgstr "Пара слов о себе — что берёшь и чего не берёшь"
 
 #: src/components/Incoming.tsx
-msgid "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
-msgstr "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
+#~ msgid "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
+#~ msgstr "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
 
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
@@ -2646,6 +2664,11 @@ msgstr "Такой группы больше нет"
 #: src/console/pages/Chats.tsx
 msgid "на сайте"
 msgstr "на сайте"
+
+#. placeholder {0}: str(p.subject)
+#: src/components/Phrase.tsx
+msgid "Твой предмет: {0}"
+msgstr "Твой предмет: {0}"
 
 #: src/components/Incoming.tsx
 msgid "Могу на этой неделе"
@@ -2888,6 +2911,10 @@ msgstr "Что не размещаем"
 #: src/console/pages/Chat.tsx
 msgid "Работает только в одобренном чате."
 msgstr "Работает только в одобренном чате."
+
+#: src/components/Incoming.tsx
+msgid "По твоим услугам · {count}"
+msgstr "По твоим услугам · {count}"
 
 #: src/console/pages/Spam.tsx
 msgid "Не разобрано · {unreviewed}"
@@ -3205,6 +3232,10 @@ msgstr "{0, plural, one {Отвечает примерно за # минуту} 
 #: src/console/pages/Audience.tsx
 msgid "Откуда приходят"
 msgstr "Откуда приходят"
+
+#: src/components/Incoming.tsx
+msgid "Здесь появятся заявки со всего каталога. Те, что по твоим услугам, будут выше."
+msgstr "Здесь появятся заявки со всего каталога. Те, что по твоим услугам, будут выше."
 
 #: src/pages/Request.tsx
 msgid "Ты отказался"
@@ -3549,6 +3580,10 @@ msgstr "Никто не подошёл?"
 msgid "Предлагаю услугу"
 msgstr "Предлагаю услугу"
 
+#: src/components/Incoming.tsx
+msgid "Не твоя услуга"
+msgstr "Не твоя услуга"
+
 #: src/pages/Join.tsx
 msgid "репетиторы, подготовка к вступительным экзаменам, нострификация"
 msgstr "репетиторы, подготовка к вступительным экзаменам, нострификация"
@@ -3665,6 +3700,7 @@ msgstr "Открой из заявки"
 msgid "Обновлено только что"
 msgstr "Обновлено только что"
 
+#: src/components/Incoming.tsx
 #: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Spam.tsx
