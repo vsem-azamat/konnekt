@@ -273,15 +273,25 @@ export function defaultCity(
 
 /**
  * A section's chats split by who runs them, each half in the order given:
- * ours above, the ones it only lists below under their own heading.
+ * ours above, the ones it only lists below under their own heading. The
+ * university's own chat, named like the section, opens the screen on its own
+ * line whoever runs it (Azamat, 2026-10-22): people come to a section for it,
+ * and under "Другие чаты" below the faculties it would not be found.
  */
-export function byOwner(chats: PublicChat[]): {
+export function byOwner(
+  chats: PublicChat[],
+  name: string,
+): {
+  lead: PublicChat | undefined;
   ours: PublicChat[];
   others: PublicChat[];
 } {
+  const lead = chats.find((chat) => chat.title === name);
+  const rest = chats.filter((chat) => chat !== lead);
   return {
-    ours: chats.filter((chat) => !chat.external),
-    others: chats.filter((chat) => chat.external),
+    lead,
+    ours: rest.filter((chat) => !chat.external),
+    others: rest.filter((chat) => chat.external),
   };
 }
 

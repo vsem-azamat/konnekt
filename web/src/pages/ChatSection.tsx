@@ -36,8 +36,8 @@ export default function ChatSectionPage() {
   // that has shrunk to one chat is still a group somebody may have linked to.
   const chats = (data ?? []).filter((chat) => chat.group === group);
   // Somebody else's chats go below ours, under a heading that says so, rather
-  // than marked one by one among them.
-  const { ours, others } = byOwner(chats);
+  // than marked one by one among them; the university's own chat opens both.
+  const { lead, ours, others } = byOwner(chats, group);
   // The name came from the address, so this is often an old link, but it is
   // also what a directory gone empty under the reader looks like.
   useReportEmpty(data !== undefined && chats.length === 0, 'chat section');
@@ -74,6 +74,11 @@ export default function ChatSectionPage() {
               />
             </Sub>
           </div>
+          {lead ? (
+            <Rows>
+              <ChatRow chat={lead} tone={0} />
+            </Rows>
+          ) : null}
           {others.length > 0 && ours.length > 0 ? (
             <Label aside={ours.length}>
               <Trans>Наши чаты</Trans>
@@ -81,7 +86,7 @@ export default function ChatSectionPage() {
           ) : null}
           <Rows>
             {ours.map((chat, index) => (
-              <ChatRow key={chat.link} chat={chat} tone={index} />
+              <ChatRow key={chat.link} chat={chat} tone={(lead ? 1 : 0) + index} />
             ))}
           </Rows>
           {others.length > 0 ? (
@@ -96,7 +101,11 @@ export default function ChatSectionPage() {
               </div>
               <Rows>
                 {others.map((chat, index) => (
-                  <ChatRow key={chat.link} chat={chat} tone={ours.length + index} />
+                  <ChatRow
+                    key={chat.link}
+                    chat={chat}
+                    tone={(lead ? 1 : 0) + ours.length + index}
+                  />
                 ))}
               </Rows>
             </>
