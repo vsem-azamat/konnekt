@@ -215,8 +215,10 @@ _STEPS: list[tuple[str, Callable[[Bot], Awaitable[None]]]] = [
 async def publish_profile(bot: Bot) -> None:
     """Bring the bot's profile in line with this module.
 
-    Each value is read first and written only when it differs, because every
-    deploy restarts the bot. Each step stands alone, so one refusal (a rename
+    Texts, menus and the menu button are read first and written only when they
+    differ, because every deploy restarts the bot; each write is logged. The
+    default administrator rights are written every time: that call is cheap
+    and has no rate limit to spend. Each step stands alone, so one refusal (a rename
     under flood control) does not leave the stale menu in place.
     """
     for name, step in _STEPS:

@@ -178,6 +178,18 @@ class TestCommands:
         assert _names(bot.commands[("all_group_chats", None)]) == ["report", "chats", "help"]
         assert "report" not in _names(bot.commands[("default", None)])
 
+    async def test_a_renamed_command_is_rewritten(self, site) -> None:
+        """Same commands, an old description: «Связаться» became «Написать нам»."""
+        bot = FakeBot()
+        await _publish(bot)
+        bot.commands[("default", "uk")][2] = BotCommand(command="contacts", description="Зв'язатися")
+        bot.writes.clear()
+
+        await _publish(bot)
+
+        assert bot.writes == ["set_my_commands"]
+        assert bot.commands[("default", "uk")][2].description == "Написати нам"
+
     async def test_narrower_menus_are_cleared(self, site) -> None:
         """Set by hand, one would win over ours without anybody noticing."""
         bot = FakeBot()
@@ -302,6 +314,14 @@ class TestMenuButton:
         await _publish(bot)
 
         assert "set_chat_menu_button" not in bot.writes
+
+    async def test_a_button_with_other_words_is_rewritten(self, site) -> None:
+        bot = FakeBot()
+        bot.menu_button = MenuButtonWebApp(text="Каталог", web_app=WebAppInfo(url=f"{SITE}/chats"))
+
+        await _publish(bot)
+
+        assert bot.menu_button.text == "Открыть"
 
     async def test_no_site_restores_the_command_menu(self, monkeypatch) -> None:
         monkeypatch.setattr(profile.settings.webapi, "public_url", "")
