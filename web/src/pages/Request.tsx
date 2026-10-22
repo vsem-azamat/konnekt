@@ -137,6 +137,7 @@ export default function RequestPage() {
               already see it, and whom to write to instead of waiting. */}
           <Empty
             title={<Trans>Пока тихо</Trans>}
+            followed={Boolean(others.data?.results.length)}
             body={
               !request ? null : request.helpers_seeing > 0 ? (
                 <Plural

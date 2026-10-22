@@ -571,14 +571,17 @@ export function Empty({
   title,
   body,
   action,
+  followed,
 }: {
   title: ReactNode;
   body?: ReactNode;
   /** What to do about it; an empty list that tells you to act should let you. */
   action?: ReactNode;
+  /** A section comes right after it, so it gives up most of its bottom air. */
+  followed?: boolean;
 }) {
   return (
-    <div className={css.empty}>
+    <div className={followed ? `${css.empty} ${css.emptyFollowed}` : css.empty}>
       <p className={css.emptyTitle}>{title}</p>
       {body ? <p className={css.emptyBody}>{body}</p> : null}
       {action ? (
