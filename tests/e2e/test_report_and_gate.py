@@ -733,6 +733,8 @@ class TestSupergroupUpgrade:
                     resource_status=DbChat.STATUS_APPROVED,
                     public_link="https://t.me/cvut_fit",
                     institution_code="cvut",
+                    city="Praha",
+                    topic="university",
                 )
             )
             await session.flush()
@@ -757,10 +759,12 @@ class TestSupergroupUpgrade:
             old = await session.get(DbChat, old_id)
             child = await session.get(DbChat, child_id)
             assert new is not None
-            assert (new.resource_status, new.public_link, new.institution_code) == (
+            assert (new.resource_status, new.public_link, new.institution_code, new.city, new.topic) == (
                 DbChat.STATUS_APPROVED,
                 "https://t.me/cvut_fit",
                 "cvut",
+                "Praha",
+                "university",
             )
             assert old is not None
             assert (old.resource_status, old.public_link) == (DbChat.STATUS_DISABLED, None)

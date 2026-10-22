@@ -35,6 +35,8 @@ _CARRIED = (
     "relation_notes",
     "public_link",
     "institution_code",
+    "city",
+    "topic",
 )
 
 
