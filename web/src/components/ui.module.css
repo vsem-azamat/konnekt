@@ -1703,8 +1703,8 @@
   font-size: 12.5px;
 }
 
-/* The console's on/off control. Drawn here, with the rest of the kit, so it
-   takes the same tokens in both themes. */
+/* An on/off control, saved when flipped. Drawn with the rest of the kit, so
+   it takes the same tokens in both themes. */
 .switch {
   position: relative;
   flex: none;
@@ -1724,7 +1724,9 @@
   width: 25px;
   height: 25px;
   border-radius: 50%;
-  background: var(--bg);
+  /* White in both themes, as on the phone's own switches: on the page colour
+     the dark theme's knob all but vanished, and «off» could not be read. */
+  background: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 20%);
   transition: transform 150ms ease;
 }
