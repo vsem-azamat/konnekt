@@ -21,6 +21,7 @@ import {
 } from '@/components/Ui';
 import { hapticSelection, hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
+import { currencyLabel } from '@/lib/currency';
 import {
   chipKey,
   defaultChip,
@@ -315,7 +316,7 @@ function FeedCard({
         </div>
         {request.budget?.amount != null ? (
           <div className={ui.priceAmount} style={{ flex: 'none' }}>
-            {formatMoney(request.budget.amount)} {request.budget.currency}
+            {formatMoney(request.budget.amount)} {currencyLabel(request.budget.currency)}
           </div>
         ) : null}
       </div>

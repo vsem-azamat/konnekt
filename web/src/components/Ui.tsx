@@ -9,6 +9,7 @@
 import { type ReactNode, useState } from 'react';
 
 import { assetUrl } from '@/lib/api';
+import { currencyLabel } from '@/lib/currency';
 import type { Avatar, Price } from '@/lib/types';
 
 import { CheckIcon, ChevronIcon, CloseIcon } from './icons';
@@ -440,7 +441,7 @@ export function PriceView({ price, unitLabel }: { price: Price; unitLabel: React
   return (
     <span className={css.price}>
       <b className={css.priceAmount}>
-        {formatMoney(price.amount)} {price.currency === 'CZK' ? 'Kč' : price.currency}
+        {formatMoney(price.amount)} {currencyLabel(price.currency)}
       </b>
       <span className={css.priceUnit}>{unitLabel}</span>
     </span>
