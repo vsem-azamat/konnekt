@@ -122,6 +122,11 @@ msgstr "Пардубице"
 msgid "На публичной вкладке"
 msgstr "На публичной вкладке"
 
+#. placeholder {0}: formatDay(localDay(request.expires_at), locale)
+#: src/pages/Mine.tsx
+msgid "срок вышел {0}"
+msgstr "срок вышел {0}"
+
 #: src/components/Phrase.tsx
 msgid "оценка"
 msgstr "оценка"
@@ -369,6 +374,10 @@ msgstr "Не удалось найти. Попробуйте ещё раз."
 #: src/console/pages/Summary.tsx
 msgid "сутки"
 msgstr "сутки"
+
+#: src/pages/Request.tsx
+msgid "Действия с заявкой"
+msgstr "Действия с заявкой"
 
 #: src/console/pages/Signals.tsx
 #: src/console/ProfileSheet.tsx
@@ -712,6 +721,10 @@ msgstr "Месяц"
 msgid "Пришли по ссылке"
 msgstr "Пришли по ссылке"
 
+#: src/pages/Mine.tsx
+msgid "Без откликов"
+msgstr "Без откликов"
+
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
 msgstr "Вход не сохранился"
@@ -1006,6 +1019,7 @@ msgstr "Сохранить"
 msgid "Готово"
 msgstr "Готово"
 
+#: src/components/RemoveRequest.tsx
 #: src/console/BanSheet.tsx
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -1044,6 +1058,10 @@ msgstr "Сколько стоит"
 #: src/pages/MyHelper.tsx
 msgid "Скрыта тобой"
 msgstr "Скрыта тобой"
+
+#: src/pages/Mine.tsx
+msgid "Открытых заявок нет"
+msgstr "Открытых заявок нет"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1217,6 +1235,11 @@ msgstr "Уже в чёрном списке."
 #: src/console/BrowserShell.tsx
 msgid "Сигналы, ждут решения: {0}"
 msgstr "Сигналы, ждут решения: {0}"
+
+#. placeholder {0}: daysLeft(request.expires_at)
+#: src/pages/Mine.tsx
+msgid "{0, plural, one {ещё # день} few {ещё # дня} many {ещё # дней} other {ещё # дня}}"
+msgstr "{0, plural, one {ещё # день} few {ещё # дня} many {ещё # дней} other {ещё # дня}}"
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -1638,6 +1661,10 @@ msgstr "на месте: баны и обновления из Telegram рабо
 #: src/console/pages/Partners.tsx
 msgid "Показы и клики за 30 дней."
 msgstr "Показы и клики за 30 дней."
+
+#: src/components/RemoveRequest.tsx
+msgid "уйдёт из ленты, отклики и переписка сохранятся"
+msgstr "уйдёт из ленты, отклики и переписка сохранятся"
 
 #: src/console/ProfileSheet.tsx
 msgid "Скрыть анкету {name}?"
@@ -2208,6 +2235,10 @@ msgstr "Выбери, чем можешь помочь"
 msgid "Чем ты можешь помочь?"
 msgstr "Чем ты можешь помочь?"
 
+#: src/components/RemoveRequest.tsx
+msgid "Убрать заявку"
+msgstr "Убрать заявку"
+
 #: src/console/pages/Chats.tsx
 msgid "Telegram сейчас не ответил. Попробуйте через минуту."
 msgstr "Telegram сейчас не ответил. Попробуйте через минуту."
@@ -2262,6 +2293,11 @@ msgstr "Брно"
 msgid "обновите его из Telegram"
 msgstr "обновите его из Telegram"
 
+#. placeholder {0}: formatDay(localDay(request.closed_at), locale)
+#: src/pages/Mine.tsx
+msgid "закрыта {0}"
+msgstr "закрыта {0}"
+
 #: src/pages/Helper.tsx
 msgid "Чем помогает"
 msgstr "Чем помогает"
@@ -2281,10 +2317,12 @@ msgstr "Реклама"
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
 #: src/components/Incoming.tsx
+#: src/components/RemoveRequest.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
+#: src/pages/Mine.tsx
 msgid "Закрыть"
 msgstr "Закрыть"
 
@@ -2403,6 +2441,14 @@ msgstr "Не задан: только общее приветствие"
 msgid "Попробовать ещё раз"
 msgstr "Попробовать ещё раз"
 
+#: src/pages/Mine.tsx
+msgid "Закрытых заявок нет"
+msgstr "Закрытых заявок нет"
+
+#: src/components/RemoveRequest.tsx
+msgid "Удалить насовсем"
+msgstr "Удалить насовсем"
+
 #: src/components/HideReasonText.tsx
 msgid "Нарушает правила"
 msgstr "Нарушает правила"
@@ -2483,6 +2529,7 @@ msgstr "Такой группы больше нет"
 msgid "на сайте"
 msgstr "на сайте"
 
+#: src/components/RemoveRequest.tsx
 #: src/pages/Join.tsx
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Не получилось связаться. Попробуй ещё раз."
@@ -2598,6 +2645,10 @@ msgstr "Снять паузу"
 #: src/console/pages/Summary.tsx
 msgid "Партнёры"
 msgstr "Партнёры"
+
+#: src/components/RemoveRequest.tsx
+msgid "заявка и отклики пропадут, вернуть нельзя"
+msgstr "заявка и отклики пропадут, вернуть нельзя"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -2776,6 +2827,10 @@ msgstr "Работа и IT"
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
 msgstr "По этому запросу пока никого"
+
+#: src/pages/Mine.tsx
+msgid "Закрыта"
+msgstr "Закрыта"
 
 #. placeholder {0}: formatMoney(price.amount)
 #: src/pages/Helper.tsx
@@ -3028,6 +3083,11 @@ msgstr "Очистить поиск"
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
 msgstr "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
+
+#. placeholder {0}: closed.length
+#: src/pages/Mine.tsx
+msgid "Закрытые · {0}"
+msgstr "Закрытые · {0}"
 
 #: src/console/ProfileSheet.tsx
 msgid "Скрыта из каталога."
@@ -3499,6 +3559,11 @@ msgstr "Закрыть этот вход?"
 #: src/pages/AdsChats.tsx
 msgid "Нажмите, чтобы попробовать ещё раз"
 msgstr "Нажмите, чтобы попробовать ещё раз"
+
+#. placeholder {0}: open.length
+#: src/pages/Mine.tsx
+msgid "Открытые · {0}"
+msgstr "Открытые · {0}"
 
 #: src/components/Phrase.tsx
 msgid "Разобраться заранее"

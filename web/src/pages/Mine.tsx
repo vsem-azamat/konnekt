@@ -1,12 +1,15 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import { Incoming } from '@/components/Incoming';
 import { DocumentIcon, iconForService } from '@/components/icons';
 import { formatDay } from '@/components/Phrase';
+import { RemoveRequest } from '@/components/RemoveRequest';
 import {
   Action,
+  Actions,
   AvatarStack,
   Card,
   Cards,
@@ -22,10 +25,12 @@ import {
 } from '@/components/Ui';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { buckets, daysLeft, localDay } from '@/lib/requestBuckets';
 import { requestName } from '@/lib/requestHeading';
 import type { HelpRequest } from '@/lib/types';
 
 type Tab = 'mine' | 'incoming';
+type List = 'open' | 'closed';
 
 /**
  * Both directions of the same relationship.
@@ -52,19 +57,30 @@ export default function MinePage() {
   // otherwise strand them on "fill in your profile" with no way out.
   const tab: Tab = isHelper && params.get('tab') === 'incoming' ? 'incoming' : 'mine';
 
-  const switchTo = (next: Tab) => {
-    // Rebuilt from the current params rather than replaced: a wholesale
-    // object drops every other search parameter on the screen.
+  // Closed requests are the second list, also in the URL: Back from a closed
+  // request returns to the closed ones.
+  const list: List = params.get('list') === 'closed' ? 'closed' : 'open';
+
+  // Rebuilt from the current params rather than replaced: a wholesale object
+  // drops every other search parameter on the screen.
+  const setParam = (key: string, value: string | null) => {
     const updated = new URLSearchParams(params);
-    if (next === 'mine') updated.delete('tab');
-    else updated.set('tab', next);
+    if (value === null) updated.delete(key);
+    else updated.set(key, value);
     setParams(updated, { replace: true });
   };
+  const switchTo = (next: Tab) => setParam('tab', next === 'mine' ? null : next);
+  const switchList = (next: List) => setParam('list', next === 'open' ? null : next);
+
+  // The request whose «Убрать заявку» is open, from the «Закрыть» on its card.
+  const [removing, setRemoving] = useState<number | null>(null);
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['requests'],
     queryFn: ({ signal }) => api.getRequests(signal),
   });
+  const { open, closed } = buckets(data ?? []);
+  const shown = list === 'open' ? open : closed;
 
   return (
     <Screen>
@@ -116,16 +132,44 @@ export default function MinePage() {
           }
         />
       ) : (
-        <Cards>
-          {data.map((request) => (
-            <RequestCard
-              key={request.id}
-              request={request}
-              locale={i18n.locale}
-              onClick={() => navigate(`/request/${request.id}`)}
+        <>
+          <Segmented<List>
+            value={list}
+            onChange={switchList}
+            options={[
+              { value: 'open', label: <Trans>Открытые · {open.length}</Trans> },
+              { value: 'closed', label: <Trans>Закрытые · {closed.length}</Trans> },
+            ]}
+          />
+          <div style={{ height: 14 }} />
+          {shown.length === 0 ? (
+            <Empty
+              title={
+                list === 'open' ? (
+                  <Trans>Открытых заявок нет</Trans>
+                ) : (
+                  <Trans>Закрытых заявок нет</Trans>
+                )
+              }
             />
-          ))}
-        </Cards>
+          ) : (
+            <Cards>
+              {shown.map((request) => (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  locale={i18n.locale}
+                  onClick={() => navigate(`/request/${request.id}`)}
+                  onRemove={() => setRemoving(request.id)}
+                />
+              ))}
+            </Cards>
+          )}
+        </>
+      )}
+
+      {removing === null ? null : (
+        <RemoveRequest requestId={removing} open onClose={() => setRemoving(null)} />
       )}
     </Screen>
   );
@@ -135,17 +179,20 @@ function RequestCard({
   request,
   locale,
   onClick,
+  onRemove,
 }: {
   request: HelpRequest;
   locale: string;
   onClick: () => void;
+  onRemove: () => void;
 }) {
   const Icon = request.service_type ? iconForService('tutoring') : DocumentIcon;
   const title = requestName(request) ?? request.text;
+  const isOpen = request.status === 'open';
 
-  return (
-    <Card onClick={onClick}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+  const body = (
+    <>
+      <div className={ui.cardTop}>
         <Tile tone={request.id % 6}>
           <Icon size={19} />
         </Tile>
@@ -162,11 +209,46 @@ function RequestCard({
           >
             {title}
           </div>
-          <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
-            {request.deadline_on ? (
-              <Trans>до {formatDay(request.deadline_on, locale)}</Trans>
+          <div className={ui.cardMeta}>
+            {isOpen ? (
+              <span>
+                {request.deadline_on ? (
+                  <Trans>до {formatDay(request.deadline_on, locale)}</Trans>
+                ) : (
+                  <Trans>без срока</Trans>
+                )}
+                {request.expires_at ? (
+                  <>
+                    {' · '}
+                    <Plural
+                      value={daysLeft(request.expires_at)}
+                      one="ещё # день"
+                      few="ещё # дня"
+                      many="ещё # дней"
+                      other="ещё # дня"
+                    />
+                  </>
+                ) : null}
+              </span>
             ) : (
-              <Trans>без срока</Trans>
+              <>
+                <span className={ui.status}>
+                  <Trans>Закрыта</Trans>
+                </span>
+                {request.status === 'expired' && request.expires_at ? (
+                  <span>
+                    <Trans>
+                      срок вышел {formatDay(localDay(request.expires_at), locale)}
+                    </Trans>
+                  </span>
+                ) : request.closed_at ? (
+                  <span>
+                    <Trans>
+                      закрыта {formatDay(localDay(request.closed_at), locale)}
+                    </Trans>
+                  </span>
+                ) : null}
+              </>
             )}
           </div>
         </div>
@@ -187,9 +269,38 @@ function RequestCard({
         </div>
       ) : (
         <Reason weak>
-          <Trans>Пока без откликов</Trans>
+          {isOpen ? <Trans>Пока без откликов</Trans> : <Trans>Без откликов</Trans>}
         </Reason>
       )}
-    </Card>
+    </>
+  );
+
+  if (!isOpen) {
+    return (
+      <div className={ui.cardDim}>
+        <Card onClick={onClick}>{body}</Card>
+      </div>
+    );
+  }
+
+  // «Закрыть» is a button of its own, and a button cannot hold another, so the
+  // card is a box holding two: the request, and the way to remove it.
+  return (
+    <div className={ui.card}>
+      <button
+        type="button"
+        className={`${ui.cardPress} ${ui.pressable}`}
+        onClick={onClick}
+      >
+        {body}
+      </button>
+      {/* Asks rather than closes: the same sheet as «⋯» on the request, where
+          deleting is the other answer. */}
+      <Actions>
+        <Action quiet onClick={onRemove}>
+          <Trans>Закрыть</Trans>
+        </Action>
+      </Actions>
+    </div>
   );
 }

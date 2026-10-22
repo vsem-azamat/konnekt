@@ -2,10 +2,12 @@ import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
+import { MoreIcon } from '@/components/icons';
 import { formatDay, PriceUnitLabel } from '@/components/Phrase';
+import { RemoveRequest } from '@/components/RemoveRequest';
 import { Sheet } from '@/components/Sheet';
 import {
   Action,
@@ -39,7 +41,9 @@ import type { RequestResponse } from '@/lib/types';
 export default function RequestPage() {
   const { id } = useParams();
   const requestId = Number(id);
-  const { i18n } = useLingui();
+  const { t, i18n } = useLingui();
+  const navigate = useNavigate();
+  const [removing, setRemoving] = useState(false);
 
   // From the list rather than its own endpoint: this screen is only ever
   // reached from it, so the request is already in the cache.
@@ -72,7 +76,24 @@ export default function RequestPage() {
   return (
     <Screen>
       <AppHeader />
-      <Title>{request?.subject ?? <Trans>Заявка</Trans>}</Title>
+      <div className={ui.cardTop}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Title>{request?.subject ?? <Trans>Заявка</Trans>}</Title>
+        </div>
+        {/* A closed request has nothing left to close, and this is the only
+            way to delete one, so «⋯» stays with that answer alone. */}
+        {request ? (
+          <button
+            type="button"
+            className={ui.more}
+            aria-label={t`Действия с заявкой`}
+            aria-haspopup="dialog"
+            onClick={() => setRemoving(true)}
+          >
+            <MoreIcon size={20} />
+          </button>
+        ) : null}
+      </div>
 
       {request ? (
         <>
@@ -107,6 +128,15 @@ export default function RequestPage() {
           ))}
         </Cards>
       )}
+
+      {removing && request ? (
+        <RemoveRequest
+          requestId={request.id}
+          open={request.status === 'open'}
+          onClose={() => setRemoving(false)}
+          onDeleted={() => navigate('/mine', { replace: true })}
+        />
+      ) : null}
     </Screen>
   );
 }

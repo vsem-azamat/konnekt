@@ -16,6 +16,9 @@ function request(status: RequestStatus, responses_count = 0): HelpRequest {
     responses_count,
     responders: [],
     created_at: '2026-10-22T10:00:00Z',
+    expires_at: null,
+    closed_at: null,
+    helpers_seeing: 0,
   };
 }
 

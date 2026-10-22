@@ -143,6 +143,21 @@ export const InboxIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const TrashIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" />
+  </Svg>
+);
+
+/** «⋯»: what else can be done with the thing beside it. */
+export const MoreIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="5.5" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="18.5" cy="12" r="1.2" fill="currentColor" />
+  </Svg>
+);
+
 /** The language button. A globe, not a flag: languages are not countries. */
 export const GlobeIcon = (p: IconProps) => (
   <Svg {...p}>
