@@ -146,6 +146,7 @@ const CHATS = [
   activity: i % 3 === 0 ? 'active' : 'unknown',
   member_count: 100 + i * 37,
   is_forum: false,
+  kind: 'group',
   external: false,
   avatar: null,
   link: `https://t.me/fixture_chat_${i}`,

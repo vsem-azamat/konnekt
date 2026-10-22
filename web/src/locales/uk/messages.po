@@ -296,6 +296,10 @@ msgstr "Відповідь не надійшла. Перш ніж пробува
 #~ msgid "Капча при входе"
 #~ msgstr "Капча під час входу"
 
+#: src/components/ChatRow.tsx
+msgid "Этот канал ведёт не Konnekt, правила там свои."
+msgstr "Цей канал веде не Konnekt, правила там свої."
+
 #: src/components/Place.tsx
 msgid "вуз"
 msgstr "виш"
@@ -652,6 +656,10 @@ msgstr "Не зрозуміли запит"
 msgid "Аккаунта нет среди главных администраторов бота."
 msgstr "Цього акаунта немає серед головних адміністраторів бота."
 
+#: src/components/ChatRow.tsx
+msgid "не наш канал"
+msgstr "не наш канал"
+
 #: src/console/pages/Spam.tsx
 msgid "Чат: все ▾"
 msgstr "Чат: усі ▾"
@@ -876,6 +884,11 @@ msgstr "Показати {total}"
 #: src/pages/Mine.tsx
 msgid "Мои заявки"
 msgstr "Мої заявки"
+
+#. placeholder {0}: chat.member_count
+#: src/components/ChatRow.tsx
+msgid "{0, plural, one {# подписчик} few {# подписчика} many {# подписчиков} other {# подписчика}}"
+msgstr "{0, plural, one {# підписник} few {# підписники} many {# підписників} other {# підписника}}"
 
 #: src/console/pages/Chat.tsx
 msgid "ни во что: стоит отдельно"
@@ -1801,6 +1814,10 @@ msgstr "Заявку побачать усі, хто пропонує допом
 msgid "Одобрить"
 msgstr "Схвалити"
 
+#: src/components/ChatRow.tsx
+msgid "{count, plural, one {подписчик} few {подписчика} many {подписчиков} other {подписчика}}"
+msgstr "{count, plural, one {підписник} few {підписники} many {підписників} other {підписника}}"
+
 #: src/pages/Results.tsx
 msgid "Никто пока не предлагает то, что ты ищешь."
 msgstr "Ніхто поки не пропонує те, що ти шукаєш."
@@ -2699,6 +2716,10 @@ msgstr "обраний"
 #: src/components/Phrase.tsx
 msgid "Работает именно с этим вузом"
 msgstr "Працює саме з цим вишем"
+
+#: src/components/ChatRow.tsx
+msgid "Открыть канал"
+msgstr "Відкрити канал"
 
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
