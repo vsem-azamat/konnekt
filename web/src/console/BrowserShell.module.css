@@ -10,7 +10,6 @@
 
 .frame {
   flex: 1 0 0;
-  height: 100%;
   min-height: 0;
   overflow: hidden;
   display: grid;
@@ -118,12 +117,20 @@
 }
 
 .main {
+  --bar-height: 61px;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* What the keys bring into view lands below the bar, not under it. */
+  scroll-padding-top: var(--bar-height);
   display: flex;
   flex-direction: column;
+}
+
+/* Focused on navigation for the keys and for readers, not to be pointed at. */
+.main:focus {
+  outline: none;
 }
 
 /* The bar over every screen: the bell now, the search across everything next. */
