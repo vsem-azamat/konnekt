@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import re
+import unicodedata
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -153,13 +154,17 @@ class ChatUpdate(BaseModel):
     # the catalog's code for a university; empty clears it.
     institution_code: str | None = None
     # As the catalog's taxonomy names it; empty clears it, to all of Czechia.
-    city: str | None = Field(default=None, max_length=96)
+    city: str | None = None
     topic: ChatTopic | None = None
 
     @field_validator("city")
     @classmethod
     def _check_city(cls, value: str | None) -> str | None:
-        return (value or "").strip() or None
+        """Composed, so «Plzeň» typed as «Plzen» plus a caron still matches the taxonomy's."""
+        city = unicodedata.normalize("NFC", (value or "").strip())
+        if len(city) > 96:
+            raise ValueError("A city is a name, at most 96 characters")
+        return city or None
 
     @field_validator("institution_code")
     @classmethod
