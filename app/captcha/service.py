@@ -70,11 +70,9 @@ async def admit(
     # burst counts itself short and opens a wave per handful of requests.
     await _lock_chat(db, chat.id)
     superseded = await _supersede(db, chat.id, user_id, now)
-    # Before the wave: a trusted request neither waits in one nor feeds it,
-    # since a wave pauses the captcha for strangers and this is not one.
-    if await _trusted(db, chat.id, user_id, now):
-        await _let_in_on_trust(bot, db, event, chat, superseded, now)
-        return
+    # A trusted request counts towards a wave like any other, so a raid of
+    # accounts that once passed somewhere still raises the alert; it just
+    # does not wait in one.
     wave, opened = await waves.surge(db, chat, user_id, now)
     answer, options = challenge.draw()
     row = JoinCaptcha(
@@ -88,7 +86,13 @@ async def admit(
         created_at=now,
         expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
     )
-    if waves.pauses(wave):
+    if await _trusted(db, chat.id, user_id, now):
+        # Settled from the start, so the sweep never declines it. Should the
+        # process stop before Telegram is asked, the row says trusted while
+        # the request waits for the admins, as an undelivered one does.
+        row.status = JoinCaptcha.STATUS_TRUSTED
+        row.resolved_at = now
+    elif waves.pauses(wave):
         assert wave is not None
         row.wave_id = wave.id
         row.status = JoinCaptcha.STATUS_HELD
@@ -100,6 +104,10 @@ async def admit(
     if opened:
         assert wave is not None
         await waves.announce(bot, db, wave, chat)
+
+    if row.status == JoinCaptcha.STATUS_TRUSTED:
+        await _let_in_on_trust(bot, db, row, chat)
+        return
 
     if row.status == JoinCaptcha.STATUS_HELD:
         assert wave is not None
@@ -136,11 +144,13 @@ async def admit(
 
 
 async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.datetime) -> bool:
-    """Whether this person passed the captcha in another chat within the window, and was not banned since.
+    """Whether this person passed the captcha in another chat within the window and was never banned by us.
 
-    Another chat only: coming back to one they left is asking again. A ban
-    anywhere inside the window outweighs the pass; it may have been lifted
-    since, which costs that person one captcha.
+    Another chat only: coming back to one they left is asking again. Any ban
+    or blacklisting on record outweighs the pass, however long ago and even
+    if lifted since: that costs the person one captcha, and trusting someone
+    still banned somewhere would cost a chat a spammer. Bans made in
+    Telegram's own admin screens leave no record here and are not seen.
     """
     since = now - datetime.timedelta(days=settings.captcha.trust_days)
     passed = await db.scalar(
@@ -159,77 +169,61 @@ async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.d
         select(ModerationEvent.id)
         .where(
             ModerationEvent.target_user_id == user_id,
-            ModerationEvent.action == ModerationEventAction.BAN,
-            ModerationEvent.created_at >= since,
+            ModerationEvent.action.in_((ModerationEventAction.BAN, ModerationEventAction.BLACKLIST)),
         )
         .limit(1)
     )
     return banned is None
 
 
-async def _let_in_on_trust(
-    bot: Bot,
-    db: AsyncSession,
-    event: ChatJoinRequest,
-    chat: Chat,
-    superseded: list[JoinCaptcha],
-    now: datetime.datetime,
-) -> None:
-    """Approve the request without a captcha, and say so while Telegram still lets the bot write."""
-    row = JoinCaptcha(
-        chat_id=chat.id,
-        user_id=event.from_user.id,
-        user_chat_id=event.user_chat_id,
-        status=JoinCaptcha.STATUS_TRUSTED,
-        answer="",
-        options=[],
-        attempts_left=0,
-        created_at=now,
-        expires_at=now,
-    )
-    row.resolved_at = now
-    db.add(row)
-    # Committed before Telegram is asked, so the chat's lock is not held over the call.
-    await db.commit()
-    for old in superseded:
-        await _edit(bot, old, challenge.superseded_text(_title(chat)), None)
+async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Chat) -> None:
+    """Tell the applicant they are in, then approve the request.
+
+    In that order: Telegram lets the bot write to an applicant only until the
+    request is settled. Should the approval fail, the note is edited to say so.
+    """
+    title = _title(chat)
+    try:
+        sent = await with_retry(
+            lambda: bot.send_message(
+                chat_id=row.user_chat_id,
+                text=challenge.passed_text(title),
+                reply_markup=challenge.open_chat(_link(chat)),
+            )
+        )
+    except TelegramAPIError as err:
+        # Another bot wrote first, most likely. They get in all the same.
+        logger.warning("captcha_trusted_not_told", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
+    else:
+        row.message_id = sent.message_id
+        await db.commit()
 
     try:
-        await with_retry(lambda: bot.approve_chat_join_request(chat_id=chat.id, user_id=row.user_id))
+        await with_retry(lambda: bot.approve_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
     except TelegramAPIError as err:
         if not already_member(err):
-            row.status = JoinCaptcha.STATUS_GONE
-            await db.commit()
-            CAPTCHA_EVENTS.labels(event=row.status).inc()
+            assert row.resolved_at is not None
             if request_gone(err):
+                await _close(bot, db, row, JoinCaptcha.STATUS_GONE, row.resolved_at, challenge.gone_text(title))
                 logger.info("captcha_request_gone", captcha_id=row.id)
                 return
+            await _close(bot, db, row, JoinCaptcha.STATUS_GONE, row.resolved_at, challenge.handed_back_text(title))
             logger.warning(
                 "captcha_request_refused",
                 captcha_id=row.id,
-                chat_id=chat.id,
+                chat_id=row.chat_id,
                 error=str(err),
                 error_type=type(err).__name__,
             )
             advice = "Проверьте права бота в чате." if lacks_rights(err) else "Заявка ждёт админов чата."
             await report(
                 bot,
-                f"Капча не смогла принять заявку в {html.escape(_title(chat))} ({row.user_id}): "
+                f"Капча не смогла принять заявку в {html.escape(title)} ({row.user_id}): "
                 f"{html.escape(err.message)}. {advice}",
             )
             return
     CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_TRUSTED).inc()
-    logger.info("captcha_trusted", chat_id=chat.id, user_id=row.user_id, captcha_id=row.id)
-
-    try:
-        await bot.send_message(
-            chat_id=row.user_chat_id,
-            text=challenge.passed_text(_title(chat)),
-            reply_markup=challenge.open_chat(_link(chat)),
-        )
-    except TelegramAPIError as err:
-        # They are in either way; only the note is lost.
-        logger.warning("captcha_trusted_not_told", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
+    logger.info("captcha_trusted", chat_id=row.chat_id, user_id=row.user_id, captcha_id=row.id)
 
 
 async def _lock_chat(db: AsyncSession, chat_id: int) -> None:

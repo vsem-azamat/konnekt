@@ -371,7 +371,7 @@ class CaptchaSettings(Settings):
         default=90,
         ge=0,
         le=180,
-        description="How long a captcha passed in one chat lets the person into the others without one",
+        description="How long a captcha passed in one chat lets the person into the others without one; 0 turns it off",
     )
 
     @model_validator(mode="after")

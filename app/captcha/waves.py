@@ -2,9 +2,11 @@
 
 Farmed accounts arrive by the hundred within minutes. Answering each with a
 private message would spend the bot's rate limit on them and do nothing a
-paused captcha does not: during a wave nobody is written to and nobody gets
-in, the requests wait in Telegram, and the report chat gets one message whose
-buttons decide what happens to them.
+paused captcha does not: during a wave strangers are not written to and do
+not get in, the requests wait in Telegram, and the report chat gets one
+message whose buttons decide what happens to them. Who passed the captcha in
+another chat lately is still let in (see `service`), and still counted
+towards the wave.
 
 The pause holds until a quiet spell has passed since the last burst, so a wave
 that stops for a minute and starts again is still the same wave. A wave an
@@ -75,15 +77,10 @@ async def surge(db: AsyncSession, chat: Chat, user_id: int, now: datetime.dateti
         # The burst the admin let through does not count against the next one.
         since = max(since, current.decided_at)
 
-    # People, not requests: one person asking twice is not two bots. Nor are
-    # those let in on trust strangers, so they are not counted.
+    # People, not requests: one person asking twice is not two bots.
     seen = set(
         await db.scalars(
-            select(JoinCaptcha.user_id).where(
-                JoinCaptcha.chat_id == chat.id,
-                JoinCaptcha.created_at > since,
-                JoinCaptcha.status != JoinCaptcha.STATUS_TRUSTED,
-            )
+            select(JoinCaptcha.user_id).where(JoinCaptcha.chat_id == chat.id, JoinCaptcha.created_at > since)
         )
     )
     seen.add(user_id)
@@ -123,7 +120,7 @@ def _alert_text(chat: Chat, *, held: int) -> str:
     return (
         f"<b>Набег на {html.escape(chat.title or str(chat.id))}</b>\n\n"
         f"Больше {PER_MINUTE} заявок в минуту. Капча на паузе: новым людям бот не пишет, "
-        f"в чат никто не вошёл.\n\n"
+        f"в чат входят только прошедшие капчу в другом чате.\n\n"
         f"Ждут решения: {held}."
     )
 

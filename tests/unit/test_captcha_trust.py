@@ -10,8 +10,8 @@ import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.methods import ApproveChatJoinRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.methods import ApproveChatJoinRequest, SendMessage
 from aiogram.types import Chat, ChatJoinRequest, User
 from app.captcha import service, waves
 from app.core.config import CaptchaSettings, settings
@@ -221,17 +221,18 @@ async def test_a_blacklisted_applicant_is_declined_whatever_they_passed(session:
     bot.send_message.assert_not_awaited()
 
 
-async def test_a_ban_since_the_pass_takes_the_trust_away(session: AsyncSession, bot, chat) -> None:
+@pytest.mark.parametrize("action", [ModerationEventAction.BAN, ModerationEventAction.BLACKLIST])
+@pytest.mark.parametrize("days_ago", [0, 200])
+async def test_a_ban_on_record_takes_the_trust_away(
+    session: AsyncSession, bot, chat, action: ModerationEventAction, days_ago: int
+) -> None:
+    """However old, and lifted or not: still banned somewhere is not to be told apart from lifted."""
     await _settled(session, days_ago=10)
-    session.add(
-        ModerationEvent(
-            action=ModerationEventAction.BAN,
-            source=ModerationEventSource.COMMAND,
-            actor_id=1,
-            target_user_id=USER_ID,
-            chat_id=OTHER_CHAT_ID,
-        )
+    ban = ModerationEvent(
+        action=action, source=ModerationEventSource.COMMAND, actor_id=1, target_user_id=USER_ID, chat_id=OTHER_CHAT_ID
     )
+    ban.created_at = NOW - datetime.timedelta(days=days_ago)
+    session.add(ban)
     await session.commit()
 
     await service.admit(bot, session, _request(), chat, now=NOW)
@@ -252,18 +253,20 @@ async def test_a_trusted_applicant_is_let_in_during_a_wave(session: AsyncSession
     assert (await _latest(session)).status == JoinCaptcha.STATUS_TRUSTED
 
 
-async def test_trusted_applicants_do_not_make_a_wave(session: AsyncSession, bot, chat) -> None:
-    """A wave pauses the captcha for strangers; people let in on trust are not strangers."""
-    trusted = range(1000, 1000 + waves.PER_MINUTE + 5)
+async def test_trusted_applicants_still_count_towards_a_wave(session: AsyncSession, bot, chat) -> None:
+    """A raid of accounts that each passed once somewhere still raises the alert; they just do not wait."""
+    trusted = range(1000, 1000 + waves.PER_MINUTE + 1)
     for user_id in trusted:
         await _settled(session, days_ago=1, user_id=user_id)
         await service.admit(bot, session, _request(user_id), chat, now=NOW)
 
     await service.admit(bot, session, _request(), chat, now=NOW)
 
-    assert (await _latest(session)).status == JoinCaptcha.STATUS_PENDING
+    assert bot.approve_chat_join_request.await_count == len(trusted)
+    assert (await _latest(session)).status == JoinCaptcha.STATUS_HELD
     report_chat = settings.admin.default_report_chat_id
-    assert all(call.kwargs["chat_id"] != report_chat for call in bot.send_message.await_args_list)
+    alerts = [call for call in bot.send_message.await_args_list if call.kwargs["chat_id"] == report_chat]
+    assert len(alerts) == 1
 
 
 async def test_a_new_request_after_trust_retires_nothing_it_should_not(session: AsyncSession, bot, chat) -> None:
@@ -279,7 +282,32 @@ async def test_a_new_request_after_trust_retires_nothing_it_should_not(session: 
     assert sorted(r.status for r in rows) == [JoinCaptcha.STATUS_GONE, JoinCaptcha.STATUS_TRUSTED]
 
 
+async def test_the_note_goes_out_before_the_approval(session: AsyncSession, bot, chat) -> None:
+    """Telegram lets the bot write to an applicant only until the request is settled."""
+    await _settled(session, days_ago=1)
+    calls = MagicMock()
+    calls.attach_mock(bot.send_message, "send")
+    calls.attach_mock(bot.approve_chat_join_request, "approve")
+
+    await service.admit(bot, session, _request(), chat, now=NOW)
+
+    assert [name for name, *_ in calls.mock_calls] == ["send", "approve"]
+
+
+async def test_a_note_that_cannot_be_sent_does_not_keep_them_out(session: AsyncSession, bot, chat) -> None:
+    await _settled(session, days_ago=1)
+    bot.send_message.side_effect = TelegramForbiddenError(
+        method=SendMessage(chat_id=USER_ID, text="x"), message="Forbidden: bot can't initiate conversation"
+    )
+
+    await service.admit(bot, session, _request(), chat, now=NOW)
+
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
+    assert (await _latest(session)).status == JoinCaptcha.STATUS_TRUSTED
+
+
 async def test_already_a_member_still_counts_as_let_in(session: AsyncSession, bot, chat) -> None:
+    trusted = _events("trusted")
     await _settled(session, days_ago=1)
     bot.approve_chat_join_request.side_effect = TelegramBadRequest(
         method=ApproveChatJoinRequest(chat_id=CHAT_ID, user_id=USER_ID), message="Bad Request: USER_ALREADY_PARTICIPANT"
@@ -288,9 +316,11 @@ async def test_already_a_member_still_counts_as_let_in(session: AsyncSession, bo
     await service.admit(bot, session, _request(), chat, now=NOW)
 
     assert (await _latest(session)).status == JoinCaptcha.STATUS_TRUSTED
+    assert _events("trusted") == trusted + 1
+    bot.edit_message_text.assert_not_awaited()
 
 
-async def test_a_request_closed_meanwhile_is_gone_and_nobody_is_told(session: AsyncSession, bot, chat) -> None:
+async def test_a_request_closed_meanwhile_is_gone_and_the_note_says_so(session: AsyncSession, bot, chat) -> None:
     await _settled(session, days_ago=1)
     bot.approve_chat_join_request.side_effect = TelegramBadRequest(
         method=ApproveChatJoinRequest(chat_id=CHAT_ID, user_id=USER_ID), message="Bad Request: HIDE_REQUESTER_MISSING"
@@ -298,8 +328,27 @@ async def test_a_request_closed_meanwhile_is_gone_and_nobody_is_told(session: As
 
     await service.admit(bot, session, _request(), chat, now=NOW)
 
+    row = await _latest(session)
+    assert row.status == JoinCaptcha.STATUS_GONE
+    edit = bot.edit_message_text.await_args.kwargs
+    assert edit["message_id"] == 77
+    assert "Готово" not in edit["text"]
+
+
+async def test_a_refused_approval_goes_to_the_admins(session: AsyncSession, bot, chat) -> None:
+    await _settled(session, days_ago=1)
+    bot.approve_chat_join_request.side_effect = TelegramBadRequest(
+        method=ApproveChatJoinRequest(chat_id=CHAT_ID, user_id=USER_ID), message="Bad Request: CHAT_ADMIN_REQUIRED"
+    )
+
+    await service.admit(bot, session, _request(), chat, now=NOW)
+
     assert (await _latest(session)).status == JoinCaptcha.STATUS_GONE
-    bot.send_message.assert_not_awaited()
+    assert "Готово" not in bot.edit_message_text.await_args.kwargs["text"]
+    report_chat = settings.admin.default_report_chat_id
+    reports = [c.kwargs["text"] for c in bot.send_message.await_args_list if c.kwargs["chat_id"] == report_chat]
+    assert len(reports) == 1
+    assert "права бота" in reports[0]
 
 
 async def test_trusted_approvals_are_counted_apart(session: AsyncSession, bot, chat) -> None:
