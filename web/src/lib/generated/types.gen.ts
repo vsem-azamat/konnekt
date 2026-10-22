@@ -1263,7 +1263,7 @@ export type RequestCreate = {
      * Langs
      */
     langs?: Array<string>;
-    work_format?: WorkFormat;
+    work_format?: WorkFormat | null;
     /**
      * City
      */
@@ -1328,6 +1328,11 @@ export type RequestOut = {
      * Helpers Seeing
      */
     helpers_seeing?: number;
+    work_format?: WorkFormat;
+    /**
+     * City
+     */
+    city?: string | null;
     /**
      * Expires At
      */

@@ -4749,8 +4749,14 @@
             "title": "Langs"
           },
           "work_format": {
-            "$ref": "#/components/schemas/WorkFormat",
-            "default": "both"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkFormat"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "city": {
             "anyOf": [
@@ -4873,6 +4879,21 @@
             "type": "integer",
             "title": "Helpers Seeing",
             "default": 0
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat",
+            "default": "both"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           },
           "expires_at": {
             "anyOf": [

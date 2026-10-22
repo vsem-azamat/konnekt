@@ -585,6 +585,8 @@ async def _requests_out(
                 responses_count=counts.get(request.id, 0),
                 responders=responders.get(request.id, []),
                 helpers_seeing=seeing.get(request.id, 0),
+                work_format=request.work_format,
+                city=request.city,
                 created_at=request.created_at,
                 expires_at=request.expires_at,
                 closed_at=request.closed_at,

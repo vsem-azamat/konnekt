@@ -494,7 +494,7 @@ async def create(
     deadline_on: date | None = None,
     budget_max: float | None = None,
     langs: list[str] | None = None,
-    work_format: WorkFormat = WorkFormat.BOTH,
+    work_format: WorkFormat | None = None,
     city: str | None = None,
     given: frozenset[str],
 ) -> HelpRequest:
@@ -510,6 +510,9 @@ async def create(
     `HelperUpsert` follows through `model_fields_set`. The screen that posts a
     request shows the parse back as chips, so removing one sends `null` on
     purpose; without this the text would put it straight back.
+
+    The format and the city are never read from the text: either is whatever
+    was sent, and help given online is in no city.
 
     It has no default on purpose: it decides whether the five axis arguments
     above mean anything at all, so a caller that forgot it would watch every one
@@ -532,6 +535,8 @@ async def create(
     deadline = deadline_on if "deadline_on" in given else parsed.deadline
     if "budget_max" not in given:
         budget_max = parsed.budget_max
+    work_format = work_format or WorkFormat.BOTH
+    city = (city or None) if work_format is not WorkFormat.ONLINE else None
 
     # A double tap, or a reload, rather than a second thing to answer. Same
     # author, same subject, same kind of help, same deadline, still open.
@@ -566,6 +571,10 @@ async def create(
             # different asks, and the row stores which.
             HelpRequest.institution_id.is_not_distinct_from(institution_id),
             HelpRequest.deadline_on.is_not_distinct_from(deadline),
+            # Moving house in Brno and in Praha are two asks; a retry sends
+            # the same payload, so these cost nothing in catching it.
+            HelpRequest.work_format == work_format,
+            HelpRequest.city.is_not_distinct_from(city),
             true() if known else HelpRequest.raw_text == text,
         )
     )
@@ -583,7 +592,7 @@ async def create(
         budget_max=budget_max,
         langs=langs or list(user.spoken_langs),
         work_format=work_format,
-        city=city or None,
+        city=city,
         status=RequestStatus.OPEN,
         expires_at=(
             datetime.combine(deadline, time.max, tzinfo=UTC)
