@@ -309,6 +309,21 @@ async def test_sync_handles_listed_private_chats_and_nothing_else(
     assert unlisted.public_link is None
 
 
+async def test_sync_stores_the_admins_taking_over_a_chat_that_turned_public(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        session.add(_chat(join_mode=Chat.JOIN_OPEN))
+        await session.commit()
+
+    await sync_once(session_maker=session_maker, bot=_bot(username="room_chat"), pause_seconds=0)
+
+    async with session_maker() as session:
+        stored = await session.get(Chat, -100)
+    assert stored is not None
+    assert (stored.public_link, stored.join_mode) == ("https://t.me/room_chat", Chat.JOIN_ADMINS)
+
+
 async def test_sync_stores_a_replaced_link(session_maker: async_sessionmaker[AsyncSession]) -> None:
     async with session_maker() as session:
         session.add(Chat(id=-1, title="room", resource_status=Chat.STATUS_APPROVED, public_link=OURS))

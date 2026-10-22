@@ -22,7 +22,7 @@ from aiogram.exceptions import TelegramBadRequest
 from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -85,6 +85,13 @@ async def _snapshots(session_maker) -> list[tuple[int, int]]:
     async with session_maker() as session:
         rows = (await session.execute(select(ChatMemberSnapshot).order_by(ChatMemberSnapshot.chat_id))).scalars().all()
     return [(row.chat_id, row.member_count) for row in rows]
+
+
+def _guessed() -> Chat:
+    """A row the migration gave to the admins for want of a link."""
+    chat = Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS)
+    chat.join_mode_guessed = True
+    return chat
 
 
 async def _chat(session_maker, chat_id: int) -> Chat:
@@ -187,23 +194,43 @@ class TestMetadata:
         A private one had the bot's link asking for no request, so once Telegram
         says it has no username it lets everyone in again, as a new chat would.
         """
-        await _seed(db_session_maker, Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS))
+        await _seed(db_session_maker, _guessed())
 
         await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False, username=username))
 
-        assert (await _chat(db_session_maker, -100)).join_mode == settled
+        settled_chat = await _chat(db_session_maker, -100)
+        assert settled_chat.join_mode == settled
+        assert settled_chat.join_mode_guessed is False
 
-    async def test_a_mode_is_not_resettled_once_the_chat_has_been_asked(
+    async def test_admins_somebody_chose_are_not_resettled(
         self, db_session_maker: async_sessionmaker[AsyncSession]
     ) -> None:
-        """After the first answer the admins are somebody's choice, not the migration's guess."""
-        chat = Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS)
-        chat.join_by_request = False
-        await _seed(db_session_maker, chat)
+        """A new chat or an upgraded one is never asked yet either; its admins are a choice, not a guess."""
+        await _seed(db_session_maker, Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS))
 
         await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False))
 
         assert (await _chat(db_session_maker, -100)).join_mode == Chat.JOIN_ADMINS
+
+    async def test_a_mode_set_while_the_chat_is_asked_is_kept(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """The first run after the deploy asks every chat, a second apiece, while operators work."""
+        await _seed(db_session_maker, _guessed())
+        bot = _bot(join_by_request=False)
+        answer = bot.get_chat.side_effect
+
+        async def _get_chat(chat_id: int):
+            async with db_session_maker() as session:
+                await session.execute(update(Chat).where(Chat.id == -100).values(join_mode=Chat.JOIN_CAPTCHA))
+                await session.commit()
+            return await answer(chat_id)
+
+        bot.get_chat.side_effect = _get_chat
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).join_mode == Chat.JOIN_CAPTCHA
 
     async def test_a_brand_new_chat_is_synced_immediately(
         self, db_session_maker: async_sessionmaker[AsyncSession]

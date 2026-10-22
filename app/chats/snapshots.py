@@ -23,7 +23,7 @@ import asyncio
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.chats.avatars import sync_photo
 from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
@@ -56,6 +56,22 @@ def _apply_title(chat: Chat, title: str | None) -> bool:
         return False
     chat.title = title
     return True
+
+
+async def _settle_guessed_mode(session: AsyncSession, chat_id: int, *, public: bool) -> None:
+    """Settle the admins the migration gave a chat for want of a link.
+
+    A private chat had the bot's link asking for no request, as a new private
+    chat is given now. Written only where nobody has set a mode since this run
+    read the row: the first run after the deploy asks every chat while
+    operators are at work.
+    """
+    await session.execute(
+        update(Chat)
+        .where(Chat.id == chat_id, Chat.join_mode_guessed.is_(True), Chat.join_mode == Chat.JOIN_ADMINS)
+        .values(join_mode=Chat.JOIN_ADMINS if public else Chat.JOIN_OPEN, join_mode_guessed=False)
+        .execution_options(synchronize_session=False)
+    )
 
 
 async def snapshot_once(
@@ -91,7 +107,7 @@ async def snapshot_once(
             # were kept, and one whose download failed, are all in that state.
             unpictured = chat.photo_file_id is not None and chat.id not in pictured
             # Likewise a chat never asked whether it takes join requests.
-            unasked = chat.join_by_request is None
+            unasked = chat.join_by_request is None or chat.join_mode_guessed
             if not unpictured and not unasked and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
                 continue
 
@@ -102,11 +118,8 @@ async def snapshot_once(
                 continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
-            if unasked and chat.join_mode == Chat.JOIN_ADMINS and metadata.username is None:
-                # The migration could not tell a chat without a link private or
-                # public and gave it to the admins. A private one had the bot's
-                # link asking for nothing, as a new private chat is given now.
-                chat.join_mode = Chat.JOIN_OPEN
+            if chat.join_mode_guessed:
+                await _settle_guessed_mode(session, chat.id, public=metadata.username is not None)
             chat.join_by_request = metadata.join_by_request
             outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
             if outcome in {"fetched", "removed"}:

@@ -38,7 +38,10 @@ def test_each_chat_keeps_what_the_bot_did_there(database) -> None:  # noqa: F811
 
     with database.connect() as conn:
         rows = dict(conn.execute(sa.text("SELECT id, join_mode FROM chats")).tuples().all())
+        guessed = set(conn.execute(sa.text("SELECT id FROM chats WHERE join_mode_guessed")).scalars())
     assert rows == {-1: "captcha", -2: "captcha", -3: "admins", -4: "open", -5: "open", -6: "open", -10: "admins"}
+    # Only the admins given for want of a link wait for the chat's first answer.
+    assert guessed == {-10}
 
 
 def test_a_mode_outside_the_list_is_refused(database) -> None:  # noqa: F811
@@ -71,5 +74,5 @@ def test_it_downgrades_with_the_captcha_where_it_was(database) -> None:  # noqa:
     with database.connect() as conn:
         columns = {column["name"] for column in sa.inspect(conn).get_columns("chats")}
         captcha = conn.execute(sa.text("SELECT is_captcha_enabled FROM chats WHERE id = -9")).scalar()
-    assert not {"join_mode", "join_by_request"} & columns
+    assert not {"join_mode", "join_by_request", "join_mode_guessed"} & columns
     assert captcha is True
