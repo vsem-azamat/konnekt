@@ -71,8 +71,9 @@ Android reports the sheet's whole swipe container, about a header taller than
 the webview it draws the app in; Telegram for iOS reports less than the webview
 while its bottom button is up. An app sized to Telegram's number alone ran past
 the bottom of the window on a Pixel, and the last rows of «Чаты» could not be
-scrolled to (October 2026). So the app box and the fixed tab bar both end at the
-smaller of Telegram's height and the window's (`--visible-height`,
+scrolled to (October 2026; the cause is read from Telegram's source and
+reproduced by imposing its height, not measured on the device). So the app box
+ends at the smaller of Telegram's height and the window's (`--visible-height`,
 `web/src/styles/tokens.css`), and `pnpm check:clearance` measures the end of a
 long list with the two disagreeing both ways.
 

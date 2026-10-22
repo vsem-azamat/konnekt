@@ -90,7 +90,8 @@ body {
  * taller than its window. Sized to that, #root ran past the bottom of the
  * window and the last rows of a long list could not be scrolled to. Nothing
  * paints outside the window, so the app is the smaller of the two:
- * `--visible-height` in styles/tokens.css, which the fixed tab bar ends at too.
+ * `--visible-height` in styles/tokens.css. The fixed tab bar keeps `bottom: 0`,
+ * which on Android is the same place.
  *
  * 100dvh is the fallback, for the moment before the client answers and for
  * every browser that is not Telegram. dvh and not vh, because in a plain mobile

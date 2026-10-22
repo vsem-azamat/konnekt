@@ -1285,10 +1285,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  /* At the foot of the visible height rather than of the window: where
-     Telegram's bottom button covers the window's last pixels, `bottom: 0`
-     put the bar under it. See --visible-height in styles/tokens.css. */
-  top: calc(var(--visible-height) - var(--h-tab));
+  bottom: 0;
   z-index: 10;
   display: flex;
   align-items: center;

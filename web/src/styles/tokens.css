@@ -78,15 +78,21 @@
   --h-tab: calc(62px + var(--tg-viewport-safe-area-inset-bottom, 0px));
 
   /* How much of the page can be seen: the smaller of Telegram's height and
-     the window's. Telegram for Android reports more than the window (the
-     whole swipe container, header included), Telegram for iOS less (its
-     bottom button covers the rest). The app box and the tab bar both end
-     here, so they end in the same place. See the note on #root in index.css. */
-  --visible-height: min(var(--app-height, 100dvh), 100dvh);
+     the window's, because Telegram for Android reports more than the window
+     (the whole swipe container, header included). See the note on #root in
+     index.css. Without dvh the min() would be invalid as a whole and #root
+     would lose its height, so those engines keep Telegram's number alone. */
+  --visible-height: var(--app-height, 100vh);
 
   /* Telegram's header overlaps the page in fullscreen, so a screen's first
      element has to clear it. The device notch is handled once on #root. */
   --top-clearance: var(--tg-viewport-content-safe-area-inset-top, 0px);
+}
+
+@supports (height: 1dvh) {
+  :root {
+    --visible-height: min(var(--app-height, 100dvh), 100dvh);
+  }
 }
 
 :root[data-theme='dark'] {

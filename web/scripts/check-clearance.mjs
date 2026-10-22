@@ -10,10 +10,14 @@
  * the last row and a half of «Чаты» could not be scrolled to: they were under
  * the bottom edge, and the row above them under the tab bar (October 2026,
  * Pixel). Telegram for iOS errs the other way and reports less than the
- * webview while its bottom button is up.
+ * webview while its bottom button is up, which no screen with tabs shows; the
+ * shorter case is here so that a fix for one direction cannot break the other.
  *
  * So each screen is measured with Telegram's height equal to the window,
  * taller than it and shorter than it, and with a gesture bar's inset. The
+ * visible area is worked out as the smaller of the two, the same rule the CSS
+ * follows, so this proves the CSS keeps to the rule and not that the rule is
+ * what a given phone does. The
  * mock in `src/mockEnv.ts` is a desktop client, where the SDK derives the
  * height from the window and the two always agree, which is why nothing else
  * here could see this. The reported height is imposed as `--app-height`, the
@@ -142,14 +146,19 @@ for (const viewport of VIEWPORTS) {
           `only ${seen.rows} rows and ${seen.travel}px of travel: not the full list`,
         );
       }
+      // Every comparison with NaN is false, so a missing bar would pass the
+      // test below without anything having been measured.
+      if (Number.isNaN(seen.tabsTop) || Number.isNaN(seen.lastBottom)) {
+        problems.push('no tab bar or no last row to measure');
+      }
       if (seen.lastBottom > seen.tabsTop + ROUNDING) {
         problems.push(
           `last row ends at ${seen.lastBottom}, under the tab bar at ${seen.tabsTop}`,
         );
       }
-      if (seen.tabsBottom > seen.visible + ROUNDING) {
+      if (seen.lastBottom > seen.visible + ROUNDING) {
         problems.push(
-          `tab bar ends at ${seen.tabsBottom}, below the visible ${seen.visible}`,
+          `last row ends at ${seen.lastBottom}, below the visible ${seen.visible}`,
         );
       }
       console.log(
