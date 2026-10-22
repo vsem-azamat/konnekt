@@ -385,6 +385,9 @@ class HelperUpsert(BaseModel):
     # request from writing tens of thousands of rows in a single transaction.
     offers: list[OfferIn] = Field(default_factory=list, max_length=60)
     publish: bool = False
+    # Whether the bot writes about new requests this profile could answer.
+    # Left alone when absent, like every field here.
+    new_request_alerts: bool = True
 
 
 class MyOfferOut(BaseModel):
@@ -438,6 +441,8 @@ class MyHelperOut(BaseModel):
     # Only while an operator keeps it hidden.
     hidden_reason: HideReason | None = None
     hidden_note: str | None = None
+    # The bot writes about new requests the profile could answer.
+    new_request_alerts: bool = True
 
 
 # ── requests ────────────────────────────────────────────────────────────

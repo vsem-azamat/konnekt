@@ -5,6 +5,8 @@ Since 20 July 2026 Telegram only allows Mini App API calls from the app's own
 origin, so the page and the API it talks to have to be the same host anyway.
 """
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 
@@ -20,8 +22,9 @@ from students_cz.core import metrics
 from students_cz.core.config import get_settings
 from students_cz.core.logs import JsonFormatter
 from students_cz.db.session import dispose_engine
-from students_cz.services import errors
+from students_cz.services import errors, request_alerts
 from students_cz.services.embedding import get_embedder
+from students_cz.services.notify import Notifier
 
 log = logging.getLogger("students_cz")
 _OURS = "_students_cz_handler"
@@ -87,7 +90,23 @@ async def lifespan(app: FastAPI):
     else:
         log.warning("BOT_TOKEN is unset — running API-only, nothing is sent")
 
+    # Telling helpers about new requests runs on a clock, not on a request:
+    # see services/request_alerts.py. Only with a bot, or every request would
+    # be recorded as announced to people nobody wrote to.
+    alerts = (
+        asyncio.create_task(
+            request_alerts.run(Notifier(app.state.bot, settings.public_base_url or None))
+        )
+        if app.state.bot is not None
+        else None
+    )
+
     yield
+
+    if alerts is not None:
+        alerts.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await alerts
 
     bot = app.state.bot
     if bot is not None:

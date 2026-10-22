@@ -22,7 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from students_cz.db.base import Base, IdMixin, TimestampMixin
+from students_cz.db.base import Base, CreatedAtMixin, IdMixin, TimestampMixin
 from students_cz.db.models.enums import (
     ContentLang,
     PriceUnit,
@@ -174,4 +174,27 @@ class Contact(IdMixin, TimestampMixin, Base):
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-__all__ = ["Contact", "HelpRequest", "RequestResponse"]
+class RequestAlert(IdMixin, CreatedAtMixin, Base):
+    """The bot told a helper about a request. `created_at` is when.
+
+    Written before the send, so a request is announced to a person once even
+    if the message is lost on the way; the app still lists it. The same rows
+    are the daily allowance: see services/request_alerts.py.
+    """
+
+    __tablename__ = "request_alerts"
+
+    request_id: Mapped[int] = mapped_column(
+        ForeignKey("help_requests.id", ondelete="CASCADE"), nullable=False
+    )
+    helper_id: Mapped[int] = mapped_column(
+        ForeignKey("helper_profiles.user_id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("request_id", "helper_id", name="uq_request_alerts_pair"),
+        Index("ix_request_alerts_helper_created", "helper_id", "created_at"),
+    )
+
+
+__all__ = ["Contact", "HelpRequest", "RequestAlert", "RequestResponse"]

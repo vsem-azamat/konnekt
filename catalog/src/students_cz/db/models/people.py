@@ -163,6 +163,11 @@ class HelperProfile(TimestampMixin, Base):
         pg_enum(HideReason, "hide_reason")
     )
     hidden_note: Mapped[str | None] = mapped_column(String(HIDE_NOTE_MAX))
+    # Whether the bot writes when somebody posts a request this person could
+    # answer. Theirs to turn off in «Мои услуги»; see services/request_alerts.py.
+    new_request_alerts: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
     work_format: Mapped[WorkFormat] = mapped_column(
         pg_enum(WorkFormat, "work_format"),

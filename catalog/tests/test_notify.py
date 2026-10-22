@@ -11,9 +11,12 @@ import pytest
 from aiogram import Bot
 
 from students_cz.bot.texts import (
+    BUDGET_UP_TO,
+    NEW_REQUEST_FOR_HELPER,
     NEW_RESPONSE,
     OPEN_APP,
     RESPONSE_ACCEPTED,
+    VIEW_REQUEST,
     WAIT_FOR_MESSAGE,
     WRITE_TO,
     pick,
@@ -57,6 +60,9 @@ def test_every_language_has_every_string(lang: UiLang) -> None:
         RESPONSE_ACCEPTED,
         WRITE_TO,
         WAIT_FOR_MESSAGE,
+        NEW_REQUEST_FOR_HELPER,
+        BUDGET_UP_TO,
+        VIEW_REQUEST,
     ):
         assert pick(table, lang)
 
@@ -230,3 +236,14 @@ async def test_without_https_the_owner_ping_has_no_button() -> None:
     await notifier.tell_owner("новая заявка")
 
     assert bot.sent[0]["reply_markup"] is None
+
+
+def test_a_request_alert_opens_the_request_among_the_incoming() -> None:
+    from students_cz.services.notify import _incoming_keyboard
+
+    keyboard = _incoming_keyboard(UiLang.CS, "https://app.example/", 42)
+    assert keyboard is not None
+    [[button]] = keyboard.inline_keyboard
+    assert button.text == "Zobrazit poptávku"
+    assert button.web_app is not None
+    assert button.web_app.url == "https://app.example/mine?tab=incoming&request=42"

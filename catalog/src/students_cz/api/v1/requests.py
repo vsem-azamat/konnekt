@@ -83,8 +83,8 @@ async def create_request(
         given=frozenset(payload.model_fields_set),
     )
     rendered = await _request_out(session, request, lang)
-    # Nobody else is told yet — see "Where the code does not follow this yet"
-    # in docs/architecture.md. This is what makes the first ones noticed.
+    # The helpers who could answer hear about it later, from
+    # services/request_alerts.py; the owner hears about every request now.
     background.add_task(
         notifier.tell_owner,
         OWNER_NEW_REQUEST.format(

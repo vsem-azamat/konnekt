@@ -64,6 +64,7 @@ export default function MyHelperPage() {
   const [placeNote, setPlaceNote] = useState('');
   const [workFormat, setWorkFormat] = useState<WorkFormat>('both');
   const [listed, setListed] = useState(true);
+  const [alerts, setAlerts] = useState(true);
   const [rows, setRows] = useState<Draft[]>([]);
   // The profile as the server last said it was, kept across the refetch after
   // a save (afterHelperSaved drops the cached copy), so the status above the
@@ -106,6 +107,7 @@ export default function MyHelperPage() {
     setPlaceNote(data.place_note ?? '');
     setWorkFormat(data.work_format);
     setListed(startsListed(data));
+    setAlerts(data.new_request_alerts ?? true);
     setRows(data.offers.map(toDraft));
     setLoaded(true);
   }, [data, loaded]);
@@ -124,6 +126,7 @@ export default function MyHelperPage() {
         place_note: placeNote.trim() || null,
         offers: rows.map(toOffer),
         publish: listed,
+        new_request_alerts: alerts,
       }),
     onMutate: () => setSavedHidden(false),
     onSuccess: (me) => {
@@ -329,6 +332,30 @@ export default function MyHelperPage() {
               </div>
             </>
           )}
+
+          <Label>
+            <Trans>Новые заявки в Telegram</Trans>
+          </Label>
+          <Segmented
+            value={alerts ? 'on' : 'off'}
+            onChange={(value) => setAlerts(value === 'on')}
+            options={[
+              { value: 'on', label: <Trans>Присылать</Trans> },
+              { value: 'off', label: <Trans>Не присылать</Trans> },
+            ]}
+          />
+          <div style={{ marginTop: 9 }}>
+            <Hint>
+              {alerts ? (
+                <Trans>
+                  Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и
+                  не ночью.
+                </Trans>
+              ) : (
+                <Trans>Новые заявки будут только во «Входящих».</Trans>
+              )}
+            </Hint>
+          </div>
 
           {savedHidden ? (
             <div className={ui.ownerSaved} role="status">

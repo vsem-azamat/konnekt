@@ -67,11 +67,12 @@ code disagree, cutting the promise is a fix, not a retreat.
 The rule is younger than the copy, and the copy has not all been brought to it
 yet — what is still owed is listed at the bottom of this document.
 
-**Opting out has no door here.** `users.unsubscribed_at` stays, and
-`notify` still does not read it: an answer to your own request is not us
-writing to you unprompted. The `/stop` that wrote it went with the bot's
-handlers, and nothing sends broadcasts yet. Whichever process sends the first
-one owns the way out of it.
+**Opting out.** `users.unsubscribed_at` stays, and `notify` does not read it
+for an answer to your own request, which is not us writing to you unprompted.
+The one unprompted message is about somebody else's request
+(`services/request_alerts.py`): it skips anyone with `unsubscribed_at`, and its
+own way out is the switch in «Мои услуги» (`helper_profiles.new_request_alerts`),
+which the message names.
 
 Nothing here is DDD. There are no aggregates, no repository per model, no
 command bus. This is a catalog with two dozen endpoints, a borrowed bot token and one
@@ -588,18 +589,14 @@ is visible if the licence ever matters.
 Written down because an agent greps this tree and builds against what it
 finds, and a rule with silent exceptions is worse than no rule.
 
-- **Nothing tells a helper that a request exists.** `requests.feed_for` filters
-  on status, authorship, expiry and whether you already answered, and uses the
-  subject only for *ranking*, so every helper profile sees every open request —
-  which the screens now say, rather than promising the subject narrows it. What
-  is still missing is the push: the notifications that exist are about a
-  response and an acceptance, so a request waits to be found rather than
-  arriving. The product decision it waits on is whether to narrow the feed
-  first, since notifying every helper about every request is how a feed becomes
-  something people mute — and that decision cannot be made from data yet: the
-  catalog holds no profiles and no requests. `Notifier.tell_owner`, described
-  under "What belongs where", exists so that the first ones are noticed without
-  anybody reading the database.
+- **Every helper sees every open request.** `requests.feed_for` filters on
+  status, authorship, expiry and whether you already answered, and uses the
+  subject only for *ranking* — which the screens now say, rather than promising
+  the subject narrows it. The push is narrower: `services/request_alerts.py`
+  writes only to the helpers a request's «Заявку видят N» counts, at most five
+  a day each and not at night, so the feed and the messages disagree on
+  purpose. `Notifier.tell_owner`, described under "What belongs where", still
+  reports every request to the owner.
 
 Each of these is a separate change with its own tests. None of them is a
 reason to write new code the old way.
