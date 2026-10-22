@@ -135,6 +135,14 @@ export const CloseIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** Requests that came in: a tray. */
+export const InboxIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 13l2-7h12l2 7v5H4z" />
+    <path d="M4 13h5l1 2h4l1-2h5" />
+  </Svg>
+);
+
 /** The language button. A globe, not a flag: languages are not countries. */
 export const GlobeIcon = (p: IconProps) => (
   <Svg {...p}>

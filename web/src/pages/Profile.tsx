@@ -1,19 +1,25 @@
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import {
+  BookmarkIcon,
   ChatIcon,
   DocumentIcon,
+  InboxIcon,
   LanguageIcon,
   PersonIcon,
   SealIcon,
 } from '@/components/icons';
 import {
+  Action,
+  Actions,
   AvatarView,
+  Card,
   Chips,
   ChipView,
+  Count,
   Hint,
   Label,
   Row,
@@ -26,9 +32,15 @@ import {
 } from '@/components/Ui';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { openRequests } from '@/lib/openRequests';
 
 /**
- * Settings, and the way in to offering help.
+ * A person's own things first, then the one setting, then the rest.
+ *
+ * «Моё» is what a student and a helper come back for: their requests, and for
+ * a helper their services and the requests to answer. Someone who is
+ * not a helper yet gets one card that says what offering help means, rather
+ * than a row that only names it.
  *
  * The languages someone speaks are not decoration here — they filter the
  * catalog. A Ukrainian first-year cannot work with a Czech-only tutor, so the
@@ -60,6 +72,19 @@ export default function ProfilePage() {
     queryKey: ['languages'],
     queryFn: ({ signal }) => api.getLanguages(signal),
     staleTime: 60 * 60 * 1000,
+  });
+
+  const { data: requests } = useQuery({
+    queryKey: ['requests'],
+    queryFn: ({ signal }) => api.getRequests(signal),
+  });
+  const waiting = openRequests(requests ?? []);
+
+  const isHelper = me?.is_helper ?? false;
+  const { data: helper } = useQuery({
+    queryKey: ['my-helper'],
+    queryFn: ({ signal }) => api.getMyHelper(signal),
+    enabled: isHelper,
   });
 
   const update = useMutation({
@@ -118,11 +143,142 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          <Label>
+            <Trans>Моё</Trans>
+          </Label>
+          <Rows>
+            <Row
+              onClick={() => navigate('/mine')}
+              leading={
+                <Tile tone={2}>
+                  <BookmarkIcon size={19} />
+                </Tile>
+              }
+              title={<Trans>Мои заявки</Trans>}
+              hint={
+                !requests ? null : requests.length === 0 ? (
+                  <Trans>своих заявок нет</Trans>
+                ) : waiting.requests === 0 ? (
+                  <Trans>открытых нет</Trans>
+                ) : (
+                  <>
+                    <Plural
+                      value={waiting.requests}
+                      one="# заявка"
+                      few="# заявки"
+                      many="# заявок"
+                      other="# заявки"
+                    />
+                    {' · '}
+                    <Plural
+                      value={waiting.responses}
+                      one="# отклик"
+                      few="# отклика"
+                      many="# откликов"
+                      other="# отклика"
+                    />
+                  </>
+                )
+              }
+              trailing={waiting.requests ? <Count>{waiting.requests}</Count> : null}
+            />
+            {isHelper ? (
+              <>
+                <Row
+                  onClick={() => navigate('/my-helper')}
+                  leading={
+                    <Tile tone={0}>
+                      <PersonIcon size={19} />
+                    </Tile>
+                  }
+                  title={<Trans>Мои услуги</Trans>}
+                  hint={
+                    <>
+                      {me.helper_status === 'published' ? (
+                        <Trans>в каталоге</Trans>
+                      ) : me.helper_status === 'hidden' ? (
+                        <Trans>скрыта — в каталоге её не видно</Trans>
+                      ) : me.helper_status === 'banned' ? (
+                        <Trans>скрыта администратором</Trans>
+                      ) : (
+                        <Trans>черновик — не видна в каталоге</Trans>
+                      )}
+                      {helper?.offers.length ? (
+                        <>
+                          {' · '}
+                          <Plural
+                            value={helper.offers.length}
+                            one="# услуга"
+                            few="# услуги"
+                            many="# услуг"
+                            other="# услуги"
+                          />
+                        </>
+                      ) : null}
+                    </>
+                  }
+                />
+                {/* Without a number until the feed can say which requests
+                    match the helper's services: today it returns every live
+                    request in the catalog. A banned helper's feed is closed. */}
+                {me.helper_status === 'banned' ? null : (
+                  <Row
+                    onClick={() => navigate('/mine?tab=incoming')}
+                    leading={
+                      <Tile tone={3}>
+                        <InboxIcon size={19} />
+                      </Tile>
+                    }
+                    title={<Trans>Входящие</Trans>}
+                  />
+                )}
+              </>
+            ) : null}
+          </Rows>
+
+          {isHelper ? null : (
+            <>
+              <Label>
+                <Trans>Помогать другим</Trans>
+              </Label>
+              <div style={{ marginTop: 4 }}>
+                <Card>
+                  <div
+                    style={{ fontSize: 14.5, fontWeight: 680, letterSpacing: '-0.015em' }}
+                  >
+                    <Trans>Умеешь то, что нужно другим?</Trans>
+                  </div>
+                  <p
+                    style={{
+                      margin: '4px 0 0',
+                      fontSize: 13,
+                      lineHeight: 1.45,
+                      color: 'var(--ink-soft)',
+                    }}
+                  >
+                    <Trans>
+                      Занятия, работы, документы. Анкета в каталоге — две минуты, ничего
+                      обязательного.
+                    </Trans>
+                  </p>
+                  <Actions>
+                    {/* `/offer`, not the route that used to be here: `/become-helper`
+                        was deleted with the screen behind it, and a bare string is
+                        not something the compiler can catch. */}
+                    <Action onClick={() => navigate('/offer')}>
+                      <Trans>Предложить услугу</Trans>
+                    </Action>
+                  </Actions>
+                </Card>
+              </div>
+            </>
+          )}
+
           {/* The interface language and the palette live in the header, on
                 every screen. What stays here is the one language question that
                 is not a setting: which languages you can be taught in. */}
           <Label>
-            <Trans>На каких языках тебе удобно</Trans>
+            <Trans>Языки</Trans>
           </Label>
           <Chips>
             {(languages ?? []).map((language) => (
@@ -142,40 +298,9 @@ export default function ProfilePage() {
           </div>
 
           <Label>
-            <Trans>Помогать другим</Trans>
+            <Trans>Ещё</Trans>
           </Label>
           <Rows>
-            <Row
-              // `/offer`, not the route that used to be here: `/become-helper`
-              // was deleted with the screen behind it, and a bare string is
-              // not something the compiler can catch.
-              onClick={() => navigate(me.is_helper ? '/my-helper' : '/offer')}
-              leading={
-                <Tile tone={0}>
-                  <PersonIcon size={19} />
-                </Tile>
-              }
-              title={
-                me.is_helper ? (
-                  <Trans>Мои услуги</Trans>
-                ) : (
-                  <Trans>Предлагать услуги</Trans>
-                )
-              }
-              hint={
-                me.helper_status === 'published' ? (
-                  <Trans>в каталоге</Trans>
-                ) : me.helper_status === 'hidden' ? (
-                  <Trans>скрыта — в каталоге её не видно</Trans>
-                ) : me.helper_status === 'banned' ? (
-                  <Trans>скрыта администратором</Trans>
-                ) : me.is_helper ? (
-                  <Trans>черновик — не видна в каталоге</Trans>
-                ) : (
-                  <Trans>расскажи своими словами, анкету соберём сами</Trans>
-                )
-              }
-            />
             <Row
               onClick={() => navigate('/life')}
               leading={

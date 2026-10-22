@@ -25,6 +25,10 @@ msgstr "Zmizí z katalogu i z vyhledávání a autor ho nebude moct znovu zveře
 msgid "+ Внешний чат"
 msgstr "+ Externí chat"
 
+#: src/pages/Profile.tsx
+msgid "Языки"
+msgstr "Jazyky"
+
 #. placeholder {0}: blocked.data.length
 #. placeholder {0}: data.new_this_week
 #: src/console/pages/Audience.tsx
@@ -312,6 +316,10 @@ msgstr "Tento kanál nespravuje Konnekt, pravidla má vlastní."
 msgid "вуз"
 msgstr "vysoká škola"
 
+#: src/pages/Profile.tsx
+msgid "Моё"
+msgstr "Moje"
+
 #: src/console/pages/Chat.tsx
 msgid "как у родителя: <0/>"
 msgstr "jako u nadřazeného: <0/>"
@@ -495,6 +503,10 @@ msgstr "Reklama nebo spam"
 msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
 msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět i tam."
 
+#: src/pages/Profile.tsx
+msgid "Умеешь то, что нужно другим?"
+msgstr "Umíš něco, co ostatní potřebují?"
+
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -521,8 +533,8 @@ msgid "Что происходит в чатах и в каталоге."
 msgstr "Co se děje v chatech a v katalogu."
 
 #: src/pages/Profile.tsx
-msgid "На каких языках тебе удобно"
-msgstr "Ve kterých jazycích se ti mluví dobře"
+#~ msgid "На каких языках тебе удобно"
+#~ msgstr "Ve kterých jazycích se ti mluví dobře"
 
 #: src/console/pages/Catalog.tsx
 msgid "Искали и не нашли"
@@ -857,8 +869,8 @@ msgid "репетиторство, работы, документы"
 msgstr "doučování, práce, dokumenty"
 
 #: src/pages/Profile.tsx
-msgid "расскажи своими словами, анкету соберём сами"
-msgstr "napiš to vlastními slovy, anketu sestavíme sami"
+#~ msgid "расскажи своими словами, анкету соберём сами"
+#~ msgstr "napiš to vlastními slovy, anketu sestavíme sami"
 
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
@@ -913,6 +925,7 @@ msgid "Показать {total}"
 msgstr "Zobrazit {total}"
 
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "Мои заявки"
 msgstr "Moje poptávky"
 
@@ -1016,6 +1029,7 @@ msgid "Оставить"
 msgstr "Zadat"
 
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "Входящие"
 msgstr "Příchozí"
 
@@ -1167,6 +1181,11 @@ msgstr "od {since}: {0} → {1}"
 msgid "Другое"
 msgstr "Jiné"
 
+#. placeholder {0}: waiting.requests
+#: src/pages/Profile.tsx
+msgid "{0, plural, one {# заявка} few {# заявки} many {# заявок} other {# заявки}}"
+msgstr "{0, plural, one {# poptávka} few {# poptávky} many {# poptávky} other {# poptávek}}"
+
 #: src/pages/Mine.tsx
 msgid "Пока без откликов"
 msgstr "Zatím bez odpovědí"
@@ -1297,8 +1316,8 @@ msgid "рядом с языками"
 msgstr "u jazyků"
 
 #: src/pages/Profile.tsx
-msgid "Предлагать услуги"
-msgstr "Nabízet služby"
+#~ msgid "Предлагать услуги"
+#~ msgstr "Nabízet služby"
 
 #: src/components/TabBar.tsx
 #: src/pages/Mine.tsx
@@ -1975,6 +1994,10 @@ msgstr "Přidat předmět — matematika, čeština, fyzika"
 msgid "Во всех чатах, за всё время. Отменить нельзя."
 msgstr "Ve všech chatech, za celou dobu. Nelze vrátit."
 
+#: src/pages/Profile.tsx
+msgid "своих заявок нет"
+msgstr "žádné vlastní poptávky"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Stáhnout"
@@ -2227,6 +2250,10 @@ msgstr "{count, plural, one {ještě # chat: {names}} few {ještě # chaty: {nam
 msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 msgstr "Víc než {perMinute} žádostí za minutu. Captcha je pozastavená: bot novým lidem nepíše, do chatu nikdo nevstoupil."
 
+#: src/pages/Profile.tsx
+msgid "Предложить услугу"
+msgstr "Nabídnout službu"
+
 #: src/components/Place.tsx
 msgid "Брно"
 msgstr "Brno"
@@ -2264,6 +2291,10 @@ msgstr "Zavřít"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "So"
+
+#: src/pages/Profile.tsx
+msgid "открытых нет"
+msgstr "žádné otevřené"
 
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"
@@ -2431,6 +2462,10 @@ msgstr "Kolik si bereš?"
 #: src/console/pages/Audience.tsx
 msgid "Язык Telegram"
 msgstr "Jazyk Telegramu"
+
+#: src/pages/Profile.tsx
+msgid "Ещё"
+msgstr "Další"
 
 #: src/console/pages/Signals.tsx
 msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
@@ -2651,7 +2686,9 @@ msgid "по любому вопросу"
 msgstr "s jakoukoli otázkou"
 
 #. placeholder {0}: request.responses_count
+#. placeholder {0}: waiting.responses
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other {# odpovědí}}"
 
@@ -2978,6 +3015,11 @@ msgstr "Odkud přicházejí"
 #: src/pages/Request.tsx
 msgid "Ты отказался"
 msgstr "Odmítl jsi"
+
+#. placeholder {0}: helper.offers.length
+#: src/pages/Profile.tsx
+msgid "{0, plural, one {# услуга} few {# услуги} many {# услуг} other {# услуги}}"
+msgstr "{0, plural, one {# služba} few {# služby} many {# služby} other {# služeb}}"
 
 #: src/pages/Chats.tsx
 msgid "Очистить поиск"
@@ -3391,6 +3433,10 @@ msgstr "Za celou dobu"
 #: src/pages/Join.tsx
 msgid "Студенческие чаты"
 msgstr "Studentské chaty"
+
+#: src/pages/Profile.tsx
+msgid "Занятия, работы, документы. Анкета в каталоге — две минуты, ничего обязательного."
+msgstr "Doučování, práce, dokumenty. Profil v katalogu zabere dvě minuty a k ničemu nezavazuje."
 
 #: src/components/Phrase.tsx
 msgid "Учёба"
