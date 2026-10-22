@@ -30,6 +30,10 @@ msgstr "+ External chat"
 msgid "Языки"
 msgstr "Languages"
 
+#: src/pages/MyHelper.tsx
+msgid "Не получилось обновить список."
+msgstr "Couldn't refresh the list."
+
 #. placeholder {0}: blocked.data.length
 #. placeholder {0}: data.new_this_week
 #: src/console/pages/Audience.tsx
@@ -2234,8 +2238,8 @@ msgid "Что нужно"
 msgstr "What you need"
 
 #: src/pages/MyHelper.tsx
-msgid "{name}: в каталоге"
-msgstr "{name}: in the catalog"
+#~ msgid "{name}: в каталоге"
+#~ msgstr "{name}: in the catalog"
 
 #: src/console/pages/Spam.tsx
 msgid "За 7 дней"
@@ -2552,6 +2556,10 @@ msgstr "Ban"
 msgid "Автор может её править, но не опубликовать сам."
 msgstr "The author can edit it but cannot publish it."
 
+#: src/pages/MyHelper.tsx
+msgid "{fullName}: в каталоге"
+msgstr "{fullName}: in the catalog"
+
 #~ msgid "Этот чат ведёт не Konnekt, и правила там свои."
 #~ msgstr "Konnekt doesn't run this chat, and its rules are its own."
 
@@ -2592,6 +2600,7 @@ msgid "Не задан: только общее приветствие"
 msgstr "Not set: only the standard greeting"
 
 #: src/pages/Chats.tsx
+#: src/pages/MyHelper.tsx
 msgid "Попробовать ещё раз"
 msgstr "Try again"
 
@@ -3501,6 +3510,10 @@ msgstr "Needs attention"
 msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
 msgstr "Not done: the bot no longer moderates this chat. The request is closed."
 
+#: src/components/OwnerStatusCard.tsx
+msgid "Все услуги выключены, поэтому тебя сейчас не найдут. Включи хотя бы одну."
+msgstr "All your services are off, so nobody can find you right now. Turn at least one on."
+
 #: src/components/RequestSheet.tsx
 msgid "Опубликовать заявку"
 msgstr "Post the request"
@@ -3730,6 +3743,10 @@ msgstr "Open it from the request"
 #: src/console/pages/Summary.tsx
 msgid "Обновлено только что"
 msgstr "Updated just now"
+
+#: src/pages/MyHelper.tsx
+msgid "Изменить: {fullName}"
+msgstr "Edit: {fullName}"
 
 #: src/components/Incoming.tsx
 #: src/console/pages/AudiencePeople.tsx

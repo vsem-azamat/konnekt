@@ -141,7 +141,7 @@ export default function OfferPricesPage() {
   const save = useMutation({
     mutationFn: () =>
       api.saveHelper({
-        // See MyHelper: a question the form did not ask is one the payload does
+        // See MyHelperAbout: a question the form did not ask is one the payload does
         // not answer.
         ...(asked === null ? {} : { work_format: workFormat }),
         offers: [...rows.map(toOffer), ...unlisted.map(asInput)],

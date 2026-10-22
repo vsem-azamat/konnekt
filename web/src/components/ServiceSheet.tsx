@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
 import { Action, Actions, Label, Reason, ui } from '@/components/Ui';
@@ -34,6 +34,9 @@ export function ServiceSheet({
   // Removal takes a second tap: the first one is easy to make by mistake at
   // the bottom of a sheet, and nothing brings a removed service back.
   const [removing, setRemoving] = useState(false);
+  // «Да, убрать» takes the place of the first button, so a double tap would
+  // press both. Taps on it in the first moment after it appears are ignored.
+  const armedAt = useRef(0);
 
   const save = useMutation({
     mutationFn: (change: { price_amount: number | null; price_unit: PriceUnit } | null) =>
@@ -145,12 +148,20 @@ export function ServiceSheet({
             quiet
             danger
             disabled={save.isPending}
-            onClick={() => save.mutate(null)}
+            onClick={() => {
+              if (Date.now() - armedAt.current > 400) save.mutate(null);
+            }}
           >
             <Trans>Да, убрать</Trans>
           </Action>
         ) : (
-          <Action quiet onClick={() => setRemoving(true)}>
+          <Action
+            quiet
+            onClick={() => {
+              armedAt.current = Date.now();
+              setRemoving(true);
+            }}
+          >
             <Trans>Убрать услугу</Trans>
           </Action>
         )}

@@ -47,7 +47,7 @@ export default function MyHelperPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['my-helper'],
     queryFn: ({ signal }) => api.getMyHelper(signal),
   });
@@ -63,13 +63,18 @@ export default function MyHelperPage() {
   // The profile as the server last said it was, kept across the refetch after
   // «Изменить» saves (afterHelperSaved drops the cached copy), so the list does
   // not turn into a skeleton under the closing sheet.
+  //
+  // For showing only. A save sends the whole list, and until the refetch lands
+  // this copy still has the service just removed or the price just changed: a
+  // second save built from it would put them back. So the switches and
+  // «Изменить» wait for `data`.
   const [seen, setSeen] = useState<MyHelper>();
   useEffect(() => {
     if (data) setSeen(data);
   }, [data]);
   const status = seen ? ownerStatus(seen) : null;
   const [editing, setEditing] = useState<number | null>(null);
-  const edited = seen?.offers.find((offer) => offer.id === editing);
+  const edited = data?.offers.find((offer) => offer.id === editing);
 
   // Shown at once and put back if the server says no: a switch that waits for
   // a round trip before it moves reads as one that did not take the tap.
@@ -79,12 +84,18 @@ export default function MyHelperPage() {
     onMutate: async ({ id, paused }) => {
       hapticSelection();
       await queryClient.cancelQueries({ queryKey: ['my-helper'] });
-      const before = queryClient.getQueryData<MyHelper>(['my-helper']);
-      if (before) queryClient.setQueryData(['my-helper'], withPaused(before, id, paused));
-      return { before };
+      queryClient.setQueryData<MyHelper>(
+        ['my-helper'],
+        (current) => current && withPaused(current, id, paused),
+      );
     },
-    onError: (_error, _vars, context) => {
-      if (context?.before) queryClient.setQueryData(['my-helper'], context.before);
+    // That one switch back, not a snapshot of the whole profile: a price saved
+    // while the request was out would be undone with it.
+    onError: (_error, { id, paused }) => {
+      queryClient.setQueryData<MyHelper>(
+        ['my-helper'],
+        (current) => current && withPaused(current, id, !paused),
+      );
     },
     onSettled: () => {
       // «По твоим услугам», the count on Profile and the catalog's numbers
@@ -139,18 +150,31 @@ export default function MyHelperPage() {
                     key={offer.id}
                     offer={offer}
                     type={serviceTypes?.find((type) => type.id === offer.service_type_id)}
-                    busy={pause.isPending}
+                    busy={!data || (pause.isPending && pause.variables?.id === offer.id)}
                     onSwitch={(on) => pause.mutate({ id: offer.id, paused: !on })}
+                    ready={Boolean(data)}
                     onEdit={() => setEditing(offer.id)}
                   />
                 ))}
               </Cards>
             )}
             {pause.isError ? (
-              <div style={{ marginTop: 10 }}>
+              <div style={{ marginTop: 10 }} role="status">
                 <Hint>
                   <Trans>Не сохранилось — попробуй ещё раз.</Trans>
                 </Hint>
+              </div>
+            ) : null}
+            {isError && !data ? (
+              <div style={{ marginTop: 10 }} role="status">
+                <Hint>
+                  <Trans>Не получилось обновить список.</Trans>
+                </Hint>
+                <Actions>
+                  <Action quiet onClick={() => void refetch()}>
+                    <Trans>Попробовать ещё раз</Trans>
+                  </Action>
+                </Actions>
               </div>
             ) : null}
           </div>
@@ -182,8 +206,8 @@ export default function MyHelperPage() {
         </>
       )}
 
-      {seen && edited ? (
-        <ServiceSheet offer={edited} helper={seen} onClose={() => setEditing(null)} />
+      {data && edited ? (
+        <ServiceSheet offer={edited} helper={data} onClose={() => setEditing(null)} />
       ) : null}
     </Screen>
   );
@@ -199,12 +223,15 @@ function ServiceCard({
   offer,
   type,
   busy,
+  ready,
   onSwitch,
   onEdit,
 }: {
   offer: MyOffer;
   type: ServiceType | undefined;
   busy: boolean;
+  /** The list is the server's own, not the copy kept across a refetch. */
+  ready: boolean;
   onSwitch: (on: boolean) => void;
   onEdit: () => void;
 }) {
@@ -213,6 +240,8 @@ function ServiceCard({
   // A service with no subject — writing a thesis, nostrification — is named
   // by what it is, not by the blank where a subject would go.
   const name = offer.subject_name ?? offer.service_type_name;
+  // The same subject can be offered at two schools.
+  const fullName = offer.institution_name ? `${name}, ${offer.institution_name}` : name;
   return (
     <div className={ui.card}>
       <div className={ui.svcLine}>
@@ -236,12 +265,18 @@ function ServiceCard({
         <Switch
           checked={!offer.paused}
           busy={busy}
-          label={t`${name}: в каталоге`}
+          label={t`${fullName}: в каталоге`}
           onChange={onSwitch}
         />
       </div>
       <Actions>
-        <Action quiet tall onClick={onEdit}>
+        <Action
+          quiet
+          tall
+          disabled={!ready}
+          label={t`Изменить: ${fullName}`}
+          onClick={onEdit}
+        >
           <Trans>Изменить</Trans>
         </Action>
       </Actions>

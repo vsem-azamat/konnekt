@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { asInput, keepsListed, offersWith, withPaused } from '../src/lib/myServices.ts';
+import {
+  allPaused,
+  asInput,
+  keepsListed,
+  offersWith,
+  withPaused,
+} from '../src/lib/myServices.ts';
 import type { MyHelper, MyOffer } from '../src/lib/types.ts';
 
 function offer(id: number, extra: Partial<MyOffer> = {}): MyOffer {
@@ -96,4 +102,19 @@ test('a switch flipped shows at once on that service alone', () => {
     [false, true],
   );
   assert.equal(before.offers[1]?.paused, false);
+});
+
+test('every service switched off means nobody finds the profile', () => {
+  assert.equal(
+    allPaused(helper('published', [offer(1, { paused: true }), offer(2)])),
+    false,
+  );
+  assert.equal(
+    allPaused(
+      helper('published', [offer(1, { paused: true }), offer(2, { paused: true })]),
+    ),
+    true,
+  );
+  // No services is its own hint, not this one.
+  assert.equal(allPaused(helper('published')), false);
 });

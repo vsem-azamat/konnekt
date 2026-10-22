@@ -59,3 +59,11 @@ export function withPaused(helper: MyHelper, id: number, paused: boolean): MyHel
     ),
   };
 }
+
+/**
+ * Every service switched off: the profile is listed, and in no list or search,
+ * which filter on the service rather than the profile.
+ */
+export function allPaused(helper: MyHelper): boolean {
+  return helper.offers.length > 0 && helper.offers.every((offer) => offer.paused);
+}

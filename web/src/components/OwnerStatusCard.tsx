@@ -2,6 +2,7 @@ import { Trans } from '@lingui/react/macro';
 
 import { HideReasonText } from '@/components/HideReasonText';
 import { ui } from '@/components/Ui';
+import { allPaused } from '@/lib/myServices';
 import type { OwnerStatus } from '@/lib/ownerStatus';
 import type { MyHelper } from '@/lib/types';
 
@@ -26,7 +27,7 @@ export function OwnerStatusCard({
   listed: boolean;
   place: 'services' | 'about';
 }) {
-  const shown = status === 'review' ? 'listed' : status;
+  const shown: Shown = status === 'review' ? 'listed' : status;
   return (
     <div className={ui.ownerStatus} data-status={shown}>
       <span className={ui.ownerStatusTitle}>
@@ -62,15 +63,23 @@ export function OwnerStatusCard({
   );
 }
 
-function ServicesHint({ status, helper }: { status: OwnerStatus; helper: MyHelper }) {
+type Shown = Exclude<OwnerStatus, 'review'>;
+
+function ServicesHint({ status, helper }: { status: Shown; helper: MyHelper }) {
   switch (status) {
     case 'draft':
       return (
         <Trans>Пока её видишь только ты. Опубликовать — в «О себе и как работаю».</Trans>
       );
     case 'listed':
-    case 'review':
-      return <Trans>Тебя видят студенты. Выключатель скрывает одну услугу.</Trans>;
+      // Listed, and in no list: they filter on the service.
+      return allPaused(helper) ? (
+        <Trans>
+          Все услуги выключены, поэтому тебя сейчас не найдут. Включи хотя бы одну.
+        </Trans>
+      ) : (
+        <Trans>Тебя видят студенты. Выключатель скрывает одну услугу.</Trans>
+      );
     case 'hidden':
       return <Trans>В каталоге её нет. Вернуть — в «О себе и как работаю».</Trans>;
     case 'banned':
@@ -83,7 +92,7 @@ function AboutHint({
   helper,
   listed,
 }: {
-  status: OwnerStatus;
+  status: Shown;
   helper: MyHelper;
   listed: boolean;
 }) {
@@ -100,7 +109,6 @@ function AboutHint({
         <Trans>Пока её видишь только ты. Выбери «В каталоге», когда всё готово.</Trans>
       );
     case 'listed':
-    case 'review':
       return <Trans>Тебя видят в поиске и могут написать.</Trans>;
     case 'hidden':
       return <Trans>Анкета сохранена, но в каталоге её нет. Вернуть можно ниже.</Trans>;
