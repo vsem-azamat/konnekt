@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  chatGuards,
   consoleSections,
   isListed,
   joinsDirectly,
@@ -160,4 +161,23 @@ test('only a public chat that does not approve new members lets people straight 
   assert.equal(direct('https://t.me/joinchat/AbCdEf123', false), false);
   assert.equal(direct('https://t.me/+AbCdEf123/', false), false);
   assert.equal(direct(null, false), false);
+});
+
+test('only an approved chat has guards, and a captcha nobody meets is not one', () => {
+  assert.equal(chatGuards(chat(1, 'A', { resource_status: 'discovered' })), null);
+  assert.deepEqual(chatGuards(chat(1, 'A')), []);
+  assert.deepEqual(
+    chatGuards(chat(1, 'A', { join_mode: 'captcha', is_welcome_enabled: true })),
+    ['captcha', 'welcome'],
+  );
+  assert.deepEqual(
+    chatGuards(
+      chat(1, 'A', {
+        join_mode: 'captcha',
+        public_link: 'https://t.me/karlov_chat',
+        join_by_request: false,
+      }),
+    ),
+    [],
+  );
 });

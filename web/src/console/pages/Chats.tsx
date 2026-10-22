@@ -1,7 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { SearchIcon } from '@/components/icons';
 import { Sheet } from '@/components/Sheet';
@@ -22,17 +22,21 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
+import { signed } from '@/console/activity';
+import { useBrowserConsole } from '@/console/browserContext';
+import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
+  type ConsoleSection,
+  chatGuards,
   consoleSections,
   isListed,
-  joinsDirectly,
   type StatusFilter,
   statusCounts,
 } from '@/console/chats';
 import { FailureText } from '@/console/FailureText';
-import { consoleChanges, consoleChatsQuery } from '@/console/queries';
-import { type ConsoleChat, ConsoleError } from '@/console/session';
+import { consoleChanges, consoleChatsQuery, consoleStatsQuery } from '@/console/queries';
+import { type ConsoleChat, ConsoleError, type MemberDelta } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { initials } from '@/lib/chats';
 
@@ -56,10 +60,14 @@ function isFilter(value: string | null): value is StatusFilter {
 export default function ConsoleChatsPage() {
   return (
     <ConsoleGate>
-      <Title>
-        <Trans>Чаты</Trans>
-      </Title>
-      <ChatList />
+      {/* Wide in a browser while it loads or finds nothing too, so the
+          screen does not jump between widths. */}
+      <div data-wide>
+        <Title>
+          <Trans>Чаты</Trans>
+        </Title>
+        <ChatList />
+      </div>
     </ConsoleGate>
   );
 }
@@ -67,6 +75,7 @@ export default function ConsoleChatsPage() {
 function ChatList() {
   const { t } = useLingui();
   const navigate = useNavigate();
+  const inBrowser = useBrowserConsole();
   const [params, setParams] = useSearchParams();
   const status = params.get('status');
   const filter: StatusFilter = isFilter(status) ? status : 'all';
@@ -125,23 +134,27 @@ function ChatList() {
           ))}
         </Chips>
       </div>
-      <div className={ui.field} style={{ marginTop: 12 }}>
-        <SearchIcon size={18} className={ui.fieldIcon} />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t`Название или id`}
-          maxLength={80}
-          style={{ all: 'unset', flex: 1, minWidth: 0 }}
-        />
-      </div>
+      {/* In a browser the search and the button share a row; stretched to
+          the table's width they were a phone's controls. */}
+      <div className={inBrowser ? table.toolbar : undefined}>
+        <div className={ui.field} style={{ marginTop: 12 }}>
+          <SearchIcon size={18} className={ui.fieldIcon} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t`Название или id`}
+            maxLength={80}
+            style={{ all: 'unset', flex: 1, minWidth: 0 }}
+          />
+        </div>
 
-      <div style={{ marginTop: 12 }}>
-        <Actions>
-          <Action quiet onClick={() => setAdding(true)}>
-            <Trans>+ Внешний чат</Trans>
-          </Action>
-        </Actions>
+        <div style={{ marginTop: 12 }}>
+          <Actions>
+            <Action quiet onClick={() => setAdding(true)}>
+              <Trans>+ Внешний чат</Trans>
+            </Action>
+          </Actions>
+        </div>
       </div>
       {adding ? (
         <AddExternalSheet
@@ -156,52 +169,213 @@ function ChatList() {
             <Trans>Таких чатов нет.</Trans>
           </Hint>
         </div>
-      ) : (
-        sections.map((section) => (
-          <div key={section.key === 'group' ? `group-${section.root}` : section.key}>
-            <Label aside={section.chats.length}>
-              {section.key === 'review' ? (
-                <Trans>На проверке</Trans>
-              ) : section.key === 'rest' ? (
-                <Trans>Остальные</Trans>
-              ) : (
-                section.title
-              )}
-            </Label>
-            <Rows>
-              {section.chats.map((chat) => (
-                <ChatLine
-                  key={chat.id}
-                  chat={chat}
-                  onOpen={() => {
-                    hapticSelection();
-                    navigate(`/console/chats/${chat.id}`);
-                  }}
-                />
-              ))}
-            </Rows>
+      ) : inBrowser ? (
+        <>
+          <ChatTable sections={sections} />
+          <div className={table.narrow}>
+            <ChatRows sections={sections} />
           </div>
-        ))
+        </>
+      ) : (
+        <ChatRows sections={sections} />
       )}
     </>
   );
 }
 
+function ChatRows({ sections }: { sections: ConsoleSection[] }) {
+  const navigate = useNavigate();
+  return sections.map((section) => (
+    <div key={sectionKey(section)}>
+      <Label aside={section.chats.length}>
+        <SectionName section={section} />
+      </Label>
+      <Rows>
+        {section.chats.map((chat) => (
+          <ChatLine
+            key={chat.id}
+            chat={chat}
+            onOpen={() => {
+              hapticSelection();
+              navigate(`/console/chats/${chat.id}`);
+            }}
+          />
+        ))}
+      </Rows>
+    </div>
+  ));
+}
+
+function sectionKey(section: ConsoleSection): string {
+  return section.key === 'group' ? `group-${section.root}` : section.key;
+}
+
+function SectionName({ section }: { section: ConsoleSection }) {
+  return section.key === 'review' ? (
+    <Trans>На проверке</Trans>
+  ) : section.key === 'rest' ? (
+    <Trans>Остальные</Trans>
+  ) : (
+    section.title
+  );
+}
+
+/** What the bot does for newcomers, in words; null where the chat is not approved. */
+function useGuardText(): (chat: ConsoleChat) => string | null {
+  const { t } = useLingui();
+  return (chat) => {
+    const guards = chatGuards(chat);
+    if (guards === null) return null;
+    return guards.length
+      ? guards
+          .map((guard) => (guard === 'captcha' ? t`капча` : t`приветствие`))
+          .join(', ')
+      : t`без защиты`;
+  };
+}
+
+/**
+ * Every chat in one table, its sections as rows between them. The member
+ * moves come from the summary's numbers, which count approved chats only;
+ * a chat they miss, or a failed fetch, shows a dash.
+ */
+/** The table's columns, for the section rows that span them all. */
+const COLUMNS = 6;
+
+function ChatTable({ sections }: { sections: ConsoleSection[] }) {
+  const { t, i18n } = useLingui();
+  const guardText = useGuardText();
+  const navigate = useNavigate();
+  const stats = useQuery(consoleStatsQuery);
+  const moves = new Map<number, MemberDelta>(
+    (stats.data?.members_delta ?? []).map((entry) => [entry.chat_id, entry]),
+  );
+  const count = (n: number | null | undefined) => (n == null ? '—' : i18n.number(n));
+  const move = (n: number | null | undefined) =>
+    n == null ? '—' : signed(n, (abs) => i18n.number(abs));
+  const status: Record<ConsoleChat['resource_status'], [string, string | undefined]> = {
+    approved: [t`одобрен`, table.good],
+    discovered: [t`на проверке`, table.warn],
+    observed: [t`наблюдаем`, undefined],
+    external: [t`внешний`, undefined],
+    disabled: [t`отключён`, undefined],
+  };
+
+  return (
+    <div className={table.wrap}>
+      <table className={table.table}>
+        <thead>
+          <tr>
+            <th>
+              <Trans>Чат</Trans>
+            </th>
+            <th>
+              <Trans>Статус</Trans>
+            </th>
+            <th className={table.num}>
+              <Trans>Участники</Trans>
+            </th>
+            <th className={table.num}>
+              <Trans>Сутки</Trans>
+            </th>
+            <th className={table.num}>
+              <Trans>7 дней</Trans>
+            </th>
+            <th>
+              <Trans>Защита</Trans>
+            </th>
+          </tr>
+        </thead>
+        {sections.map((section) => (
+          <tbody key={sectionKey(section)}>
+            <tr className={table.section}>
+              <th colSpan={COLUMNS} scope="rowgroup">
+                <SectionName section={section} /> · {section.chats.length}
+              </th>
+            </tr>
+            {section.chats.map((chat) => {
+              const title = chat.title ?? String(chat.id);
+              const [word, tone] = status[chat.resource_status];
+              const moved = moves.get(chat.id);
+              const listed =
+                chat.resource_status === 'approved' ||
+                chat.resource_status === 'observed' ||
+                chat.resource_status === 'external'
+                  ? isListed(chat)
+                    ? t`на сайте`
+                    : t`не на сайте`
+                  : null;
+              const to = `/console/chats/${chat.id}`;
+              return (
+                // The whole row opens the chat; the link in it is the way for
+                // the keys and for readers.
+                <tr
+                  key={chat.id}
+                  onClick={(event) => {
+                    // A modified click is the link's to make, and a click
+                    // that ends a selection is copying, not opening.
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey
+                    )
+                      return;
+                    if (window.getSelection()?.toString()) return;
+                    navigate(to);
+                  }}
+                >
+                  <td>
+                    <span className={table.chat}>
+                      <Tile tone={tileTone(chat)} round>
+                        <Letters text={initials(title)} />
+                      </Tile>
+                      <span>
+                        <Link to={to} onClick={(event) => event.stopPropagation()}>
+                          {title}
+                        </Link>
+                        {listed ? <small>{listed}</small> : null}
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className={[table.pill, tone].filter(Boolean).join(' ')}>
+                      {word}
+                    </span>
+                  </td>
+                  <td className={table.num}>{count(chat.member_count)}</td>
+                  <td className={table.num}>{move(moved?.delta_24h)}</td>
+                  <td className={table.num}>{move(moved?.delta_7d)}</td>
+                  <td>{guardText(chat) ?? '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  );
+}
+
+function tileTone(chat: ConsoleChat): number {
+  return chat.resource_status === 'discovered'
+    ? 1
+    : chat.resource_status === 'disabled'
+      ? 5
+      : 3;
+}
+
 function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
   const { t, i18n } = useLingui();
+  const guardText = useGuardText();
   const title = chat.title ?? String(chat.id);
-  const guards = [
-    // Where people walk straight in, a stored captcha asks nobody.
-    chat.join_mode === 'captcha' && !joinsDirectly(chat) ? t`капча` : null,
-    chat.is_welcome_enabled ? t`приветствие` : null,
-  ].filter(Boolean);
   // Protection runs only where the bot is approved; elsewhere the status is
   // the thing to know.
   const facts =
     chat.resource_status === 'approved'
       ? [
           chat.member_count !== null ? i18n.number(chat.member_count) : null,
-          guards.length ? guards.join(', ') : t`без защиты`,
+          guardText(chat),
           isListed(chat) ? t`на сайте` : t`не на сайте`,
         ]
       : chat.resource_status === 'observed' || chat.resource_status === 'external'
@@ -214,17 +388,10 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
             chat.member_count !== null ? i18n.number(chat.member_count) : null,
             chat.resource_status === 'discovered' ? t`на проверке` : t`отключён`,
           ];
-  const tone =
-    chat.resource_status === 'discovered'
-      ? 1
-      : chat.resource_status === 'disabled'
-        ? 5
-        : 3;
-
   return (
     <Row
       leading={
-        <Tile tone={tone}>
+        <Tile tone={tileTone(chat)}>
           <Letters text={initials(title)} />
         </Tile>
       }

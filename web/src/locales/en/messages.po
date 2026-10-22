@@ -656,6 +656,10 @@ msgstr "This account is not one of the bot's main administrators."
 msgid "Чат: все ▾"
 msgstr "Chat: all ▾"
 
+#: src/console/pages/Chats.tsx
+msgid "7 дней"
+msgstr "7 days"
+
 #: src/components/AppHeader.tsx
 msgid "Язык"
 msgstr "Language"
@@ -735,6 +739,7 @@ msgid "Дальше · {0}"
 msgstr "Next · {0}"
 
 #: src/console/pages/Chat.tsx
+#: src/console/pages/Chats.tsx
 msgid "одобрен"
 msgstr "approved"
 
@@ -1280,6 +1285,10 @@ msgstr "Ban {who} in {chat}"
 msgid "Раздел каталога"
 msgstr "Catalogue section"
 
+#: src/console/pages/Chats.tsx
+msgid "Сутки"
+msgstr "24 h"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "It goes first in the «Not about school» section. Three cards show there: the lowest drops off until another is switched off."
@@ -1289,6 +1298,7 @@ msgid "Публичная ссылка вида https://t.me/имя или @им
 msgstr "A public link like https://t.me/name or @name. The bot is not added there: the chat goes into the catalogue marked as not ours."
 
 #: src/console/pages/Chat.tsx
+#: src/console/pages/Chats.tsx
 msgid "Защита"
 msgstr "Protection"
 
@@ -2316,6 +2326,10 @@ msgstr "Breaks the rules"
 msgid "Чёрный список: {who}"
 msgstr "Blacklist: {who}"
 
+#: src/console/pages/Chats.tsx
+msgid "Участники"
+msgstr "Members"
+
 #: src/console/Login.tsx
 msgid "Войти через Telegram"
 msgstr "Sign in with Telegram"
@@ -2442,6 +2456,10 @@ msgstr "never started"
 msgid "появится после одобрения"
 msgstr "appears once approved"
 
+#: src/console/pages/Chats.tsx
+msgid "Статус"
+msgstr "Status"
+
 #: src/console/pages/Spam.tsx
 msgid "Автор забанен"
 msgstr "Author banned"
@@ -2530,6 +2548,7 @@ msgstr "From your faculty"
 msgid "Работы"
 msgstr "Written work"
 
+#: src/console/pages/Chats.tsx
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Spam.tsx
 msgid "Чат"

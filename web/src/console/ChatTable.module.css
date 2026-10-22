@@ -1,0 +1,164 @@
+/*
+ * The Chats screen as a table, for the console in a browser (#288, layout A).
+ * A window as narrow as a phone keeps the Mini App's rows instead.
+ */
+
+.wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  cursor: pointer;
+}
+
+.table tbody tr:hover,
+.table tbody tr:focus-within {
+  background: var(--surface);
+}
+
+/* A section's name over its chats, as the rows' labels were. */
+.table .section th {
+  padding-top: 18px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+.table tbody tr.section:hover {
+  background: none;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.table th.num {
+  text-align: right;
+}
+
+.chat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.chat > span:first-child {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}
+
+.chat a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.chat a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.chat small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-pressed);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.good {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.warn {
+  background: var(--tone-1-bg);
+  color: var(--tone-1-fg);
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .wrap {
+    display: none;
+  }
+
+  .narrow {
+    display: block;
+  }
+}
+
+/* The search and the button in one row above the table. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar > :first-child {
+  flex: 0 1 360px;
+}
+
+.toolbar > :last-child {
+  margin-left: auto;
+}
+
+.toolbar > :last-child > * {
+  margin-top: 0;
+}
+
+.toolbar button {
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .toolbar {
+    display: block;
+  }
+
+  .toolbar > :last-child > * {
+    margin-top: 10px;
+  }
+
+  .toolbar button {
+    flex: 1;
+  }
+}
