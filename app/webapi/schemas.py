@@ -63,7 +63,7 @@ class PublicCatalogItem(BaseModel):
     is_forum: bool = False
     # A channel is read, not talked in, so the page counts subscribers in it
     # rather than members.
-    kind: ChatKind = "group"
+    kind: ChatKind
     # Somebody else's chat, listed so a student can find it. The one thing a
     # stranger learns about how a chat is run, because it is the one thing they
     # need: the rules in there are not ours. A chat we only observe is still
@@ -119,7 +119,7 @@ class ChatRead(BaseModel):
     title: str | None
     resource_status: ChatResourceStatus
     is_forum: bool
-    kind: ChatKind = "group"
+    kind: ChatKind
     is_welcome_enabled: bool
     # join_mode == "captcha", kept while the console still shows a switch.
     is_captcha_enabled: bool

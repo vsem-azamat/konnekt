@@ -137,10 +137,11 @@ class Chat(Base):
     # What Telegram calls the chat, folded to what a reader tells apart: a
     # group they can talk in, or a channel they only read. A basic group and a
     # supergroup are both groups. Only an external listing is ever a channel:
-    # the bot moderates groups.
+    # the bot moderates groups, and a channel counted as ours would add
+    # somebody else's subscribers to the reach we advertise. So a channel is
+    # external or taken down, never approved, observed or awaiting a decision.
     KIND_GROUP = "group"
     KIND_CHANNEL = "channel"
-    KINDS = (KIND_GROUP, KIND_CHANNEL)
 
     __table_args__ = (
         sa.CheckConstraint(
@@ -153,6 +154,10 @@ class Chat(Base):
         ),
         sa.CheckConstraint("join_mode IN ('open', 'captcha', 'admins')", name="ck_chats_join_mode"),
         sa.CheckConstraint("kind IN ('group', 'channel')", name="ck_chats_kind"),
+        sa.CheckConstraint(
+            "kind = 'group' OR resource_status IN ('external', 'disabled')",
+            name="ck_chats_channel_external",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)

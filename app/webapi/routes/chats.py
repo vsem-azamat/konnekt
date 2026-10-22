@@ -277,6 +277,9 @@ async def update_chat(
         status: ChatResourceStatus = fields["resource_status"]
         if status not in Chat.VALID_RESOURCE_STATUSES:
             raise HTTPException(status_code=422, detail="Unknown resource status")
+        # Somebody else's channel is only listed; see Chat.KIND_CHANNEL.
+        if chat.kind == Chat.KIND_CHANNEL and status not in {Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED}:
+            raise HTTPException(status_code=409, detail="A channel is only ever listed as somebody else's")
     if "parent_chat_id" in fields and fields["parent_chat_id"] == chat_id:
         raise HTTPException(status_code=422, detail="A chat cannot be its own parent")
     if "parent_chat_id" in fields and fields["parent_chat_id"] is not None:

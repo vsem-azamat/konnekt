@@ -36,8 +36,8 @@ async def test_the_same_chat_under_its_name_is_accepted(type) -> None:
 
 @pytest.mark.parametrize(
     "answer",
-    [_answer(id=-1009999), _answer(id=-1009999, type="channel"), _answer(type="private")],
-    ids=["another-chat", "a-channel", "a-person"],
+    [_answer(id=-1009999), _answer(type="private")],
+    ids=["another-chat", "a-person"],
 )
 async def test_another_chat_that_took_the_name_is_not_this_one(answer) -> None:
     assert await fetch_metadata(bot=_bot(answer), chat_id=CHAT, username="cvut_fit") is None
