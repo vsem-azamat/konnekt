@@ -81,6 +81,10 @@ msgstr "Pár slov o sobě — co děláš a jak rychle"
 msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
 msgstr "{0, plural, one {rok na platformě} few {roky na platformě} many {roku na platformě} other {let na platformě}}"
 
+#: src/console/pages/Chat.tsx
+msgid "Жирный и ссылки из !welcome после правки здесь пропадут."
+msgstr "Tučné písmo a odkazy z !welcome se úpravou zde ztratí."
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Nalezeno"

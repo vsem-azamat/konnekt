@@ -81,6 +81,10 @@ msgstr "Пара слов о себе — что делаешь и как быс
 msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
 msgstr "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
 
+#: src/console/pages/Chat.tsx
+msgid "Жирный и ссылки из !welcome после правки здесь пропадут."
+msgstr "Жирный и ссылки из !welcome после правки здесь пропадут."
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Нашлось"

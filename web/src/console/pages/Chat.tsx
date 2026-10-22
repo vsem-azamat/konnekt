@@ -48,7 +48,7 @@ import {
   personName,
   type SpamPing,
 } from '@/console/session';
-import { welcomeHtml, welcomePlain } from '@/console/welcome';
+import { hasFormatting, welcomeChange, welcomePlain } from '@/console/welcome';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { chatsQuery, institutionsQuery } from '@/lib/api';
 import { initials, TOPICS } from '@/lib/chats';
@@ -88,7 +88,7 @@ type Sheets =
   | { kind: 'unpublish' }
   | { kind: 'disable' }
   | { kind: 'mode'; to: 'approved' | 'observed' | 'external' }
-  | { kind: 'welcome' }
+  | { kind: 'welcome'; opened: string | null }
   | { kind: 'ban'; sender: ChatSender }
   | {
       kind: 'banOutcome';
@@ -438,7 +438,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
             )
           }
           trailing={<Chevron />}
-          onClick={() => open({ kind: 'welcome' })}
+          onClick={() => open({ kind: 'welcome', opened: chat.welcome_message })}
         />
         <Row
           title={<Trans>Прятать «вошёл» и «вышел»</Trans>}
@@ -804,23 +804,31 @@ function ChatScreen({ chatId }: { chatId: number }) {
           multiline
           title={t`Приветствие`}
           note={
-            <Trans>
-              Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt.
-              Можно оставить пустым.
-            </Trans>
+            <>
+              <Trans>
+                Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt.
+                Можно оставить пустым.
+              </Trans>
+              {hasFormatting(sheet.opened) ? (
+                <>
+                  {' '}
+                  <Trans>Жирный и ссылки из !welcome после правки здесь пропадут.</Trans>
+                </>
+              ) : null}
+            </>
           }
-          initial={welcomePlain(chat.welcome_message)}
+          initial={welcomePlain(sheet.opened)}
           placeholder={t`Вопросы по поступлению — в тему #вопросы.`}
           busy={busy}
           error={sheetError}
           onClose={close}
-          // Empty leaves the greeting on, with only the shared lines. Unchanged is
-          // not saved: the bold and links !welcome wrote would become plain.
-          onSave={(text) =>
-            text === welcomePlain(chat.welcome_message).trim()
-              ? close()
-              : save({ welcome_message: welcomeHtml(text) }, close)
-          }
+          // Empty leaves the greeting on, with only the shared lines. Compared
+          // with what the sheet opened on, not a text refetched meanwhile.
+          onSave={(text) => {
+            const html = welcomeChange(sheet.opened, text);
+            if (html === null) close();
+            else save({ welcome_message: html }, close);
+          }}
         />
       ) : null}
       {sheet?.kind === 'ban' ? (
