@@ -301,19 +301,64 @@ test("a chat is somebody else's only when supervisor says so", () => {
 });
 
 test("a section's own chats come apart from the ones it only lists", () => {
-  const { ours, others } = byOwner([
-    chat('ČVUT | ЧВУТ', CVUT),
-    chat('ČVUT FJFI', CVUT, { external: true }),
-    chat('ČVUT FIT', CVUT),
-    chat('PODOLI', CVUT, { external: true }),
-  ]);
+  const { lead, ours, others } = byOwner(
+    [
+      chat('ČVUT | ЧВУТ', CVUT),
+      chat('ČVUT FJFI', CVUT, { external: true }),
+      chat('ČVUT FIT', CVUT),
+      chat('PODOLI', CVUT, { external: true }),
+    ],
+    CVUT,
+  );
+  assert.equal(lead?.title, 'ČVUT | ЧВУТ');
   assert.deepEqual(
     ours.map((c) => c.title),
-    ['ČVUT | ЧВУТ', 'ČVUT FIT'],
+    ['ČVUT FIT'],
   );
   assert.deepEqual(
     others.map((c) => c.title),
     ['ČVUT FJFI', 'PODOLI'],
+  );
+});
+
+test("the university's own chat opens its section even when somebody else runs it", () => {
+  const { lead, ours, others } = byOwner(
+    [
+      chat('ČZU', 'ČZU', { external: true }),
+      chat('ČZU PEF', 'ČZU'),
+      chat('ČZU FAPPZ', 'ČZU', { external: true }),
+    ],
+    'ČZU',
+  );
+  assert.equal(lead?.title, 'ČZU');
+  assert.deepEqual(
+    ours.map((c) => c.title),
+    ['ČZU PEF'],
+  );
+  assert.deepEqual(
+    others.map((c) => c.title),
+    ['ČZU FAPPZ'],
+  );
+});
+
+test("the university's own chat leads wherever it came in the list", () => {
+  const { lead, ours } = byOwner(
+    [chat('ČVUT FIT', CVUT), chat('ČVUT | ЧВУТ', CVUT), chat('ČVUT FEL', CVUT)],
+    CVUT,
+  );
+  assert.equal(lead?.title, 'ČVUT | ЧВУТ');
+  assert.deepEqual(
+    ours.map((c) => c.title),
+    ['ČVUT FIT', 'ČVUT FEL'],
+  );
+});
+
+test('a section without its own chat has no lead', () => {
+  const { lead, ours } = byOwner([chat('ČVUT FIT', CVUT)], CVUT);
+  assert.equal(lead, undefined);
+  assert.deepEqual(
+    ours.map((c) => c.title),
+    ['ČVUT FIT'],
   );
 });
 
