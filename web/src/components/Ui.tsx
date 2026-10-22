@@ -406,7 +406,12 @@ export function ChipView({
   // another is invalid and breaks keyboard order.
   if (onClick && !onRemove) {
     return (
-      <button type="button" className={`${className} ${css.pressable}`} onClick={onClick}>
+      <button
+        type="button"
+        className={`${className} ${css.pressable}`}
+        aria-pressed={active}
+        onClick={onClick}
+      >
         {body}
       </button>
     );

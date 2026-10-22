@@ -1,6 +1,7 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
+import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import { hapticSelection } from '@/hooks/useTelegram';
@@ -12,9 +13,10 @@ import {
   initials,
   type PublicChat,
   placeOf,
-  rowChipFor,
+  rowDotFor,
 } from '@/lib/chats';
 import { PersonIcon } from './icons';
+import { CityName, TopicWord } from './Place';
 import { Sheet } from './Sheet';
 import { Action, Chevron, Count, Hint, Letters, Row, Tile } from './Ui';
 import css from './ui.module.css';
@@ -27,38 +29,98 @@ export function ActivityChip({ activity }: { activity: Activity }) {
     <span
       className={chip === 'busy' ? `${css.activity} ${css.activityBusy}` : css.activity}
     >
-      {chip === 'busy' ? (
-        <Trans>оживлённый</Trans>
-      ) : chip === 'active' ? (
-        <Trans>активный</Trans>
-      ) : (
-        <Trans>тихий</Trans>
-      )}
+      <ActivityWord activity={activity} />
     </span>
   );
 }
 
-/** How many people a row's chat has, beside its chevron. Nothing when never measured. */
-export function Members({ count }: { count: number | null }) {
+function ActivityWord({ activity }: { activity: Activity }) {
+  switch (chipFor(activity)) {
+    case 'busy':
+      return <Trans>оживлённый</Trans>;
+    case 'active':
+      return <Trans>активный</Trans>;
+    case 'quiet':
+      return <Trans>тихий</Trans>;
+    default:
+      return null;
+  }
+}
+
+/**
+ * How many people a row's chat has, beside its chevron, and a dot for how much
+ * it talks: filled for «оживлённый», a ring for «активный». The words are for
+ * a screen reader. Nothing when never measured and quiet.
+ */
+export function Members({
+  count,
+  activity,
+}: {
+  count: number | null;
+  activity: Activity;
+}) {
   const { i18n } = useLingui();
-  if (count === null) return null;
+  const dot = rowDotFor(activity);
+  if (count === null && dot === null) return null;
   return (
     <Count>
       <span className={css.people}>
-        <PersonIcon size={13} />
-        {i18n.number(count)}
-        <span className={css.srOnly}>
-          {' '}
-          <Plural
-            value={count}
-            one="участник"
-            few="участника"
-            many="участников"
-            other="участника"
+        {dot ? (
+          <span
+            className={
+              dot === 'busy' ? `${css.dot} ${css.dotBusy}` : `${css.dot} ${css.dotActive}`
+            }
+            aria-hidden="true"
           />
-        </span>
+        ) : null}
+        {count === null ? null : (
+          <>
+            <PersonIcon size={13} />
+            {i18n.number(count)}
+            <span className={css.srOnly}>
+              {' '}
+              <Plural
+                value={count}
+                one="участник"
+                few="участника"
+                many="участников"
+                other="участника"
+              />
+            </span>
+          </>
+        )}
+        {chipFor(activity) ? (
+          <span className={css.srOnly}>
+            {', '}
+            <ActivityWord activity={activity} />
+          </span>
+        ) : null}
       </span>
     </Count>
+  );
+}
+
+/** A chat's name, and «не наш» after it when somebody else runs the chat. */
+export function ChatTitle({ title, external }: { title: string; external: boolean }) {
+  if (!external) return <>{title}</>;
+  return (
+    <span className={css.nameLine}>
+      <span className={css.name}>{title}</span>
+      <NotOurs />
+      <span className={css.srOnly}>
+        {', '}
+        <Trans>не наш чат</Trans>
+      </span>
+    </span>
+  );
+}
+
+/** The plaque on somebody else's chat. Read out by the words beside it instead. */
+function NotOurs() {
+  return (
+    <span className={css.notOurs} aria-hidden="true">
+      <Trans>не наш</Trans>
+    </span>
   );
 }
 
@@ -71,7 +133,16 @@ export function Members({ count }: { count: number | null }) {
  * the list, and where it was scrolled to, is still there when it closes. It
  * lives in the history, so Back closes it: see `lib/chatPreview.ts`.
  */
-export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
+export function ChatRow({
+  chat,
+  tone,
+  hint,
+}: {
+  chat: PublicChat;
+  tone: number;
+  /** The line under the name: where the chat is, when the list does not say it already. */
+  hint?: ReactNode;
+}) {
   const preview = chatPreview(chat.link, useLocation(), {
     navigate: useNavigate(),
     openLink: openTelegramLink,
@@ -87,27 +158,11 @@ export function ChatRow({ chat, tone }: { chat: PublicChat; tone: number }) {
             <Letters text={initials(chat.title)} />
           </Tile>
         }
-        title={
-          chat.external ? (
-            <>
-              {chat.title}
-              <span className={css.srOnly}>
-                {', '}
-                <Trans>не наш чат</Trans>
-              </span>
-            </>
-          ) : (
-            chat.title
-          )
-        }
-        hint={
-          rowChipFor(chat.activity) ? (
-            <ActivityChip activity={chat.activity} />
-          ) : undefined
-        }
+        title={<ChatTitle title={chat.title} external={chat.external} />}
+        hint={hint}
         trailing={
           <>
-            <Members count={chat.member_count} />
+            <Members count={chat.member_count} activity={chat.activity} />
             <Chevron />
           </>
         }
@@ -142,7 +197,7 @@ function ChatPreview({
 }) {
   const { t } = useLingui();
   // Already loaded by the Chats tab for its search; a section's screen asks for
-  // it here, and until it comes the preview simply has no place line.
+  // it here, and until it comes the line has the chat's own city only.
   const institutions = useQuery(institutionsQuery);
   const place = placeOf(chat, institutions.data ?? []);
   const hasFacts =
@@ -157,7 +212,21 @@ function ChatPreview({
           </Tile>
           <span className={css.chatHeadBody}>
             <span>{chat.title}</span>
-            {place ? <span className={css.chatPlace}>{place}</span> : null}
+            <span className={`${css.chatPlace} ${css.nameLine}`}>
+              {chat.external ? <NotOurs /> : null}
+              <span className={css.name}>
+                {place.university ??
+                  (chat.topic ? <TopicWord topic={chat.topic} /> : null)}
+                {place.university || chat.topic ? ' · ' : null}
+                <CityName city={place.city} />
+              </span>
+              {chat.external ? (
+                <span className={css.srOnly}>
+                  {', '}
+                  <Trans>не наш чат</Trans>
+                </span>
+              ) : null}
+            </span>
           </span>
         </span>
       }
@@ -187,7 +256,7 @@ function ChatPreview({
       ) : null}
       {chat.external ? (
         <p className={css.sheetNote}>
-          <Trans>Этот чат ведёт не Konnekt, и правила там свои.</Trans>
+          <Trans>Этот чат ведёт не Konnekt: спам там чистим не мы, правила свои.</Trans>
         </p>
       ) : null}
       <div className={css.actions}>

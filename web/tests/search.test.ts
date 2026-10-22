@@ -19,6 +19,8 @@ function chat(
     is_forum: false,
     external: false,
     avatar: null,
+    city: null,
+    topic: null,
   };
 }
 

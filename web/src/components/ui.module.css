@@ -463,6 +463,61 @@
   gap: 4px;
 }
 
+/* How much a chat talks, by its member count: filled for busy, a ring for
+   active, nothing for the rest. Green, as live things are. */
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 1px;
+}
+
+.dotBusy {
+  background: var(--good);
+}
+
+.dotActive {
+  box-shadow: inset 0 0 0 1.5px var(--good);
+}
+
+/* The catalogue's city chips, under its search. */
+.cities {
+  min-width: 0;
+  margin: 30px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+/* A name with a plaque after it: the name gives way, the plaque does not. */
+.nameLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* «не наш»: a chat somebody else runs. Drawn, not filled, like its row. */
+.notOurs {
+  flex: none;
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 15px;
+}
+
 .people svg {
   flex: none;
   color: var(--muted-soft);

@@ -1,15 +1,18 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
-import { ChatRow, Members } from '@/components/ChatRow';
+import { ChatRow, ChatTitle, Members } from '@/components/ChatRow';
 import { CloseIcon, SearchIcon } from '@/components/icons';
+import { CityName, TopicHeading } from '@/components/Place';
 import { TabBar } from '@/components/TabBar';
 import {
   Action,
   Chevron,
+  Chips,
+  ChipView,
   Empty,
   Label,
   Letters,
@@ -25,16 +28,23 @@ import {
 import { useReportEmpty } from '@/hooks/useReportEmpty';
 import { chatsQuery, institutionsQuery, meQuery } from '@/lib/api';
 import {
+  blocks,
   cities,
-  directory,
+  cityChoices,
+  defaultCity,
   type Entry,
   initials,
   ownUniversity,
+  type PublicChat,
   search,
   sectionAvatar,
   sectionHint,
+  sectionLead,
   sectionMembers,
 } from '@/lib/chats';
+
+/** The address's word for «Все»: no city at all, chosen rather than defaulted to. */
+const ALL = 'all';
 
 /** What people search by, said in the field and again when nothing matched. */
 const EXAMPLES = 'ČVUT, FIT, Strahov';
@@ -76,8 +86,32 @@ export default function ChatsPage() {
     [data, query, cityOf],
   );
   const mine = ownUniversity(me.data?.institution, institutions.data ?? []);
-  const { entries, rest } = useMemo(() => directory(data ?? [], mine), [data, mine]);
+  // The city lives in the address, so Back from a section returns to the one
+  // the reader picked rather than to the default.
+  const [params, setParams] = useSearchParams();
+  const choices = useMemo(() => cityChoices(data ?? []), [data]);
+  const picked = params.get('city');
+  const city =
+    picked === ALL
+      ? null
+      : picked !== null && choices.includes(picked)
+        ? picked
+        : defaultCity(choices, mine === null ? null : cityOf.get(mine));
+  const pick = (next: string | null) =>
+    setParams(
+      (now) => {
+        now.set('city', next ?? ALL);
+        return now;
+      },
+      { replace: true },
+    );
+  const shown = useMemo(() => blocks(data ?? [], { mine, city }), [data, mine, city]);
   const searching = query.trim() !== '';
+  // Where a loose chat is, under its name: «вся Чехия» always, its city only
+  // when the list is not already one city's.
+  const where = (chat: PublicChat): ReactNode =>
+    chat.city === null || city === null ? <CityName city={chat.city} /> : undefined;
+  let tone = 0;
   useReportEmpty(data !== undefined && data.length === 0, 'chat directory');
 
   return (
@@ -89,7 +123,9 @@ export default function ChatsPage() {
         </Title>
         <div style={{ marginTop: 6 }}>
           <Sub>
-            <Trans>Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем.</Trans>
+            <Trans>
+              Факультеты, общежития, общие. В наших чатах вычищаем спам, скам и фишинг.
+            </Trans>
           </Sub>
         </div>
 
@@ -118,6 +154,26 @@ export default function ChatsPage() {
             </button>
           ) : null}
         </div>
+
+        {/* Not while searching: a search looks through every city. */}
+        {choices.length > 1 && !searching ? (
+          <fieldset className={ui.cities} aria-label={t`Город`}>
+            <Chips>
+              <ChipView active={city === null} onClick={() => pick(null)}>
+                <Trans>Все</Trans>
+              </ChipView>
+              {choices.map((choice) => (
+                <ChipView
+                  key={choice}
+                  active={city === choice}
+                  onClick={() => pick(choice)}
+                >
+                  <CityName city={choice} />
+                </ChipView>
+              ))}
+            </Chips>
+          </fieldset>
+        ) : null}
 
         {isPending ? (
           <>
@@ -164,60 +220,81 @@ export default function ChatsPage() {
               </Rows>
             </>
           )
-        ) : entries.length === 0 && rest.length === 0 ? (
+        ) : shown.length === 0 ? (
           <Empty title={<Trans>Чатов пока нет</Trans>} />
         ) : (
-          <>
-            {entries.length > 0 ? (
-              // No heading: supervisor's groups are parent chats, not a
-              // category this screen could name. See catalog/docs/architecture.md.
-              <div style={{ marginTop: 18 }}>
-                <Rows>
-                  {entries.map((entry, index) =>
-                    entry.kind === 'section' ? (
-                      <Row
-                        key={`section:${entry.name}`}
-                        leading={
-                          <Tile tone={index} round photo={sectionAvatar(entry)}>
-                            <Letters text={initials(entry.name)} />
-                          </Tile>
-                        }
-                        title={entry.name}
-                        hint={<SectionHint section={entry} />}
-                        trailing={
-                          <>
-                            <Members count={sectionMembers(entry)} />
-                            <Chevron />
-                          </>
-                        }
-                        onClick={() =>
-                          navigate(`/chats/${encodeURIComponent(entry.name)}`)
-                        }
-                      />
-                    ) : (
-                      <ChatRow key={entry.chat.link} chat={entry.chat} tone={index} />
-                    ),
-                  )}
-                </Rows>
-              </div>
-            ) : null}
-            {rest.length > 0 ? (
-              <>
-                <Label>
-                  <Trans>Общие</Trans>
-                </Label>
-                <Rows>
-                  {rest.map((chat, index) => (
-                    <ChatRow key={chat.link} chat={chat} tone={entries.length + index} />
-                  ))}
-                </Rows>
-              </>
-            ) : null}
-          </>
+          shown.map((block) => (
+            <div key={block.heading}>
+              <Label aside={block.entries.length}>
+                <TopicHeading topic={block.heading} />
+                {block.heading === 'university' && city !== null ? (
+                  <>
+                    {' · '}
+                    <CityName city={city} />
+                  </>
+                ) : null}
+              </Label>
+              <Rows>
+                {block.entries.map((entry) =>
+                  entry.kind === 'section' ? (
+                    <SectionRow
+                      key={`section:${entry.name}`}
+                      section={entry}
+                      tone={tone++}
+                      onOpen={() => navigate(`/chats/${encodeURIComponent(entry.name)}`)}
+                    />
+                  ) : (
+                    <ChatRow
+                      key={entry.chat.link}
+                      chat={entry.chat}
+                      tone={tone++}
+                      hint={where(entry.chat)}
+                    />
+                  ),
+                )}
+              </Rows>
+            </div>
+          ))
         )}
       </Screen>
       <TabBar />
     </>
+  );
+}
+
+/** A university with its own screen: its chat's photo, people and activity, and what else is in it. */
+function SectionRow({
+  section,
+  tone,
+  onOpen,
+}: {
+  section: Extract<Entry, { kind: 'section' }>;
+  tone: number;
+  onOpen: () => void;
+}) {
+  const lead = sectionLead(section);
+  const external = lead?.external ?? false;
+  return (
+    <Row
+      leading={
+        <Tile tone={tone} round photo={sectionAvatar(section)}>
+          <Letters text={initials(section.name)} />
+        </Tile>
+      }
+      title={<ChatTitle title={section.name} external={external} />}
+      hint={<SectionHint section={section} />}
+      trailing={
+        <>
+          <Members
+            count={sectionMembers(section)}
+            activity={lead?.activity ?? 'unknown'}
+          />
+          <Chevron />
+        </>
+      }
+      outline={external}
+      onClick={onOpen}
+    />
   );
 }
 

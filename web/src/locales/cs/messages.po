@@ -98,6 +98,10 @@ msgstr "Období"
 msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
 msgstr "V katalogu bude chat označen jako „není náš“. Bot tam nic nedělá; pokud v chatu je, odeberte ho odtud."
 
+#: src/components/Place.tsx
+msgid "Пардубице"
+msgstr "Pardubice"
+
 #: src/console/pages/Chat.tsx
 msgid "На публичной вкладке"
 msgstr "Na veřejné záložce"
@@ -156,6 +160,10 @@ msgid "По этой волне уже решили иначе."
 msgstr "O této vlně už bylo rozhodnuto jinak."
 
 #: src/components/ChatRow.tsx
+msgid "Этот чат ведёт не Konnekt: спам там чистим не мы, правила свои."
+msgstr "Tento chat nespravuje Konnekt: spam tam neuklízíme my a pravidla má vlastní."
+
+#: src/components/ChatRow.tsx
 msgid "не наш чат"
 msgstr "není náš chat"
 
@@ -197,6 +205,10 @@ msgstr "Čeká na rozhodnutí: {0}."
 #: src/console/pages/System.tsx
 msgid "вкл."
 msgstr "zap."
+
+#: src/components/Place.tsx
+msgid "предмет"
+msgstr "předmět"
 
 #: src/console/BrowserShell.tsx
 msgid "Обзор"
@@ -268,6 +280,14 @@ msgstr "Odpověď nedorazila. Než to zkusíte znovu, zkontrolujte seznam: karta
 msgid "Капча при входе"
 msgstr "Captcha při vstupu"
 
+#: src/components/Place.tsx
+msgid "вуз"
+msgstr "vysoká škola"
+
+#: src/console/pages/Chat.tsx
+#~ msgid "как у родителя: <0/>"
+#~ msgstr "jako u nadřazeného: <0/>"
+
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
 #: src/console/pages/Summary.tsx
@@ -307,6 +327,10 @@ msgstr "24 hodin"
 #: src/pages/MyHelper.tsx
 msgid "Скрыть"
 msgstr "Skrýt"
+
+#: src/components/Place.tsx
+msgid "вся Чехия"
+msgstr "celé Česko"
 
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
@@ -390,6 +414,10 @@ msgstr "Přidat službu"
 #: src/console/Charts.tsx
 msgid "Ср"
 msgstr "St"
+
+#: src/console/pages/Chat.tsx
+#~ msgid "не указан: стоит в «Общее»"
+#~ msgstr "neuvedeno: stojí v „Obecné“"
 
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
@@ -480,6 +508,10 @@ msgstr "Tahle kontrola se otevírá tlačítkem v žádosti o vstup do chatu."
 msgid "Войти не получилось. Попробуйте ещё раз."
 msgstr "Přihlášení se nezdařilo. Zkuste to znovu."
 
+#: src/console/pages/Chat.tsx
+#~ msgid "Вузы, по вузу"
+#~ msgstr "Vysoké školy, podle školy"
+
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
 msgstr "{failed, plural, one {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} few {Ve # chatech Telegram odmítl: zkontrolujte tam práva bota.} many {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} other {V # chatech Telegram odmítl: zkontrolujte tam práva bota.}}"
@@ -563,6 +595,10 @@ msgstr "Hledej podle školy, fakulty nebo koleje: {EXAMPLES}."
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
 
+#: src/components/Place.tsx
+msgid "работа и IT"
+msgstr "práce a IT"
+
 #: src/components/RequestSheet.tsx
 msgid "Не отправилось — попробуй ещё раз."
 msgstr "Neodeslalo se — zkus to znovu."
@@ -572,8 +608,8 @@ msgid "Модерация"
 msgstr "Moderace"
 
 #: src/pages/Chats.tsx
-msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
-msgstr "Fakulty, koleje, obecné chaty. Spam, podvody a phishing odstraňujeme."
+#~ msgid "Факультеты, общежития, общие. Спам, скам и фишинг мы вычищаем."
+#~ msgstr "Fakulty, koleje, obecné chaty. Spam, podvody a phishing odstraňujeme."
 
 #: src/lib/turnaround.tsx
 msgid "Две недели"
@@ -619,6 +655,10 @@ msgstr "Za týden sem nikdo nepsal."
 #: src/pages/Offer.tsx
 msgid "Людям бесплатно. Компаниям — <0>реклама для студентов</0>."
 msgstr "Pro lidi zdarma. Pro firmy je tu <0>reklama pro studenty</0>."
+
+#: src/components/Place.tsx
+msgid "Пльзень"
+msgstr "Plzeň"
 
 #: src/pages/Ads.tsx
 #: src/pages/Profile.tsx
@@ -678,6 +718,10 @@ msgstr "schválený"
 msgid "История"
 msgstr "Historie"
 
+#: src/components/ChatRow.tsx
+msgid "не наш"
+msgstr "není náš"
+
 #: src/console/pages/Chat.tsx
 msgid "входит в этот чат"
 msgstr "patří pod tento chat"
@@ -724,6 +768,10 @@ msgstr "Poprvé: {0}"
 #: src/console/pages/Chat.tsx
 msgid "Показан в «Чатах»"
 msgstr "Zobrazen v «Chatech»"
+
+#: src/console/pages/Chat.tsx
+#~ msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
+#~ msgstr "U chatu vysoké školy to není potřeba: do „Vysoké školy“ ho zařadí jeho škola."
 
 #: src/components/InstitutionPicker.tsx
 msgid "Загружаем список вузов…"
@@ -812,6 +860,14 @@ msgstr "nikam: stojí samostatně"
 #: src/pages/Profile.tsx
 msgid "Их видно на твоей странице."
 msgstr "Jsou vidět na tvé stránce."
+
+#: src/components/Place.tsx
+msgid "Вузы"
+msgstr "Vysoké školy"
+
+#: src/pages/Chats.tsx
+msgid "Факультеты, общежития, общие. В наших чатах вычищаем спам, скам и фишинг."
+msgstr "Fakulty, koleje, obecné. V našich chatech uklízíme spam, podvody a phishing."
 
 #: src/pages/Ask.tsx
 msgid "Напиши как думаешь. Поймём предмет, вуз, срок и бюджет."
@@ -1088,6 +1144,10 @@ msgstr "Odhlásit se na tomto zařízení?"
 msgid "скрыта администратором"
 msgstr "skrytý administrátorem"
 
+#: src/components/Place.tsx
+msgid "Либерец"
+msgstr "Liberec"
+
 #: src/console/pages/Chat.tsx
 msgid "Ни во что"
 msgstr "Nikam"
@@ -1180,6 +1240,10 @@ msgstr "skrytý, autor ho upravil"
 msgid "Бан {who} в {chat}"
 msgstr "Ban {who} v {chat}"
 
+#: src/console/pages/Chat.tsx
+#~ msgid "Раздел каталога"
+#~ msgstr "Oddíl katalogu"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "Bude první v sekci «Není o škole». Zobrazují se tam tři karty: nejnižší zmizí, dokud jinou nevypnete."
@@ -1257,6 +1321,10 @@ msgstr "Hotovo, jsi v chatu"
 #: src/components/Incoming.tsx
 msgid "Сначала опубликуй профиль"
 msgstr "Nejdřív zveřejni profil"
+
+#: src/components/Place.tsx
+msgid "Предметы"
+msgstr "Předměty"
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -1345,6 +1413,10 @@ msgstr "Monogram"
 msgid "Студенты перестанут её видеть. Показы и клики сохранятся."
 msgstr "Studenti ji přestanou vidět. Zobrazení a kliknutí zůstanou."
 
+#: src/components/Place.tsx
+msgid "Прага"
+msgstr "Praha"
+
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "открытые, срок не вышел"
@@ -1363,6 +1435,10 @@ msgstr "Sekce"
 #: src/pages/OfferPrices.tsx
 msgid "за семестр"
 msgstr "za semestr"
+
+#: src/components/Place.tsx
+msgid "Острава"
+msgstr "Ostrava"
 
 #: src/console/pages/Partners.tsx
 msgid "Выключенные"
@@ -1526,6 +1602,10 @@ msgstr "Jak to funguje"
 #: src/console/ProfileSheet.tsx
 msgid "новая, {when}"
 msgstr "nový, {when}"
+
+#: src/components/Place.tsx
+msgid "Общее"
+msgstr "Obecné"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
@@ -1805,6 +1885,10 @@ msgstr "Ve všech chatech, za celou dobu. Nelze vrátit."
 msgid "Снять"
 msgstr "Stáhnout"
 
+#: src/components/Place.tsx
+msgid "Градец-Кралове"
+msgstr "Hradec Králové"
+
 #: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
 msgid "Люди"
@@ -1888,6 +1972,10 @@ msgstr "Vybrat se nepodařilo, zkus to znovu."
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Ne"
+
+#: src/components/Place.tsx
+msgid "Ческе-Будеёвице"
+msgstr "České Budějovice"
 
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: Telegram отказал. Запрос закрыт."
@@ -2022,6 +2110,7 @@ msgstr "Příspěvek v chatech"
 msgid "Бот пишет его новичку: «@имя, ваш текст»."
 msgstr "Bot ho pošle nováčkovi: «@jméno, váš text»."
 
+#: src/pages/Chats.tsx
 #: src/pages/MyHelper.tsx
 msgid "Город"
 msgstr "Město"
@@ -2040,6 +2129,10 @@ msgstr "{count, plural, one {ještě # chat: {names}} few {ještě # chaty: {nam
 #: src/console/pages/Signals.tsx
 msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 msgstr "Víc než {perMinute} žádostí za minutu. Captcha je pozastavená: bot novým lidem nepíše, do chatu nikdo nevstoupil."
+
+#: src/components/Place.tsx
+msgid "Брно"
+msgstr "Brno"
 
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
@@ -2139,8 +2232,8 @@ msgid "Автор может её править, но не опубликова
 msgstr "Autor ho může upravovat, ale sám ho nezveřejní."
 
 #: src/components/ChatRow.tsx
-msgid "Этот чат ведёт не Konnekt, и правила там свои."
-msgstr "Tento chat nespravuje Konnekt a pravidla jsou tam jeho vlastní."
+#~ msgid "Этот чат ведёт не Konnekt, и правила там свои."
+#~ msgstr "Tento chat nespravuje Konnekt a pravidla jsou tam jeho vlastní."
 
 #: src/lib/turnaround.tsx
 msgid "{days} дн."
@@ -2359,6 +2452,10 @@ msgstr "Takový chat neexistuje."
 msgid "ČVUT FEL, 3 курс"
 msgstr "ČVUT FEL, 3. ročník"
 
+#: src/components/Place.tsx
+msgid "Общежития"
+msgstr "Koleje"
+
 #: src/console/BrowserNotFound.tsx
 #: src/pages/NotFound.tsx
 msgid "Такой страницы нет"
@@ -2501,6 +2598,10 @@ msgstr "Hledat chat"
 msgid "Новые анкеты"
 msgstr "Nové profily"
 
+#: src/components/Place.tsx
+msgid "Работа и IT"
+msgstr "Práce a IT"
+
 #: src/console/pages/Chat.tsx
 msgid "правила в закрепе, рекламу не публикуем."
 msgstr "pravidla jsou v připnuté zprávě, reklamu nezveřejňujeme."
@@ -2580,6 +2681,10 @@ msgstr "Konzole je jen pro administrátory"
 msgid "Не виден: у чата нет названия"
 msgstr "Není vidět: chat nemá název"
 
+#: src/components/Place.tsx
+msgid "общежитие"
+msgstr "kolej"
+
 #: src/console/pages/AudiencePeople.tsx
 msgid "Последняя активность"
 msgstr "Poslední aktivita"
@@ -2629,8 +2734,8 @@ msgid "не задан"
 msgstr "není nastaven"
 
 #: src/pages/Chats.tsx
-msgid "Общие"
-msgstr "Obecné"
+#~ msgid "Общие"
+#~ msgstr "Obecné"
 
 #. placeholder {0}: alsoProps.named
 #: src/pages/Results.tsx
@@ -2678,6 +2783,10 @@ msgstr "Jak to děláš"
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Poznámka nad kartou"
+
+#: src/components/Place.tsx
+msgid "Злин"
+msgstr "Zlín"
 
 #: src/pages/Chats.tsx
 msgid "Список не пришёл. Попробуй ещё раз через минуту."
@@ -2906,6 +3015,10 @@ msgstr "Profil"
 msgid "Найди свой чат"
 msgstr "Najdi svůj chat"
 
+#: src/components/Place.tsx
+msgid "Оломоуц"
+msgstr "Olomouc"
+
 #: src/console/pages/Chat.tsx
 msgid "Капча, приветствие и чёрный список здесь перестанут работать."
 msgstr "Captcha, uvítání a černá listina tu přestanou fungovat."
@@ -2946,6 +3059,10 @@ msgstr "Zveřejnit poptávku"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Zabanovaní"
+
+#: src/console/pages/Chat.tsx
+#~ msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
+#~ msgstr "Prázdné znamená celé Česko: chat je v katalogu vidět u každého města."
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
@@ -2992,6 +3109,10 @@ msgstr "Hledáme…"
 #: src/pages/Results.tsx
 msgid "Пусть найдут тебя"
 msgstr "Ať najdou oni tebe"
+
+#: src/components/Place.tsx
+msgid "общий чат"
+msgstr "obecný chat"
 
 #. placeholder {0}: data.hidden_note
 #: src/console/ProfileSheet.tsx
@@ -3133,6 +3254,7 @@ msgstr "Aktualizováno právě teď"
 #: src/console/pages/AudiencePeople.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Spam.tsx
+#: src/pages/Chats.tsx
 msgid "Все"
 msgstr "Vše"
 
