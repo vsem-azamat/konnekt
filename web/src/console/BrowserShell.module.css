@@ -183,6 +183,11 @@
   flex-direction: column;
 }
 
+/* A screen drawn as a table takes the width layout A gives it. */
+.content:has([data-wide]) {
+  max-width: 1080px;
+}
+
 @media (max-width: 760px) {
   .frame {
     grid-template-columns: 1fr;

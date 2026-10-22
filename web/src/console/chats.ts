@@ -121,3 +121,27 @@ export function joinsDirectly(
   const isPublic = chat.public_link !== null && !isInviteLink(chat.public_link);
   return isPublic && chat.join_by_request === false;
 }
+
+export type Guard = 'captcha' | 'welcome';
+
+/**
+ * What the bot does for a chat's newcomers; null where it does nothing because
+ * the chat is not approved, so the status is the thing to know. Where people
+ * walk straight in, a stored captcha asks nobody.
+ */
+export function chatGuards(
+  chat: Pick<
+    ConsoleChat,
+    | 'resource_status'
+    | 'join_mode'
+    | 'public_link'
+    | 'join_by_request'
+    | 'is_welcome_enabled'
+  >,
+): Guard[] | null {
+  if (chat.resource_status !== 'approved') return null;
+  const guards: Guard[] = [];
+  if (chat.join_mode === 'captcha' && !joinsDirectly(chat)) guards.push('captcha');
+  if (chat.is_welcome_enabled) guards.push('welcome');
+  return guards;
+}
