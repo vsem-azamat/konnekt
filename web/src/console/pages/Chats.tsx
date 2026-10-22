@@ -59,15 +59,11 @@ function isFilter(value: string | null): value is StatusFilter {
  */
 export default function ConsoleChatsPage() {
   return (
-    <ConsoleGate>
-      {/* Wide in a browser while it loads or finds nothing too, so the
-          screen does not jump between widths. */}
-      <div data-wide>
-        <Title>
-          <Trans>Чаты</Trans>
-        </Title>
-        <ChatList />
-      </div>
+    <ConsoleGate wide>
+      <Title>
+        <Trans>Чаты</Trans>
+      </Title>
+      <ChatList />
     </ConsoleGate>
   );
 }

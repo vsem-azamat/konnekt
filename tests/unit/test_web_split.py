@@ -93,4 +93,4 @@ class TestTheConsoleIsGuardedByWhereItSits:
     @pytest.mark.parametrize("page", _console_pages(), ids=_rel)
     def test_every_console_screen_is_behind_the_gate(self, page: Path) -> None:
         """ConsoleGate says who may look before any of the screen's requests run."""
-        assert "<ConsoleGate>" in page.read_text(encoding="utf-8")
+        assert re.search(r"<ConsoleGate(\s[^>]*)?>", page.read_text(encoding="utf-8"))

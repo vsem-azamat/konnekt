@@ -2157,6 +2157,24 @@
   color: var(--ink);
 }
 
+/* The right-hand side of the top line: what was caught, and when. */
+.pingCardWhen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Whether the detector caught a link or a @mention. */
+.pingCardKind {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-pressed);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 .pingCardText {
   font-size: 14.5px;
   line-height: 1.35;

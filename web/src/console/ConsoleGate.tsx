@@ -16,10 +16,27 @@ import { meQuery, UnauthorizedError } from '@/lib/api';
  *
  * What the screen says to anybody else is only manners: every request behind
  * it is refused on the server all the same.
+ *
+ * A `wide` screen, one drawn as tables, takes layout A's width in a browser;
+ * the Mini App keeps the phone's.
  */
-export function ConsoleGate({ children }: { children: ReactNode }) {
+export function ConsoleGate({
+  wide = false,
+  children,
+}: {
+  wide?: boolean;
+  children: ReactNode;
+}) {
   return useBrowserConsole() ? (
-    <BrowserGate>{children}</BrowserGate>
+    wide ? (
+      // Wide from the first frame, the session check included, so the screen
+      // does not change width as it loads (#288, layout A).
+      <div data-wide>
+        <BrowserGate>{children}</BrowserGate>
+      </div>
+    ) : (
+      <BrowserGate>{children}</BrowserGate>
+    )
   ) : (
     <TelegramGate>{children}</TelegramGate>
   );

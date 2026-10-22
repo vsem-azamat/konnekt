@@ -1492,6 +1492,10 @@ msgstr "Стане першою в розділі «Не про навчання
 msgid "Защита"
 msgstr "Захист"
 
+#: src/console/pages/Spam.tsx
+msgid "ссылка"
+msgstr "посилання"
+
 #: src/console/pages/Chat.tsx
 msgid "Модерирует"
 msgstr "Модерує"
@@ -2852,6 +2856,10 @@ msgstr "Такої сторінки немає"
 #: src/console/pages/Spam.tsx
 msgid "Этот случай уже разобрал другой модератор."
 msgstr "Цей випадок уже розібрав інший модератор."
+
+#: src/console/pages/Spam.tsx
+msgid "упоминание"
+msgstr "згадка"
 
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"

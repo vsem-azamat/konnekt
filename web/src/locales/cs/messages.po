@@ -1492,6 +1492,10 @@ msgstr "Bude první v sekci «Není o škole». Zobrazují se tam tři karty: ne
 msgid "Защита"
 msgstr "Ochrana"
 
+#: src/console/pages/Spam.tsx
+msgid "ссылка"
+msgstr "odkaz"
+
 #: src/console/pages/Chat.tsx
 msgid "Модерирует"
 msgstr "Moderuje"
@@ -2852,6 +2856,10 @@ msgstr "Taková stránka neexistuje"
 #: src/console/pages/Spam.tsx
 msgid "Этот случай уже разобрал другой модератор."
 msgstr "Tohle už vyřídil jiný moderátor."
+
+#: src/console/pages/Spam.tsx
+msgid "упоминание"
+msgstr "zmínka"
 
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"

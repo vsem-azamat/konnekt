@@ -48,17 +48,14 @@ import {
  */
 export default function ConsoleSignalsPage() {
   return (
-    <ConsoleGate>
-      {/* Wide in a browser while the signals load too, so they do not resize the page. */}
-      <div data-wide>
-        <Title>
-          <Trans>Сигналы</Trans>
-        </Title>
-        <Sub>
-          <Trans>Что ждёт решения админа, из чата отчётов и очередей.</Trans>
-        </Sub>
-        <SignalsBody />
-      </div>
+    <ConsoleGate wide>
+      <Title>
+        <Trans>Сигналы</Trans>
+      </Title>
+      <Sub>
+        <Trans>Что ждёт решения админа, из чата отчётов и очередей.</Trans>
+      </Sub>
+      <SignalsBody />
     </ConsoleGate>
   );
 }
