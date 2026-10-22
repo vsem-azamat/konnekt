@@ -29,7 +29,7 @@ import {
   feedQuery,
   feedSections,
 } from '@/lib/feedChips';
-import { requestName } from '@/lib/requestHeading';
+import { requestName, requestQuote } from '@/lib/requestHeading';
 import {
   type Draft,
   MESSAGE_MAX,
@@ -382,7 +382,7 @@ function RespondSheet({
         <span className={ui.requestFrom}>
           <From request={request} />
         </span>
-        <span className={ui.requestQuoteText}>{request.text}</span>
+        <span className={ui.requestQuoteText}>{requestQuote(request)}</span>
       </div>
 
       <div className={ui.respondForm}>

@@ -11,3 +11,13 @@ export function requestName(request: {
 }): string | null {
   return [request.subject, request.institution].filter(Boolean).join(', ') || null;
 }
+
+/** The request as the answer sheet quotes it: its name, then the words they typed. */
+export function requestQuote(request: {
+  subject?: string | null;
+  institution?: string | null;
+  text: string;
+}): string {
+  const name = requestName(request);
+  return name ? `${name}. ${request.text}` : request.text;
+}
