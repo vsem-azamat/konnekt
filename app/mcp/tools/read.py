@@ -81,6 +81,7 @@ def _chat_summary(chat: Any) -> dict[str, Any]:
         "is_forum": chat.is_forum,
         "welcome_enabled": chat.is_welcome_enabled,
         "captcha_enabled": chat.is_captcha_enabled,
+        "join_mode": chat.join_mode,
         "parent_chat_id": chat.parent_chat_id,
     }
 

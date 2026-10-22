@@ -95,13 +95,19 @@ async def test_a_link_the_bot_made_by_hand_is_adopted_in_place() -> None:
 
 
 @pytest.mark.parametrize(
-    ("captcha", "by_request", "wanted"),
-    [(False, False, False), (True, False, True), (False, True, True), (True, True, True)],
+    ("mode", "by_request", "wanted"),
+    [
+        (Chat.JOIN_OPEN, False, False),
+        (Chat.JOIN_CAPTCHA, False, True),
+        (Chat.JOIN_ADMINS, False, True),
+        (Chat.JOIN_OPEN, True, True),
+        (Chat.JOIN_CAPTCHA, True, True),
+    ],
 )
-async def test_the_link_asks_for_join_requests_when_the_chat_does(
-    captcha: bool, by_request: bool, wanted: bool
+async def test_the_link_asks_for_join_requests_unless_the_chat_lets_everyone_in(
+    mode: str, by_request: bool, wanted: bool
 ) -> None:
-    bot, chat = _bot(join_by_request=by_request), _chat(is_captcha_enabled=captcha)
+    bot, chat = _bot(join_by_request=by_request), _chat(join_mode=mode)
 
     await ensure_link(bot, chat)
 
@@ -110,7 +116,7 @@ async def test_the_link_asks_for_join_requests_when_the_chat_does(
 
 async def test_a_new_link_follows_the_chats_join_request_setting_too() -> None:
     bot = _bot(edit=_refused("INVITE_REVOKED_MISSING"))
-    chat = _chat(is_captcha_enabled=True)
+    chat = _chat(join_mode=Chat.JOIN_CAPTCHA)
 
     await ensure_link(bot, chat)
 
@@ -168,6 +174,23 @@ async def test_a_chat_with_a_username_is_served_by_it() -> None:
     bot.create_chat_invite_link.assert_not_called()
     # Ours is retired rather than left joinable behind the catalogue's back.
     bot.revoke_chat_invite_link.assert_awaited_once_with(chat_id=chat.id, invite_link=OURS)
+
+
+async def test_a_chat_that_lets_everyone_in_goes_to_the_admins_when_it_turns_public() -> None:
+    """Its mode was given while private; a public chat's requests were always the admins'."""
+    bot, chat = _bot(username="room_chat"), _chat(join_mode=Chat.JOIN_OPEN)
+
+    assert await ensure_link(bot, chat) == "username"
+
+    assert chat.join_mode == Chat.JOIN_ADMINS
+
+
+async def test_a_public_chat_set_to_let_everyone_in_keeps_it() -> None:
+    bot, chat = _bot(username="room_chat"), _chat("https://t.me/room_chat", join_mode=Chat.JOIN_OPEN)
+
+    assert await ensure_link(bot, chat) == "kept"
+
+    assert chat.join_mode == Chat.JOIN_OPEN
 
 
 async def test_a_username_link_that_is_already_right_is_left_alone() -> None:
@@ -284,6 +307,21 @@ async def test_sync_handles_listed_private_chats_and_nothing_else(
         unlisted = await session.get(Chat, -4)
     assert unlisted is not None
     assert unlisted.public_link is None
+
+
+async def test_sync_stores_the_admins_taking_over_a_chat_that_turned_public(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        session.add(_chat(join_mode=Chat.JOIN_OPEN))
+        await session.commit()
+
+    await sync_once(session_maker=session_maker, bot=_bot(username="room_chat"), pause_seconds=0)
+
+    async with session_maker() as session:
+        stored = await session.get(Chat, -100)
+    assert stored is not None
+    assert (stored.public_link, stored.join_mode) == ("https://t.me/room_chat", Chat.JOIN_ADMINS)
 
 
 async def test_sync_stores_a_replaced_link(session_maker: async_sessionmaker[AsyncSession]) -> None:

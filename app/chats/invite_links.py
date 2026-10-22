@@ -30,7 +30,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
     TelegramServerError,
 )
-from sqlalchemy import select, update
+from sqlalchemy import case, select, update
 
 from app.chats.metadata import ask
 from app.chats.metrics import INVITE_LINK_EVENTS, INVITE_LINK_PROBLEMS
@@ -154,15 +154,16 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
             return "kept"
         chat.public_link = target
         if current is not None and is_invite_link(current):
+            if chat.join_mode == Chat.JOIN_OPEN:
+                chat.join_mode = Chat.JOIN_ADMINS
             await _retire(bot, chat, current)
         _settled(chat)
         return "username"
 
-    # A chat that has the bot's captcha, or admits only by request, must not
-    # hand out a link that skips the check.
-    wants_request = (chat.resource_status == Chat.STATUS_APPROVED and chat.is_captcha_enabled) or bool(
-        info.join_by_request
-    )
+    # Only a chat that lets everyone in, and is ours to decide for, may hand
+    # out a link that skips the request: anywhere else it would skip the check.
+    lets_everyone_in = chat.resource_status == Chat.STATUS_APPROVED and chat.join_mode == Chat.JOIN_OPEN
+    wants_request = not lets_everyone_in or bool(info.join_by_request)
 
     had_link = current is not None and is_invite_link(current)
     stale: str | None = None
@@ -222,10 +223,16 @@ async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
     new = chat.public_link
     session.expire(chat)  # the change is made below, conditionally, not by the unit of work
     if new != old:
+        values: dict[str, object] = {"public_link": new}
+        if is_invite_link(old) and new is not None and not is_invite_link(new):
+            # It turned public, and was private when its mode was given. A
+            # public chat's requests come from its own setting and were always
+            # the admins' to answer.
+            values["join_mode"] = case((Chat.join_mode == Chat.JOIN_OPEN, Chat.JOIN_ADMINS), else_=Chat.join_mode)
         stored = await session.execute(
             update(Chat)
             .where(Chat.id == chat_id, Chat.public_link == old, Chat.resource_status.in_(MANAGED_STATUSES))
-            .values(public_link=new)
+            .values(values)
         )
         await session.commit()
         if stored.rowcount == 0:  # ty: ignore[unresolved-attribute]

@@ -55,7 +55,7 @@ async def _seed_chat(session: AsyncSession, *, captcha: bool = True, link: str |
             id=CHAT_ID,
             title="ČVUT FIT",
             resource_status=DbChat.STATUS_APPROVED,
-            is_captcha_enabled=captcha,
+            join_mode=DbChat.JOIN_CAPTCHA if captcha else DbChat.JOIN_ADMINS,
             public_link=link,
         )
     )
@@ -302,7 +302,7 @@ async def test_a_tap_after_the_chat_stopped_using_captcha_lets_nobody_in(
     if change == "unapproved":
         chat.resource_status = DbChat.STATUS_DISABLED
     else:
-        chat.is_captcha_enabled = False
+        chat.join_mode = DbChat.JOIN_ADMINS
     await session.commit()
 
     outcome = await service.answer(
@@ -322,7 +322,7 @@ async def test_the_sweep_declines_nothing_in_a_chat_that_stopped_using_captcha(s
     challenge = await _only_challenge(session)
     chat = await session.get(DbChat, CHAT_ID)
     assert chat is not None
-    chat.is_captcha_enabled = False
+    chat.join_mode = DbChat.JOIN_ADMINS
     await session.commit()
 
     await service.expire_stale(bot, session, now=utc_now() + PAST_WINDOW)
@@ -644,7 +644,7 @@ async def test_no_reminder_once_the_chat_stopped_using_captcha(session: AsyncSes
     if change == "unapproved":
         chat.resource_status = DbChat.STATUS_OBSERVED
     else:
-        chat.is_captcha_enabled = False
+        chat.join_mode = DbChat.JOIN_ADMINS
     await session.commit()
 
     await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER + datetime.timedelta(seconds=10))

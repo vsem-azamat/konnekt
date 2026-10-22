@@ -29,7 +29,6 @@ _CARRIED = (
     "welcome_message",
     "time_delete",
     "is_welcome_enabled",
-    "is_captcha_enabled",
     "is_service_cleanup_enabled",
     "parent_chat_id",
     "relation_notes",
@@ -70,6 +69,11 @@ async def follow_upgrade(db: AsyncSession, *, old_id: int, new_id: int) -> bool:
         # Restoring a status must not silently republish a link: only a listed
         # old chat's link may follow it.
         carried.pop("public_link", None)
+    # Letting everyone in depends on whether the chat is public, which an
+    # upgrade often changes, so the new chat keeps the mode it was given when
+    # the bot first met it. A captcha or the admins' say follows it.
+    if old.join_mode != Chat.JOIN_OPEN:
+        carried["join_mode"] = old.join_mode
     for name, value in carried.items():
         setattr(new, name, value)
     await db.flush()

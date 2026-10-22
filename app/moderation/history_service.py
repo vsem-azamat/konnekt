@@ -45,6 +45,7 @@ async def merge_chat(db: AsyncSession, chat: types.Chat) -> None:
         id_tg_chat=chat.id,
         title=chat.title,
         is_forum=chat.is_forum,
+        is_public=chat.username is not None,
     )
 
 

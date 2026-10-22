@@ -70,6 +70,10 @@ class ChatMetadata:
     photo_file_id: str | None
     avatar_file_id: str | None = None
     avatar_unique_id: str | None = None
+    # Telegram's "approve new members". It leaves the field out when off, so
+    # an answer without it is False, not unknown.
+    join_by_request: bool = False
+    username: str | None = None
 
 
 def _text(value: object) -> str | None:
@@ -114,6 +118,8 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
         photo_file_id=_text(getattr(photo, "big_file_id", None)),
         avatar_file_id=_text(getattr(photo, "small_file_id", None)),
         avatar_unique_id=_text(getattr(photo, "small_file_unique_id", None)),
+        join_by_request=getattr(chat, "join_by_request", None) is True,
+        username=_text(getattr(chat, "username", None)),
     )
 
 

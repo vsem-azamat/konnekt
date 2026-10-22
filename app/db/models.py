@@ -14,7 +14,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
@@ -120,6 +120,20 @@ class Chat(Base):
     # catalog's taxonomy does not know yet, which has no code to say it.
     TOPICS = ("university", "subjects", "dorms", "work_it", "general")
 
+    # What the bot does with a request to join. Only a chat that takes
+    # requests has any: a public one with "approve new members" on in
+    # Telegram, or a private one through the bot's own link, which asks for a
+    # request in every mode but OPEN.
+    #
+    # OPEN approves every request to a public chat at once (a private one
+    # admits through the bot's link without any), CAPTCHA asks the applicant first,
+    # ADMINS leaves requests to the chat's admins. Anyone blacklisted is
+    # declined whatever the mode.
+    JOIN_OPEN = "open"
+    JOIN_CAPTCHA = "captcha"
+    JOIN_ADMINS = "admins"
+    JOIN_MODES = (JOIN_OPEN, JOIN_CAPTCHA, JOIN_ADMINS)
+
     __table_args__ = (
         sa.CheckConstraint(
             "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
@@ -129,6 +143,7 @@ class Chat(Base):
             "topic IN ('university', 'subjects', 'dorms', 'work_it', 'general')",
             name="ck_chats_topic",
         ),
+        sa.CheckConstraint("join_mode IN ('open', 'captcha', 'admins')", name="ck_chats_join_mode"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
@@ -138,7 +153,28 @@ class Chat(Base):
     welcome_message: Mapped[str | None] = mapped_column(String, nullable=True)
     time_delete: Mapped[int] = mapped_column(Integer, default=60)
     is_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_captcha_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    # ADMINS until somebody chooses: the bot decides nobody's request on its own.
+    join_mode: Mapped[str] = mapped_column(String(16), default=JOIN_ADMINS, server_default=JOIN_ADMINS)
+    # Telegram's "approve new members", as getChat last said; None until asked.
+    # Only a public chat's means anything: a private one takes requests by link.
+    join_by_request: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # The switch join_mode replaced, kept only so the previous release runs
+    # beside this one during a deploy. Read by nothing; dropped by the next migration.
+    _legacy_captcha: Mapped[bool] = mapped_column(
+        "is_captcha_enabled", Boolean, default=False, server_default=sa.false()
+    )
+
+    # ADMINS given by the migration only for want of a link, to be settled by
+    # the chat's first getChat answer. Any mode set afterwards is a choice.
+    join_mode_guessed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+
+    @validates("join_mode")
+    def _keep_legacy_captcha(self, _key: str, mode: str) -> str:
+        # Kept true to the mode, so a release rolled back to reads what was set.
+        self._legacy_captcha = mode == self.JOIN_CAPTCHA
+        self.join_mode_guessed = False
+        return mode
+
     # On by default: a quiet chat otherwise reads as a membership log, dozens of
     # "joined"/"left" notices with the occasional real message lost among them.
     is_service_cleanup_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true())
@@ -203,7 +239,7 @@ class Chat(Base):
         welcome_message: str | None = None,
         time_delete: int = 60,
         is_welcome_enabled: bool = False,
-        is_captcha_enabled: bool = False,
+        join_mode: str = JOIN_ADMINS,
         is_service_cleanup_enabled: bool = True,
         parent_chat_id: int | None = None,
         relation_notes: str | None = None,
@@ -219,7 +255,7 @@ class Chat(Base):
         self.welcome_message = welcome_message
         self.time_delete = time_delete
         self.is_welcome_enabled = is_welcome_enabled
-        self.is_captcha_enabled = is_captcha_enabled
+        self.join_mode = join_mode
         self.is_service_cleanup_enabled = is_service_cleanup_enabled
         self.parent_chat_id = parent_chat_id
         self.relation_notes = relation_notes
@@ -249,13 +285,10 @@ class Chat(Base):
         else:
             raise ValueError("Delete time must be positive")
 
-    def enable_captcha(self) -> None:
-        """Enable captcha for new members"""
-        self.is_captcha_enabled = True
-
-    def disable_captcha(self) -> None:
-        """Disable captcha"""
-        self.is_captcha_enabled = False
+    @property
+    def is_captcha_enabled(self) -> bool:
+        """Whether requests to join get the captcha; read-only, the mode is what is set."""
+        return self.join_mode == self.JOIN_CAPTCHA
 
     def set_resource_status(self, status: str) -> None:
         """Set whether the bot may actively operate in this chat."""

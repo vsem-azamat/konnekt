@@ -22,7 +22,7 @@ from aiogram.exceptions import TelegramBadRequest
 from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -30,7 +30,14 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-def _bot(*, counts: dict[int, int] | None = None, title: str = "Как в Telegram", photo: str | None = None):
+def _bot(
+    *,
+    counts: dict[int, int] | None = None,
+    title: str = "Как в Telegram",
+    photo: str | None = None,
+    join_by_request: bool | None = None,
+    username: str | None = None,
+):
     """A bot that answers about every chat unless told otherwise."""
     bot = AsyncMock()
     bot.get_chat_member_count = AsyncMock(side_effect=lambda chat_id: (counts or {}).get(chat_id, 42))
@@ -39,6 +46,8 @@ def _bot(*, counts: dict[int, int] | None = None, title: str = "Как в Telegr
         chat = MagicMock()
         chat.title = title
         chat.photo = MagicMock(big_file_id=photo) if photo else None
+        chat.join_by_request = join_by_request
+        chat.username = username
         return chat
 
     bot.get_chat = AsyncMock(side_effect=_get_chat)
@@ -76,6 +85,13 @@ async def _snapshots(session_maker) -> list[tuple[int, int]]:
     async with session_maker() as session:
         rows = (await session.execute(select(ChatMemberSnapshot).order_by(ChatMemberSnapshot.chat_id))).scalars().all()
     return [(row.chat_id, row.member_count) for row in rows]
+
+
+def _guessed() -> Chat:
+    """A row the migration gave to the admins for want of a link."""
+    chat = Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS)
+    chat.join_mode_guessed = True
+    return chat
 
 
 async def _chat(session_maker, chat_id: int) -> Chat:
@@ -146,6 +162,76 @@ class TestMetadata:
 
         assert (await _chat(db_session_maker, -100)).title == "Новое имя"
 
+    @pytest.mark.parametrize(("answered", "stored"), [(True, True), (None, False)])
+    async def test_whether_the_chat_takes_join_requests_is_kept(
+        self, db_session_maker: async_sessionmaker[AsyncSession], answered: bool | None, stored: bool
+    ) -> None:
+        """Telegram leaves the field out when it is off: answered without it is off, not unknown."""
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=answered))
+
+        assert (await _chat(db_session_maker, -100)).join_by_request is stored
+
+    async def test_a_chat_never_asked_about_join_requests_is_asked_at_once(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Synced an hour ago, before the field existed: the console needs it now, not tomorrow."""
+        chat = Chat(id=-100, title="A")
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=1)
+        await _seed(db_session_maker, chat)
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=True))
+
+        assert (await _chat(db_session_maker, -100)).join_by_request is True
+
+    @pytest.mark.parametrize(("username", "settled"), [(None, Chat.JOIN_OPEN), ("public_room", Chat.JOIN_ADMINS)])
+    async def test_the_first_answer_settles_a_mode_the_migration_had_to_guess(
+        self, db_session_maker: async_sessionmaker[AsyncSession], username: str | None, settled: str
+    ) -> None:
+        """A chat with no link could be private or public; the migration chose the admins to be safe.
+
+        A private one had the bot's link asking for no request, so once Telegram
+        says it has no username it lets everyone in again, as a new chat would.
+        """
+        await _seed(db_session_maker, _guessed())
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False, username=username))
+
+        settled_chat = await _chat(db_session_maker, -100)
+        assert settled_chat.join_mode == settled
+        assert settled_chat.join_mode_guessed is False
+
+    async def test_admins_somebody_chose_are_not_resettled(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """A new chat or an upgraded one is never asked yet either; its admins are a choice, not a guess."""
+        await _seed(db_session_maker, Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS))
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False))
+
+        assert (await _chat(db_session_maker, -100)).join_mode == Chat.JOIN_ADMINS
+
+    async def test_a_mode_set_while_the_chat_is_asked_is_kept(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """The first run after the deploy asks every chat, a second apiece, while operators work."""
+        await _seed(db_session_maker, _guessed())
+        bot = _bot(join_by_request=False)
+        answer = bot.get_chat.side_effect
+
+        async def _get_chat(chat_id: int):
+            async with db_session_maker() as session:
+                await session.execute(update(Chat).where(Chat.id == -100).values(join_mode=Chat.JOIN_CAPTCHA))
+                await session.commit()
+            return await answer(chat_id)
+
+        bot.get_chat.side_effect = _get_chat
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).join_mode == Chat.JOIN_CAPTCHA
+
     async def test_a_brand_new_chat_is_synced_immediately(
         self, db_session_maker: async_sessionmaker[AsyncSession]
     ) -> None:
@@ -164,6 +250,7 @@ class TestMetadata:
         """Titles change about never; the call is not free."""
         chat = Chat(id=-100, title="Как записали")
         chat.last_synced_at = utc_now()
+        chat.join_by_request = False
         await _seed(db_session_maker, chat)
         bot = _bot(title="Как в Telegram")
 
@@ -250,6 +337,7 @@ class TestAvatars:
     async def test_a_chat_with_its_picture_is_not_asked_again_until_stale(self, db_session_maker) -> None:
         chat = Chat(id=-100, title="A")
         chat.photo_file_id = "big-1"
+        chat.join_by_request = False
         chat.last_synced_at = utc_now()
         await _seed(db_session_maker, chat)
         async with db_session_maker() as session:

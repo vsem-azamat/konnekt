@@ -63,7 +63,7 @@ def client(db_session_maker: async_sessionmaker[AsyncSession], bot, monkeypatch)
 async def _wave(db_session_maker, *, held: int, decision: str | None = None) -> int:
     now = utc_now()
     async with db_session_maker() as session:
-        session.add(Chat(id=-100, title="Matfyz", resource_status=Chat.STATUS_APPROVED, is_captcha_enabled=True))
+        session.add(Chat(id=-100, title="Matfyz", resource_status=Chat.STATUS_APPROVED, join_mode=Chat.JOIN_CAPTCHA))
         wave = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(minutes=5))
         wave.alert_message_id = 77
         wave.decision = decision

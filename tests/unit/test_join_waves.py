@@ -39,7 +39,7 @@ def _request(user_id: int) -> ChatJoinRequest:
 
 @pytest.fixture
 async def chat(session: AsyncSession) -> DbChat:
-    row = DbChat(id=CHAT_ID, title="ČVUT FIT", resource_status=DbChat.STATUS_APPROVED, is_captcha_enabled=True)
+    row = DbChat(id=CHAT_ID, title="ČVUT FIT", resource_status=DbChat.STATUS_APPROVED, join_mode=DbChat.JOIN_CAPTCHA)
     session.add(row)
     await session.commit()
     return row
@@ -274,7 +274,7 @@ async def test_declining_a_wave_in_a_chat_that_dropped_captcha_declines_nobody(
 ) -> None:
     await _flood(bot, session, chat, waves.PER_MINUTE + 3)
     wave = await _the_wave(session)
-    chat.is_captcha_enabled = False
+    chat.join_mode = DbChat.JOIN_ADMINS
     await session.commit()
 
     await waves.decide(bot, session, wave_id=wave.id, action=waves.DECLINE, admin_id=ADMIN_ID, admin_name="A")

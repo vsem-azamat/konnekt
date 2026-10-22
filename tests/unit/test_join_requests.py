@@ -4,14 +4,17 @@ Until now the blacklist was only enforced once someone was already inside — an
 after the middleware fix, only at the moment they joined. A chat that requires
 approval never reaches that moment, so the request itself has to be answered.
 
-Nobody is approved here. Deciding who gets in is the operator's call; this only
-removes the people they have already decided about.
+Nobody is approved here unless the chat lets everyone in: deciding who gets in
+is otherwise the operator's call or the captcha's; this only removes the
+people they have already decided about.
 """
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import ApproveChatJoinRequest
 from aiogram.types import Chat, ChatJoinRequest, User
 from app.core.config import settings
 from app.db.models import Chat as DbChat
@@ -27,10 +30,10 @@ CHAT_ID = -1001234
 USER_ID = 4242
 
 
-def _request(query_id: str | None = None) -> ChatJoinRequest:
+def _request(query_id: str | None = None, *, username: str | None = None) -> ChatJoinRequest:
     user = User(id=USER_ID, is_bot=False, first_name="Applicant")
     return ChatJoinRequest(
-        chat=Chat(id=CHAT_ID, type="supergroup", title="Managed"),
+        chat=Chat(id=CHAT_ID, type="supergroup", title="Managed", username=username),
         from_user=user,
         user_chat_id=USER_ID,
         date=datetime.now(UTC),
@@ -57,6 +60,7 @@ def bot() -> MagicMock:
     tg_bot.approve_chat_join_request = AsyncMock()
     tg_bot.answer_chat_join_request_query = AsyncMock()
     tg_bot.send_chat_join_request_web_app = AsyncMock()
+    tg_bot.send_message = AsyncMock()
     return tg_bot
 
 
@@ -119,7 +123,7 @@ async def _seed_chat_with_check(session: AsyncSession) -> None:
             id=CHAT_ID,
             title="Guarded",
             resource_status=DbChat.STATUS_APPROVED,
-            is_captcha_enabled=True,
+            join_mode=DbChat.JOIN_CAPTCHA,
         )
     )
     await session.commit()
@@ -171,3 +175,68 @@ async def test_a_blacklisted_applicant_is_never_offered_the_check(session: Async
 
     bot.send_chat_join_request_web_app.assert_not_awaited()
     bot.answer_chat_join_request_query.assert_awaited_once_with(chat_join_request_query_id="q-6", result="decline")
+
+
+# --- a chat that lets everyone in --------------------------------------------
+
+
+async def _seed_open_chat(session: AsyncSession) -> None:
+    session.add(DbChat(id=CHAT_ID, title="Open", resource_status=DbChat.STATUS_APPROVED, join_mode=DbChat.JOIN_OPEN))
+    await session.commit()
+
+
+async def test_a_public_open_chat_approves_the_request_at_once(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+
+    await join_requested(_request(username="open_room"), bot, session)
+
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
+    bot.send_message.assert_not_called()
+
+
+async def test_an_open_chat_still_turns_the_blacklisted_away(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+    await _blacklist(session)
+
+    await join_requested(_request(username="open_room"), bot, session)
+
+    bot.decline_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
+    bot.approve_chat_join_request.assert_not_awaited()
+
+
+async def test_a_public_open_chat_approves_through_the_query_as_guard_bot(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+
+    await join_requested(_request(query_id="q-7", username="open_room"), bot, session)
+
+    bot.answer_chat_join_request_query.assert_awaited_once_with(chat_join_request_query_id="q-7", result="approve")
+    bot.approve_chat_join_request.assert_not_awaited()
+
+
+async def test_a_request_in_a_private_open_chat_is_left_to_the_admins(session: AsyncSession, bot) -> None:
+    """The bot's link there asks for none: a request came by an admin's own link, and is theirs."""
+    await _seed_open_chat(session)
+
+    await join_requested(_request(), bot, session)
+
+    bot.approve_chat_join_request.assert_not_awaited()
+    bot.decline_chat_join_request.assert_not_awaited()
+
+
+async def test_a_private_open_chat_queues_for_the_admins_as_guard_bot(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+
+    await join_requested(_request(query_id="q-8"), bot, session)
+
+    bot.answer_chat_join_request_query.assert_awaited_once_with(chat_join_request_query_id="q-8", result="queue")
+
+
+async def test_an_approval_telegram_refuses_leaves_the_request_to_the_admins(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+    bot.approve_chat_join_request.side_effect = TelegramBadRequest(
+        method=ApproveChatJoinRequest(chat_id=CHAT_ID, user_id=USER_ID), message="Bad Request: CHAT_ADMIN_REQUIRED"
+    )
+
+    await join_requested(_request(username="open_room"), bot, session)
+
+    bot.decline_chat_join_request.assert_not_awaited()

@@ -30,7 +30,7 @@ class ChatRepository:
             chat_model.welcome_message = chat.welcome_message
             chat_model.time_delete = chat.time_delete
             chat_model.is_welcome_enabled = chat.is_welcome_enabled
-            chat_model.is_captcha_enabled = chat.is_captcha_enabled
+            chat_model.join_mode = chat.join_mode
         else:
             chat_model = Chat(
                 id=chat.id,
@@ -40,7 +40,7 @@ class ChatRepository:
                 welcome_message=chat.welcome_message,
                 time_delete=chat.time_delete,
                 is_welcome_enabled=chat.is_welcome_enabled,
-                is_captcha_enabled=chat.is_captcha_enabled,
+                join_mode=chat.join_mode,
             )
             self.db.add(chat_model)
 
@@ -68,14 +68,25 @@ class ChatRepository:
         id_tg_chat: int,
         title: str | None = None,
         is_forum: bool | None = None,
+        *,
+        is_public: bool = False,
     ) -> None:
         """Record a chat's title and forum flag, creating it if new.
 
         One statement, for the same reason as users: two updates from a chat
         the bot has just joined arrive together.
+
+        A new chat starts in the join mode the bot acted in before there were
+        modes: a public one's requests are Telegram's and go to the admins, a
+        private one's come through the bot's link, which asked for none.
         """
         changed = {name: value for name, value in (("title", title), ("is_forum", is_forum)) if value is not None}
-        statement = insert_for(self.db, Chat).values(id=id_tg_chat, title=title, is_forum=is_forum or False)
+        statement = insert_for(self.db, Chat).values(
+            id=id_tg_chat,
+            title=title,
+            is_forum=is_forum or False,
+            join_mode=Chat.JOIN_ADMINS if is_public else Chat.JOIN_OPEN,
+        )
         if changed:
             # Only when something changed, or every message rewrites the row.
             differs = or_(*(getattr(Chat, name).is_distinct_from(statement.excluded[name]) for name in changed))

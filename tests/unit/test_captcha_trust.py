@@ -48,7 +48,7 @@ async def chat(session: AsyncSession) -> DbChat:
         id=CHAT_ID,
         title="ČVUT FIT",
         resource_status=DbChat.STATUS_APPROVED,
-        is_captcha_enabled=True,
+        join_mode=DbChat.JOIN_CAPTCHA,
         public_link="https://t.me/cvut_fit",
     )
     session.add(row)

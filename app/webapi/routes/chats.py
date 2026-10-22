@@ -30,6 +30,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chats.avatars import sync_photo
+from app.chats.invite_links import is_invite_link
 from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -49,6 +50,7 @@ from app.webapi.schemas import (
     ChatUpdate,
     ExternalChatCreate,
     HeatmapCell,
+    JoinMode,
     MemberSnapshotPoint,
 )
 from app.webapi.services import member_counts, public_answers
@@ -74,6 +76,22 @@ def _topic(topic: str | None) -> ChatTopic | None:
     return cast("ChatTopic | None", topic)
 
 
+def _join_mode(mode: str) -> JoinMode:
+    return cast("JoinMode", mode)
+
+
+def _mode_without_captcha(chat: Chat) -> str:
+    """What switching the captcha off leaves, the bot's behaviour without it unchanged.
+
+    A chat with the bot's invite link is private, and that link asked for no
+    request without a captcha. Anything else may be public, whose requests come
+    from its own setting and went to the admins; so does a private chat that
+    asks for requests itself.
+    """
+    private = chat.public_link is not None and is_invite_link(chat.public_link)
+    return Chat.JOIN_OPEN if private and chat.join_by_request is not True else Chat.JOIN_ADMINS
+
+
 def _build_heatmap(timestamps: list[datetime.datetime]) -> list[HeatmapCell]:
     grid: dict[tuple[int, int], int] = {}
     for ts in timestamps:
@@ -97,6 +115,8 @@ async def list_chats(
             is_forum=chat.is_forum,
             is_welcome_enabled=chat.is_welcome_enabled,
             is_captcha_enabled=chat.is_captcha_enabled,
+            join_mode=_join_mode(chat.join_mode),
+            join_by_request=chat.join_by_request,
             is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
             parent_chat_id=chat.parent_chat_id,
             relation_notes=chat.relation_notes,
@@ -206,6 +226,8 @@ async def get_chat(
         is_forum=chat.is_forum,
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
+        join_mode=_join_mode(chat.join_mode),
+        join_by_request=chat.join_by_request,
         is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
         parent_chat_id=chat.parent_chat_id,
         relation_notes=chat.relation_notes,
@@ -284,6 +306,12 @@ async def update_chat(
     if will_have_parent:
         fields["institution_code"] = None
 
+    captcha = fields.pop("is_captcha_enabled", None)
+    if captcha is not None and fields.get("join_mode") is None:
+        fields["join_mode"] = Chat.JOIN_CAPTCHA if captcha else _mode_without_captcha(chat)
+    if "join_mode" in fields and fields["join_mode"] is None:
+        del fields["join_mode"]
+
     for key, value in fields.items():
         setattr(chat, key, value)
     await session.commit()
@@ -299,6 +327,8 @@ async def update_chat(
         is_forum=chat.is_forum,
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
+        join_mode=_join_mode(chat.join_mode),
+        join_by_request=chat.join_by_request,
         is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
         parent_chat_id=chat.parent_chat_id,
         relation_notes=chat.relation_notes,
@@ -341,6 +371,7 @@ async def refresh_chat_from_telegram(
     if metadata is not None:
         if metadata.title and metadata.title != chat.title:
             chat.title = metadata.title
+        chat.join_by_request = metadata.join_by_request
         await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
 
     chat.last_synced_at = utc_now()
@@ -359,6 +390,8 @@ async def refresh_chat_from_telegram(
         is_forum=chat.is_forum,
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
+        join_mode=_join_mode(chat.join_mode),
+        join_by_request=chat.join_by_request,
         is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
         parent_chat_id=chat.parent_chat_id,
         relation_notes=chat.relation_notes,
@@ -432,6 +465,8 @@ async def add_external_chat(
         is_forum=chat.is_forum,
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
+        join_mode=_join_mode(chat.join_mode),
+        join_by_request=chat.join_by_request,
         is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
         parent_chat_id=chat.parent_chat_id,
         relation_notes=chat.relation_notes,
