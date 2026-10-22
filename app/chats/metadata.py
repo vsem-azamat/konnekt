@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramRetryAfter
 
 from app.core.logging import get_logger
 
@@ -51,6 +51,19 @@ async def ask[T](call: Callable[[], Awaitable[T]]) -> T:
     except TelegramRetryAfter as err:
         await asyncio.sleep(err.retry_after)
         return await call()
+
+
+class BotNotInChatError(Exception):
+    """Telegram does not know the chat to this bot: "chat not found".
+
+    What a private group answers a bot that was never in it, and what a deleted
+    chat answers too; a bot that was kicked hears "Forbidden" instead. Unlike a
+    flood or a timeout it will say the same thing an hour later.
+    """
+
+
+def _not_found(err: TelegramAPIError) -> bool:
+    return isinstance(err, TelegramBadRequest) and "chat not found" in err.message.lower()
 
 
 @dataclass(frozen=True)
@@ -128,9 +141,14 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
 
     None and zero are different answers and stay different all the way to the
     page: one means nobody is there, the other means we did not find out.
+
+    Raises `BotNotInChatError` when the bot is not in the chat, so the caller can
+    stop asking every hour rather than log the same refusal each time.
     """
     try:
         return await ask(lambda: bot.get_chat_member_count(chat_id))
     except TelegramAPIError as err:
+        if _not_found(err):
+            raise BotNotInChatError(chat_id) from err
         logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None

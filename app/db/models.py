@@ -211,6 +211,9 @@ class Chat(Base):
     topic: Mapped[str | None] = mapped_column(String(16), nullable=True)
     photo_file_id: Mapped[str | None] = mapped_column(String, nullable=True)
     last_synced_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # When Telegram last told the bot it does not know this chat, or None while
+    # it answers. The hourly loop asks such a chat once a day instead.
+    bot_absent_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
     modified_at: Mapped[datetime.datetime] = mapped_column(
         DateTime,

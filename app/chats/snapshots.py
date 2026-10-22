@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select, update
 
 from app.chats.avatars import sync_photo
-from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -43,6 +43,10 @@ SNAPSHOT_INTERVAL_SECONDS = 3600  # 1 hour
 # of an hour.
 PAUSE_BETWEEN_CHATS_SECONDS = 1.0
 METADATA_STALENESS_HOURS = 24
+# A chat the bot is not in answers the same "chat not found" every hour. Asked
+# once a day it still comes back by itself once somebody adds the bot, which
+# the bot is not told about for a chat outside the approval gate.
+BOT_ABSENT_RECHECK_HOURS = 24
 
 
 def _apply_title(chat: Chat, title: str | None) -> bool:
@@ -76,6 +80,26 @@ async def _settle_guessed_mode(session_maker: async_sessionmaker[AsyncSession], 
         await session.commit()
 
 
+def _note_absent(chat: Chat, now: datetime.datetime) -> None:
+    """Mark a chat the bot is not in, saying so once rather than every hour.
+
+    Most likely the chat was never added to the current bot: on 2026-10-20 the
+    moderator moved to a new bot, and only the chats it was added to know it.
+    """
+    if chat.bot_absent_at is None:
+        logger.warning(
+            "bot_not_in_chat",
+            chat_id=chat.id,
+            title=chat.title,
+            status=chat.resource_status,
+            hint="Telegram does not know this chat to the current bot: most likely never added after the bot moved",
+            recheck_hours=BOT_ABSENT_RECHECK_HOURS,
+        )
+    else:
+        logger.info("bot_still_not_in_chat", chat_id=chat.id)
+    chat.bot_absent_at = now
+
+
 async def snapshot_once(
     *,
     session_maker: async_sessionmaker[AsyncSession],
@@ -92,14 +116,32 @@ async def snapshot_once(
     photo_refreshed = 0
     now = utc_now()
     cutoff = now - datetime.timedelta(hours=METADATA_STALENESS_HOURS)
+    absent_cutoff = now - datetime.timedelta(hours=BOT_ABSENT_RECHECK_HOURS)
 
     async with session_maker() as session:
         chats = (await session.execute(select(Chat))).scalars().all()
         pictured = set((await session.execute(select(ChatAvatar.chat_id))).scalars())
-        for index, chat in enumerate(chats):
-            if index:
+        asked = 0
+        for chat in chats:
+            if chat.bot_absent_at is not None and chat.bot_absent_at > absent_cutoff:
+                continue
+            if asked:
                 await asyncio.sleep(PAUSE_BETWEEN_CHATS_SECONDS)
-            members = await fetch_member_count(bot=bot, chat_id=chat.id)
+            asked += 1
+            try:
+                members = await fetch_member_count(bot=bot, chat_id=chat.id)
+            except BotNotInChatError:
+                _note_absent(chat, now)
+                # A public chat still answers getChat by its name, so its title
+                # and photo stay current; a private one has nothing more to say.
+                if chat.public_link is None or username_of(chat.public_link) is None:
+                    continue
+                members = None
+            else:
+                # Only a count says the bot is back: a timeout says nothing.
+                if members is not None and chat.bot_absent_at is not None:
+                    logger.info("bot_back_in_chat", chat_id=chat.id)
+                    chat.bot_absent_at = None
             if members is not None:
                 session.add(ChatMemberSnapshot(chat_id=chat.id, member_count=members))
                 written += 1
