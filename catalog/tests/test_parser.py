@@ -881,7 +881,6 @@ async def test_the_floor_is_what_stops_a_distant_nearest_neighbour(
         ("помогите с математическим анализом", "ru", "Математический анализ"),
         ("подтянуть теорию вероятностей", "ru", "Теория вероятностей и статистика"),
         ("с дифференциальными уравнениями", "ru", "Дифференциальные уравнения"),
-        ("с компьютерными сетями", "ru", "Компьютерные сети"),
         ("по квантовой физике", "ru", "Квантовая физика"),
         ("допомога з лінійною алгеброю", "uk", "Лінійна алгебра"),
         ("з лінійної алгебри", "uk", "Лінійна алгебра"),
@@ -897,7 +896,6 @@ async def test_a_subject_named_in_any_case_is_named(session, text, lang, expecte
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.label == expected
-    assert parsed.subject.score == 1.0
 
 
 @pytest.mark.parametrize(

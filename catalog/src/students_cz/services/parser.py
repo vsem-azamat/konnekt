@@ -674,18 +674,16 @@ async def parse(
                     and _only_names_shelf(result, norm, keyword, stems, numbered, set())
                 ):
                     result.institution = None
-        elif stems:
+        elif stems and subjects:
             # A kind of help the shelf cannot go with, a shelf named beside it,
             # and a guess from another shelf: «вступительные по химии» answered
             # the physics entrance exam. The guess goes; what the shelf holds,
             # or was named, stays. Only here — a plain query naming two shelves,
             # «математика и физика», keeps the guess it had.
-            if subjects:
-                subjects = await _within_shelf(session, subjects, shelves[0].id)
-            # Emptied by it, or empty already, the list must stay empty: the
-            # embedder would only bring another guess from somewhere else — it
-            # answered «Chemie – střední škola» beside entrance exams, which
-            # matches nobody.
+            subjects = await _within_shelf(session, subjects, shelves[0].id)
+            # Emptied by it, the list must stay empty: the embedder would only
+            # bring another guess from somewhere else — it answered «Chemie –
+            # střední škola» beside entrance exams, which matches nobody.
             shelf_spoke = not subjects
     # Every entrance offer sits on the admissions shelf, so a guess from
     # anywhere else beside entrance exams matches nobody: «поступление на ЧВУТ
@@ -1297,10 +1295,6 @@ def _shares_a_stem(word: str, stem: str) -> bool:
 # The shelf every entrance offer sits on.
 ADMISSIONS_SHELF = "admissions-prep"
 
-# A trigram guess this close is a name or synonym nearly typed out; one at the
-# bar of 0.5 only resembles the query.
-SURE_GUESS = 0.75
-
 
 async def _from_admissions(
     session: AsyncSession,
@@ -1341,14 +1335,10 @@ async def _from_admissions(
     listed = await _entrance_exams(
         session, admissions & set(await held_by(session, shelf_id))
     )
-    # A sure guess already among them stands: «přijímačky na ČVUT z
-    # matematiky» is the technical admissions by a synonym nearly typed out.
-    # Any other gives way — off the shelf, on it but not the named shelf's (TSP
-    # for «подготовка к поступлению по математике»), or one that only cleared
-    # the bar on the entrance words every admissions leaf shares: «university
-    # admissions maths» guessed the technical admissions from «admissions»,
-    # over the maths exam the shelf has of its own.
-    if not listed or (subjects[0].id in listed and subjects[0].score >= SURE_GUESS):
+    # A guess already among them stands. Any other — off the shelf, or on it
+    # but not the named shelf's (TSP for «подготовка к поступлению по
+    # математике») — gives way.
+    if not listed or subjects[0].id in listed:
         return subjects
     school = await _school_words(session, institution)
     kept = [token for token in tokens if not _is_school_word(token, school)]
