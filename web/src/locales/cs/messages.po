@@ -1194,7 +1194,7 @@ msgstr "Jen sleduje"
 
 #: src/console/pages/Chat.tsx
 msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
-msgstr "Třetí řádek uvítání, pod „vítej“ a řádkem o Konnektu. Může zůstat prázdný."
+msgstr "Třetí řádek uvítání, pod „добро пожаловать“ a řádkem o Konnektu. Může zůstat prázdný."
 
 #: src/console/BanSheet.tsx
 msgid "Сообщения останутся."
@@ -2575,7 +2575,7 @@ msgstr "s jakoukoli otázkou"
 
 #: src/console/pages/Chat.tsx
 msgid "Правила в закрепе, рекламу не публикуем."
-msgstr "Pravidla jsou připnutá, reklamy nezveřejňujeme."
+msgstr "Pravidla jsou v připnuté zprávě, reklamu nezveřejňujeme."
 
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx

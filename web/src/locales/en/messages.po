@@ -1194,7 +1194,7 @@ msgstr "Only watches"
 
 #: src/console/pages/Chat.tsx
 msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
-msgstr "The third line of the greeting, under «welcome» and the line about Konnekt. You can leave it empty."
+msgstr "The third line of the greeting, under «добро пожаловать» and the line about Konnekt. You can leave it empty."
 
 #: src/console/BanSheet.tsx
 msgid "Сообщения останутся."
@@ -2298,7 +2298,7 @@ msgstr "Telegram refused in every chat: check the bot's rights and ban again."
 
 #: src/console/pages/Chat.tsx
 msgid "Не задан: только общее приветствие"
-msgstr "Not set: only the shared greeting"
+msgstr "Not set: only the standard greeting"
 
 #: src/pages/Chats.tsx
 msgid "Попробовать ещё раз"
