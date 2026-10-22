@@ -219,6 +219,27 @@ async def test_a_refusal_from_telegram_closes_the_proposal_as_failed(client, db_
         proposal = await session.get(PendingAction, proposal_id)
         assert proposal is not None
         assert proposal.status == PendingActionStatus.FAILED
+    assert "Telegram отказал" in bot.edit_message_text.await_args.kwargs["text"]
+
+
+async def test_a_failure_before_the_claim_leaves_the_bots_message_alone(
+    client, db_session_maker, bot, monkeypatch
+) -> None:
+    from app.moderation.pending_actions import PendingActionService
+
+    proposal_id = await _proposal(db_session_maker)
+    monkeypatch.setattr(PendingActionService, "_claim", AsyncMock(side_effect=RuntimeError("database gone")))
+
+    async with client:
+        response = await client.post(f"/api/signals/actions/{proposal_id}", json={"confirm": True})
+
+    assert response.status_code == 502
+    # Still open, so its buttons still work and nothing says it closed.
+    bot.edit_message_text.assert_not_awaited()
+    async with db_session_maker() as session:
+        proposal = await session.get(PendingAction, proposal_id)
+        assert proposal is not None
+        assert proposal.status == PendingActionStatus.PENDING
 
 
 async def test_a_decided_wave_leaves_the_signals_before_the_work_is_done(

@@ -151,7 +151,11 @@ async def record(
     The first half of `decide`, apart for a caller that answers before the
     work: once this commits, the wave is no longer anybody's signal.
     """
-    wave = await db.scalar(select(JoinWave).where(JoinWave.id == wave_id).with_for_update())
+    # Read afresh under the lock: a copy already in the session would hide a
+    # decision another session committed meanwhile.
+    wave = await db.scalar(
+        select(JoinWave).where(JoinWave.id == wave_id).with_for_update().execution_options(populate_existing=True)
+    )
     if wave is None or action not in (DECLINE, RESUME, LEAVE):
         return None
     if wave.decision is not None and wave.decision != action:

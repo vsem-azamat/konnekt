@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import waves
+from app.core.enums import PendingActionStatus
 from app.core.exceptions import ChatNotManagedError, ProtectedUserError
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -159,15 +160,14 @@ async def decide_proposal(
             else await service.reject(pending_id, admin_id=admin_id)
         )
     except ProtectedUserError as err:
-        await _close(service, session, pending_id, _PROTECTED)
+        await _close(service, session, pending_id, PendingActionStatus.REJECTED, _PROTECTED)
         raise HTTPException(status_code=409, detail="protected") from err
     except ChatNotManagedError as err:
-        await _close(service, session, pending_id, _UNMANAGED)
+        await _close(service, session, pending_id, PendingActionStatus.REJECTED, _UNMANAGED)
         raise HTTPException(status_code=409, detail="unmanaged") from err
     except Exception as err:
-        # Recorded as failed by the service.
         logger.warning("console_proposal_failed", pending_id=pending_id, exc_info=True)
-        await _close(service, session, pending_id, _FAILED)
+        await _close(service, session, pending_id, PendingActionStatus.FAILED, _FAILED)
         raise HTTPException(status_code=502, detail="failed") from err
     if resolved is None:
         # Already pressed, already gone, or its deadline passed; whoever closed it said so.
@@ -177,8 +177,18 @@ async def decide_proposal(
 
 
 async def _close(
-    service: pending_actions.PendingActionService, session: AsyncSession, pending_id: int, note: str
+    service: pending_actions.PendingActionService,
+    session: AsyncSession,
+    pending_id: int,
+    closed_as: PendingActionStatus,
+    note: str,
 ) -> None:
+    """Say why on the bot's message, only if the record says it closed that way.
+
+    A failure before the claim, or while writing the outcome down, leaves the
+    proposal open or mid-way; its message then keeps its buttons and words.
+    """
+    await session.rollback()
     pending = await session.get(PendingAction, pending_id, populate_existing=True)
-    if pending is not None:
+    if pending is not None and pending.status == closed_as:
         await service.close_message(pending, note)
