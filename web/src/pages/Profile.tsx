@@ -40,7 +40,6 @@ export default function ProfilePage() {
 
   const {
     data: me,
-    isPending,
     isError,
     refetch,
   } = useQuery({
@@ -84,15 +83,13 @@ export default function ProfilePage() {
   return (
     <Screen>
       <AppHeader />
-      {isPending || isError ? (
+      {!me ? (
         <>
           <Title>
             <Trans>Профиль</Trans>
           </Title>
           <div style={{ height: 16 }} />
-          {isPending ? (
-            <SkeletonRows count={4} />
-          ) : (
+          {isError ? (
             <Rows>
               <Row
                 title={<Trans>Не удалось загрузить</Trans>}
@@ -100,6 +97,8 @@ export default function ProfilePage() {
                 onClick={() => void refetch()}
               />
             </Rows>
+          ) : (
+            <SkeletonRows count={4} />
           )}
         </>
       ) : (
