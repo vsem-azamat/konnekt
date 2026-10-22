@@ -37,10 +37,11 @@ TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 # An invite link as people paste it: "t.me/+hash", "https://t.me/+hash" or the
 # older "t.me/joinchat/hash". The hash is Telegram's, letters, digits, - and _.
-_INVITE = re.compile(r"^(?:https?://)?(?:t\.me|telegram\.me)/(?:\+|joinchat/)(?P<hash>[\w-]{8,64})/?$")
+_INVITE = re.compile(r"^(?:https?://)?(?:t\.me|telegram\.me)/(?:\+|joinchat/)(?P<hash>[A-Za-z0-9_-]{8,64})/?$")
 _TITLE = re.compile(r'<div class="tgme_page_title"[^>]*>\s*<span[^>]*>(.*?)</span>', re.S)
 _EXTRA = re.compile(r'<div class="tgme_page_extra">(.*?)</div>', re.S)
-_PHOTO = re.compile(r'<img class="tgme_page_photo_image" src="(https://[^"]+)"')
+# Only Telegram's own picture servers: the address comes from a page, and is fetched from ours.
+_PHOTO = re.compile(r'<img class="tgme_page_photo_image" src="(https://cdn\d*\.telesco\.pe/[^"]+)"')
 
 
 def invite_hash_of(link: str) -> str | None:
@@ -83,11 +84,11 @@ def parse(page: str) -> Preview | None:
 async def fetch(http: aiohttp.ClientSession, link: str) -> Preview | None:
     """The page behind a link, read; None when it cannot be had or names no chat."""
     try:
-        async with http.get(link, timeout=TIMEOUT) as response:
+        async with http.get(link, timeout=TIMEOUT, allow_redirects=False) as response:
             if response.status != 200:
                 logger.warning("preview_fetch_failed", status=response.status)
                 return None
-            page = await response.text()
+            page = await response.text(errors="replace")
     except (aiohttp.ClientError, TimeoutError) as err:
         logger.warning("preview_fetch_failed", error_type=type(err).__name__)
         return None
@@ -105,11 +106,16 @@ class Photo:
 async def fetch_photo(http: aiohttp.ClientSession, url: str) -> Photo | None:
     """The preview's picture, or None when it is not a small JPEG."""
     try:
-        async with http.get(url, timeout=TIMEOUT) as response:
+        async with http.get(url, timeout=TIMEOUT, allow_redirects=False) as response:
             if response.status != 200:
                 logger.warning("preview_photo_failed", status=response.status)
                 return None
-            data = await response.content.read(MAX_AVATAR_BYTES)
+            # The whole body, but never more than one byte past the limit.
+            data = b""
+            async for chunk in response.content.iter_chunked(64 * 1024):
+                data += chunk
+                if len(data) >= MAX_AVATAR_BYTES:
+                    break
     except (aiohttp.ClientError, TimeoutError) as err:
         logger.warning("preview_photo_failed", error_type=type(err).__name__)
         return None
@@ -127,10 +133,16 @@ async def sync(session: AsyncSession, http: aiohttp.ClientSession, chat: Chat) -
     the Bot API for the others. None, with nothing changed, when the page could
     not be read or names no chat any more.
     """
-    if chat.public_link is None:
+    # Fetched only as an invite link rebuilt from its hash, whatever an edit left in the field.
+    invite = invite_hash_of(chat.public_link or "")
+    if invite is None:
+        logger.warning("preview_link_invalid", chat_id=chat.id)
         return None
-    preview = await fetch(http, chat.public_link)
+    preview = await fetch(http, invite_link(invite))
     if preview is None:
+        # Also a revoked link, which still answers 200 with a page that names no
+        # chat; logged here because nothing else would ever notice it.
+        logger.warning("preview_not_read", chat_id=chat.id)
         return None
     if preview.title != chat.title:
         chat.title = preview.title

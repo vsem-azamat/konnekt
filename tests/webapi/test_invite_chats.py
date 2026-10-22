@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+import aiohttp
 import pytest
 from app.chats import previews
+from app.chats.avatars import MAX_AVATAR_BYTES
 from app.chats.previews import Photo, Preview
 from app.chats.snapshots import snapshot_once
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -59,8 +61,18 @@ class TestThePage:
     def test_a_channel_counts_subscribers(self) -> None:
         page = PAGE.replace("1 090 members, 34 online", "717 subscribers")
         assert previews.parse(page) == Preview(
-            title="UPOL Студенты & Оломоуц", member_count=717, is_channel=True, photo_url=previews.parse(PAGE).photo_url
+            title="UPOL Студенты & Оломоуц",
+            member_count=717,
+            is_channel=True,
+            photo_url="https://cdn4.telesco.pe/file/abc.jpg",
         )
+
+    def test_a_picture_from_anywhere_but_telegram_is_ignored(self) -> None:
+        """Its address is fetched from our server, so a page must not choose it."""
+        page = PAGE.replace("https://cdn4.telesco.pe/file/abc.jpg", "http://10.0.0.1/abc.jpg")
+        preview = previews.parse(page)
+        assert preview is not None
+        assert preview.photo_url is None
 
     def test_a_dead_link_names_no_chat(self) -> None:
         assert previews.parse('<div class="tgme_page_description">If you have Telegram…</div>') is None
@@ -71,9 +83,54 @@ class TestThePage:
     def test_an_invite_is_taken_in_its_usual_spellings(self, link) -> None:
         assert previews.invite_hash_of(link) == INVITE
 
-    @pytest.mark.parametrize("link", ["https://t.me/cvut_fjfi", "https://example.com/+abcdefgh", "+abcdefgh"])
+    @pytest.mark.parametrize(
+        "link", ["https://t.me/cvut_fjfi", "https://example.com/+abcdefgh", "+abcdefgh", "t.me/+Кириллица1234"]
+    )
     def test_anything_else_is_not_an_invite(self, link) -> None:
         assert previews.invite_hash_of(link) is None
+
+
+class TestThePicture:
+    """Read off a real HTTP server, where a body arrives in pieces."""
+
+    @pytest.fixture
+    async def served(self):
+        from aiohttp import web
+        from aiohttp.test_utils import TestServer
+
+        body: dict[str, bytes] = {}
+
+        async def picture(request: web.Request) -> web.StreamResponse:
+            response = web.StreamResponse()
+            await response.prepare(request)
+            for start in range(0, len(body["jpeg"]), 4096):
+                await response.write(body["jpeg"][start : start + 4096])
+            return response
+
+        app = web.Application()
+        app.router.add_get("/a.jpg", picture)
+        async with TestServer(app) as server:
+            yield body, str(server.make_url("/a.jpg"))
+
+    async def test_the_whole_picture_is_read(self, served) -> None:
+        body, url = served
+        body["jpeg"] = JPEG + bytes(range(256)) * 117
+        async with aiohttp.ClientSession() as http:
+            photo = await previews.fetch_photo(http, url)
+        assert photo is not None
+        assert photo.content == body["jpeg"]
+
+    async def test_a_picture_over_the_limit_is_refused(self, served) -> None:
+        body, url = served
+        body["jpeg"] = JPEG + b"0" * MAX_AVATAR_BYTES
+        async with aiohttp.ClientSession() as http:
+            assert await previews.fetch_photo(http, url) is None
+
+    async def test_something_else_than_a_jpeg_is_refused(self, served) -> None:
+        body, url = served
+        body["jpeg"] = b"<html>" + b"0" * 100
+        async with aiohttp.ClientSession() as http:
+            assert await previews.fetch_photo(http, url) is None
 
 
 class TestTheId:
@@ -135,6 +192,30 @@ class TestAdding:
 
         assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")
 
+    async def test_a_link_a_chat_of_ours_already_carries_is_refused(
+        self,
+        client_factory,  # noqa: F811
+        db_session_maker,
+        page,
+    ) -> None:
+        """Else the chat we run would be listed a second time, as somebody else's."""
+        make, _ = client_factory
+        async with db_session_maker() as s:
+            s.add(
+                Chat(
+                    id=-1001852850466,
+                    title="Ours",
+                    resource_status=Chat.STATUS_APPROVED,
+                    public_link=f"https://t.me/joinchat/{INVITE}",
+                )
+            )
+            await s.commit()
+
+        async with make() as client:
+            resp = await client.post("/api/chats/external", json={"public_link": LINK})
+
+        assert (resp.status_code, resp.json()["detail"]) == (409, "already_known")
+
     async def test_a_dead_link_is_refused(self, client_factory, db_session_maker, page) -> None:  # noqa: F811
         make, _ = client_factory
         page[0]["preview"] = None
@@ -169,6 +250,49 @@ class TestAdding:
 
 
 class TestTheLoops:
+    async def test_only_the_invite_link_is_ever_fetched(self, db_session_maker, page) -> None:
+        """Whatever an edit put in the field, t.me is all the loop asks."""
+        chat = Chat(
+            id=Chat.preview_id_for(INVITE),
+            title="UPOL",
+            resource_status=Chat.STATUS_EXTERNAL,
+            public_link="http://10.0.0.1/admin",
+        )
+        async with db_session_maker() as s, aiohttp.ClientSession() as http:
+            s.add(chat)
+            assert await previews.sync(s, http, chat) is None
+        page[1].assert_not_called()
+
+    async def test_a_page_that_breaks_costs_only_its_own_chat(self, db_session_maker, page) -> None:
+        bad = Chat.preview_id_for(INVITE)
+        good = Chat.preview_id_for("anotherHash12")
+        async with db_session_maker() as s:
+            s.add(Chat(id=bad, title="Bad", resource_status=Chat.STATUS_EXTERNAL, public_link=LINK))
+            s.add(
+                Chat(
+                    id=good,
+                    title="Good",
+                    resource_status=Chat.STATUS_EXTERNAL,
+                    public_link="https://t.me/+anotherHash12",
+                )
+            )
+            await s.commit()
+        fine = page[0]["preview"]
+
+        def answer(_http, link):
+            if INVITE in link:
+                raise UnicodeDecodeError("utf-8", b"", 0, 1, "bad page")
+            return fine
+
+        page[1].side_effect = answer
+
+        written = await snapshot_once(session_maker=db_session_maker, bot=MagicMock())
+
+        assert written == 1
+        async with db_session_maker() as s:
+            counts = (await s.execute(select(ChatMemberSnapshot.chat_id))).scalars().all()
+        assert counts == [good]
+
     async def test_the_hourly_loop_reads_the_page_and_never_asks_the_bot(self, db_session_maker, page) -> None:
         chat_id = Chat.preview_id_for(INVITE)
         async with db_session_maker() as s:

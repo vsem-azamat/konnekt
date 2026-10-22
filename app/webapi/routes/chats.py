@@ -509,9 +509,13 @@ async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
     always gives the same id, so adding it twice is refused like any other.
     """
     chat_id = Chat.preview_id_for(invite)
-    if await session.get(Chat, chat_id) is not None:
-        raise HTTPException(status_code=409, detail="already_known")
     link = previews.invite_link(invite)
+    # A chat the bot runs may keep this very link as its own, in either spelling.
+    spellings = [link, f"https://t.me/joinchat/{invite}"]
+    if await session.get(Chat, chat_id) is not None or await session.scalar(
+        select(Chat.id).where(Chat.public_link.in_(spellings))
+    ):
+        raise HTTPException(status_code=409, detail="already_known")
     async with aiohttp.ClientSession() as http:
         preview = await previews.fetch(http, link)
         if preview is None:
@@ -525,12 +529,14 @@ async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
             public_link=link,
         )
         session.add(chat)
-        await previews.sync(session, http, chat)
-    try:
-        await session.commit()
-    except IntegrityError as err:
-        await session.rollback()
-        raise HTTPException(status_code=409, detail="already_known") from err
+        try:
+            # The insert goes out with sync's first query, so a twin added a
+            # moment earlier is refused there rather than at the commit.
+            await previews.sync(session, http, chat)
+            await session.commit()
+        except IntegrityError as err:
+            await session.rollback()
+            raise HTTPException(status_code=409, detail="already_known") from err
     public_answers.forget()
     await session.refresh(chat)
     return _as_read(chat, member_count=preview.member_count)

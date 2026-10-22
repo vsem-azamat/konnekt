@@ -185,7 +185,13 @@ async def snapshot_once(
         if previewed:
             async with aiohttp.ClientSession() as http:
                 for chat in previewed:
-                    read = await previews.sync(session, http, chat)
+                    try:
+                        async with session.begin_nested():
+                            read = await previews.sync(session, http, chat)
+                    except Exception:
+                        # One bad page must not undo the hour's work for every other chat.
+                        logger.exception("preview_sync_failed", chat_id=chat.id)
+                        continue
                     if read is not None and read.member_count is not None:
                         written += 1
 
