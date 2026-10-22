@@ -206,6 +206,35 @@ export const HomeIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const BlockIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="7.5" />
+    <path d="m6.7 6.7 10.6 10.6" />
+  </Svg>
+);
+
+export const CardIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4" y="5" width="16" height="14" rx="2" />
+    <path d="M4 10h16M9 14h6" />
+  </Svg>
+);
+
+export const PeopleIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="9" r="3" />
+    <path d="M3.5 18.5a5.5 5.5 0 0 1 11 0" />
+    <path d="M15.5 6.5a3 3 0 0 1 0 5.6M17 13.5a5.5 5.5 0 0 1 3.5 5" />
+  </Svg>
+);
+
+export const GearIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2 18 18M6 18l1.8-1.8M16.2 7.8 18 6" />
+  </Svg>
+);
+
 /**
  * Which icon belongs to which kind of help.
  *

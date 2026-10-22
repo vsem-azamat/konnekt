@@ -2,15 +2,32 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
+import {
+  BlockIcon,
+  BookIcon,
+  CardIcon,
+  ChatIcon,
+  GearIcon,
+  HomeIcon,
+  PeopleIcon,
+  ShieldIcon,
+} from '@/components/icons';
 
 import css from './BrowserShell.module.css';
-import { browserSessionQuery, consoleChanges } from './queries';
+import {
+  adminCatalogQuery,
+  browserSessionQuery,
+  consoleChanges,
+  consoleSignalsQuery,
+} from './queries';
+import { menuCounts } from './signals';
 
 /**
  * The menu and the room for a screen, for the console opened in a browser.
  *
  * The menu lists the console's screens, the catalog's among them: webapi asks
- * the catalog for the signed-in super admin (#293).
+ * the catalog for the signed-in super admin (#293). Beside a screen, how many
+ * wait there for an admin, read again every minute while the console is open.
  *
  * Whether the viewer is signed in is the screens' business (`ConsoleGate`), as
  * it is in the Mini App; this frame only offers the way out when there is a
@@ -30,6 +47,12 @@ export default function BrowserShell() {
   }, [pathname]);
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
+  // Not again after a failure: a stale sign-in would be sent every minute.
+  const every = (query: { state: { status: string } }) =>
+    query.state.status === 'error' ? false : 60_000;
+  const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: every });
+  const catalog = useQuery({ ...adminCatalogQuery, refetchInterval: every });
+  const counts = menuCounts(signals.data, catalog.data?.counts);
   const signOut = useMutation({
     mutationFn: consoleChanges.signOut,
     onSettled: () => {
@@ -44,41 +67,45 @@ export default function BrowserShell() {
         <div className={css.brand}>
           Konnekt
           <small>
-            <Trans>консоль</Trans>
+            <Trans>админка</Trans>
           </small>
         </div>
         <nav aria-label={t`Консоль`} style={{ display: 'contents' }}>
-          <Item to="/console" end>
+          <Item to="/console" end icon={<HomeIcon size={17} />}>
             <Trans>Обзор</Trans>
           </Item>
           <div className={css.group}>
             <Trans>Модерация</Trans>
           </div>
-          <Item to="/console/chats">
+          <Item to="/console/chats" icon={<ChatIcon size={17} />} count={counts.chats}>
             <Trans>Чаты</Trans>
           </Item>
-          <Item to="/console/spam">
+          <Item to="/console/spam" icon={<ShieldIcon size={17} />} count={counts.spam}>
             <Trans>Реклама</Trans>
           </Item>
-          <Item to="/console/blacklist">
+          <Item to="/console/blacklist" icon={<BlockIcon size={17} />}>
             <Trans>Чёрный список</Trans>
           </Item>
           <div className={css.group}>
             <Trans>Каталог</Trans>
           </div>
-          <Item to="/console/catalog">
+          <Item
+            to="/console/catalog"
+            icon={<BookIcon size={17} />}
+            count={counts.catalog}
+          >
             <Trans>Каталог</Trans>
           </Item>
-          <Item to="/console/partners">
+          <Item to="/console/partners" icon={<CardIcon size={17} />}>
             <Trans>Партнёры</Trans>
           </Item>
           <div className={css.group}>
             <Trans>Люди</Trans>
           </div>
-          <Item to="/console/audience">
+          <Item to="/console/audience" icon={<PeopleIcon size={17} />}>
             <Trans>Аудитория</Trans>
           </Item>
-          <Item to="/console/system">
+          <Item to="/console/system" icon={<GearIcon size={17} />}>
             <Trans>Система</Trans>
           </Item>
         </nav>
@@ -110,15 +137,22 @@ export default function BrowserShell() {
 function Item({
   to,
   end,
+  icon,
+  count = 0,
   children,
 }: {
   to: string;
   end?: boolean;
+  icon: React.ReactNode;
+  /** How many wait there; none shows no badge. */
+  count?: number;
   children: React.ReactNode;
 }) {
   return (
     <NavLink to={to} end={end} className={css.link}>
-      {children}
+      {icon}
+      <span>{children}</span>
+      {count > 0 ? <span className={css.badge}>{count}</span> : null}
     </NavLink>
   );
 }
