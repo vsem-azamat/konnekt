@@ -122,7 +122,7 @@ msgstr "Пардубице"
 msgid "На публичной вкладке"
 msgstr "На публичной вкладке"
 
-#. placeholder {0}: formatDay(localDay(request.expires_at), locale)
+#. placeholder {0}: formatDay( request.deadline_on ?? localDay(request.expires_at ?? ''), locale, )
 #: src/pages/Mine.tsx
 msgid "срок вышел {0}"
 msgstr "срок вышел {0}"
@@ -408,6 +408,12 @@ msgstr "Экзамены и поступление"
 #: src/console/BrowserShell.tsx
 msgid "админка"
 msgstr "админка"
+
+#: src/components/RemoveRequest.tsx
+#: src/pages/Mine.tsx
+msgctxt "request"
+msgid "Закрыть"
+msgstr "Закрыть"
 
 #: src/pages/Profile.tsx
 msgid "Чешский для вуза"
@@ -2317,12 +2323,10 @@ msgstr "Реклама"
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
 #: src/components/Incoming.tsx
-#: src/components/RemoveRequest.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
-#: src/pages/Mine.tsx
 msgid "Закрыть"
 msgstr "Закрыть"
 

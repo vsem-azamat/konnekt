@@ -56,9 +56,15 @@ test('a request past its end has no days left, not fewer than none', () => {
 });
 
 test('an instant is shown as the day it falls on where the reader is', () => {
-  assert.equal(localDay('2026-10-10T10:00:00Z'), '2026-10-10');
-  // Kept in a reader's own calendar: a request closed at 23:30 in Prague
-  // closed that day, not the next one in UTC.
-  const late = new Date(2026, 9, 10, 23, 30);
-  assert.equal(localDay(late.toISOString()), '2026-10-10');
+  // Pinned, so the test says the same on every machine. Node reads TZ afresh
+  // on each date call.
+  const zone = process.env.TZ;
+  process.env.TZ = 'Europe/Prague';
+  try {
+    // 00:30 on the 10th in Prague is still the 9th in UTC.
+    assert.equal(localDay('2026-10-09T22:30:00Z'), '2026-10-10');
+    assert.equal(localDay('2026-10-10T10:00:00Z'), '2026-10-10');
+  } finally {
+    process.env.TZ = zone;
+  }
 });

@@ -2,7 +2,8 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { hapticSuccess } from '@/hooks/useTelegram';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
+import type { HelpRequest } from '@/lib/types';
 
 import { CloseIcon, TrashIcon } from './icons';
 import { Pick, Sheet } from './Sheet';
@@ -18,13 +19,13 @@ import { Action, Actions, Reason, Tile } from './Ui';
  */
 export function RemoveRequest({
   requestId,
-  open,
+  canClose,
   onClose,
   onDeleted,
 }: {
   requestId: number;
   /** Only an open request can be closed; any can be deleted. */
-  open: boolean;
+  canClose: boolean;
   onClose: () => void;
   /** The request is gone, and a screen showing it has nothing left to show. */
   onDeleted?: () => void;
@@ -32,18 +33,40 @@ export function RemoveRequest({
   const { t } = useLingui();
   const queryClient = useQueryClient();
 
+  // The list is changed here rather than only refetched: until the refetch
+  // lands, a closed card would still offer «Закрыть». A request already gone
+  // (deleted on another device) is treated as deleted.
   const remove = useMutation({
-    mutationFn: async (how: 'close' | 'delete') => {
-      if (how === 'close') await api.closeRequest(requestId);
-      else await api.deleteRequest(requestId);
+    mutationFn: async (how: 'close' | 'delete'): Promise<HelpRequest | null> => {
+      if (how === 'close') return api.closeRequest(requestId);
+      try {
+        await api.deleteRequest(requestId);
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+      }
+      return null;
     },
-    onSuccess: (_, how) => {
+    onSuccess: (closed) => {
       hapticSuccess();
-      void queryClient.invalidateQueries({ queryKey: ['requests'] });
-      onClose();
-      if (how === 'delete') onDeleted?.();
+      queryClient.setQueryData<HelpRequest[]>(['requests'], (rows) =>
+        closed
+          ? rows?.map((row) => (row.id === closed.id ? closed : row))
+          : rows?.filter((row) => row.id !== requestId),
+      );
+      if (!closed) queryClient.removeQueries({ queryKey: ['responses', requestId] });
     },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['requests'] }),
   });
+
+  // Per call rather than on the mutation: these touch the screen, and the
+  // person may have left it (Telegram's Back still works) before the answer.
+  const run = (how: 'close' | 'delete') =>
+    remove.mutate(how, {
+      onSuccess: () => {
+        onClose();
+        if (how === 'delete') onDeleted?.();
+      },
+    });
 
   return (
     <Sheet
@@ -55,17 +78,17 @@ export function RemoveRequest({
         if (!remove.isPending) onClose();
       }}
     >
-      {open ? (
+      {canClose ? (
         <Pick
           leading={
             <Tile tone={1}>
               <CloseIcon size={19} />
             </Tile>
           }
-          name={<Trans>Закрыть</Trans>}
+          name={<Trans context="request">Закрыть</Trans>}
           hint={<Trans>уйдёт из ленты, отклики и переписка сохранятся</Trans>}
           disabled={remove.isPending}
-          onClick={() => remove.mutate('close')}
+          onClick={() => run('close')}
         />
       ) : null}
       <Pick
@@ -77,7 +100,7 @@ export function RemoveRequest({
         name={<Trans>Удалить насовсем</Trans>}
         hint={<Trans>заявка и отклики пропадут, вернуть нельзя</Trans>}
         disabled={remove.isPending}
-        onClick={() => remove.mutate('delete')}
+        onClick={() => run('delete')}
       />
       {remove.isError ? (
         <Reason weak>

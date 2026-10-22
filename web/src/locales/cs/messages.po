@@ -122,7 +122,7 @@ msgstr "Pardubice"
 msgid "На публичной вкладке"
 msgstr "Na veřejné záložce"
 
-#. placeholder {0}: formatDay(localDay(request.expires_at), locale)
+#. placeholder {0}: formatDay( request.deadline_on ?? localDay(request.expires_at ?? ''), locale, )
 #: src/pages/Mine.tsx
 msgid "срок вышел {0}"
 msgstr "platnost skončila {0}"
@@ -408,6 +408,12 @@ msgstr "Zkoušky a přijímací řízení"
 #: src/console/BrowserShell.tsx
 msgid "админка"
 msgstr "administrace"
+
+#: src/components/RemoveRequest.tsx
+#: src/pages/Mine.tsx
+msgctxt "request"
+msgid "Закрыть"
+msgstr "Uzavřít"
 
 #: src/pages/Profile.tsx
 msgid "Чешский для вуза"
@@ -2317,12 +2323,10 @@ msgstr "Reklama"
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
 #: src/components/Incoming.tsx
-#: src/components/RemoveRequest.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
-#: src/pages/Mine.tsx
 msgid "Закрыть"
 msgstr "Zavřít"
 

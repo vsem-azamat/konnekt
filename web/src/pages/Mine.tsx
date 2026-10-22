@@ -169,7 +169,7 @@ export default function MinePage() {
       )}
 
       {removing === null ? null : (
-        <RemoveRequest requestId={removing} open onClose={() => setRemoving(null)} />
+        <RemoveRequest requestId={removing} canClose onClose={() => setRemoving(null)} />
       )}
     </Screen>
   );
@@ -237,10 +237,17 @@ function RequestCard({
                 <span className={ui.status}>
                   <Trans>Закрыта</Trans>
                 </span>
-                {request.status === 'expired' && request.expires_at ? (
+                {/* The deadline itself when there was one: its expiry is the
+                    last instant of that day in UTC, the next day in Prague. */}
+                {request.status === 'expired' &&
+                (request.deadline_on || request.expires_at) ? (
                   <span>
                     <Trans>
-                      срок вышел {formatDay(localDay(request.expires_at), locale)}
+                      срок вышел{' '}
+                      {formatDay(
+                        request.deadline_on ?? localDay(request.expires_at ?? ''),
+                        locale,
+                      )}
                     </Trans>
                   </span>
                 ) : request.closed_at ? (
@@ -300,7 +307,7 @@ function RequestCard({
           deleting is the other answer. */}
       <Actions>
         <Action quiet onClick={onRemove}>
-          <Trans>Закрыть</Trans>
+          <Trans context="request">Закрыть</Trans>
         </Action>
       </Actions>
     </div>
