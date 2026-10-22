@@ -18,7 +18,8 @@
  * What it asserts is geometric, against what the person can see — the smaller
  * of Telegram's height and the webview's:
  *
- *   - the tab bar sits flush on the visible bottom;
+ *   - the tab bar sits flush on the visible bottom, with every label on one
+ *     line, and the header leaves Profile to it;
  *   - scrolled to the end, the last thing in the list ends above the tab bar
  *     and inside the visible area, in the directory and in a section;
  *   - the first thing on the screen clears the notch and Telegram's header;
@@ -368,6 +369,29 @@ function measureScreen() {
   };
 }
 
+/** The tab bar's destinations, in order. */
+const TABS = ['Помощь', 'Чаты', 'Заявки', 'Профиль'];
+
+/** Each tab's label, and whether it breaks onto a second line or spills out of its tab. */
+function measureTabs() {
+  // The round button has a label instead of text, and is not a destination.
+  return [...document.querySelectorAll('nav button:not([aria-label])')].map((tab) => {
+    const text = [...tab.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+    const range = document.createRange();
+    range.selectNodeContents(text ?? tab);
+    const lines = new Set(
+      [...range.getClientRects()].map((rect) => Math.round(rect.top)),
+    );
+    const label = range.getBoundingClientRect();
+    const box = tab.getBoundingClientRect();
+    return {
+      label: tab.textContent.trim(),
+      wraps: lines.size > 1,
+      clipped: label.left < box.left - 0.5 || label.right > box.right + 0.5,
+    };
+  });
+}
+
 function measureTop() {
   const scroller = document.getElementById('root');
   for (const el of document.querySelectorAll('#root *')) el.scrollTop = 0;
@@ -532,6 +556,22 @@ async function checkList(browser, base, profile, { path, last }) {
       `${path}: tab bar ends at ${Math.round(seen.bar.bottom)}px, the visible bottom is ${bottom}px`,
     );
   } else ok(`${path}: tab bar flush on the visible bottom (${bottom}px)`);
+
+  const tabs = await page.evaluate(measureTabs);
+  const cramped = tabs.filter((tab) => tab.wraps || tab.clipped);
+  if (tabs.map((tab) => tab.label).join() !== TABS.join()) {
+    fail(profile, `${path}: the tabs are ${tabs.map((tab) => tab.label).join(', ')}`);
+  } else if (cramped.length) {
+    fail(
+      profile,
+      `${path}: ${cramped.map((tab) => `«${tab.label}»`).join(', ')} does not fit its tab`,
+    );
+  } else ok(`${path}: ${TABS.length} tabs, each label on one line`);
+
+  // Profile is a tab, so the header no longer carries a way to it.
+  if (await page.locator('header').getByRole('button', { name: 'Профиль' }).count()) {
+    fail(profile, `${path}: the header still leads to Profile`);
+  } else ok(`${path}: the header leaves Profile to the tab bar`);
 
   if (!seen.lowest) {
     fail(profile, `${path}: nothing in the list to measure`);
