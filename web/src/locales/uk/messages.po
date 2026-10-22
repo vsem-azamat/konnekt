@@ -1743,6 +1743,10 @@ msgstr "Прихована адміністратором"
 msgid "Подзаголовок"
 msgstr "Підзаголовок"
 
+#: src/pages/Request.tsx
+msgid "Не получилось выбрать — попробуй ещё раз."
+msgstr "Не вдалося обрати — спробуй ще раз."
+
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Нд"

@@ -1743,6 +1743,10 @@ msgstr "Hidden by an administrator"
 msgid "Подзаголовок"
 msgstr "Subtitle"
 
+#: src/pages/Request.tsx
+msgid "Не получилось выбрать — попробуй ещё раз."
+msgstr "Couldn't choose them. Try again."
+
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Sun"
@@ -2766,7 +2770,7 @@ msgstr "Responses"
 
 #: src/components/Incoming.tsx
 msgid "Отклик на заявку"
-msgstr "Respond to the request"
+msgstr "Respond to request"
 
 #: src/components/Incoming.tsx
 msgid "Сообщение автору"

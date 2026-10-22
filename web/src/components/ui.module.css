@@ -2122,6 +2122,14 @@
   margin: 0;
 }
 
+/* All of it, line breaks kept, but never so much that the sheet's title and
+   the scrim above it leave the screen: a request may be 2000 characters. */
+.requestQuoteText {
+  max-height: 30vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
 .respondForm {
   display: flex;
   flex-direction: column;
@@ -2135,7 +2143,6 @@
   color: var(--ink-soft);
 }
 
-.fieldLabel + .fieldLabel,
 .field + .fieldLabel {
   margin-top: 4px;
 }

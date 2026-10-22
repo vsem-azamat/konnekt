@@ -3,7 +3,8 @@
  *
  * Null while it cannot go out: fewer than three characters of message, or a
  * price that is not a number. An empty price field means "did not say", not
- * zero, so it leaves the price out of the payload altogether.
+ * zero, so it leaves the price out of the payload altogether. A comma is a
+ * decimal point: it is the one a Czech or Ukrainian keypad offers.
  */
 
 import type { ResponseCreate } from './types';
@@ -15,7 +16,7 @@ export function responseDraft(message: string, price: string): ResponseCreate | 
   const typed = price.trim();
   if (!typed) return { message: words };
 
-  const amount = Number(typed);
+  const amount = Number(typed.replace(',', '.'));
   if (!Number.isFinite(amount) || amount < 0) return null;
   return { message: words, price_amount: amount, price_unit: 'hour' };
 }

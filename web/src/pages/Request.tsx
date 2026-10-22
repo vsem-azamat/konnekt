@@ -205,7 +205,10 @@ function ResponseCard({ response }: { response: RequestResponse }) {
               <Action
                 tall
                 quiet
-                onClick={() => setConfirming(true)}
+                onClick={() => {
+                  settle.reset();
+                  setConfirming(true);
+                }}
                 disabled={settle.isPending}
               >
                 <Trans>Выбрать</Trans>
@@ -237,21 +240,34 @@ function ResponseCard({ response }: { response: RequestResponse }) {
         <Sheet
           title={t`Выбрать ${name}?`}
           closeLabel={t`Отмена`}
-          onClose={() => setConfirming(false)}
+          // Not while the choice is on its way: closing then would look like
+          // a cancel, and the helper would be told anyway.
+          onClose={() => {
+            if (!settle.isPending) setConfirming(false);
+          }}
         >
           <p className={ui.sheetNote}>
             <Trans>Помощник получит уведомление. Отменить нельзя.</Trans>
           </p>
+          {settle.isError ? (
+            <Reason weak>
+              <Trans>Не получилось выбрать — попробуй ещё раз.</Trans>
+            </Reason>
+          ) : null}
           <Actions>
             <Action
               onClick={() =>
-                settle.mutate('accept', { onSettled: () => setConfirming(false) })
+                settle.mutate('accept', { onSuccess: () => setConfirming(false) })
               }
               disabled={settle.isPending}
             >
               <Trans>Выбрать</Trans>
             </Action>
-            <Action quiet onClick={() => setConfirming(false)}>
+            <Action
+              quiet
+              onClick={() => setConfirming(false)}
+              disabled={settle.isPending}
+            >
               <Trans>Отмена</Trans>
             </Action>
           </Actions>

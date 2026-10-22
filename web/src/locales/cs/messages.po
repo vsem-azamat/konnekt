@@ -1743,6 +1743,10 @@ msgstr "Skrytý administrátorem"
 msgid "Подзаголовок"
 msgstr "Podnadpis"
 
+#: src/pages/Request.tsx
+msgid "Не получилось выбрать — попробуй ещё раз."
+msgstr "Vybrat se nepodařilo, zkus to znovu."
+
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Ne"

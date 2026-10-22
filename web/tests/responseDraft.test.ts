@@ -23,6 +23,15 @@ test('a price is per hour', () => {
   });
 });
 
+test('a decimal comma is a decimal point', () => {
+  assert.deepEqual(responseDraft('Помогу', '350,5'), {
+    message: 'Помогу',
+    price_amount: 350.5,
+    price_unit: 'hour',
+  });
+  assert.equal(responseDraft('Помогу', '1,000,5'), null);
+});
+
 test('too short a message, or a price that is not a number, cannot be sent', () => {
   assert.equal(responseDraft('ок', ''), null);
   assert.equal(responseDraft('   ', '450'), null);

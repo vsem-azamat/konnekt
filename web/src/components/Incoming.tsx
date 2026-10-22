@@ -1,7 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { formatDay, PhraseView } from '@/components/Phrase';
 import { Sheet } from '@/components/Sheet';
@@ -33,12 +32,32 @@ import type { FeedRequest, ResponseCreate } from '@/lib/types';
  * also leaves the card where it was, unopened, for someone who only looked.
  */
 export function Incoming() {
-  const navigate = useNavigate();
   const { i18n } = useLingui();
   const [answering, setAnswering] = useState<FeedRequest | null>(null);
   // What was typed survives the sheet closing: a tap beside it by mistake
   // must not cost the two sentences. Kept for one request, the last one.
   const [draft, setDraft] = useState<Draft>({ requestId: null, message: '', price: '' });
+  const queryClient = useQueryClient();
+
+  // Here rather than in the sheet: the sheet can be closed while an answer is
+  // on its way, and one opened again must still see it as sending (or as
+  // failed) instead of offering to send it a second time.
+  const respond = useMutation({
+    mutationFn: ({ requestId, body }: { requestId: number; body: ResponseCreate }) =>
+      api.respondToRequest(requestId, body),
+    onSuccess: (_, { requestId }) => {
+      hapticSuccess();
+      // The request drops out of the feed once answered, so the list is stale
+      // the moment this succeeds.
+      void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
+      // Only if it is still this request on screen: by now the person may
+      // have closed the sheet and opened another one.
+      setAnswering((open) => (open?.id === requestId ? null : open));
+      setDraft((kept) =>
+        kept.requestId === requestId ? { requestId: null, message: '', price: '' } : kept,
+      );
+    },
+  });
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['request-feed'],
@@ -95,12 +114,14 @@ export function Incoming() {
           request={answering}
           draft={draft}
           onDraft={setDraft}
+          sending={respond.isPending && respond.variables?.requestId === answering.id}
+          error={
+            respond.isError && respond.variables?.requestId === answering.id
+              ? respond.error
+              : null
+          }
+          onSend={(body) => respond.mutate({ requestId: answering.id, body })}
           onClose={() => setAnswering(null)}
-          onDone={() => {
-            setAnswering(null);
-            setDraft({ requestId: null, message: '', price: '' });
-            navigate('/mine?tab=incoming');
-          }}
         />
       ) : null}
     </>
@@ -194,31 +215,23 @@ function RespondSheet({
   request,
   draft,
   onDraft,
+  sending,
+  error,
+  onSend,
   onClose,
-  onDone,
 }: {
   request: FeedRequest;
   draft: Draft;
   onDraft: (draft: Draft) => void;
+  sending: boolean;
+  error: unknown;
+  onSend: (body: ResponseCreate) => void;
   onClose: () => void;
-  onDone: () => void;
 }) {
   const { t } = useLingui();
-  const queryClient = useQueryClient();
   const messageId = useId();
   const priceId = useId();
   const payload = responseDraft(draft.message, draft.price);
-
-  const respond = useMutation({
-    mutationFn: (body: ResponseCreate) => api.respondToRequest(request.id, body),
-    onSuccess: () => {
-      hapticSuccess();
-      // The request drops out of the feed once answered, so the list is stale
-      // the moment this succeeds.
-      void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
-      onDone();
-    },
-  });
 
   const name = request.author_name;
 
@@ -232,7 +245,7 @@ function RespondSheet({
         <span className={ui.requestFrom}>
           <From request={request} />
         </span>
-        <span>{request.text}</span>
+        <span className={ui.requestQuoteText}>{request.text}</span>
       </div>
 
       <div className={ui.respondForm}>
@@ -271,18 +284,18 @@ function RespondSheet({
         </div>
       </div>
 
-      {respond.isError ? (
+      {error ? (
         <Reason weak>
-          <RespondError error={respond.error} />
+          <RespondError error={error} />
         </Reason>
       ) : null}
 
       <Actions>
         <Action
           onClick={() => {
-            if (payload) respond.mutate(payload);
+            if (payload) onSend(payload);
           }}
-          disabled={!payload || respond.isPending}
+          disabled={!payload || sending}
         >
           <Trans>Отправить отклик</Trans>
         </Action>
