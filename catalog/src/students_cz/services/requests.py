@@ -44,7 +44,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import held_by, shelves_of
+from students_cz.services.lookup import shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -161,11 +161,15 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
 async def suggested_offers(
     session: AsyncSession, *, user: User, requests: list[HelpRequest]
 ) -> dict[int, Offer]:
-    """The helper's own offer each request is closest to, to price an answer.
+    """The helper's own offer to price an answer to each request from.
 
-    The kind of help and the subject both, or else either: a calculus tutor
-    answering «матан» without a kind of help named quotes their calculus
-    price. An offer with no price suggests nothing.
+    One that fits every axis the request names, as the catalog's search
+    would: the kind of help, and a subject on or under the one it names. A
+    calculus tutor answering «матан» quotes their calculus price; a coursework
+    request does not get an hourly lesson rate. Several fitting offers in one
+    unit give the lowest; in different units nothing is said rather than a
+    guess. A request naming neither axis, or an offer with no price, gives
+    nothing.
     """
     offers = list(
         await session.scalars(
@@ -180,26 +184,30 @@ async def suggested_offers(
     )
     if not offers:
         return {}
-    covered: dict[int, set[int]] = {}
+    # Per offer and not per request: a helper has a handful of offers, a page
+    # has fifty requests. `shelves_of` is `held_by` read the other way.
+    shelves = {
+        subject_id: await shelves_of(session, {subject_id})
+        for subject_id in {o.subject_id for o in offers if o.subject_id is not None}
+    }
     suggested: dict[int, Offer] = {}
     for request in requests:
-        subjects: set[int] = set()
-        if request.subject_id is not None:
-            if request.subject_id not in covered:
-                covered[request.subject_id] = set(
-                    await held_by(session, request.subject_id)
-                )
-            subjects = covered[request.subject_id]
-        best, best_score = None, 0
-        for offer in offers:
-            score = 2 * (offer.subject_id in subjects) + (
-                request.service_type_id is not None
-                and offer.service_type_id == request.service_type_id
+        if request.subject_id is None and request.service_type_id is None:
+            continue
+        fitting = [
+            offer
+            for offer in offers
+            if (
+                request.service_type_id is None
+                or offer.service_type_id == request.service_type_id
             )
-            if score > best_score:
-                best, best_score = offer, score
-        if best is not None:
-            suggested[request.id] = best
+            and (
+                request.subject_id is None
+                or request.subject_id in shelves.get(offer.subject_id, set())
+            )
+        ]
+        if fitting and len({offer.price_unit for offer in fitting}) == 1:
+            suggested[request.id] = min(fitting, key=lambda o: (o.price_amount, o.id))
     return suggested
 
 
