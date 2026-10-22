@@ -1192,6 +1192,10 @@ msgstr "People can find you in search and write to you."
 msgid "Только наблюдает"
 msgstr "Only watches"
 
+#: src/console/pages/Chat.tsx
+msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
+msgstr "The third line of the greeting, under «welcome» and the line about Konnekt. You can leave it empty."
+
 #: src/console/BanSheet.tsx
 msgid "Сообщения останутся."
 msgstr "Their messages stay."
@@ -2135,8 +2139,8 @@ msgid "Пост в чатах"
 msgstr "A post in chats"
 
 #: src/console/pages/Chat.tsx
-msgid "Бот пишет его новичку: «@имя, ваш текст»."
-msgstr "The bot sends it to a newcomer: «@name, your text»."
+#~ msgid "Бот пишет его новичку: «@имя, ваш текст»."
+#~ msgstr "The bot sends it to a newcomer: «@name, your text»."
 
 #: src/console/pages/Chat.tsx
 #: src/pages/Chats.tsx
@@ -2291,6 +2295,10 @@ msgstr "Banned in every chat. Bans are made with /banall or from a chat's screen
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram refused in every chat: check the bot's rights and ban again."
+
+#: src/console/pages/Chat.tsx
+msgid "Не задан: только общее приветствие"
+msgstr "Not set: only the shared greeting"
 
 #: src/pages/Chats.tsx
 msgid "Попробовать ещё раз"
@@ -2565,6 +2573,10 @@ msgstr "Hide «joined» and «left»"
 msgid "по любому вопросу"
 msgstr "about anything"
 
+#: src/console/pages/Chat.tsx
+msgid "Правила в закрепе, рекламу не публикуем."
+msgstr "The rules are pinned, no ads please."
+
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
@@ -2644,8 +2656,8 @@ msgid "Работа и IT"
 msgstr "Work and IT"
 
 #: src/console/pages/Chat.tsx
-msgid "правила в закрепе, рекламу не публикуем."
-msgstr "the rules are pinned, no ads please."
+#~ msgid "правила в закрепе, рекламу не публикуем."
+#~ msgstr "the rules are pinned, no ads please."
 
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
@@ -2771,8 +2783,8 @@ msgid "Убрать"
 msgstr "Remove"
 
 #: src/console/pages/Chat.tsx
-msgid "не задан"
-msgstr "not set"
+#~ msgid "не задан"
+#~ msgstr "not set"
 
 #: src/pages/Chats.tsx
 #~ msgid "Общие"

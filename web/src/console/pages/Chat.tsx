@@ -87,7 +87,7 @@ type Sheets =
   | { kind: 'unpublish' }
   | { kind: 'disable' }
   | { kind: 'mode'; to: 'approved' | 'observed' | 'external' }
-  | { kind: 'welcome'; enable: boolean }
+  | { kind: 'welcome' }
   | { kind: 'ban'; sender: ChatSender }
   | {
       kind: 'banOutcome';
@@ -424,20 +424,16 @@ function ChatScreen({ chatId }: { chatId: number }) {
               checked={chat.is_welcome_enabled}
               busy={busy}
               label={t`Приветствие`}
-              onChange={(on) =>
-                // On with no text would greet nobody: ask for the text first.
-                on && !chat.welcome_message
-                  ? open({ kind: 'welcome', enable: true })
-                  : save({ is_welcome_enabled: on })
-              }
+              // The greeting stands without the chat's own text, so it is not asked for.
+              onChange={(on) => save({ is_welcome_enabled: on })}
             />
           }
         />
         <Row
           title={<Trans>Текст приветствия</Trans>}
-          hint={chat.welcome_message || <Trans>не задан</Trans>}
+          hint={chat.welcome_message || <Trans>Не задан: только общее приветствие</Trans>}
           trailing={<Chevron />}
-          onClick={() => open({ kind: 'welcome', enable: false })}
+          onClick={() => open({ kind: 'welcome' })}
         />
         <Row
           title={<Trans>Прятать «вошёл» и «вышел»</Trans>}
@@ -802,25 +798,19 @@ function ChatScreen({ chatId }: { chatId: number }) {
         <TextSheet
           multiline
           title={t`Приветствие`}
-          note={<Trans>Бот пишет его новичку: «@имя, ваш текст».</Trans>}
+          note={
+            <Trans>
+              Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt.
+              Можно оставить пустым.
+            </Trans>
+          }
           initial={chat.welcome_message ?? ''}
-          placeholder={t`правила в закрепе, рекламу не публикуем.`}
+          placeholder={t`Правила в закрепе, рекламу не публикуем.`}
           busy={busy}
           error={sheetError}
           onClose={close}
-          // Switching on asks for the text, so it cannot be empty there. Clearing
-          // it otherwise switches the greeting off: on with no text greets nobody.
-          canSave={(text) => !sheet.enable || text.length > 0}
-          onSave={(text) =>
-            save(
-              sheet.enable
-                ? { welcome_message: text, is_welcome_enabled: true }
-                : text
-                  ? { welcome_message: text }
-                  : { welcome_message: text, is_welcome_enabled: false },
-              close,
-            )
-          }
+          // Empty leaves the greeting on, with only the shared lines.
+          onSave={(text) => save({ welcome_message: text }, close)}
         />
       ) : null}
       {sheet?.kind === 'ban' ? (
