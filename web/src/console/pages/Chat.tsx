@@ -33,6 +33,7 @@ import {
   consoleChanges,
   consoleChatsQuery,
   consoleSignalsQuery,
+  consoleStatsQuery,
   consoleSystemQuery,
 } from '@/console/queries';
 import { Switch } from '@/console/Switch';
@@ -164,6 +165,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: ['console', 'spam'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
+      // A ban answers the person's waiting ad hits: the counts move too.
+      void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
+      void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey });
       // Only the sheet this answer is for: another may have opened meanwhile.
       setSheet((current) =>
         (current?.kind === 'ban' || current?.kind === 'unban') &&

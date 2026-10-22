@@ -12,6 +12,7 @@ import {
   PeopleIcon,
   ShieldIcon,
 } from '@/components/icons';
+import { ApiError } from '@/lib/api';
 
 import css from './BrowserShell.module.css';
 import {
@@ -48,10 +49,14 @@ export default function BrowserShell() {
   }, [pathname]);
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
-  // Not again after a refusal that another try cannot change; an outage or
-  // a deploy is asked again, or the badges would freeze at their last number.
-  const every = (query: { state: { error: unknown } }) =>
-    isFinal(query.state.error) ? false : 60_000;
+  // Not again after a refusal that another try cannot change (webapi's say
+  // so for themselves, the catalog's are its 4xx); an outage or a deploy is
+  // asked again, or the badges would freeze at their last number.
+  const every = ({ state: { error } }: { state: { error: unknown } }) =>
+    isFinal(error) ||
+    (error instanceof ApiError && error.status >= 400 && error.status < 500)
+      ? false
+      : 60_000;
   const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: every });
   const catalog = useQuery({ ...adminCatalogQuery, refetchInterval: every });
   const counts = menuCounts(signals.data, catalog.data?.counts);
