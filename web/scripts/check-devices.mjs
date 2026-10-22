@@ -372,24 +372,34 @@ function measureScreen() {
 /** The tab bar's destinations, in order. */
 const TABS = ['Помощь', 'Чаты', 'Заявки', 'Профиль'];
 
-/** Each tab's label, and whether it breaks onto a second line or spills out of its tab. */
+/**
+ * Each tab's label, whether it breaks onto a second line or spills out of its
+ * tab, and how far the bar runs past the screen. A tab grows to fit its label
+ * rather than wrap it, so a label too long shows as the round button pushed
+ * off the edge.
+ */
 function measureTabs() {
+  const bar = document.querySelector('nav');
+  const last = bar?.lastElementChild?.getBoundingClientRect();
   // The round button has a label instead of text, and is not a destination.
-  return [...document.querySelectorAll('nav button:not([aria-label])')].map((tab) => {
-    const text = [...tab.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
-    const range = document.createRange();
-    range.selectNodeContents(text ?? tab);
-    const lines = new Set(
-      [...range.getClientRects()].map((rect) => Math.round(rect.top)),
-    );
-    const label = range.getBoundingClientRect();
-    const box = tab.getBoundingClientRect();
-    return {
-      label: tab.textContent.trim(),
-      wraps: lines.size > 1,
-      clipped: label.left < box.left - 0.5 || label.right > box.right + 0.5,
-    };
-  });
+  const tabs = [...document.querySelectorAll('nav button:not([aria-label])')].map(
+    (tab) => {
+      const text = [...tab.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+      const range = document.createRange();
+      range.selectNodeContents(text ?? tab);
+      const lines = new Set(
+        [...range.getClientRects()].map((rect) => Math.round(rect.top)),
+      );
+      const label = range.getBoundingClientRect();
+      const box = tab.getBoundingClientRect();
+      return {
+        label: tab.textContent.trim(),
+        wraps: lines.size > 1,
+        clipped: label.left < box.left - 0.5 || label.right > box.right + 0.5,
+      };
+    },
+  );
+  return { tabs, overflow: last ? last.right - window.innerWidth : 0 };
 }
 
 function measureTop() {
@@ -557,7 +567,7 @@ async function checkList(browser, base, profile, { path, last }) {
     );
   } else ok(`${path}: tab bar flush on the visible bottom (${bottom}px)`);
 
-  const tabs = await page.evaluate(measureTabs);
+  const { tabs, overflow } = await page.evaluate(measureTabs);
   const cramped = tabs.filter((tab) => tab.wraps || tab.clipped);
   if (tabs.map((tab) => tab.label).join() !== TABS.join()) {
     fail(profile, `${path}: the tabs are ${tabs.map((tab) => tab.label).join(', ')}`);
@@ -566,7 +576,9 @@ async function checkList(browser, base, profile, { path, last }) {
       profile,
       `${path}: ${cramped.map((tab) => `«${tab.label}»`).join(', ')} does not fit its tab`,
     );
-  } else ok(`${path}: ${TABS.length} tabs, each label on one line`);
+  } else if (overflow > TOLERANCE) {
+    fail(profile, `${path}: the tab bar runs ${Math.round(overflow)}px past the screen`);
+  } else ok(`${path}: ${TABS.length} tabs, each label on one line, all on the screen`);
 
   // Profile is a tab, so the header no longer carries a way to it.
   if (await page.locator('header').getByRole('button', { name: 'Профиль' }).count()) {
