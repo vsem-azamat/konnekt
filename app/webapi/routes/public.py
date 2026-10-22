@@ -194,7 +194,7 @@ async def get_public_catalog(
 
 
 def _ordered(items: list[PublicCatalogItem]) -> list[PublicCatalogItem]:
-    """Ours before somebody else's, then the larger first, at every level.
+    """Groups and the chats inside them: ours first, then the larger.
 
     The page renders what the server decided instead of sorting again in the
     browser. A group goes by its lead, the chat named like it (the university's

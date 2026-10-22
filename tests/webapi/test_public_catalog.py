@@ -468,7 +468,7 @@ class TestWhatComesBack:
 
 
 class TestOrder:
-    """Ours before somebody else's, then the larger first, at every level (Azamat, 2026-10-22).
+    """Ours before somebody else's, then the larger first (Azamat, 2026-10-22); a group's own chat opens it.
 
     Before, groups were alphabetical, and somebody else's ČZU opened the list.
     """
