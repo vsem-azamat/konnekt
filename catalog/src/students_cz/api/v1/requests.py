@@ -187,8 +187,6 @@ async def request_feed(
             suggested_price=_offer_price(offers.get(row.request.id)),
             on_my_services=row.on_my_services,
             responded=row.responded,
-            work_format=row.request.work_format,
-            city=row.request.city,
         )
         for base, row in zip(rendered, rows, strict=True)
     ]
