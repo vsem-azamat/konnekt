@@ -854,3 +854,183 @@ async def test_the_author_is_not_among_the_helpers_seeing(
     assert created["subject_id"] == theirs["subject_id"]
     assert seeing == theirs["helpers_seeing"] - 1
     assert seeing == listed
+
+
+# ── pricing an answer ───────────────────────────────────────────────────
+
+
+async def test_the_feed_suggests_the_helpers_own_price(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=650)
+    created = await post_request(client, "нужна помощь с матаном")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] == {"amount": 650, "currency": "CZK", "unit": "hour"}
+
+
+async def test_no_price_is_suggested_far_from_the_helpers_offers(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=650)
+    created = await post_request(client, "кто-нибудь знает, где купить велосипед")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] is None
+
+
+async def test_an_offer_without_a_price_suggests_none(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=None)
+    created = await post_request(client, "нужна помощь с матаном")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] is None
+
+
+async def _ids(session: AsyncSession, *, subject: str, service: str) -> tuple[int, int]:
+    from students_cz.db.models import ServiceType, Subject
+
+    subject_id = await session.scalar(select(Subject.id).where(Subject.slug == subject))
+    service_id = await session.scalar(
+        select(ServiceType.id).where(ServiceType.code == service)
+    )
+    assert subject_id is not None and service_id is not None
+    return subject_id, service_id
+
+
+async def _asking(
+    client: AsyncClient,
+    session: AsyncSession,
+    *,
+    subject_id: int | None,
+    service_type_id: int | None,
+) -> int:
+    """A request on exactly these axes, whatever the parser made of its text."""
+    created = await post_request(client, "нужна помощь")
+    request = await session.get(HelpRequest, created["id"])
+    assert request is not None
+    request.subject_id = subject_id
+    request.service_type_id = service_type_id
+    await session.commit()
+    return created["id"]
+
+
+async def _suggested(client: AsyncClient, request_id: int) -> dict | None:
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == request_id]
+    return item["suggested_price"]
+
+
+async def test_the_price_comes_from_an_offer_fitting_every_axis_named(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    """Not the hourly lesson rate for a coursework, nor calculus for law."""
+    from students_cz.db.models import Offer
+    from students_cz.db.models.enums import PriceUnit
+
+    helper = await helper_factory(tg_id=HELPER, price=650)
+    calculus, tutoring = await _ids(
+        session, subject="matematicka-analyza", service="tutoring"
+    )
+    micro, writing = await _ids(session, subject="mikroekonomie", service="writing")
+    law, _ = await _ids(session, subject="pravo", service="tutoring")
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=writing,
+            subject_id=micro,
+            price_amount=2000,
+            price_unit=PriceUnit.WORK,
+            langs=["ru"],
+        )
+    )
+    # Somebody else's offer, and a paused one of theirs: neither is theirs to quote.
+    other = await helper_factory(tg_id=OTHER, price=100, subject_slug="pravo")
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=tutoring,
+            subject_id=law,
+            price_amount=50,
+            langs=["ru"],
+            is_active=False,
+        )
+    )
+    await session.commit()
+    assert other.id != helper.id
+
+    coursework = await _asking(
+        client, session, subject_id=calculus, service_type_id=writing
+    )
+    on_law = await _asking(client, session, subject_id=law, service_type_id=tutoring)
+    on_micro = await _asking(client, session, subject_id=micro, service_type_id=writing)
+    lesson = await _asking(client, session, subject_id=calculus, service_type_id=tutoring)
+
+    assert await _suggested(client, coursework) is None
+    assert await _suggested(client, on_law) is None
+    assert await _suggested(client, on_micro) == {
+        "amount": 2000,
+        "currency": "CZK",
+        "unit": "work",
+    }
+    assert (await _suggested(client, lesson) or {}).get("amount") == 650
+
+
+async def test_a_request_on_a_shelf_is_priced_from_what_it_holds(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    from students_cz.db.models import Subject
+
+    await helper_factory(tg_id=HELPER, price=650)
+    maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
+    assert maths is not None
+
+    request_id = await _asking(client, session, subject_id=maths, service_type_id=None)
+    assert (await _suggested(client, request_id) or {}).get("amount") == 650
+
+
+async def test_several_fitting_offers_give_the_lowest_or_nothing(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    """The lowest within one unit; across units there is no honest guess."""
+    from students_cz.db.models import Offer, Subject
+    from students_cz.db.models.enums import PriceUnit
+
+    helper = await helper_factory(tg_id=HELPER, price=650)
+    maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
+    probability, exam_prep = await _ids(
+        session, subject="pravdepodobnost-a-statistika", service="exam_prep"
+    )
+    _, tutoring = await _ids(session, subject="matematicka-analyza", service="tutoring")
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=tutoring,
+            subject_id=probability,
+            price_amount=500,
+            langs=["ru"],
+        )
+    )
+    await session.commit()
+
+    tutored = await _asking(client, session, subject_id=maths, service_type_id=tutoring)
+    assert (await _suggested(client, tutored) or {}).get("amount") == 500
+
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=exam_prep,
+            subject_id=probability,
+            price_amount=3000,
+            price_unit=PriceUnit.SEMESTER,
+            langs=["ru"],
+        )
+    )
+    await session.commit()
+    anything = await _asking(client, session, subject_id=maths, service_type_id=None)
+    assert await _suggested(client, anything) is None
