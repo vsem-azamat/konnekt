@@ -328,13 +328,13 @@ msgstr "24 hours"
 msgid "Скрыть"
 msgstr "Hide"
 
-#: src/components/Place.tsx
-msgid "вся Чехия"
-msgstr "all of Czechia"
-
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Not done: the main administrator cannot be banned."
+
+#: src/components/Place.tsx
+msgid "вся Чехия"
+msgstr "all of Czechia"
 
 #: src/pages/MyHelper.tsx
 msgid "О себе"
