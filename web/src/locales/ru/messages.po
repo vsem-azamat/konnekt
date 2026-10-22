@@ -193,6 +193,10 @@ msgstr "вкл."
 msgid "Обзор"
 msgstr "Обзор"
 
+#: src/pages/Request.tsx
+msgid "{name} получит уведомление. Отменить нельзя."
+msgstr "{name} получит уведомление. Отменить нельзя."
+
 #. placeholder {0}: helper.hidden_note
 #: src/pages/MyHelper.tsx
 msgid "Причина: {0}"
@@ -1411,6 +1415,10 @@ msgstr "Бот связи"
 msgid "Открыть чат"
 msgstr "Открыть чат"
 
+#: src/pages/Request.tsx
+msgid "Выбрать помощника?"
+msgstr "Выбрать помощника?"
+
 #: src/pages/AdsChats.tsx
 msgid "Как это работает"
 msgstr "Как это работает"
@@ -1470,8 +1478,8 @@ msgid "Ссылка"
 msgstr "Ссылка"
 
 #: src/pages/Request.tsx
-msgid "Выбрать {name}?"
-msgstr "Выбрать {name}?"
+#~ msgid "Выбрать {name}?"
+#~ msgstr "Выбрать {name}?"
 
 #: src/components/Phrase.tsx
 msgid "Онлайн и очно"
@@ -2049,8 +2057,8 @@ msgid "Сколько берёшь?"
 msgstr "Сколько берёшь?"
 
 #: src/pages/Request.tsx
-msgid "Помощник получит уведомление. Отменить нельзя."
-msgstr "Помощник получит уведомление. Отменить нельзя."
+#~ msgid "Помощник получит уведомление. Отменить нельзя."
+#~ msgstr "Помощник получит уведомление. Отменить нельзя."
 
 #: src/console/pages/Audience.tsx
 msgid "Язык Telegram"

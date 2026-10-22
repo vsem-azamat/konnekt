@@ -193,6 +193,10 @@ msgstr "on"
 msgid "Обзор"
 msgstr "Overview"
 
+#: src/pages/Request.tsx
+msgid "{name} получит уведомление. Отменить нельзя."
+msgstr "{name} will be notified. This cannot be undone."
+
 #. placeholder {0}: helper.hidden_note
 #: src/pages/MyHelper.tsx
 msgid "Причина: {0}"
@@ -1411,6 +1415,10 @@ msgstr "Contact bot"
 msgid "Открыть чат"
 msgstr "Open the chat"
 
+#: src/pages/Request.tsx
+msgid "Выбрать помощника?"
+msgstr "Choose this helper?"
+
 #: src/pages/AdsChats.tsx
 msgid "Как это работает"
 msgstr "How it works"
@@ -1470,8 +1478,8 @@ msgid "Ссылка"
 msgstr "Link"
 
 #: src/pages/Request.tsx
-msgid "Выбрать {name}?"
-msgstr "Choose {name}?"
+#~ msgid "Выбрать {name}?"
+#~ msgstr "Choose {name}?"
 
 #: src/components/Phrase.tsx
 msgid "Онлайн и очно"
@@ -2049,8 +2057,8 @@ msgid "Сколько берёшь?"
 msgstr "What do you charge?"
 
 #: src/pages/Request.tsx
-msgid "Помощник получит уведомление. Отменить нельзя."
-msgstr "The helper will be notified. This cannot be undone."
+#~ msgid "Помощник получит уведомление. Отменить нельзя."
+#~ msgstr "The helper will be notified. This cannot be undone."
 
 #: src/console/pages/Audience.tsx
 msgid "Язык Telegram"

@@ -238,7 +238,7 @@ function ResponseCard({ response }: { response: RequestResponse }) {
           second is what the person came to do when they press it. */}
       {confirming ? (
         <Sheet
-          title={t`Выбрать ${name}?`}
+          title={t`Выбрать помощника?`}
           closeLabel={t`Отмена`}
           // Not while the choice is on its way: closing then would look like
           // a cancel, and the helper would be told anyway.
@@ -247,7 +247,7 @@ function ResponseCard({ response }: { response: RequestResponse }) {
           }}
         >
           <p className={ui.sheetNote}>
-            <Trans>Помощник получит уведомление. Отменить нельзя.</Trans>
+            <Trans>{name} получит уведомление. Отменить нельзя.</Trans>
           </p>
           {settle.isError ? (
             <Reason weak>
