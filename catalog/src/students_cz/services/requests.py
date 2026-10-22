@@ -37,14 +37,14 @@ from students_cz.db.models.enums import (
     UiLang,
     UserEventKind,
 )
-from students_cz.services import parser
+from students_cz.services import catalog, parser
 from students_cz.services.errors import (
     BadRequest,
     Conflict,
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import held_by, shelves_of
+from students_cz.services.lookup import shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -551,34 +551,22 @@ async def _own_request(
 async def helpers_seeing(
     session: AsyncSession, requests: list[HelpRequest]
 ) -> dict[int, int]:
-    """How many listed helpers each request is on the services of.
+    """How many people the catalog lists for each request, its author aside.
 
-    The same match as the feed's, read from the request's side: the kind of
-    help it asks for, or a subject that is, or sits on, the one it names. The
-    author is never counted, whatever they offer themselves.
+    Exactly the `/search` on the request's subject and kind of help that the
+    screen offers beneath the number, so the two never disagree. A request
+    naming neither has nobody to count.
     """
     counts: dict[int, int] = {}
     for request in requests:
-        hits = []
-        if request.service_type_id is not None:
-            hits.append(Offer.service_type_id == request.service_type_id)
-        if request.subject_id is not None:
-            hits.append(Offer.subject_id.in_(await held_by(session, request.subject_id)))
-        if not hits:
+        if request.subject_id is None and request.service_type_id is None:
             counts[request.id] = 0
             continue
-        counts[request.id] = (
-            await session.scalar(
-                select(func.count(func.distinct(Offer.helper_id)))
-                .join(HelperProfile, HelperProfile.user_id == Offer.helper_id)
-                .where(
-                    Offer.is_active.is_(True),
-                    HelperProfile.status == PublishStatus.PUBLISHED,
-                    Offer.helper_id != request.author_id,
-                    or_(*hits),
-                )
-            )
-            or 0
+        counts[request.id] = await catalog.count_helpers(
+            session,
+            subject_id=request.subject_id,
+            service_type_id=request.service_type_id,
+            exclude_helper_id=request.author_id,
         )
     return counts
 

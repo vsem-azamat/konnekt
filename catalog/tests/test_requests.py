@@ -794,17 +794,44 @@ async def test_only_the_author_may_delete(client: AsyncClient) -> None:
 # ── who could answer ────────────────────────────────────────────────────
 
 
-async def test_an_open_request_counts_the_helpers_on_its_subject(
-    client: AsyncClient, helper_factory
+async def _seeing_and_listed(client: AsyncClient, created: dict) -> tuple[int, int]:
+    """The count on the request, and the total of the search shown under it."""
+    [mine] = [
+        item
+        for item in (
+            await client.get("/api/v1/requests", headers=auth_header(STUDENT))
+        ).json()
+        if item["id"] == created["id"]
+    ]
+    params = {key: mine[key] for key in ("subject_id", "service_type_id") if mine[key]}
+    search = await client.get(
+        "/api/v1/search",
+        params={**params, "exclude_self": "true"},
+        headers=auth_header(STUDENT),
+    )
+    assert search.status_code == 200, search.text
+    return mine["helpers_seeing"], search.json()["total"]
+
+
+async def test_an_open_request_counts_whom_the_catalog_lists_for_it(
+    client: AsyncClient, session: AsyncSession, helper_factory
 ) -> None:
     created = await post_request(client, "нужна помощь с матаном")
     assert created["subject_id"] is not None
-    before = created["helpers_seeing"]
+    before, _ = await _seeing_and_listed(client, created)
 
     await helper_factory(tg_id=HELPER)
-    await helper_factory(tg_id=OTHER, first_name="Jana")
-    [mine] = (await client.get("/api/v1/requests", headers=auth_header(STUDENT))).json()
-    assert mine["helpers_seeing"] == before + 2
+    # The same kind of help on another subject, and a draft: neither is listed.
+    await helper_factory(tg_id=OTHER, subject_slug="akademicke-psani")
+    draft = await helper_factory(tg_id=90504)
+    profile = await session.get(HelperProfile, draft.id)
+    assert profile is not None
+    profile.status = PublishStatus.DRAFT
+    await session.commit()
+
+    seeing, listed = await _seeing_and_listed(client, created)
+    assert seeing == before + 1
+    assert seeing == listed
 
     closed = await client.post(
         f"/api/v1/requests/{created['id']}/close", headers=auth_header(STUDENT)
@@ -816,24 +843,14 @@ async def test_the_author_is_not_among_the_helpers_seeing(
     client: AsyncClient, helper_factory
 ) -> None:
     """Nor among those the catalog offers to call instead of waiting."""
-    await post_request(client, "нужна помощь с матаном", tg_id=OTHER)
     await helper_factory(tg_id=STUDENT)
-
     created = await post_request(client, "нужна помощь с матаном")
+    await post_request(client, "нужна помощь с матаном", tg_id=OTHER)
     [theirs] = (await client.get("/api/v1/requests", headers=auth_header(OTHER))).json()
+
+    seeing, listed = await _seeing_and_listed(client, created)
     # The same subject: the one helper counted for the other request and not
     # for this one is the student themselves.
     assert created["subject_id"] == theirs["subject_id"]
-    assert created["helpers_seeing"] == theirs["helpers_seeing"] - 1
-
-    params = {"subject_id": created["subject_id"], "limit": 50}
-    everyone = await client.get(
-        "/api/v1/search", params=params, headers=auth_header(STUDENT)
-    )
-    others = await client.get(
-        "/api/v1/search",
-        params={**params, "exclude_self": "true"},
-        headers=auth_header(STUDENT),
-    )
-    assert others.status_code == 200, others.text
-    assert others.json()["total"] == everyone.json()["total"] - 1
+    assert seeing == theirs["helpers_seeing"] - 1
+    assert seeing == listed

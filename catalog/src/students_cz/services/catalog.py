@@ -264,6 +264,29 @@ def _has_free_slot():
     )
 
 
+async def count_helpers(
+    session: AsyncSession,
+    *,
+    subject_id: int | None,
+    service_type_id: int | None,
+    exclude_helper_id: int,
+) -> int:
+    """How many people `search` would list for these two filters, but one."""
+    base = _offer_query(
+        subject_ids=await held_by(session, subject_id) if subject_id else None,
+        institution_id=None,
+        service_type_id=service_type_id,
+        max_price=None,
+        langs=[],
+        exclude_helper_id=exclude_helper_id,
+    )
+    return (
+        await session.scalar(
+            base.with_only_columns(func.count(func.distinct(Offer.helper_id)))
+        )
+    ) or 0
+
+
 async def search(
     session: AsyncSession,
     lang: UiLang,

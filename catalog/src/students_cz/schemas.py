@@ -466,8 +466,8 @@ class RequestOut(RequestBase):
     service_type_id: int | None = None
     responses_count: int = 0
     responders: list[Avatar] = Field(default_factory=list)
-    # Listed helpers it is on the services of, the author aside. Counted only
-    # while it is open; 0 after.
+    # How many people /search lists on subject_id and service_type_id, the
+    # author aside. Counted only while it is open; 0 after.
     helpers_seeing: int = 0
     expires_at: datetime | None = None
     closed_at: datetime | None = None

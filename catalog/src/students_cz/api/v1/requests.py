@@ -114,7 +114,9 @@ async def request_feed(
     """Open requests, for someone who could answer them."""
     rows = await requests_service.feed_for(session, user=user, limit=limit)
 
-    rendered = await _requests_out(session, [row.request for row in rows], lang)
+    rendered = await _requests_out(
+        session, [row.request for row in rows], lang, count_seeing=False
+    )
     subjects_by_id = {item.id: item.subject for item in rendered}
 
     return [
@@ -418,7 +420,9 @@ async def _request_out(session, request: HelpRequest, lang) -> RequestOut:
     return out
 
 
-async def _requests_out(session, requests: list[HelpRequest], lang) -> list[RequestOut]:
+async def _requests_out(
+    session, requests: list[HelpRequest], lang, *, count_seeing: bool = True
+) -> list[RequestOut]:
     """Render a whole page of requests in a fixed number of queries.
 
     Done per request this was five round trips each — 250 for a full page —
@@ -461,9 +465,14 @@ async def _requests_out(session, requests: list[HelpRequest], lang) -> list[Requ
             bucket.append(avatar_for(responder))
 
     now = datetime.now(UTC)
-    # Only an open request asks who could still answer it.
-    seeing = await requests_service.helpers_seeing(
-        session, [r for r in requests if _is_live(r, now)]
+    # Only the author's own open request asks who else could answer it; the
+    # feed has no use for the number.
+    seeing = (
+        await requests_service.helpers_seeing(
+            session, [r for r in requests if _is_live(r, now)]
+        )
+        if count_seeing
+        else {}
     )
 
     out = []
