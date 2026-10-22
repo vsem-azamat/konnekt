@@ -1987,17 +1987,19 @@
 
 /* A sheet's choices when there may be dozens: they scroll on their own and
    give up their height first, so what is above them stays put. Two rows at
-   least, when there are two; with less room than that the whole body
-   scrolls. */
+   least; with less room than that the whole body scrolls. */
 .sheetList {
   display: flex;
   flex-direction: column;
   gap: 9px;
+  min-height: 104px;
   overflow-y: auto;
 }
 
-.sheetList:has(> :nth-child(2)) {
-  min-height: 104px;
+/* One row is all the height it needs. Said as an exception, so an engine
+   without :has() keeps the floor rather than lose it. */
+.sheetList:not(:has(> :nth-child(2))) {
+  min-height: 0;
 }
 
 /* Blocks one under another with the rows' own gap. Not .stack, which is the

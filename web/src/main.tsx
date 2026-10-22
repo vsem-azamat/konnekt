@@ -351,12 +351,18 @@ function bindAppHeight(): void {
 function bindKeyboard(): void {
   if (!window.visualViewport) return;
   const root = document.documentElement.style;
+  // The sheet's room is what neither covers. A pan alone moves the sheet
+  // without resizing it, and bringing the field back then would pull the
+  // sheet's scroll away from wherever the person had taken it.
+  let room = 0;
   followKeyboard(
     window.visualViewport,
     () => window.innerHeight,
     ({ covered, panned }) => {
       root.setProperty('--keyboard', `${covered}px`);
       root.setProperty('--keyboard-pan', `${panned}px`);
+      if (covered + panned === room) return;
+      room = covered + panned;
       requestAnimationFrame(() => {
         const typing = document.activeElement;
         if (typing?.closest('[role="dialog"]')) {
