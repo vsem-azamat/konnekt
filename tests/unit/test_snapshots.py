@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
+from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError, TelegramRetryAfter
 from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -72,6 +72,32 @@ def _bot_with_photo(big: str, small: str, unique: str):
 
 def _refused() -> TelegramBadRequest:
     return TelegramBadRequest(method=MagicMock(), message="chat not found")
+
+
+def _public(chat_id: int, username: str) -> Chat:
+    return Chat(id=chat_id, title="A", resource_status=Chat.STATUS_EXTERNAL, public_link=f"https://t.me/{username}")
+
+
+def _not_a_member(by_name: dict[str, tuple[int, int]]):
+    """A bot that is in no chat: every id refused, each public name answered with its chat's id and size."""
+    bot = _bot()
+
+    async def _get_chat(chat_id):
+        if isinstance(chat_id, int):
+            raise _refused()
+        found = MagicMock()
+        found.id, found.type, found.title, found.photo = by_name[chat_id][0], "supergroup", "A", None
+        found.username = chat_id.removeprefix("@")
+        return found
+
+    async def _count(chat_id):
+        if isinstance(chat_id, int):
+            raise _refused()
+        return by_name[chat_id][1]
+
+    bot.get_chat = AsyncMock(side_effect=_get_chat)
+    bot.get_chat_member_count = AsyncMock(side_effect=_count)
+    return bot
 
 
 async def _seed(session_maker, *chats: Chat) -> None:
@@ -626,6 +652,84 @@ class TestBotNotInChat:
         assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
         async with db_session_maker() as session:
             assert await session.get(ChatAvatar, -100) is not None
+
+    async def test_a_public_chat_is_counted_by_its_name(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """On 2026-10-22 twenty-two listed chats the bot is not in had no count at all."""
+        await _seed(db_session_maker, _public(-100, "cvut_fjfi"))
+        bot = _not_a_member({"@cvut_fjfi": (-100, 276)})
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert await _snapshots(db_session_maker) == [(-100, 276)]
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
+
+    async def test_a_name_now_another_chats_is_not_counted(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """The count by name names no chat, so the name is checked against the id first."""
+        await _seed(db_session_maker, _public(-100, "cvut_fjfi"))
+        bot = _not_a_member({"@cvut_fjfi": (-999, 5000)})
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert await _snapshots(db_session_maker) == []
+        bot.get_chat_member_count.assert_awaited_once_with(-100)
+
+    async def test_a_marked_public_chat_waits_out_the_day_too(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Lookups by name are what earned the bot an 80-minute wait, so they are as rare as the id."""
+        chat = _public(-100, "cvut_fjfi")
+        chat.bot_absent_at = utc_now() - datetime.timedelta(hours=2)
+        await _seed(db_session_maker, chat)
+        bot = _not_a_member({"@cvut_fjfi": (-100, 276)})
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        bot.get_chat.assert_not_awaited()
+        bot.get_chat_member_count.assert_not_awaited()
+
+    async def test_a_flood_wait_by_name_ends_lookups_by_name_for_the_tick(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        await _seed(db_session_maker, _public(-100, "cvut_fjfi"), _public(-200, "cvut_fel"))
+        bot = _not_a_member({"@cvut_fel": (-200, 700)})
+        bot.get_chat = AsyncMock(
+            side_effect=TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=4800)
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert bot.get_chat.await_count == 1
+        assert await _snapshots(db_session_maker) == []
+        assert (await _chat(db_session_maker, -200)).bot_absent_at is not None
+
+    async def test_a_flood_wait_on_the_count_by_name_keeps_the_title(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        public = _public(-100, "cvut_fjfi")
+        public.title = "Old"
+        await _seed(db_session_maker, public, _public(-200, "cvut_fel"))
+        bot = _not_a_member({"@cvut_fjfi": (-100, 900), "@cvut_fel": (-200, 700)})
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=[
+                _refused(),
+                TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=4800),
+                _refused(),
+            ]
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        stored = await _chat(db_session_maker, -100)
+        assert stored.title == "A"
+        assert stored.last_synced_at is not None
+        assert await _snapshots(db_session_maker) == []
+        # The second chat is not asked by name at all.
+        assert bot.get_chat_member_count.await_count == 3
+        assert bot.get_chat.await_count == 1
 
     async def test_a_timeout_on_the_recheck_keeps_the_mark(
         self, db_session_maker: async_sessionmaker[AsyncSession]

@@ -7,9 +7,10 @@ and the account's session lives on a developer's machine rather than on the
 server. The client API was never needed here — the moderator bot is an
 administrator in every managed chat, and `getChatMemberCount` is a bot method.
 
-Intentionally simple: two calls per chat per tick, no concurrency, no
-deduplication. If the process dies we lose the in-flight tick and nothing is
-corrupted, because each snapshot is an independent row.
+Intentionally simple: two calls per chat per tick (a public chat the bot is
+not in: two more by its name, once a day), no concurrency, no deduplication.
+If the process dies we lose the in-flight tick and nothing is corrupted,
+because each snapshot is an independent row.
 
 Each tick also refreshes the title and photo of chats whose ``last_synced_at``
 is older than ``METADATA_STALENESS_HOURS``. That check uses ``last_synced_at``
@@ -24,6 +25,7 @@ import datetime
 from typing import TYPE_CHECKING
 
 import aiohttp
+from aiogram.exceptions import TelegramRetryAfter
 from sqlalchemy import select, update
 
 from app.chats import previews
@@ -32,7 +34,9 @@ from app.chats.metadata import (
     BotNotInChatError,
     ChatMigratedError,
     fetch_member_count,
+    fetch_member_count_by_name,
     fetch_metadata,
+    fetch_metadata_by_name,
     username_of,
 )
 from app.chats.migration import follow_upgrade
@@ -140,12 +144,18 @@ async def snapshot_once(
         ]
         pictured = set((await session.execute(select(ChatAvatar.chat_id))).scalars())
         asked = 0
+        # One long flood wait on a lookup by name ends them for the tick: the
+        # next would only add to it. A chat the bot is not in that lost its
+        # turn to the flood waits for its next daily one.
+        by_name_flooded = False
         for chat in chats:
             if chat.bot_absent_at is not None and chat.bot_absent_at > absent_cutoff:
                 continue
             if asked:
                 await asyncio.sleep(PAUSE_BETWEEN_CHATS_SECONDS)
             asked += 1
+            username = username_of(chat.public_link) if chat.public_link else None
+            metadata = None
             try:
                 members = await fetch_member_count(bot=bot, chat_id=chat.id)
             except ChatMigratedError as err:
@@ -154,11 +164,26 @@ async def snapshot_once(
                 continue
             except BotNotInChatError:
                 _note_absent(chat, now)
-                # A public chat still answers getChat by its name, so its title
-                # and photo stay current; a private one has nothing more to say.
-                if chat.public_link is None or username_of(chat.public_link) is None:
+                # A public chat still answers by its name, as rarely as the id
+                # is asked: its title and photo, and its size once the name is
+                # known to be still this chat's. A private one has nothing more to say.
+                if username is None or by_name_flooded:
                     continue
-                members = None
+                try:
+                    metadata = await fetch_metadata_by_name(bot=bot, chat_id=chat.id, username=username)
+                except TelegramRetryAfter as err:
+                    logger.warning("lookup_by_name_flooded", chat_id=chat.id, retry_after=err.retry_after)
+                    by_name_flooded = True
+                    continue
+                if metadata is None:
+                    continue
+                try:
+                    members = await fetch_member_count_by_name(bot=bot, chat_id=chat.id, username=username)
+                except TelegramRetryAfter as err:
+                    # The title and photo already came; only the count is lost.
+                    logger.warning("lookup_by_name_flooded", chat_id=chat.id, retry_after=err.retry_after)
+                    by_name_flooded = True
+                    members = None
             else:
                 # Only a count says the bot is back: a timeout says nothing.
                 if members is not None and chat.bot_absent_at is not None:
@@ -168,20 +193,20 @@ async def snapshot_once(
                 session.add(ChatMemberSnapshot(chat_id=chat.id, member_count=members))
                 written += 1
 
-            # A chat with a photo and no picture is asked about at once rather
-            # than at its next daily turn: the rows that existed before pictures
-            # were kept, and one whose download failed, are all in that state.
-            unpictured = chat.photo_file_id is not None and chat.id not in pictured
-            # Likewise a chat never asked whether it takes join requests.
-            unasked = chat.join_by_request is None or chat.join_mode_guessed
-            if not unpictured and not unasked and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
-                continue
-
-            metadata = await fetch_metadata(
-                bot=bot, chat_id=chat.id, username=username_of(chat.public_link) if chat.public_link else None
-            )
             if metadata is None:
-                continue
+                # A chat with a photo and no picture is asked about at once rather
+                # than at its next daily turn: the rows that existed before pictures
+                # were kept, and one whose download failed, are all in that state.
+                unpictured = chat.photo_file_id is not None and chat.id not in pictured
+                # Likewise a chat never asked whether it takes join requests.
+                unasked = chat.join_by_request is None or chat.join_mode_guessed
+                if not unpictured and not unasked and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
+                    continue
+                metadata = await fetch_metadata(
+                    bot=bot, chat_id=chat.id, username=None if by_name_flooded else username
+                )
+                if metadata is None:
+                    continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
             if chat.join_mode_guessed:
@@ -191,7 +216,8 @@ async def snapshot_once(
             if outcome in {"fetched", "removed"}:
                 photo_refreshed += 1
             if outcome != "failed":
-                # A picture that could not be fetched leaves the chat due, so the next tick tries again.
+                # A picture that could not be fetched leaves the chat due, so the next
+                # tick tries again (a chat the bot is not in, at its next daily turn).
                 chat.last_synced_at = now
 
         if previewed:

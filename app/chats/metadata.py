@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from aiogram import Bot
+    from aiogram.types import ChatFullInfo
 
 logger = get_logger("chats.metadata")
 
@@ -122,19 +123,36 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
         if username is None or isinstance(err, TelegramRetryAfter):
             return None
         try:
-            chat = await ask(lambda: bot.get_chat(f"@{username}"))
-        except TelegramAPIError as err:
-            logger.warning(
-                "get_chat_by_username_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
-            )
+            return await fetch_metadata_by_name(bot=bot, chat_id=chat_id, username=username)
+        except TelegramRetryAfter:
             return None
-        # A name can be dropped and taken by somebody else; what it resolves to
-        # now is only this chat if it is the same id and still a group, or a
-        # channel listed as one (never a person).
-        if chat.id != chat_id or chat.type not in ("group", "supergroup", "channel"):
-            logger.warning("get_chat_by_username_other_chat", chat_id=chat_id, found_type=chat.type)
-            return None
+    return _metadata_of(chat)
 
+
+async def fetch_metadata_by_name(*, bot: Bot, chat_id: int, username: str) -> ChatMetadata | None:
+    """Ask about a chat by its public name only, for one that refused the bot its id.
+
+    None when Telegram would not say, or when the name now belongs to another
+    chat. Raises `TelegramRetryAfter` under a long flood wait, so the caller
+    can stop asking by name for the rest of its run.
+    """
+    try:
+        chat = await ask(lambda: bot.get_chat(f"@{username}"))
+    except TelegramRetryAfter:
+        raise
+    except TelegramAPIError as err:
+        logger.warning("get_chat_by_username_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+        return None
+    # A name can be dropped and taken by somebody else; what it resolves to
+    # now is only this chat if it is the same id and still a group, or a
+    # channel listed as one (never a person).
+    if chat.id != chat_id or chat.type not in ("group", "supergroup", "channel"):
+        logger.warning("get_chat_by_username_other_chat", chat_id=chat_id, found_type=chat.type)
+        return None
+    return _metadata_of(chat)
+
+
+def _metadata_of(chat: ChatFullInfo) -> ChatMetadata:
     photo = getattr(chat, "photo", None)
     return ChatMetadata(
         title=chat.title,
@@ -177,4 +195,23 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
         if _not_found(err):
             raise BotNotInChatError(chat_id) from err
         logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+        return None
+
+
+async def fetch_member_count_by_name(*, bot: Bot, chat_id: int, username: str) -> int | None:
+    """How many people are in a public chat the bot is not in. None when Telegram would not say.
+
+    Telegram tells anyone the size of a public group or channel asked by its
+    name, and refuses the id to a bot that is not a member. The answer names no
+    chat, so ask only after `fetch_metadata_by_name` found the name still this
+    chat's. Raises `TelegramRetryAfter` under a long flood wait, like it.
+    """
+    try:
+        return await ask(lambda: bot.get_chat_member_count(f"@{username}"))
+    except TelegramRetryAfter:
+        raise
+    except TelegramAPIError as err:
+        logger.warning(
+            "get_chat_member_count_by_username_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
+        )
         return None
