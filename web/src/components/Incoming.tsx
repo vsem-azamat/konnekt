@@ -67,14 +67,14 @@ export function Incoming() {
 
   // `?request=<id>` is where the bot's message about a new request lands: that
   // request open to answer, once. Dropped from the URL after, so a reload or
-  // a way back does not open it again. One no longer in the feed — answered,
-  // closed, out of the list — leaves just the list.
+  // a way back does not open it again. One already answered, or no longer in
+  // the feed — closed, out of the list — leaves just the list.
   const [params, setParams] = useSearchParams();
   const linked = Number(params.get('request'));
   useEffect(() => {
     if (!linked || !data) return;
     const found = data.find((request) => request.id === linked);
-    if (found) {
+    if (found && !found.responded) {
       setDraft((kept) =>
         kept.requestId === found.id
           ? kept
