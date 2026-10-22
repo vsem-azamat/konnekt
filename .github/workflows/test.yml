@@ -4,6 +4,8 @@ on:
   workflow_call:
   pull_request:
     branches: [ main ]
+    # ready_for_review: a draft runs no lane until it is marked ready.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -57,8 +59,12 @@ jobs:
     # itself always runs: branch protection waits for it by name.
     - name: Lanes this change touches
       id: lanes
+      env:
+        DRAFT: ${{ github.event.pull_request.draft }}
       run: |
-        if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+        if [ "$DRAFT" = true ]; then
+          lanes=$(printf 'python=false\nweb=false\ncatalog=false')
+        elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
           lanes=$(.githooks/lanes HEAD^1 HEAD)
         else
           lanes=$(printf 'python=true\nweb=true\ncatalog=true')
@@ -281,8 +287,12 @@ jobs:
     # As in the test job.
     - name: Lanes this change touches
       id: lanes
+      env:
+        DRAFT: ${{ github.event.pull_request.draft }}
       run: |
-        if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+        if [ "$DRAFT" = true ]; then
+          lanes=$(printf 'python=false\nweb=false\ncatalog=false')
+        elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
           lanes=$(../.githooks/lanes HEAD^1 HEAD)
         else
           lanes=$(printf 'python=true\nweb=true\ncatalog=true')

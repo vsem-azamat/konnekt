@@ -229,11 +229,11 @@ def _lanes_steps() -> list[Any]:
     return steps
 
 
-def _ci_step(repo: Path, workdir: str, script: str) -> tuple[int, str]:
+def _ci_step(repo: Path, workdir: str, script: str, draft: str = "false") -> tuple[int, str]:
     (repo / workdir).mkdir(exist_ok=True)
     output = repo / "github_output"
     output.write_text("")
-    env = {**_env(), "GITHUB_EVENT_NAME": "pull_request", "GITHUB_OUTPUT": str(output)}
+    env = {**_env(), "GITHUB_EVENT_NAME": "pull_request", "GITHUB_OUTPUT": str(output), "DRAFT": draft}
     result = _run("bash", "-e", "-c", script, cwd=repo / workdir, env=env)
     return result.returncode, output.read_text()
 
@@ -263,6 +263,24 @@ def test_the_ci_lanes_step_reads_the_pull_requests_change(repo: Path, workdir: s
 
     assert code == 0
     assert "python=true" in output.split()
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_a_draft_runs_no_lane_and_still_reports(repo: Path, workdir: str, script: str) -> None:
+    """Marking it ready (ready_for_review) runs the lanes its change touches."""
+    _stage(repo, ".github/workflows/test.yml", "on: push\n")
+    _commit(repo)
+
+    code, output = _ci_step(repo, workdir, script, draft="true")
+
+    assert code == 0
+    assert sorted(output.split()) == ["catalog=false", "python=false", "web=false"]
+
+
+def test_ci_reruns_when_a_draft_is_marked_ready() -> None:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+
+    assert "ready_for_review" in workflow[True]["pull_request"]["types"]
 
 
 @pytest.mark.parametrize(("workdir", "script"), _lanes_steps())

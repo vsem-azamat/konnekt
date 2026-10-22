@@ -20,12 +20,9 @@ on:
         default: true
         type: boolean
 
-concurrency:
-  group: deploy-main
-  # Never cut a deploy off: between stopping the catalog's old database and
-  # starting its new one there is no catalog. The next push waits instead.
-  cancel-in-progress: false
-
+# No run-wide group: cancelling a run would cancel its deploy job too. A newer
+# push cuts off an older run's tests (test.yml's own group) and build (below),
+# so a burst of merges builds and ships once; the host deploy is never cut.
 jobs:
   test:
     if: github.event_name != 'workflow_dispatch'
@@ -34,6 +31,10 @@ jobs:
   build-and-push:
     needs: test
     if: github.event_name != 'workflow_dispatch'
+    # Only the newest push's images are worth building.
+    concurrency:
+      group: deploy-build
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -96,6 +97,12 @@ jobs:
       contents: read
     # A dispatch skips the build, and a skipped need would skip this too.
     if: ${{ !cancelled() && (needs.build-and-push.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    # Never cut a deploy off: between stopping the catalog's old database and
+    # starting its new one there is no catalog. The next one waits instead,
+    # and only the newest waiting one stays.
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false
     runs-on: ubuntu-latest
 
     steps:
