@@ -318,3 +318,106 @@ async def test_a_reason_reaches_only_its_owner(
     assert body["under_review"] is False
     assert body["hidden_reason"] is None
     assert body["hidden_note"] is None
+
+
+# ── pausing one offer ───────────────────────────────────────────────────
+
+
+async def _listed(client: AsyncClient, subject_id: int, user_id: int) -> bool:
+    found = await client.get(
+        "/api/v1/search",
+        params={"subject_id": subject_id, "limit": 50},
+        headers=auth_header(91599),
+    )
+    assert found.status_code == 200, found.text
+    return user_id in [card["user_id"] for card in found.json()["results"]]
+
+
+async def test_a_paused_offer_leaves_the_catalog_and_stays_in_the_profile(
+    client: AsyncClient, helper_factory
+) -> None:
+    helper = await helper_factory(tg_id=OWNER)
+    [offer] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    assert offer["paused"] is False
+    assert await _listed(client, offer["subject_id"], helper.id)
+
+    paused = await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": True},
+        headers=auth_header(OWNER),
+    )
+    assert paused.status_code == 200, paused.text
+    assert paused.json()["paused"] is True
+    [kept] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    assert kept["id"] == offer["id"]
+    assert kept["paused"] is True
+    assert kept["price_amount"] == offer["price_amount"]
+    assert not await _listed(client, offer["subject_id"], helper.id)
+
+    await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": False},
+        headers=auth_header(OWNER),
+    )
+    assert await _listed(client, offer["subject_id"], helper.id)
+
+
+async def test_saving_the_profile_keeps_a_pause_it_does_not_mention(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=OWNER)
+    [offer] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": True},
+        headers=auth_header(OWNER),
+    )
+    sent = {
+        key: offer[key]
+        for key in ("service_type_id", "subject_id", "institution_id", "price_amount")
+    }
+
+    saved = await client.put(
+        "/api/v1/helper", json={"offers": [sent]}, headers=auth_header(OWNER)
+    )
+    assert saved.status_code == 200, saved.text
+    [kept] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    assert kept["paused"] is True
+
+    await client.put(
+        "/api/v1/helper",
+        json={"offers": [{**sent, "paused": False}]},
+        headers=auth_header(OWNER),
+    )
+    [resumed] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    assert resumed["paused"] is False
+
+
+async def test_only_the_owner_may_pause_an_offer(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=OWNER)
+    [offer] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+
+    refused = await client.patch(
+        f"/api/v1/helper/offers/{offer['id']}",
+        json={"paused": True},
+        headers=auth_header(91598),
+    )
+    assert refused.status_code == 404
+    [kept] = (await client.get("/api/v1/helper", headers=auth_header(OWNER))).json()[
+        "offers"
+    ]
+    assert kept["paused"] is False
