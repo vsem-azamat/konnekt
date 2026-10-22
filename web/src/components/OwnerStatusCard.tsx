@@ -29,7 +29,12 @@ export function OwnerStatusCard({
 }) {
   const shown: Shown = status === 'review' ? 'listed' : status;
   return (
-    <div className={ui.ownerStatus} data-status={shown}>
+    // Listed with every service off reads as listed, and is coloured as hidden:
+    // nobody finds it.
+    <div
+      className={ui.ownerStatus}
+      data-status={shown === 'listed' && allPaused(helper) ? 'hidden' : shown}
+    >
       <span className={ui.ownerStatusTitle}>
         {shown === 'draft' ? (
           <Trans>Черновик</Trans>

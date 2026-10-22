@@ -2287,12 +2287,6 @@
   background: currentColor;
 }
 
-.ownerStatus[data-status='review'] {
-  background: var(--tone-3-bg);
-}
-.ownerStatus[data-status='review'] .ownerStatusTitle {
-  color: var(--tone-3-fg);
-}
 .ownerStatus[data-status='listed'] {
   background: var(--good-soft);
 }
