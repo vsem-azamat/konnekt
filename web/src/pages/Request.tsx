@@ -1,10 +1,12 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
+import { useState } from 'react';
 import { useParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { formatDay, PriceUnitLabel } from '@/components/Phrase';
+import { Sheet } from '@/components/Sheet';
 import {
   Action,
   Actions,
@@ -21,6 +23,7 @@ import {
   SkeletonRows,
   Sub,
   Title,
+  ui,
 } from '@/components/Ui';
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
@@ -109,7 +112,9 @@ export default function RequestPage() {
 }
 
 function ResponseCard({ response }: { response: RequestResponse }) {
+  const { t } = useLingui();
   const queryClient = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
 
   const settle = useMutation({
     mutationFn: (verdict: 'accept' | 'decline') =>
@@ -129,6 +134,7 @@ function ResponseCard({ response }: { response: RequestResponse }) {
     openTelegramLink(`https://t.me/${response.username}`);
   };
 
+  const name = response.name;
   const decided = response.status === 'accepted' || response.status === 'declined';
 
   return (
@@ -191,19 +197,24 @@ function ResponseCard({ response }: { response: RequestResponse }) {
         <Actions>
           {/* Writing is the point; accepting is what records that it happened,
               so both are offered and neither is buried. */}
-          <Action onClick={write}>
+          <Action tall onClick={write}>
             <Trans>Написать</Trans>
           </Action>
           {decided ? null : (
             <>
               <Action
+                tall
                 quiet
-                onClick={() => settle.mutate('accept')}
+                onClick={() => {
+                  settle.reset();
+                  setConfirming(true);
+                }}
                 disabled={settle.isPending}
               >
                 <Trans>Выбрать</Trans>
               </Action>
               <Action
+                tall
                 quiet
                 onClick={() => settle.mutate('decline')}
                 disabled={settle.isPending}
@@ -221,6 +232,47 @@ function ResponseCard({ response }: { response: RequestResponse }) {
           <Trans>У этого человека нет @username — написать не получится</Trans>
         </Reason>
       )}
+
+      {/* Choosing tells the helper and cannot be taken back, so it asks once.
+          Writing and declining do not: the first changes nothing, and the
+          second is what the person came to do when they press it. */}
+      {confirming ? (
+        <Sheet
+          title={t`Выбрать помощника?`}
+          closeLabel={t`Отмена`}
+          // Not while the choice is on its way: closing then would look like
+          // a cancel, and the helper would be told anyway.
+          onClose={() => {
+            if (!settle.isPending) setConfirming(false);
+          }}
+        >
+          <p className={ui.sheetNote}>
+            <Trans>{name} получит уведомление. Отменить нельзя.</Trans>
+          </p>
+          {settle.isError ? (
+            <Reason weak>
+              <Trans>Не получилось выбрать — попробуй ещё раз.</Trans>
+            </Reason>
+          ) : null}
+          <Actions>
+            <Action
+              onClick={() =>
+                settle.mutate('accept', { onSuccess: () => setConfirming(false) })
+              }
+              disabled={settle.isPending}
+            >
+              <Trans>Выбрать</Trans>
+            </Action>
+            <Action
+              quiet
+              onClick={() => setConfirming(false)}
+              disabled={settle.isPending}
+            >
+              <Trans>Отмена</Trans>
+            </Action>
+          </Actions>
+        </Sheet>
+      ) : null}
     </Card>
   );
 }
