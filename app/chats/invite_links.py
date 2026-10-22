@@ -158,11 +158,10 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
         _settled(chat)
         return "username"
 
-    # A chat that has the bot's captcha, or admits only by request, must not
-    # hand out a link that skips the check.
-    wants_request = (chat.resource_status == Chat.STATUS_APPROVED and chat.is_captcha_enabled) or bool(
-        info.join_by_request
-    )
+    # Only a chat that lets everyone in, and is ours to decide for, may hand
+    # out a link that skips the request: anywhere else it would skip the check.
+    lets_everyone_in = chat.resource_status == Chat.STATUS_APPROVED and chat.join_mode == Chat.JOIN_OPEN
+    wants_request = not lets_everyone_in or bool(info.join_by_request)
 
     had_link = current is not None and is_invite_link(current)
     stale: str | None = None

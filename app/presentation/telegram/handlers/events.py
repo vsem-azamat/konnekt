@@ -9,7 +9,7 @@ import datetime
 from urllib.parse import quote
 
 from aiogram import Bot, F, Router
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
 from aiogram.types import (
     ChatJoinRequest,
@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
+from app.captcha.telegram import already_member, with_retry
 from app.chats import invite_links, welcome
 from app.chats.avatars import sync_photo
 from app.chats.metadata import fetch_metadata, username_of
@@ -143,10 +144,11 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
     middleware watches, so without this a blacklisted person is only stopped
     once an operator has already let them in.
 
-    Nobody is approved outright. With captcha on, the applicant approves
+    The chat's join mode decides the rest. A chat that lets everyone in has
+    the request approved at once. With captcha, the applicant approves
     themselves by passing it: a Mini App when this bot guards the chat, a
     private message otherwise, unless a captcha they passed in another chat
-    lately vouches for them. Without it the decision stays with the humans.
+    lately vouches for them. Otherwise the decision stays with the humans.
     A guard bot must answer either way — leaving the query unanswered hangs
     the request.
     """
@@ -166,6 +168,10 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
             await bot.decline_chat_join_request(chat_id=event.chat.id, user_id=applicant.id)
         return
 
+    if chat.join_mode == Chat.JOIN_OPEN:
+        await _let_in(event, bot)
+        return
+
     if not event.query_id:
         # Not this chat's guard bot: the request is answered in a private
         # message, or, without a captcha, left to the operator.
@@ -180,6 +186,26 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
 
     logger.info("join_request_queued", chat_id=event.chat.id, user_id=applicant.id)
     await bot.answer_chat_join_request_query(chat_join_request_query_id=event.query_id, result="queue")
+
+
+async def _let_in(event: ChatJoinRequest, bot: Bot) -> None:
+    """Approve a request in a chat that lets everyone in."""
+    if event.query_id:
+        await bot.answer_chat_join_request_query(chat_join_request_query_id=event.query_id, result="approve")
+    else:
+        try:
+            await with_retry(lambda: bot.approve_chat_join_request(chat_id=event.chat.id, user_id=event.from_user.id))
+        except TelegramAPIError as err:
+            if not already_member(err):
+                # The request stays in Telegram for the admins, as if the bot were not there.
+                logger.warning(
+                    "join_request_not_approved",
+                    chat_id=event.chat.id,
+                    error=str(err),
+                    error_type=type(err).__name__,
+                )
+                return
+    logger.info("join_request_approved", chat_id=event.chat.id, user_id=event.from_user.id)
 
 
 async def _offer_check(event: ChatJoinRequest, bot: Bot, db: AsyncSession, chat: Chat) -> bool:

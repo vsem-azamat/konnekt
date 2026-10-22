@@ -56,7 +56,9 @@ def bot() -> MagicMock:
 @pytest.fixture
 async def chat(pg_session_maker: async_sessionmaker[AsyncSession]) -> DbChat:
     async with pg_session_maker() as session:
-        row = DbChat(id=CHAT_ID, title="ČVUT FIT", resource_status=DbChat.STATUS_APPROVED, is_captcha_enabled=True)
+        row = DbChat(
+            id=CHAT_ID, title="ČVUT FIT", resource_status=DbChat.STATUS_APPROVED, join_mode=DbChat.JOIN_CAPTCHA
+        )
         session.add(row)
         await session.commit()
         return row

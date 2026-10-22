@@ -100,6 +100,7 @@ async def snapshot_once(
                 continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
+            chat.join_by_request = metadata.join_by_request
             outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
             if outcome in {"fetched", "removed"}:
                 photo_refreshed += 1

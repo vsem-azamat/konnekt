@@ -339,3 +339,51 @@ def test_the_api_and_the_database_know_the_same_topics() -> None:
     check = next(c for c in checks if c.name == "ck_chats_topic")
     assert get_args(ChatTopic) == Chat.TOPICS
     assert str(check.sqltext) == "topic IN ({})".format(", ".join(f"'{topic}'" for topic in Chat.TOPICS))
+
+
+async def test_the_join_mode_is_set_and_shown(client_factory, db_session_maker) -> None:
+    async with db_session_maker() as s:
+        chat = Chat(id=-2101, title="x", public_link="https://t.me/public_room")
+        chat.join_by_request = True
+        s.add(chat)
+        await s.commit()
+
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2101", json={"join_mode": "open"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["join_mode"] == "open"
+    assert body["join_by_request"] is True
+    assert body["is_captcha_enabled"] is False
+
+
+async def test_an_unknown_join_mode_is_refused(client_factory, db_session_maker) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2102, title="x"))
+        await s.commit()
+
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2102", json={"join_mode": "everyone"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("link", "left"),
+    [
+        # The bot's own link asked for no request without the captcha: people walked in.
+        ("https://t.me/+private_invite", "open"),
+        # Telegram's own requests went to the admins.
+        ("https://t.me/public_room", "admins"),
+    ],
+)
+async def test_the_old_captcha_switch_turned_off_changes_nothing_else(
+    client_factory, db_session_maker, link: str, left: str
+) -> None:
+    async with db_session_maker() as s:
+        s.add(Chat(id=-2103, title="x", public_link=link, join_mode=Chat.JOIN_CAPTCHA))
+        await s.commit()
+
+    async with client_factory() as client:
+        resp = await client.patch("/api/chats/-2103", json={"is_captcha_enabled": False})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["join_mode"] == left

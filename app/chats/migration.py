@@ -29,7 +29,7 @@ _CARRIED = (
     "welcome_message",
     "time_delete",
     "is_welcome_enabled",
-    "is_captcha_enabled",
+    "join_mode",
     "is_service_cleanup_enabled",
     "parent_chat_id",
     "relation_notes",

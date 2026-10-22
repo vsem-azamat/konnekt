@@ -14,6 +14,7 @@ from app.core.enums import SpamVerdict
 ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
 # Chat.TOPICS, spelled out for the schema.
 ChatTopic = Literal["university", "subjects", "dorms", "work_it", "general"]
+JoinMode = Literal["open", "captcha", "admins"]
 
 # What may be stored as a chat's public link.
 #
@@ -115,7 +116,12 @@ class ChatRead(BaseModel):
     resource_status: ChatResourceStatus
     is_forum: bool
     is_welcome_enabled: bool
+    # join_mode == "captcha", kept while the console still shows a switch.
     is_captcha_enabled: bool
+    join_mode: JoinMode = "admins"
+    # Telegram's "approve new members" as last asked; None until then. A public
+    # chat without it lets people straight in, whatever the mode says.
+    join_by_request: bool | None = None
     is_service_cleanup_enabled: bool = True
     parent_chat_id: int | None = None
     relation_notes: str | None = None
@@ -143,6 +149,9 @@ class ChatUpdate(BaseModel):
     resource_status: ChatResourceStatus | None = None
     welcome_message: str | None = None
     is_welcome_enabled: bool | None = None
+    join_mode: JoinMode | None = None
+    # The console's old switch: on is captcha, off is the chat's mode without
+    # one. Ignored when join_mode is sent too.
     is_captcha_enabled: bool | None = None
     is_service_cleanup_enabled: bool | None = None
     time_delete: int | None = None

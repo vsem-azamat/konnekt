@@ -95,13 +95,19 @@ async def test_a_link_the_bot_made_by_hand_is_adopted_in_place() -> None:
 
 
 @pytest.mark.parametrize(
-    ("captcha", "by_request", "wanted"),
-    [(False, False, False), (True, False, True), (False, True, True), (True, True, True)],
+    ("mode", "by_request", "wanted"),
+    [
+        (Chat.JOIN_OPEN, False, False),
+        (Chat.JOIN_CAPTCHA, False, True),
+        (Chat.JOIN_ADMINS, False, True),
+        (Chat.JOIN_OPEN, True, True),
+        (Chat.JOIN_CAPTCHA, True, True),
+    ],
 )
-async def test_the_link_asks_for_join_requests_when_the_chat_does(
-    captcha: bool, by_request: bool, wanted: bool
+async def test_the_link_asks_for_join_requests_unless_the_chat_lets_everyone_in(
+    mode: str, by_request: bool, wanted: bool
 ) -> None:
-    bot, chat = _bot(join_by_request=by_request), _chat(is_captcha_enabled=captcha)
+    bot, chat = _bot(join_by_request=by_request), _chat(join_mode=mode)
 
     await ensure_link(bot, chat)
 
@@ -110,7 +116,7 @@ async def test_the_link_asks_for_join_requests_when_the_chat_does(
 
 async def test_a_new_link_follows_the_chats_join_request_setting_too() -> None:
     bot = _bot(edit=_refused("INVITE_REVOKED_MISSING"))
-    chat = _chat(is_captcha_enabled=True)
+    chat = _chat(join_mode=Chat.JOIN_CAPTCHA)
 
     await ensure_link(bot, chat)
 

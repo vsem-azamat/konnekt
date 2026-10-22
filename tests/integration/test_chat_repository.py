@@ -152,13 +152,13 @@ class TestChatRepositoryIntegration:
 
     async def test_chat_captcha_settings(self, chat_repository: ChatRepository):
         """Test chat captcha settings."""
-        chat = ChatFactory.create(is_captcha_enabled=True)
+        chat = ChatFactory.create(join_mode=Chat.JOIN_CAPTCHA)
 
         saved_chat = await chat_repository.save(chat)
         assert saved_chat.is_captcha_enabled is True
 
         # Toggle captcha
-        chat.is_captcha_enabled = False
+        chat.join_mode = Chat.JOIN_ADMINS
         updated_chat = await chat_repository.save(chat)
         assert updated_chat.is_captcha_enabled is False
 
@@ -188,12 +188,12 @@ class TestChatRepositoryIntegration:
 
     async def test_chat_settings_persistence(self, chat_repository: ChatRepository):
         """Test that chat settings persist across saves."""
-        chat = ChatFactory.create(is_welcome_enabled=False, is_captcha_enabled=False, welcome_delete_time=60)
+        chat = ChatFactory.create(is_welcome_enabled=False, welcome_delete_time=60)
         await chat_repository.save(chat)
 
         # Change chat settings
         chat.is_welcome_enabled = True
-        chat.is_captcha_enabled = True
+        chat.join_mode = Chat.JOIN_CAPTCHA
         chat.time_delete = 120
         chat.welcome_message = "New welcome message"
 

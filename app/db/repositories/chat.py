@@ -30,7 +30,7 @@ class ChatRepository:
             chat_model.welcome_message = chat.welcome_message
             chat_model.time_delete = chat.time_delete
             chat_model.is_welcome_enabled = chat.is_welcome_enabled
-            chat_model.is_captcha_enabled = chat.is_captcha_enabled
+            chat_model.join_mode = chat.join_mode
         else:
             chat_model = Chat(
                 id=chat.id,
@@ -40,7 +40,7 @@ class ChatRepository:
                 welcome_message=chat.welcome_message,
                 time_delete=chat.time_delete,
                 is_welcome_enabled=chat.is_welcome_enabled,
-                is_captcha_enabled=chat.is_captcha_enabled,
+                join_mode=chat.join_mode,
             )
             self.db.add(chat_model)
 

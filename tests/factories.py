@@ -61,7 +61,7 @@ class ChatFactory:
         welcome_message: str | None = None,
         welcome_delete_time: int = 60,
         is_welcome_enabled: bool = False,
-        is_captcha_enabled: bool = False,
+        join_mode: str = Chat.JOIN_ADMINS,
         created_at: datetime | None = None,
         modified_at: datetime | None = None,
     ) -> Chat:
@@ -73,7 +73,7 @@ class ChatFactory:
             welcome_message=welcome_message,
             time_delete=welcome_delete_time,
             is_welcome_enabled=is_welcome_enabled,
-            is_captcha_enabled=is_captcha_enabled,
+            join_mode=join_mode,
         )
         if created_at is not None:
             chat.created_at = created_at

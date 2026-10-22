@@ -30,7 +30,13 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.asyncio
 
 
-def _bot(*, counts: dict[int, int] | None = None, title: str = "Как в Telegram", photo: str | None = None):
+def _bot(
+    *,
+    counts: dict[int, int] | None = None,
+    title: str = "Как в Telegram",
+    photo: str | None = None,
+    join_by_request: bool | None = None,
+):
     """A bot that answers about every chat unless told otherwise."""
     bot = AsyncMock()
     bot.get_chat_member_count = AsyncMock(side_effect=lambda chat_id: (counts or {}).get(chat_id, 42))
@@ -39,6 +45,7 @@ def _bot(*, counts: dict[int, int] | None = None, title: str = "Как в Telegr
         chat = MagicMock()
         chat.title = title
         chat.photo = MagicMock(big_file_id=photo) if photo else None
+        chat.join_by_request = join_by_request
         return chat
 
     bot.get_chat = AsyncMock(side_effect=_get_chat)
@@ -145,6 +152,17 @@ class TestMetadata:
         await snapshot_once(session_maker=db_session_maker, bot=_bot(title="Новое имя"))
 
         assert (await _chat(db_session_maker, -100)).title == "Новое имя"
+
+    @pytest.mark.parametrize(("answered", "stored"), [(True, True), (None, False)])
+    async def test_whether_the_chat_takes_join_requests_is_kept(
+        self, db_session_maker: async_sessionmaker[AsyncSession], answered: bool | None, stored: bool
+    ) -> None:
+        """Telegram leaves the field out when it is off: answered without it is off, not unknown."""
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=answered))
+
+        assert (await _chat(db_session_maker, -100)).join_by_request is stored
 
     async def test_a_brand_new_chat_is_synced_immediately(
         self, db_session_maker: async_sessionmaker[AsyncSession]
