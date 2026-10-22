@@ -1,9 +1,10 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { formatDay, PhraseView } from '@/components/Phrase';
+import { Sheet } from '@/components/Sheet';
 import {
   Action,
   Actions,
@@ -20,19 +21,24 @@ import {
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { requestName } from '@/lib/requestHeading';
-import type { FeedRequest } from '@/lib/types';
+import { responseDraft } from '@/lib/responseDraft';
+import type { FeedRequest, ResponseCreate } from '@/lib/types';
 
 /**
  * What people are asking for, for someone who could answer.
  *
- * The composer is inside the card rather than on a screen of its own: an
- * answer is two sentences and a number, and making it a destination would put
- * a navigation either side of thirty seconds of typing.
+ * The answer is written in a sheet over the list rather than on a screen of
+ * its own: it is two sentences and a number, and making it a destination
+ * would put a navigation either side of thirty seconds of typing. A sheet
+ * also leaves the card where it was, unopened, for someone who only looked.
  */
 export function Incoming() {
   const navigate = useNavigate();
   const { i18n } = useLingui();
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [answering, setAnswering] = useState<FeedRequest | null>(null);
+  // What was typed survives the sheet closing: a tap beside it by mistake
+  // must not cost the two sentences. Kept for one request, the last one.
+  const [draft, setDraft] = useState<Draft>({ requestId: null, message: '', price: '' });
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['request-feed'],
@@ -67,86 +73,80 @@ export function Incoming() {
   }
 
   return (
-    <Cards>
-      {data.map((request) => (
-        <FeedCard
-          key={request.id}
-          request={request}
-          locale={i18n.locale}
-          isOpen={openId === request.id}
-          onToggle={() => setOpenId(openId === request.id ? null : request.id)}
+    <>
+      <Cards>
+        {data.map((request) => (
+          <FeedCard
+            key={request.id}
+            request={request}
+            locale={i18n.locale}
+            onRespond={() => {
+              if (draft.requestId !== request.id) {
+                setDraft({ requestId: request.id, message: '', price: '' });
+              }
+              setAnswering(request);
+            }}
+          />
+        ))}
+      </Cards>
+
+      {answering ? (
+        <RespondSheet
+          request={answering}
+          draft={draft}
+          onDraft={setDraft}
+          onClose={() => setAnswering(null)}
           onDone={() => {
-            setOpenId(null);
+            setAnswering(null);
+            setDraft({ requestId: null, message: '', price: '' });
             navigate('/mine?tab=incoming');
           }}
         />
-      ))}
-    </Cards>
+      ) : null}
+    </>
   );
+}
+
+interface Draft {
+  requestId: number | null;
+  message: string;
+  price: string;
+}
+
+function From({ request }: { request: FeedRequest }) {
+  const name = request.author_name;
+  return <Trans>{name} просит помощи</Trans>;
 }
 
 function FeedCard({
   request,
   locale,
-  isOpen,
-  onToggle,
-  onDone,
+  onRespond,
 }: {
   request: FeedRequest;
   locale: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  onDone: () => void;
+  onRespond: () => void;
 }) {
-  const { t } = useLingui();
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState('');
-  const [price, setPrice] = useState('');
-
-  const respond = useMutation({
-    mutationFn: () =>
-      api.respondToRequest(request.id, {
-        message: message.trim(),
-        // An empty field means "did not say", not zero.
-        price_amount: price.trim() ? Number(price) : undefined,
-        price_unit: price.trim() ? 'hour' : undefined,
-      }),
-    onSuccess: () => {
-      hapticSuccess();
-      // The request drops out of the feed once answered, so the list is stale
-      // the moment this succeeds.
-      void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
-      onDone();
-    },
-  });
-
   // Without a subject or institution the text is the heading, and says
   // itself once: printing it again as the body made every such card read twice.
   const name = requestName(request);
-  const amount = Number(price);
-  const priceValid = !price.trim() || (Number.isFinite(amount) && amount >= 0);
-  const ready = message.trim().length >= 3 && priceValid && !respond.isPending;
 
   return (
     <Card>
-      {/* Not a <button> wrapping the whole card: a button may only contain
-          phrasing content, and this holds paragraphs. The toggle is its own
-          control at the bottom, which also makes the affordance explicit
-          instead of "tap the card and find out". */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <AvatarView avatar={request.author} size={34} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className={ui.cardName} style={isOpen ? undefined : CLAMP_TWO_LINES}>
-            {name ?? request.text}
-          </div>
-          <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
-            {request.author_name}
+          <div className={ui.requestFrom}>
+            <From request={request} />
             {request.deadline_on ? (
               <>
                 {' · '}
                 <Trans>до {formatDay(request.deadline_on, locale)}</Trans>
               </>
             ) : null}
+          </div>
+          <div className={ui.cardName} style={CLAMP_TWO_LINES}>
+            {name ?? request.text}
           </div>
         </div>
         {request.budget?.amount != null ? (
@@ -156,8 +156,8 @@ function FeedCard({
         ) : null}
       </div>
 
-      {/* The words they typed, not our parse of them — collapsed to two
-          lines until the card is opened. */}
+      {/* The words they typed, not our parse of them — two lines here, all
+          of them in the sheet. */}
       {name ? (
         <p
           style={{
@@ -165,7 +165,7 @@ function FeedCard({
             fontSize: 13,
             lineHeight: 1.45,
             color: 'var(--ink-soft)',
-            ...(isOpen ? {} : CLAMP_TWO_LINES),
+            ...CLAMP_TWO_LINES,
           }}
         >
           {request.text}
@@ -178,61 +178,124 @@ function FeedCard({
         </Reason>
       ) : null}
 
-      {isOpen ? null : (
-        <Actions>
-          {/* Quiet: the list is a page of these, and a column of filled
-              buttons reads as a wall rather than as a choice. The filled one
-              is the send inside the composer, where there is exactly one. */}
-          <Action quiet onClick={onToggle}>
-            <Trans>Откликнуться</Trans>
-          </Action>
-        </Actions>
-      )}
-
-      {isOpen ? (
-        <div style={{ marginTop: 12 }}>
-          <div
-            className={`${ui.field} ${ui.fieldOnCard}`}
-            style={{ alignItems: 'flex-start' }}
-          >
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder={t`Чем можешь помочь и когда`}
-              rows={3}
-              maxLength={1000}
-              style={{ all: 'unset', width: '100%', resize: 'none', lineHeight: 1.4 }}
-            />
-          </div>
-
-          <div className={`${ui.field} ${ui.fieldOnCard}`} style={{ marginTop: 8 }}>
-            <input
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              placeholder={t`Цена за час, Kč — необязательно`}
-              // Numeric keypad without the spinner arrows a number input adds.
-              inputMode="decimal"
-              style={{ all: 'unset', width: '100%' }}
-            />
-          </div>
-
-          {respond.isError ? (
-            <Reason weak>
-              <RespondError error={respond.error} />
-            </Reason>
-          ) : null}
-
-          <Actions>
-            <Action onClick={() => respond.mutate()} disabled={!ready}>
-              <Trans>Отправить</Trans>
-            </Action>
-            <Action quiet onClick={onToggle}>
-              <Trans>Не сейчас</Trans>
-            </Action>
-          </Actions>
-        </div>
-      ) : null}
+      <Actions>
+        {/* Quiet: the list is a page of these, and a column of filled
+            buttons reads as a wall rather than as a choice. The filled one
+            is the send inside the sheet, where there is exactly one. */}
+        <Action quiet onClick={onRespond}>
+          <Trans>Откликнуться</Trans>
+        </Action>
+      </Actions>
     </Card>
+  );
+}
+
+function RespondSheet({
+  request,
+  draft,
+  onDraft,
+  onClose,
+  onDone,
+}: {
+  request: FeedRequest;
+  draft: Draft;
+  onDraft: (draft: Draft) => void;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const { t } = useLingui();
+  const queryClient = useQueryClient();
+  const messageId = useId();
+  const priceId = useId();
+  const payload = responseDraft(draft.message, draft.price);
+
+  const respond = useMutation({
+    mutationFn: (body: ResponseCreate) => api.respondToRequest(request.id, body),
+    onSuccess: () => {
+      hapticSuccess();
+      // The request drops out of the feed once answered, so the list is stale
+      // the moment this succeeds.
+      void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
+      onDone();
+    },
+  });
+
+  const name = request.author_name;
+
+  return (
+    <Sheet
+      title={<Trans>Отклик на заявку</Trans>}
+      onClose={onClose}
+      closeLabel={t`Закрыть`}
+    >
+      <div className={ui.requestQuote}>
+        <span className={ui.requestFrom}>
+          <From request={request} />
+        </span>
+        <span>{request.text}</span>
+      </div>
+
+      <div className={ui.respondForm}>
+        <label className={ui.fieldLabel} htmlFor={messageId}>
+          <Trans>Сообщение автору</Trans>
+        </label>
+        <div
+          className={`${ui.field} ${ui.fieldOutlined}`}
+          style={{ alignItems: 'flex-start' }}
+        >
+          <textarea
+            id={messageId}
+            value={draft.message}
+            onChange={(event) => onDraft({ ...draft, message: event.target.value })}
+            placeholder={t`Чем можешь помочь и когда`}
+            rows={3}
+            maxLength={1000}
+            style={{ all: 'unset', width: '100%', resize: 'none', lineHeight: 1.4 }}
+          />
+        </div>
+
+        <label className={ui.fieldLabel} htmlFor={priceId}>
+          <Trans>
+            Цена за час, Kč <span className={ui.fieldLabelNote}>необязательно</span>
+          </Trans>
+        </label>
+        <div className={`${ui.field} ${ui.fieldOutlined}`}>
+          <input
+            id={priceId}
+            value={draft.price}
+            onChange={(event) => onDraft({ ...draft, price: event.target.value })}
+            // Numeric keypad without the spinner arrows a number input adds.
+            inputMode="decimal"
+            style={{ all: 'unset', width: '100%' }}
+          />
+        </div>
+      </div>
+
+      {respond.isError ? (
+        <Reason weak>
+          <RespondError error={respond.error} />
+        </Reason>
+      ) : null}
+
+      <Actions>
+        <Action
+          onClick={() => {
+            if (payload) respond.mutate(payload);
+          }}
+          disabled={!payload || respond.isPending}
+        >
+          <Trans>Отправить отклик</Trans>
+        </Action>
+      </Actions>
+
+      <div className={ui.sheetFoot}>
+        <p className={`${ui.hint} ${ui.sheetOutcome}`}>
+          <Trans>
+            {name} увидит отклик в своей заявке и сможет написать тебе в Telegram.
+          </Trans>
+        </p>
+      </div>
+    </Sheet>
   );
 }
 
