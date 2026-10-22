@@ -5,6 +5,10 @@
  */
 
 .frame {
+  /* #root is the scroller and lays its child out as a column; shrunk to its
+     height, the grid squeezed the phone's menu row to make room for a long
+     screen and cut the links in half. */
+  flex: none;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -114,12 +118,52 @@
 
 .main {
   min-width: 0;
-  padding: 24px clamp(16px, 4vw, 40px) 48px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The bar over every screen: the bell now, the search across everything next. */
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px clamp(16px, 4vw, 28px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.bell {
+  position: relative;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.bell:hover {
+  background: var(--surface-pressed);
+}
+
+.bell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.bell .badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  margin: 0;
 }
 
 /* The Mini App's screens are made for a phone's width; they keep it. */
 .content {
+  padding: 20px clamp(16px, 4vw, 28px) 48px;
   max-width: 720px;
+  box-sizing: content-box;
   display: flex;
   flex-direction: column;
 }

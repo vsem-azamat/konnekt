@@ -206,6 +206,13 @@ export const HomeIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const BellIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6.5 16V11a5.5 5.5 0 0 1 11 0v5l1.5 2h-14z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </Svg>
+);
+
 export const BlockIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="7.5" />

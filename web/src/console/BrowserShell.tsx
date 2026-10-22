@@ -1,8 +1,9 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import {
+  BellIcon,
   BlockIcon,
   BookIcon,
   CardIcon,
@@ -81,6 +82,13 @@ export default function BrowserShell() {
           <Item to="/console" end icon={<HomeIcon size={17} />}>
             <Trans>Обзор</Trans>
           </Item>
+          <Item
+            to="/console/signals"
+            icon={<BellIcon size={17} />}
+            count={counts.signals}
+          >
+            <Trans>Сигналы</Trans>
+          </Item>
           <div className={css.group}>
             <Trans>Модерация</Trans>
           </div>
@@ -133,6 +141,18 @@ export default function BrowserShell() {
         ) : null}
       </aside>
       <main className={css.main}>
+        <header className={css.top}>
+          <Link
+            to="/console/signals"
+            className={css.bell}
+            aria-label={t`Сигналы: ждут решения ${counts.signals}`}
+          >
+            <BellIcon size={17} />
+            {counts.signals > 0 ? (
+              <span className={css.badge}>{counts.signals}</span>
+            ) : null}
+          </Link>
+        </header>
         <div className={css.content}>
           <Outlet />
         </div>
