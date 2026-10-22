@@ -91,6 +91,11 @@ class TelegramSettings(Settings):
         validation_alias="MODERATOR_BOT_RETIRED_TOKEN",
         description="Tokens of retired bots, comma-separated; each answers private messages with the new address",
     )
+    # A placeholder until the final video is approved, so a setting and off by
+    # default. A file_id this bot received, or an https URL Telegram fetches.
+    intro_video: str = Field(
+        default="", description="Video sent with the /start greeting (file_id or https URL); unset sends text only"
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="MODERATOR_BOT_",
@@ -105,6 +110,12 @@ class TelegramSettings(Settings):
     def _split_retired(cls, value: Any) -> Any:
         # Whitespace too: a secret gets pasted one token per line, and a token holds none.
         return re.split(r"[\s,]+", value) if isinstance(value, str) else value
+
+    @field_validator("intro_video", mode="before")
+    @classmethod
+    def _strip_video(cls, value: Any) -> Any:
+        # A variable pasted with its newline would be refused on every /start.
+        return value.strip() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def _retired_once_each(self) -> TelegramSettings:
