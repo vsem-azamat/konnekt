@@ -6,9 +6,10 @@ for anyone on the day:
 - captcha on: captcha;
 - a public chat (its link is a username) without it: admins, since Telegram's
   own requests, where it has them on, were left to the admins;
-- a listed private chat without it: open, since the bot's link asked for no
-  request and people walked in;
-- a chat without a link: admins, the bot touching no request there.
+- any other chat without it: open. A listed private chat's bot link asked for
+  no request and people walked in; an unlisted one has no bot link yet, and
+  ADMINS would give it one asking for requests nobody answers once listed.
+  (Every approved chat without a link was private when this was written.)
 
 is_captcha_enabled stays in the table, given a default, so the previous release
 keeps running beside this one; a later migration drops it.
@@ -37,9 +38,9 @@ def upgrade() -> None:
         """
         UPDATE chats SET join_mode = CASE
             WHEN is_captcha_enabled THEN 'captcha'
-            WHEN public_link IS NULL THEN 'admins'
-            WHEN public_link LIKE '%/+%' OR public_link LIKE '%/joinchat/%' THEN 'open'
-            ELSE 'admins'
+            WHEN public_link IS NOT NULL AND public_link NOT LIKE '%/+%'
+                AND public_link NOT LIKE '%joinchat%' THEN 'admins'
+            ELSE 'open'
         END
         """
     )

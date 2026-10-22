@@ -36,7 +36,7 @@ def test_each_chat_keeps_what_the_bot_did_there(database) -> None:  # noqa: F811
 
     with database.connect() as conn:
         rows = dict(conn.execute(sa.text("SELECT id, join_mode FROM chats")).tuples().all())
-    assert rows == {-1: "captcha", -2: "captcha", -3: "admins", -4: "open", -5: "open", -6: "admins"}
+    assert rows == {-1: "captcha", -2: "captcha", -3: "admins", -4: "open", -5: "open", -6: "open"}
 
 
 def test_a_mode_outside_the_list_is_refused(database) -> None:  # noqa: F811
