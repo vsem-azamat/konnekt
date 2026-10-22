@@ -572,7 +572,9 @@ async def helper_detail(
         headline=helper.headline,
         stats=stats,
         offers=offers,
-        langs=sorted({lang_code for o in helper.offers for lang_code in o.langs}),
+        langs=sorted(
+            {lang_code for o in helper.offers if o.is_active for lang_code in o.langs}
+        ),
         work_format=helper.work_format,
         place_note=helper.place_note,
         free_slots=free,

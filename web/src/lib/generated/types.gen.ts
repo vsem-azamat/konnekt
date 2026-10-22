@@ -836,6 +836,10 @@ export type MyHelperOut = {
  */
 export type MyOfferOut = {
     /**
+     * Id
+     */
+    id: number;
+    /**
      * Service Type Id
      */
     service_type_id: number;
@@ -884,6 +888,10 @@ export type MyOfferOut = {
      * Turnaround Days
      */
     turnaround_days: number | null;
+    /**
+     * Paused
+     */
+    paused?: boolean;
 };
 
 /**
@@ -923,6 +931,10 @@ export type OfferIn = {
      * Turnaround Days
      */
     turnaround_days?: number | null;
+    /**
+     * Paused
+     */
+    paused?: boolean;
 };
 
 /**
@@ -967,6 +979,16 @@ export type OfferOut = {
      * Turnaround Days
      */
     turnaround_days: number | null;
+};
+
+/**
+ * OfferPause
+ */
+export type OfferPause = {
+    /**
+     * Paused
+     */
+    paused: boolean;
 };
 
 /**
@@ -1993,6 +2015,42 @@ export type UpsertHelperApiV1HelperPutResponses = {
 };
 
 export type UpsertHelperApiV1HelperPutResponse = UpsertHelperApiV1HelperPutResponses[keyof UpsertHelperApiV1HelperPutResponses];
+
+export type PauseOfferApiV1HelperOffersOfferIdPatchData = {
+    body: OfferPause;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Offer Id
+         */
+        offer_id: number;
+    };
+    query?: never;
+    url: '/api/v1/helper/offers/{offer_id}';
+};
+
+export type PauseOfferApiV1HelperOffersOfferIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PauseOfferApiV1HelperOffersOfferIdPatchError = PauseOfferApiV1HelperOffersOfferIdPatchErrors[keyof PauseOfferApiV1HelperOffersOfferIdPatchErrors];
+
+export type PauseOfferApiV1HelperOffersOfferIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyOfferOut;
+};
+
+export type PauseOfferApiV1HelperOffersOfferIdPatchResponse = PauseOfferApiV1HelperOffersOfferIdPatchResponses[keyof PauseOfferApiV1HelperOffersOfferIdPatchResponses];
 
 export type MyRequestsApiV1RequestsGetData = {
     body?: never;

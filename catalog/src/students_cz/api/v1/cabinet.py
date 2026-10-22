@@ -8,6 +8,7 @@ from fastapi import APIRouter, BackgroundTasks
 from sqlalchemy import select
 
 from students_cz.api.deps import (
+    IdPath,
     LangDep,
     NotifierDep,
     SessionDep,
@@ -29,6 +30,7 @@ from students_cz.schemas import (
     MeOut,
     MyHelperOut,
     MyOfferOut,
+    OfferPause,
 )
 from students_cz.services import helpers
 from students_cz.services.naming import names_by_id
@@ -51,14 +53,49 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
     if helper is None:
         return MyHelperOut(exists=False)
 
-    offers = (
-        await session.scalars(
-            select(Offer)
-            .where(Offer.helper_id == user.id, Offer.is_active.is_(True))
-            .order_by(Offer.id)
-        )
-    ).all()
+    # Paused ones too: they are the owner's to switch back on.
+    offers = list(
+        (
+            await session.scalars(
+                select(Offer).where(Offer.helper_id == user.id).order_by(Offer.id)
+            )
+        ).all()
+    )
 
+    banned = helper.status == PublishStatus.BANNED
+    return MyHelperOut(
+        exists=True,
+        status=helper.status.value,
+        headline=helper.headline,
+        about=helper.about,
+        work_format=helper.work_format,
+        city=helper.city,
+        place_note=helper.place_note,
+        under_review=helper.reviewed_at is None
+        and helper.status in (PublishStatus.PUBLISHED, PublishStatus.BANNED),
+        hidden_reason=helper.hidden_reason if banned else None,
+        hidden_note=helper.hidden_note if banned else None,
+        offers=await _my_offers(session, lang, offers),
+    )
+
+
+@router.patch("/helper/offers/{offer_id}", response_model=MyOfferOut, tags=["helper"])
+async def pause_offer(
+    offer_id: IdPath,
+    payload: OfferPause,
+    session: SessionDep,
+    lang: LangDep,
+    user: UserDep,
+) -> MyOfferOut:
+    """Pause one offer, or resume it: out of the catalog, kept as it is."""
+    offer = await helpers.pause_offer(
+        session, user=user, offer_id=offer_id, paused=payload.paused
+    )
+    [out] = await _my_offers(session, lang, [offer])
+    return out
+
+
+async def _my_offers(session, lang, offers: list[Offer]) -> list[MyOfferOut]:
     # Names for every axis in one round trip each, rather than per offer.
     service_names = await names_by_id(
         session, ServiceType, [o.service_type_id for o in offers], lang
@@ -80,40 +117,28 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
         ).all()
     }
 
-    banned = helper.status == PublishStatus.BANNED
-    return MyHelperOut(
-        exists=True,
-        status=helper.status.value,
-        headline=helper.headline,
-        about=helper.about,
-        work_format=helper.work_format,
-        city=helper.city,
-        place_note=helper.place_note,
-        under_review=helper.reviewed_at is None
-        and helper.status in (PublishStatus.PUBLISHED, PublishStatus.BANNED),
-        hidden_reason=helper.hidden_reason if banned else None,
-        hidden_note=helper.hidden_note if banned else None,
-        offers=[
-            MyOfferOut(
-                service_type_id=offer.service_type_id,
-                service_type=service_codes.get(offer.service_type_id, ""),
-                service_type_name=service_names.get(offer.service_type_id, ""),
-                subject_id=offer.subject_id,
-                subject_name=subject_names.get(offer.subject_id),
-                institution_id=offer.institution_id,
-                institution_name=institution_names.get(offer.institution_id),
-                price_amount=float(offer.price_amount)
-                if offer.price_amount is not None
-                else None,
-                price_unit=offer.price_unit,
-                langs=list(offer.langs),
-                option_ids=list(offer.option_ids),
-                note=offer.note,
-                turnaround_days=offer.turnaround_days,
-            )
-            for offer in offers
-        ],
-    )
+    return [
+        MyOfferOut(
+            id=offer.id,
+            service_type_id=offer.service_type_id,
+            service_type=service_codes.get(offer.service_type_id, ""),
+            service_type_name=service_names.get(offer.service_type_id, ""),
+            subject_id=offer.subject_id,
+            subject_name=subject_names.get(offer.subject_id),
+            institution_id=offer.institution_id,
+            institution_name=institution_names.get(offer.institution_id),
+            price_amount=float(offer.price_amount)
+            if offer.price_amount is not None
+            else None,
+            price_unit=offer.price_unit,
+            langs=list(offer.langs),
+            option_ids=list(offer.option_ids),
+            note=offer.note,
+            turnaround_days=offer.turnaround_days,
+            paused=not offer.is_active,
+        )
+        for offer in offers
+    ]
 
 
 @router.put("/helper", response_model=MeOut, tags=["helper"])

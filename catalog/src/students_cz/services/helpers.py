@@ -29,7 +29,7 @@ from students_cz.db.models.enums import (
     UserEventKind,
 )
 from students_cz.schemas import HelperUpsert
-from students_cz.services.errors import Invalid
+from students_cz.services.errors import Invalid, NotFound
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -313,8 +313,25 @@ async def _apply_offers(
             offer.work_format = spec.work_format
         elif is_new:
             offer.work_format = helper.work_format
-        offer.is_active = True
+        # `is_active` is the pause: the catalog, the feed and the counts all
+        # read only active offers already.
+        if "paused" in offer_spec.model_fields_set:
+            offer.is_active = not offer_spec.paused
+        elif is_new:
+            offer.is_active = True
 
     dropped = [row.id for axes, row in existing.items() if axes not in seen_axes]
     if dropped:
         await session.execute(delete(Offer).where(Offer.id.in_(dropped)))
+
+
+async def pause_offer(
+    session: AsyncSession, *, user: User, offer_id: int, paused: bool
+) -> Offer:
+    """Take one offer out of the catalog, or put it back, keeping it whole."""
+    offer = await session.get(Offer, offer_id)
+    # 404 for someone else's as for a missing one: ids are not to be probed.
+    if offer is None or offer.helper_id != user.id:
+        raise NotFound("no such offer")
+    offer.is_active = not paused
+    return offer

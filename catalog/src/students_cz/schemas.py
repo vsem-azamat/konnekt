@@ -369,6 +369,9 @@ class OfferIn(BaseModel):
     # form offers five presets well inside it. `None` is an answer: the two of
     # them will agree.
     turnaround_days: int | None = Field(default=None, ge=1, le=365)
+    # Kept out of the catalog without being removed. Left out, a row keeps
+    # what it had: a form that does not know about pausing must not resume.
+    paused: bool = False
 
 
 class HelperUpsert(BaseModel):
@@ -392,6 +395,7 @@ class MyOfferOut(BaseModel):
     names, which is right for a card and useless for a form.
     """
 
+    id: int
     service_type_id: int
     service_type: str
     service_type_name: str
@@ -405,6 +409,11 @@ class MyOfferOut(BaseModel):
     option_ids: list[int]
     note: str | None
     turnaround_days: int | None
+    paused: bool = False
+
+
+class OfferPause(BaseModel):
+    paused: bool
 
 
 class MyHelperOut(BaseModel):
