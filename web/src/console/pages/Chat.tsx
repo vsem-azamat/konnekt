@@ -48,6 +48,7 @@ import {
   personName,
   type SpamPing,
 } from '@/console/session';
+import { welcomeHtml, welcomePlain } from '@/console/welcome';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { chatsQuery, institutionsQuery } from '@/lib/api';
 import { initials, TOPICS } from '@/lib/chats';
@@ -431,7 +432,11 @@ function ChatScreen({ chatId }: { chatId: number }) {
         />
         <Row
           title={<Trans>Текст приветствия</Trans>}
-          hint={chat.welcome_message || <Trans>Не задан: только общее приветствие</Trans>}
+          hint={
+            welcomePlain(chat.welcome_message) || (
+              <Trans>Не задан: только общее приветствие</Trans>
+            )
+          }
           trailing={<Chevron />}
           onClick={() => open({ kind: 'welcome' })}
         />
@@ -804,13 +809,18 @@ function ChatScreen({ chatId }: { chatId: number }) {
               Можно оставить пустым.
             </Trans>
           }
-          initial={chat.welcome_message ?? ''}
+          initial={welcomePlain(chat.welcome_message)}
           placeholder={t`Вопросы по поступлению — в тему #вопросы.`}
           busy={busy}
           error={sheetError}
           onClose={close}
-          // Empty leaves the greeting on, with only the shared lines.
-          onSave={(text) => save({ welcome_message: text }, close)}
+          // Empty leaves the greeting on, with only the shared lines. Unchanged is
+          // not saved: the bold and links !welcome wrote would become plain.
+          onSave={(text) =>
+            text === welcomePlain(chat.welcome_message).trim()
+              ? close()
+              : save({ welcome_message: welcomeHtml(text) }, close)
+          }
         />
       ) : null}
       {sheet?.kind === 'ban' ? (

@@ -2580,7 +2580,7 @@ msgstr "{0, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other
 
 #: src/console/pages/Chat.tsx
 msgid "Вопросы по поступлению — в тему #вопросы."
-msgstr "Dotazy k přijímačkám patří do tématu #dotazy."
+msgstr "Dotazy k přijímacímu řízení patří do tématu #dotazy."
 
 #: src/components/Incoming.tsx
 msgid "На эту заявку ты уже отвечал"
