@@ -876,7 +876,11 @@
   z-index: 21;
   left: 8px;
   right: 8px;
-  bottom: calc(8px + var(--tg-viewport-safe-area-inset-bottom, 0px));
+  bottom: calc(
+    8px +
+    var(--hidden-bottom) +
+    var(--tg-viewport-safe-area-inset-bottom, 0px)
+  );
   display: flex;
   flex-direction: column;
   gap: 9px;
