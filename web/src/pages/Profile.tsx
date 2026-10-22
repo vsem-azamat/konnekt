@@ -38,7 +38,12 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: me, isPending } = useQuery({
+  const {
+    data: me,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['me'],
     queryFn: ({ signal }) => api.getMe(signal),
   });
@@ -79,13 +84,23 @@ export default function ProfilePage() {
   return (
     <Screen>
       <AppHeader />
-      {isPending || !me ? (
+      {isPending || isError ? (
         <>
           <Title>
             <Trans>Профиль</Trans>
           </Title>
           <div style={{ height: 16 }} />
-          <SkeletonRows count={4} />
+          {isPending ? (
+            <SkeletonRows count={4} />
+          ) : (
+            <Rows>
+              <Row
+                title={<Trans>Не удалось загрузить</Trans>}
+                hint={<Trans>Нажми, чтобы попробовать ещё раз</Trans>}
+                onClick={() => void refetch()}
+              />
+            </Rows>
+          )}
         </>
       ) : (
         <>

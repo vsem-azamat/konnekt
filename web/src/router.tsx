@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { createBrowserRouter } from 'react-router';
+import { RouteError } from '@/components/RouteError';
 import { TabsLayout } from '@/components/TabsLayout';
 import BrowserNotFound from '@/console/BrowserNotFound';
 import BrowserShell from '@/console/BrowserShell';
@@ -44,6 +45,10 @@ import Root from '@/Root';
  * The app is served from its own origin alongside the API, so real paths work
  * and survive a reload. Telegram's own back button is bound to this history in
  * `Root`.
+ *
+ * Every screen sits under one pathless route whose `errorElement` takes the
+ * place of a screen that throws. It is below `Root` so that the back button
+ * stays wired while it shows.
  */
 export const router = createBrowserRouter([
   {
@@ -51,40 +56,45 @@ export const router = createBrowserRouter([
     element: <Root />,
     children: [
       {
-        element: <TabsLayout />,
+        errorElement: <RouteError />,
         children: [
-          { index: true, element: <HomePage /> },
-          { path: 'chats', element: <ChatsPage /> },
-          { path: 'chats/:group', element: <ChatSectionPage /> },
-          { path: 'results', element: <ResultsPage /> },
-          { path: 'mine', element: <MinePage /> },
-          { path: 'profile', element: <ProfilePage /> },
+          {
+            element: <TabsLayout />,
+            children: [
+              { index: true, element: <HomePage /> },
+              { path: 'chats', element: <ChatsPage /> },
+              { path: 'chats/:group', element: <ChatSectionPage /> },
+              { path: 'results', element: <ResultsPage /> },
+              { path: 'mine', element: <MinePage /> },
+              { path: 'profile', element: <ProfilePage /> },
+            ],
+          },
+          { path: 'ads', element: <AdsPage /> },
+          { path: 'ads/chats', element: <AdsChatsPage /> },
+          { path: 'ads/app', element: <AdsAppPage /> },
+          { path: 'ask', element: <AskPage /> },
+          { path: 'helper/:id', element: <HelperPage /> },
+          { path: 'join', element: <JoinPage /> },
+          { path: 'request/:id', element: <RequestPage /> },
+          { path: 'offer', element: <OfferPage /> },
+          { path: 'offer/prices', element: <OfferPricesPage /> },
+          { path: 'my-helper', element: <MyHelperPage /> },
+          { path: 'life', element: <LifePage /> },
+          { path: 'console', element: <ConsoleSummaryPage /> },
+          { path: 'console/audience', element: <ConsoleAudiencePage /> },
+          { path: 'console/audience/people', element: <ConsoleAudiencePeoplePage /> },
+          { path: 'console/audience/:id', element: <ConsoleAudiencePersonPage /> },
+          { path: 'console/catalog', element: <ConsoleCatalogPage /> },
+          { path: 'console/partners', element: <ConsolePartnersPage /> },
+          { path: 'console/partners/new', element: <ConsolePartnerNewPage /> },
+          { path: 'console/chats', element: <ConsoleChatsPage /> },
+          { path: 'console/chats/:id', element: <ConsoleChatPage /> },
+          { path: 'console/spam', element: <ConsoleSpamPage /> },
+          { path: 'console/blacklist', element: <ConsoleBlacklistPage /> },
+          { path: 'console/system', element: <ConsoleSystemPage /> },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
-      { path: 'ads', element: <AdsPage /> },
-      { path: 'ads/chats', element: <AdsChatsPage /> },
-      { path: 'ads/app', element: <AdsAppPage /> },
-      { path: 'ask', element: <AskPage /> },
-      { path: 'helper/:id', element: <HelperPage /> },
-      { path: 'join', element: <JoinPage /> },
-      { path: 'request/:id', element: <RequestPage /> },
-      { path: 'offer', element: <OfferPage /> },
-      { path: 'offer/prices', element: <OfferPricesPage /> },
-      { path: 'my-helper', element: <MyHelperPage /> },
-      { path: 'life', element: <LifePage /> },
-      { path: 'console', element: <ConsoleSummaryPage /> },
-      { path: 'console/audience', element: <ConsoleAudiencePage /> },
-      { path: 'console/audience/people', element: <ConsoleAudiencePeoplePage /> },
-      { path: 'console/audience/:id', element: <ConsoleAudiencePersonPage /> },
-      { path: 'console/catalog', element: <ConsoleCatalogPage /> },
-      { path: 'console/partners', element: <ConsolePartnersPage /> },
-      { path: 'console/partners/new', element: <ConsolePartnerNewPage /> },
-      { path: 'console/chats', element: <ConsoleChatsPage /> },
-      { path: 'console/chats/:id', element: <ConsoleChatPage /> },
-      { path: 'console/spam', element: <ConsoleSpamPage /> },
-      { path: 'console/blacklist', element: <ConsoleBlacklistPage /> },
-      { path: 'console/system', element: <ConsoleSystemPage /> },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

@@ -2758,8 +2758,10 @@ msgstr "Pomoc v den zkoušky"
 msgid "Профиль недоступен"
 msgstr "Profil není dostupný"
 
+#: src/components/RouteError.tsx
 #: src/pages/ChatSection.tsx
 #: src/pages/Home.tsx
+#: src/pages/Profile.tsx
 msgid "Нажми, чтобы попробовать ещё раз"
 msgstr "Zkus to znovu"
 
@@ -3232,7 +3234,9 @@ msgstr "Chaty se nepodařilo načíst"
 msgid "Репетиторы"
 msgstr "Doučování"
 
+#: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx
+#: src/pages/Profile.tsx
 msgid "Не удалось загрузить"
 msgstr "Nepodařilo se načíst"
 
