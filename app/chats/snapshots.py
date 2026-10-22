@@ -90,7 +90,9 @@ async def snapshot_once(
             # than at its next daily turn: the rows that existed before pictures
             # were kept, and one whose download failed, are all in that state.
             unpictured = chat.photo_file_id is not None and chat.id not in pictured
-            if not unpictured and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
+            # Likewise a chat never asked whether it takes join requests.
+            unasked = chat.join_by_request is None
+            if not unpictured and not unasked and chat.last_synced_at is not None and chat.last_synced_at >= cutoff:
                 continue
 
             metadata = await fetch_metadata(

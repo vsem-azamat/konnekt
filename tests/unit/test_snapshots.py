@@ -164,6 +164,18 @@ class TestMetadata:
 
         assert (await _chat(db_session_maker, -100)).join_by_request is stored
 
+    async def test_a_chat_never_asked_about_join_requests_is_asked_at_once(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Synced an hour ago, before the field existed: the console needs it now, not tomorrow."""
+        chat = Chat(id=-100, title="A")
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=1)
+        await _seed(db_session_maker, chat)
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=True))
+
+        assert (await _chat(db_session_maker, -100)).join_by_request is True
+
     async def test_a_brand_new_chat_is_synced_immediately(
         self, db_session_maker: async_sessionmaker[AsyncSession]
     ) -> None:
@@ -182,6 +194,7 @@ class TestMetadata:
         """Titles change about never; the call is not free."""
         chat = Chat(id=-100, title="Как записали")
         chat.last_synced_at = utc_now()
+        chat.join_by_request = False
         await _seed(db_session_maker, chat)
         bot = _bot(title="Как в Telegram")
 
@@ -268,6 +281,7 @@ class TestAvatars:
     async def test_a_chat_with_its_picture_is_not_asked_again_until_stale(self, db_session_maker) -> None:
         chat = Chat(id=-100, title="A")
         chat.photo_file_id = "big-1"
+        chat.join_by_request = False
         chat.last_synced_at = utc_now()
         await _seed(db_session_maker, chat)
         async with db_session_maker() as session:
