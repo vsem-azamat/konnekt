@@ -1,9 +1,10 @@
-"""The log shipper on the VPS sends this project's containers and nothing else."""
+"""The log shipper on the VPS sends the listed projects' containers and nothing else."""
 
 from __future__ import annotations
 
 # A test that runs the real Alloy: fixed docker arguments, no input.
 # ruff: noqa: S603, S607
+import json
 import re
 import shutil
 import subprocess
@@ -18,12 +19,43 @@ COMPOSE = yaml.safe_load((DIR / "docker-compose.yaml").read_text())
 IMAGE = COMPOSE["services"]["alloy"]["image"]
 
 
-def test_only_this_projects_containers_are_kept() -> None:
-    """The host runs other stacks; their logs are not this project's to send."""
+def test_only_the_listed_projects_containers_are_kept() -> None:
+    """The host runs other stacks (khromberry, urf, ...); only these two leave it."""
     keeps = re.findall(r'regex\s*=\s*"([^"]*)"\s*action\s*=\s*"keep"', CONFIG)
 
-    assert keeps == ["supervisor-telegram"]
+    assert keeps == ["supervisor-telegram|gov-cz-bot"]
     assert "com_docker_compose_project" in CONFIG.split("action", 1)[0]
+
+
+def test_each_project_gets_the_project_label_of_its_metrics_after_discovery() -> None:
+    """A target label would change the source's position key and re-read every log."""
+    discovery, process = CONFIG.split('loki.process "json"', 1)
+
+    assert "project" not in re.findall(r'target_label\s*=\s*"([^"]*)"', discovery)
+    pairs = re.findall(
+        r'selector = "\{compose_project=\\"([^"\\]+)\\"\}"\s*stage\.static_labels \{\s*values = \{ project = "([^"]+)" \}',
+        process,
+    )
+    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz")]
+
+
+def test_the_mini_app_init_data_never_leaves_the_host() -> None:
+    """gov-cz-bot's Caddy logs request headers; the init data is a login valid for a day."""
+    literal = re.search(
+        r'stage\.replace \{\s*expression = ("(?:[^"\\]|\\.)*")\s*replace    = ("(?:[^"\\]|\\.)*")', CONFIG
+    )
+    assert literal
+    expression, replacement = (json.loads(part) for part in literal.groups())
+
+    def redact(line: str) -> str:
+        return re.sub(expression, lambda match: match.group(0).replace(match.group(1), replacement), line)
+
+    one = '{"request": {"headers": {"X-Telegram-Init-Data": ["query_id=A&hash=b"], "Accept": ["*/*"]}}}'
+    two = '{"x-telegram-init-data":["a", "b"],"Other": ["keep"]}'
+    assert redact(one) == '{"request": {"headers": {"X-Telegram-Init-Data": ["<redacted>"], "Accept": ["*/*"]}}}'
+    assert redact(two) == '{"x-telegram-init-data":["<redacted>"],"Other": ["keep"]}'
+    untouched = '{"level": "INFO", "message": "list [1, 2]"}'
+    assert redact(untouched) == untouched
 
 
 def test_the_credentials_are_read_from_the_environment_and_the_link_is_https() -> None:
