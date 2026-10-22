@@ -144,3 +144,18 @@ async def test_two_presses_of_decline_share_the_work(pg_session_maker, bot, chat
             select(func.count()).select_from(JoinCaptcha).where(JoinCaptcha.status == JoinCaptcha.STATUS_DECLINED)
         )
     assert declined == 60 - waves.PER_MINUTE
+
+
+async def test_two_sweeps_at_once_remind_once(pg_session_maker, bot, chat) -> None:
+    """Two bot processes overlap during a deploy, and both run the sweep."""
+    row = await _pending(pg_session_maker, bot)
+    bot.send_message.reset_mock()
+    due = row.created_at + datetime.timedelta(minutes=settings.captcha.remind_after_minutes, seconds=10)
+
+    async def sweep() -> None:
+        async with pg_session_maker() as session:
+            await service.remind(bot, session, now=due)
+
+    await asyncio.gather(sweep(), sweep())
+
+    bot.send_message.assert_awaited_once()

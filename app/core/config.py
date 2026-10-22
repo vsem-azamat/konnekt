@@ -349,6 +349,32 @@ class ModerationSettings(Settings):
     )
 
 
+class CaptchaSettings(Settings):
+    """The join captcha sent to applicants of chats that have it on."""
+
+    answer_minutes: int = Field(
+        default=15,
+        ge=1,
+        description="How long an applicant has to answer before the request is declined",
+    )
+    # Telegram lets the bot write to an applicant for five minutes after the
+    # request, so a reminder any later would not arrive.
+    remind_after_minutes: int = Field(
+        default=4,
+        ge=1,
+        lt=5,
+        description="When an applicant who has not answered gets one reminder",
+    )
+
+    model_config = SettingsConfigDict(
+        env_prefix="CAPTCHA_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class McpSettings(Settings):
     """MCP server served by the bot process for external agent clients.
 
@@ -450,6 +476,7 @@ class AppSettings(Settings):
     admin: AdminSettings = Field(default_factory=AdminSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     moderation: ModerationSettings = Field(default_factory=ModerationSettings)
+    captcha: CaptchaSettings = Field(default_factory=CaptchaSettings)
     webapi: WebApiSettings = Field(default_factory=WebApiSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)

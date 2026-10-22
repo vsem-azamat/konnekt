@@ -1,9 +1,9 @@
 """The join captcha: one private message per applicant, answered by a tap.
 
-Telegram lets a bot write to someone who asked to join for five minutes, and
-the captcha lives inside that window: the message goes out with the request
-and expires with it. The right emoji approves the request; two wrong ones, or
-silence, decline it. A declined applicant is not banned and may ask again.
+Telegram lets a bot write to someone who asked to join for five minutes, so the
+captcha goes out the moment the request arrives. The answer window, in
+`settings.captcha`, may run longer: a request can be settled at any time. The
+right emoji approves the request; two wrong ones, or silence, decline it. A declined applicant is not banned and may ask again.
 
 Every decision locks its row, so a tap and the expiry sweep cannot both act on
 one request: whichever comes second finds it settled.
@@ -13,16 +13,18 @@ import asyncio
 import datetime
 import enum
 import html
+import math
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup
+from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup, ReplyParameters
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.captcha import challenge, waves
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, JoinCaptcha, JoinWave
@@ -34,6 +36,8 @@ SWEEP_INTERVAL_SECONDS = 15
 RETENTION_DAYS = 180
 _RETENTION_EVERY = datetime.timedelta(hours=6)
 _UNDELIVERED_EVERY = datetime.timedelta(minutes=10)
+# How long after a request Telegram lets the bot write to its applicant.
+_WRITE_WINDOW = datetime.timedelta(minutes=5)
 
 
 class Outcome(enum.Enum):
@@ -68,7 +72,7 @@ async def admit(
         options=options,
         attempts_left=challenge.ATTEMPTS,
         created_at=now,
-        expires_at=now + datetime.timedelta(minutes=challenge.ANSWER_MINUTES),
+        expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
     )
     if waves.pauses(wave):
         assert wave is not None
@@ -94,7 +98,7 @@ async def admit(
         sent = await with_retry(
             lambda: bot.send_message(
                 chat_id=event.user_chat_id,
-                text=challenge.ask_text(_title(chat), answer),
+                text=challenge.ask_text(_title(chat), answer, settings.captcha.answer_minutes),
                 reply_markup=challenge.keyboard(row.id, options),
             )
         )
@@ -317,6 +321,49 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
     return settled
 
 
+async def remind(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = None) -> None:
+    """Write once more to applicants who have not answered, while Telegram still allows it.
+
+    The first message comes with the request and is easy to miss; editing it
+    later notifies nobody, so the reminder is a new message, sent at most once.
+    """
+    now = now or utc_now()
+    due = (
+        JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
+        JoinCaptcha.message_id.is_not(None),
+        JoinCaptcha.reminded_at.is_(None),
+        JoinCaptcha.created_at <= now - datetime.timedelta(minutes=settings.captcha.remind_after_minutes),
+        JoinCaptcha.created_at > now - _WRITE_WINDOW,
+        JoinCaptcha.expires_at > now,
+    )
+    for captcha_id in (await db.scalars(select(JoinCaptcha.id).where(*due))).all():
+        row = await db.scalar(
+            select(JoinCaptcha).where(JoinCaptcha.id == captcha_id, *due).with_for_update(skip_locked=True)
+        )
+        if row is None:
+            await db.rollback()
+            continue
+        row.reminded_at = now
+        await db.commit()
+        chat = await db.get(Chat, row.chat_id)
+        title = _title(chat) if chat else str(row.chat_id)
+        minutes_left = math.ceil((row.expires_at - now) / datetime.timedelta(minutes=1))
+        assert row.message_id is not None
+        try:
+            await bot.send_message(
+                chat_id=row.user_chat_id,
+                text=challenge.reminder_text(title, minutes_left),
+                reply_parameters=ReplyParameters(message_id=row.message_id, allow_sending_without_reply=True),
+            )
+        except TelegramAPIError as err:
+            logger.warning(
+                "captcha_reminder_not_delivered", captcha_id=row.id, error=str(err), error_type=type(err).__name__
+            )
+            continue
+        CAPTCHA_EVENTS.labels(event="reminded").inc()
+        logger.info("captcha_reminded", captcha_id=row.id)
+
+
 async def report_undelivered(bot: Bot, db: AsyncSession, *, since: datetime.datetime, until: datetime.datetime) -> None:
     """One summary of the captchas that could not be sent, instead of a line per applicant.
 
@@ -359,7 +406,7 @@ async def forget_old(db: AsyncSession, *, now: datetime.datetime | None = None) 
 async def run_sweep(
     session_maker: async_sessionmaker[AsyncSession], bot: Bot, interval_seconds: int = SWEEP_INTERVAL_SECONDS
 ) -> None:
-    """Expire unanswered captchas and keep wave alerts current, for as long as the bot runs."""
+    """Expire and remind unanswered captchas and keep wave alerts current, for as long as the bot runs."""
     forgotten_at: datetime.datetime | None = None
     reported_at = utc_now()
     while True:
@@ -367,6 +414,7 @@ async def run_sweep(
             await asyncio.sleep(interval_seconds)
             async with session_maker() as session:
                 await expire_stale(bot, session)
+                await remind(bot, session)
                 await waves.refresh_alerts(bot, session, utc_now())
                 if utc_now() - reported_at > _UNDELIVERED_EVERY:
                     until = utc_now()

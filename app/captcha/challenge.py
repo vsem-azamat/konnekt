@@ -12,6 +12,8 @@ from secrets import SystemRandom
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.core.text import plural
+
 # Each emoji with its name as it reads after «нажми на». Unmistakable at a
 # glance, and no two alike: a cat and a dog, never a cat and a kitten.
 EMOJI: tuple[tuple[str, str], ...] = (
@@ -40,7 +42,6 @@ NAMES = dict(EMOJI)
 
 OPTIONS = 8
 ATTEMPTS = 2
-ANSWER_MINUTES = 5
 
 _random = SystemRandom()
 
@@ -64,11 +65,18 @@ def keyboard(challenge_id: int, options: list[str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[buttons[:4], buttons[4:]])
 
 
-def ask_text(chat_title: str, answer: str) -> str:
+def ask_text(chat_title: str, answer: str, minutes: int) -> str:
     return (
         f"Привет! Ты подал(а) заявку в чат <b>{html.escape(chat_title)}</b>.\n\n"
         f"Чтобы мы её приняли, нажми на <b>{NAMES[answer]}</b>.\n\n"
-        f"На ответ {ANSWER_MINUTES} минут. Две ошибки, и заявка отклоняется."
+        f"На ответ {minutes} {plural(minutes, 'минута', 'минуты', 'минут')}. Две ошибки, и заявка отклоняется."
+    )
+
+
+def reminder_text(chat_title: str, minutes_left: int) -> str:
+    return (
+        f"Заявка в чат <b>{html.escape(chat_title)}</b> ждёт ответа: нажми на нужный эмодзи в сообщении выше. "
+        f"Осталось {minutes_left} {plural(minutes_left, 'минута', 'минуты', 'минут')}."
     )
 
 
