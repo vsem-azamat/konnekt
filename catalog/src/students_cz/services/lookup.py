@@ -152,6 +152,16 @@ _SYNONYM_HIT = f"""EXISTS (
      ) > 0
 )"""
 
+# A level or a number in a synonym — «b1», «2» — is the part that tells it from
+# its siblings, and too short for the trigram score to notice missing: «экзамен
+# b1» resembled «экзамен через две недели» at 0.67 by «экзамен» alone and
+# titled the request «Чешский язык B1». Without it in the query, no likeness.
+_SYNONYM_LEVEL_SAID = """NOT EXISTS (
+    SELECT 1 FROM regexp_split_to_table(immutable_unaccent(lower(syn)),
+                                        '[^[:alnum:]]+') w
+     WHERE w ~ '[0-9]' AND strpos(q.tokens, ' ' || w || ' ') = 0
+)"""
+
 _SUBJECT_SQL = text(
     f"""
     WITH q AS (
@@ -175,6 +185,7 @@ _SUBJECT_SQL = text(
                            immutable_unaccent(lower(syn)), q.raw)) * 0.92
                          FROM unnest(s.synonyms) syn
                         WHERE length(btrim(syn)) >= 5
+                          AND {_SYNONYM_LEVEL_SAID}
                    ), 0.0),
                    CASE WHEN s.external_code IS NOT NULL
                          AND strpos(

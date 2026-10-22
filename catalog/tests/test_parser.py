@@ -871,3 +871,57 @@ async def test_the_floor_is_what_stops_a_distant_nearest_neighbour(
 
     assert parsed.vector is not None, "it always says what it proposed"
     assert (parsed.subject is not None) is answered
+
+
+@pytest.mark.parametrize(
+    ("text", "lang", "expected"),
+    [
+        ("помогите с линейной алгеброй", "ru", "Линейная алгебра"),
+        ("нужна помощь по линейной алгебре", "ru", "Линейная алгебра"),
+        ("помогите с математическим анализом", "ru", "Математический анализ"),
+        ("подтянуть теорию вероятностей", "ru", "Теория вероятностей и статистика"),
+        ("с дифференциальными уравнениями", "ru", "Дифференциальные уравнения"),
+        ("по квантовой физике", "ru", "Квантовая физика"),
+        ("допомога з лінійною алгеброю", "uk", "Лінійна алгебра"),
+        ("з лінійної алгебри", "uk", "Лінійна алгебра"),
+        ("pomoc s lineární algebrou", "cs", "Lineární algebra"),
+        ("doučování organické chemie", "cs", "Organická chemie"),
+        ("pomoc s diskrétní matematikou", "cs", "Diskrétní matematika"),
+    ],
+)
+async def test_a_subject_named_in_any_case_is_named(session, text, lang, expected):
+    """Russian, Ukrainian and Czech decline every word of a subject's name:
+    «линейной алгеброй» names «Линейная алгебра» as surely as the nominative.
+    It scores only about 0.6 by trigrams, so any stray synonym above that —
+    «экзамен b1» at 0.67 — took the title from it."""
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is not None
+    assert parsed.subject.label == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "lang"),
+    [
+        ("экзамен через две недели", "ru"),
+        ("іспит через два тижні", "uk"),
+        ("zkouška za dva týdny", "cs"),
+        ("exam in two weeks", "en"),
+    ],
+)
+async def test_an_exam_and_its_timing_name_no_subject(session, text, lang):
+    """«экзамен b1» is a synonym of Czech B1, and the word «экзамен» alone
+    scored it 0.67: a request about an exam was titled «Чешский язык B1»."""
+    parsed = await parse(session, text, lang, today=TODAY)
+    assert parsed.subject is None, parsed.subject
+
+
+async def test_an_exam_beside_a_declined_subject_keeps_the_subject(session):
+    parsed = await parse(
+        session,
+        "помогите с линейной алгеброй, экзамен через две недели",
+        "ru",
+        today=TODAY,
+    )
+    assert parsed.subject is not None
+    assert parsed.subject.label == "Линейная алгебра"
+    assert parsed.alternatives.get("subject", []) == []
