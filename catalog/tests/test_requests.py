@@ -1072,22 +1072,38 @@ async def _facets(client: AsyncClient, **params) -> dict:
 async def test_on_my_services_means_one_offer_fits_every_axis_named(
     client: AsyncClient, session: AsyncSession, helper_factory
 ) -> None:
-    from students_cz.db.models import Subject
+    from sqlalchemy import update
 
-    # One offer: calculus tutoring.
-    await helper_factory(tg_id=HELPER)
+    from students_cz.db.models import Offer, Subject
+
+    # Two offers: calculus tutoring and law coursework. Law tutoring shares an
+    # axis with each, and fits neither.
+    helper = await helper_factory(tg_id=HELPER)
     calculus, tutoring = await _ids(
         session, subject="matematicka-analyza", service="tutoring"
     )
+    law, writing = await _ids(session, subject="pravo", service="writing")
+    session.add(
+        Offer(
+            helper_id=helper.id,
+            service_type_id=writing,
+            subject_id=law,
+            price_amount=2000,
+            langs=["ru"],
+        )
+    )
+    await session.commit()
     maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
-    law = await session.scalar(select(Subject.id).where(Subject.slug == "pravo"))
     before = (await _facets(client))["mine"]
 
     fits = {
         "calculus tutoring": (calculus, tutoring, True),
         "maths tutoring": (maths, tutoring, True),
         "calculus, any help": (calculus, None, True),
-        # Tutoring, but not on anything this helper teaches.
+        "law coursework": (law, writing, True),
+        # The right subject, the wrong service.
+        "calculus coursework": (calculus, writing, False),
+        # Each axis is on some offer, but not both on the same one.
         "law tutoring": (law, tutoring, False),
         "nothing named": (None, None, False),
         # Last: it is what the text posted parses as, so one more would be a
@@ -1099,12 +1115,27 @@ async def test_on_my_services_means_one_offer_fits_every_axis_named(
         for name, (subject, service, _) in fits.items()
     }
 
-    by_id = {item["id"]: item for item in await _feed(client)}
+    feed = await _feed(client)
+    by_id = {item["id"]: item for item in feed}
     mine = {item["id"] for item in await _feed(client, mine="true")}
     for name, (_, _, expected) in fits.items():
         assert by_id[ids[name]]["on_my_services"] is expected, name
         assert (ids[name] in mine) is expected, name
-    assert (await _facets(client))["mine"] == before + 4
+    assert (await _facets(client))["mine"] == before + 5
+    # Whatever fits comes before whatever only shares an axis.
+    places = {item["id"]: place for place, item in enumerate(feed)}
+    assert max(places[ids[n]] for n, f in fits.items() if f[2]) < min(
+        places[ids[n]] for n, f in fits.items() if not f[2]
+    )
+
+    # Paused, the offers fit nothing.
+    await session.execute(
+        update(Offer).where(Offer.helper_id == helper.id).values(is_active=False)
+    )
+    await session.commit()
+    assert not any(item["on_my_services"] for item in await _feed(client))
+    assert await _feed(client, mine="true") == []
+    assert (await _facets(client))["mine"] == 0
 
 
 async def test_facets_are_for_helpers_only(client: AsyncClient) -> None:

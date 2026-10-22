@@ -175,6 +175,10 @@ async def feed_for(
     filters = filters or FeedFilters()
     narrowing = await _narrowing(session, filters)
     fits = await _fits_an_offer(session, user)
+    if fits is not None:
+        # A request one offer fits outranks one that only shares an axis
+        # with some offer: calculus coursework is not a calculus tutor's.
+        ranking.insert(0, fits.desc())
     if filters.mine:
         narrowing.append(fits if fits is not None else false())
     if filters.with_responded:
