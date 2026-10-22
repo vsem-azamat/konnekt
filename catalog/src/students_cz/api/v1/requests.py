@@ -293,7 +293,7 @@ async def respond_to_request(
                 helper=quote(rendered.name, 64),
                 price=(
                     pick(FOR_PRICE, author.ui_lang).format(
-                        price=quote(_price_line(rendered.price), 40)
+                        price=_price_line(rendered.price)
                     )
                     if rendered.price and rendered.price.amount is not None
                     else ""
