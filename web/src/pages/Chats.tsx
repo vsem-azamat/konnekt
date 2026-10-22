@@ -107,8 +107,10 @@ export default function ChatsPage() {
     );
   // The default is the reader's university's city, which needs the profile
   // and the taxonomy. Until both answered the list waits rather than show
-  // «Все» and jump under a finger to another city.
-  const waitingForHome = picked === null && (me.isPending || institutions.isPending);
+  // «Все» and jump under a finger to another city. Their first answer, data or
+  // error, not `isPending`: a query that failed goes back to pending when it
+  // is asked again, and the list would turn into a skeleton under the reader.
+  const waitingForHome = picked === null && !(me.isFetched && institutions.isFetched);
   const shown = useMemo(() => blocks(data ?? [], { mine, city }), [data, mine, city]);
   const searching = query.trim() !== '';
   // Where a loose chat is, under its name: «вся Чехия» always, its city only
