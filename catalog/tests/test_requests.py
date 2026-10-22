@@ -734,6 +734,34 @@ async def test_two_errands_sharing_only_a_date_are_two_requests(
 # ── closing and removing ────────────────────────────────────────────────
 
 
+async def test_a_request_says_where_the_help_happens(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    from students_cz.db.models.enums import WorkFormat
+
+    response = await client.post(
+        "/api/v1/requests",
+        json={
+            "text": "нужна помощь с переездом",
+            "work_format": "offline",
+            "city": "  Brno ",
+        },
+        headers=auth_header(STUDENT),
+    )
+    assert response.status_code == 201, response.text
+    request = await session.get(HelpRequest, response.json()["id"])
+    assert request is not None
+    assert request.work_format is WorkFormat.OFFLINE
+    assert request.city == "Brno"
+
+    # Not said: either format, no city.
+    plain = await post_request(client, "нужна помощь с налогами")
+    request = await session.get(HelpRequest, plain["id"])
+    assert request is not None
+    assert request.work_format is WorkFormat.BOTH
+    assert request.city is None
+
+
 async def test_closing_says_when(client: AsyncClient) -> None:
     created = await post_request(client, "матан")
     assert created["closed_at"] is None

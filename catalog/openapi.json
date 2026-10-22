@@ -4747,6 +4747,22 @@
             "type": "array",
             "maxItems": 12,
             "title": "Langs"
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat",
+            "default": "both"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 96
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           }
         },
         "type": "object",

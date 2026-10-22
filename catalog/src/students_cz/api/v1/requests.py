@@ -92,6 +92,8 @@ async def create_request(
         deadline_on=payload.deadline_on,
         budget_max=payload.budget_max,
         langs=payload.langs,
+        work_format=payload.work_format,
+        city=payload.city,
         # What the caller actually mentioned. A chip the person removed arrives
         # as an explicit `null`, which means "any" and not "work it out".
         given=frozenset(payload.model_fields_set),

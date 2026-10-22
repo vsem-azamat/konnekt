@@ -494,6 +494,8 @@ async def create(
     deadline_on: date | None = None,
     budget_max: float | None = None,
     langs: list[str] | None = None,
+    work_format: WorkFormat = WorkFormat.BOTH,
+    city: str | None = None,
     given: frozenset[str],
 ) -> HelpRequest:
     """Post "I need help with X" and let helpers answer.
@@ -580,6 +582,8 @@ async def create(
         deadline_on=deadline,
         budget_max=budget_max,
         langs=langs or list(user.spoken_langs),
+        work_format=work_format,
+        city=city or None,
         status=RequestStatus.OPEN,
         expires_at=(
             datetime.combine(deadline, time.max, tzinfo=UTC)

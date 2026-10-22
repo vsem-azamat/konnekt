@@ -1263,6 +1263,11 @@ export type RequestCreate = {
      * Langs
      */
     langs?: Array<string>;
+    work_format?: WorkFormat;
+    /**
+     * City
+     */
+    city?: string | null;
 };
 
 /**

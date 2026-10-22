@@ -456,6 +456,11 @@ class RequestCreate(BaseModel):
     deadline_on: date | None = None
     budget_max: float | None = Field(default=None, ge=0, le=1_000_000)
     langs: list[LangCode] = Field(default_factory=list, max_length=12)
+    # What the feed's «Онлайн», «Офлайн» and city chips narrow by.
+    work_format: WorkFormat = WorkFormat.BOTH
+    city: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=96)
+    ] = None
 
 
 class RequestBase(BaseModel):
