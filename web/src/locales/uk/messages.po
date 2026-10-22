@@ -324,10 +324,6 @@ msgstr "Відповідь не надійшла. Перш ніж пробува
 #~ msgid "Капча при входе"
 #~ msgstr "Капча під час входу"
 
-#: src/console/pages/Summary.tsx
-msgid "Бот рекламы"
-msgstr "Бот реклами"
-
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Цей канал веде не Konnekt, правила там свої."
@@ -357,6 +353,10 @@ msgstr "{0} за добу · {1} за тиждень"
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "у чорному списку"
+
+#: src/console/pages/Summary.tsx
+msgid "«Написать нам» и реклама"
+msgstr "«Написати нам» і реклама"
 
 #: src/console/pages/Chats.tsx
 msgid "Telegram не знает чата по этой ссылке."
@@ -403,11 +403,6 @@ msgstr "Сховати"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Не виконано: головного адміністратора забанити не можна."
-
-#. placeholder {0}: n(audience.reach.blocked)
-#: src/console/pages/Summary.tsx
-msgid "{0} заблокировали"
-msgstr "{0} заблокували"
 
 #: src/components/Place.tsx
 msgid "вся Чехия"
@@ -1342,6 +1337,11 @@ msgstr "Ні до чого"
 msgid "Пусто — город родителя. Свой город нужен, только если он другой."
 msgstr "Порожньо — місто батьківського. Своє потрібне, лише якщо воно інше."
 
+#. placeholder {0}: n(audience.ads_conversations)
+#: src/console/pages/Summary.tsx
+msgid "первых касаний; диалогов о рекламе: {0}"
+msgstr "перших контактів; діалогів про рекламу: {0}"
+
 #: src/pages/Ads.tsx
 msgid "Форматы"
 msgstr "Формати"
@@ -1994,10 +1994,6 @@ msgstr "Спостерігаємо"
 msgid "Вход в консоль действует час после открытия приложения."
 msgstr "Вхід до консолі діє годину після відкриття застосунку."
 
-#: src/console/pages/Summary.tsx
-msgid "вопросы и «Написать нам»"
-msgstr "питання і «Написати нам»"
-
 #: src/pages/AdsChats.tsx
 msgid "чатов · людей"
 msgstr "чатів · людей"
@@ -2145,10 +2141,6 @@ msgstr "Вхід застарів: відкрийте застосунок зн�
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "У каталозі її не видно. Редагувати анкету можна, зміни збережуться, але повернути її в каталог може тільки адміністратор."
-
-#: src/console/pages/Summary.tsx
-msgid "диалогов в группе"
-msgstr "діалогів у групі"
 
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
@@ -3348,10 +3340,6 @@ msgstr "Чат: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Це головний адміністратор."
-
-#: src/console/pages/Summary.tsx
-msgid "диалоги с компаниями"
-msgstr "діалоги з компаніями"
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

@@ -81,21 +81,28 @@ async def test_an_empty_audience_still_names_every_status(client) -> None:
     assert summary["reach"] == {"reachable": 0, "never_started": 0, "blocked": 0, "opted_out": 0}
     assert summary["new_by_week"] == [0] * 8
     assert summary["ads_conversations"] == 0
+    assert summary["contact_bot_blocked"] == 0
 
 
 async def test_the_summary_counts_people_who_wrote_to_the_ads_bot(client, db_session_maker) -> None:
     async with db_session_maker() as db:
-        db.add(AdsTopic(group_id=-1001, user_id=ANNA.id, thread_id=10))
-        db.add(AdsTopic(group_id=-1001, user_id=TARAS.id, thread_id=11))
+        # The ads bot is the contact bot: whoever writes to it joins the audience by it.
+        for person, thread in ((ANNA, 10), (TARAS, 11)):
+            await record.seen(db, person, Touchpoint.CONTACT_BOT, at=NOW - DAY, started=Touchpoint.CONTACT_BOT)
+            db.add(AdsTopic(group_id=-1001, user_id=person.id, thread_id=thread))
         # The desk moved to another group and Anna wrote again: still one person.
         db.add(AdsTopic(group_id=-1002, user_id=ANNA.id, thread_id=3))
+        # Taras blocked the bot when the desk answered him.
+        await record.blocked(db, TARAS.id, Touchpoint.CONTACT_BOT, at=NOW)
         await db.commit()
 
     summary = (await client.get("/api/audience/summary")).json()
 
     assert summary["ads_conversations"] == 2
-    # Writing to the ads bot does not make anyone part of the audience.
-    assert summary["total"] == 0
+    assert summary["first_touch"]["contact_bot"] == 2
+    assert summary["contact_bot_blocked"] == 1
+    # A block of the contact bot says nothing about the main bot.
+    assert summary["reach"]["blocked"] == 0
 
 
 async def test_the_list_is_newest_activity_first_with_each_persons_status(client, audience) -> None:

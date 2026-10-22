@@ -324,10 +324,6 @@ msgstr "The answer did not arrive. Before trying again, check the list: the card
 #~ msgid "Капча при входе"
 #~ msgstr "Captcha on joining"
 
-#: src/console/pages/Summary.tsx
-msgid "Бот рекламы"
-msgstr "Ads bot"
-
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Konnekt does not run this channel; it has its own rules."
@@ -357,6 +353,10 @@ msgstr "{0} today · {1} this week"
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "blacklisted"
+
+#: src/console/pages/Summary.tsx
+msgid "«Написать нам» и реклама"
+msgstr "“Write to us” and ads"
 
 #: src/console/pages/Chats.tsx
 msgid "Telegram не знает чата по этой ссылке."
@@ -403,11 +403,6 @@ msgstr "Hide"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Not done: the main administrator cannot be banned."
-
-#. placeholder {0}: n(audience.reach.blocked)
-#: src/console/pages/Summary.tsx
-msgid "{0} заблокировали"
-msgstr "{0} blocked it"
 
 #: src/components/Place.tsx
 msgid "вся Чехия"
@@ -1342,6 +1337,11 @@ msgstr "Nothing"
 msgid "Пусто — город родителя. Свой город нужен, только если он другой."
 msgstr "Empty means the parent's city. Set one only if it differs."
 
+#. placeholder {0}: n(audience.ads_conversations)
+#: src/console/pages/Summary.tsx
+msgid "первых касаний; диалогов о рекламе: {0}"
+msgstr "first touches; ad conversations: {0}"
+
 #: src/pages/Ads.tsx
 msgid "Форматы"
 msgstr "Formats"
@@ -1994,10 +1994,6 @@ msgstr "Watched"
 msgid "Вход в консоль действует час после открытия приложения."
 msgstr "Signing in to the console works for an hour after the app is opened."
 
-#: src/console/pages/Summary.tsx
-msgid "вопросы и «Написать нам»"
-msgstr "questions and “Write to us”"
-
 #: src/pages/AdsChats.tsx
 msgid "чатов · людей"
 msgstr "chats · people"
@@ -2145,10 +2141,6 @@ msgstr "The sign-in has expired: reopen the app."
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "It is not visible in the catalog. You can still edit it and your changes will be saved, but only an administrator can put it back in the catalog."
-
-#: src/console/pages/Summary.tsx
-msgid "диалогов в группе"
-msgstr "conversations in the group"
 
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
@@ -3348,10 +3340,6 @@ msgstr "Chat: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "This is a super admin."
-
-#: src/console/pages/Summary.tsx
-msgid "диалоги с компаниями"
-msgstr "conversations with companies"
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

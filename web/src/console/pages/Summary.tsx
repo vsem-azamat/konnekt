@@ -94,9 +94,12 @@ function Summary() {
 
   // Each backend answers for itself: webapi refusing must not hide what the
   // catalog said, and the other way round.
-  const webapiError = stats.error ?? chats.error;
+  // Signals are asked for only in a browser; a disabled query stays pending.
+  const webapiError = stats.error ?? chats.error ?? signals.error;
   const loading =
-    catalog.isPending || (!webapiError && (stats.isPending || chats.isPending));
+    catalog.isPending ||
+    (!webapiError &&
+      (stats.isPending || chats.isPending || (inBrowser && signals.isPending)));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
     chats: chats.data ?? [],
@@ -270,6 +273,7 @@ function Summary() {
               retry={() => {
                 void stats.refetch();
                 void chats.refetch();
+                if (inBrowser) void signals.refetch();
               }}
             />
           ) : null}
@@ -720,9 +724,7 @@ function Bots({
                 <td>
                   <Trans>могут получить сообщение</Trans>
                 </td>
-                <td>
-                  <Trans>{n(audience.reach.blocked)} заблокировали</Trans>
-                </td>
+                <td>{n(audience.reach.blocked)}</td>
               </tr>
               <tr>
                 <td>
@@ -730,29 +732,16 @@ function Bots({
                     <Trans>Бот связи</Trans>
                   </b>
                   <small>
-                    <Trans>вопросы и «Написать нам»</Trans>
+                    <Trans>«Написать нам» и реклама</Trans>
                   </small>
                 </td>
                 <td className={css.num}>{n(audience.first_touch.contact_bot ?? 0)}</td>
                 <td>
-                  <Trans>первых касаний</Trans>
+                  <Trans>
+                    первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
+                  </Trans>
                 </td>
-                <td>—</td>
-              </tr>
-              <tr>
-                <td>
-                  <b>
-                    <Trans>Бот рекламы</Trans>
-                  </b>
-                  <small>
-                    <Trans>диалоги с компаниями</Trans>
-                  </small>
-                </td>
-                <td className={css.num}>{n(audience.ads_conversations)}</td>
-                <td>
-                  <Trans>диалогов в группе</Trans>
-                </td>
-                <td>—</td>
+                <td>{n(audience.contact_bot_blocked)}</td>
               </tr>
               <tr>
                 <td>

@@ -89,6 +89,9 @@ async def summary(db: AsyncSession, *, now: datetime.datetime) -> dict[str, Any]
     # People who wrote to the ads bot: each has a topic in the staff group, and
     # one more if the desk moved groups, so count people rather than topics.
     ads_conversations = await db.scalar(select(func.count(AdsTopic.user_id.distinct())))
+    contact_bot_blocked = await db.scalar(
+        select(func.count()).where(AudienceReach.bot == Touchpoint.CONTACT_BOT, AudienceReach.blocked_at.is_not(None))
+    )
     return {
         "total": sum(reach.values()),
         "reach": reach,
@@ -97,6 +100,7 @@ async def summary(db: AsyncSession, *, now: datetime.datetime) -> dict[str, Any]
         "new_this_week": new_by_week[-1],
         "languages": [{"code": code, "count": count} for code, count in languages],
         "ads_conversations": ads_conversations or 0,
+        "contact_bot_blocked": contact_bot_blocked or 0,
     }
 
 
