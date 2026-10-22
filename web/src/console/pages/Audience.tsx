@@ -37,14 +37,11 @@ import { hapticSelection } from '@/hooks/useTelegram';
  */
 export default function ConsoleAudiencePage() {
   return (
-    <ConsoleGate>
-      {/* Wide in a browser from the first frame, so loading does not resize the page. */}
-      <div data-wide>
-        <Title>
-          <Trans>Аудитория</Trans>
-        </Title>
-        <AudienceSummaryView />
-      </div>
+    <ConsoleGate wide>
+      <Title>
+        <Trans>Аудитория</Trans>
+      </Title>
+      <AudienceSummaryView />
     </ConsoleGate>
   );
 }

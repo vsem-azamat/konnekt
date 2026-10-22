@@ -58,11 +58,9 @@ export default function ConsoleSummaryPage() {
   // In a browser the menu names this screen Обзор; the Mini App has no menu.
   const inBrowser = useBrowserConsole();
   return (
-    <ConsoleGate>
-      <div data-wide>
-        <Title>{inBrowser ? <Trans>Обзор</Trans> : <Trans>Консоль</Trans>}</Title>
-        <Summary />
-      </div>
+    <ConsoleGate wide>
+      <Title>{inBrowser ? <Trans>Обзор</Trans> : <Trans>Консоль</Trans>}</Title>
+      <Summary />
     </ConsoleGate>
   );
 }
