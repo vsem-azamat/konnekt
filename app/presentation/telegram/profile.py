@@ -168,7 +168,7 @@ async def _set_commands(bot: Bot) -> None:
             await bot.set_my_commands(commands=commands, scope=scope, language_code=language)
         else:
             await bot.delete_my_commands(scope=scope, language_code=language)
-        _changed(f"commands:{scope.type}", language)
+        _changed(f"commands:{scope.type.value}", language)
 
 
 def _menu_button() -> MenuButtonWebApp | MenuButtonCommands:
