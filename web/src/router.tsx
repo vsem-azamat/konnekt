@@ -1,24 +1,7 @@
-import type { ReactElement } from 'react';
+import type { ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { RouteError } from '@/components/RouteError';
 import { TabsLayout } from '@/components/TabsLayout';
-import BrowserNotFound from '@/console/BrowserNotFound';
-import BrowserShell from '@/console/BrowserShell';
-import { BROWSER_PATHS, type BrowserPath } from '@/console/browser';
-import LoginPage from '@/console/Login';
-import ConsoleAudiencePage from '@/console/pages/Audience';
-import ConsoleAudiencePeoplePage from '@/console/pages/AudiencePeople';
-import ConsoleAudiencePersonPage from '@/console/pages/AudiencePerson';
-import ConsoleBlacklistPage from '@/console/pages/Blacklist';
-import ConsoleCatalogPage from '@/console/pages/Catalog';
-import ConsoleChatPage from '@/console/pages/Chat';
-import ConsoleChatsPage from '@/console/pages/Chats';
-import ConsolePartnerNewPage from '@/console/pages/PartnerNew';
-import ConsolePartnersPage from '@/console/pages/Partners';
-import ConsoleSignalsPage from '@/console/pages/Signals';
-import ConsoleSpamPage from '@/console/pages/Spam';
-import ConsoleSummaryPage from '@/console/pages/Summary';
-import ConsoleSystemPage from '@/console/pages/System';
 import AdsPage from '@/pages/Ads';
 import AdsAppPage from '@/pages/AdsApp';
 import AdsChatsPage from '@/pages/AdsChats';
@@ -41,6 +24,14 @@ import ResultsPage from '@/pages/Results';
 import Root from '@/Root';
 
 /**
+ * A screen fetched the first time it is opened. The screen before stays on
+ * show until it arrives; one that fails to arrive is the `errorElement`'s.
+ */
+function screen(load: () => Promise<{ default: ComponentType }>) {
+  return async () => ({ Component: (await load()).default });
+}
+
+/**
  * A browser router, not a hash router.
  *
  * The app is served from its own origin alongside the API, so real paths work
@@ -50,6 +41,9 @@ import Root from '@/Root';
  * Every screen sits under one pathless route whose `errorElement` takes the
  * place of a screen that throws. It is below `Root` so that the back button
  * stays wired while it shows.
+ *
+ * The console's screens are lazy: only admins open them, and everyone else
+ * would download them with the first screen.
  */
 export const router = createBrowserRouter([
   {
@@ -58,6 +52,9 @@ export const router = createBrowserRouter([
     children: [
       {
         errorElement: <RouteError />,
+        // A console screen opened by its link is fetched before it shows;
+        // until then Root, and the back button with it, stand on their own.
+        HydrateFallback: () => null,
         children: [
           {
             element: <TabsLayout />,
@@ -82,58 +79,48 @@ export const router = createBrowserRouter([
           { path: 'my-helper', element: <MyHelperPage /> },
           { path: 'my-helper/about', element: <MyHelperAboutPage /> },
           { path: 'life', element: <LifePage /> },
-          { path: 'console', element: <ConsoleSummaryPage /> },
-          { path: 'console/audience', element: <ConsoleAudiencePage /> },
-          { path: 'console/audience/people', element: <ConsoleAudiencePeoplePage /> },
-          { path: 'console/audience/:id', element: <ConsoleAudiencePersonPage /> },
-          { path: 'console/catalog', element: <ConsoleCatalogPage /> },
-          { path: 'console/partners', element: <ConsolePartnersPage /> },
-          { path: 'console/partners/new', element: <ConsolePartnerNewPage /> },
-          { path: 'console/chats', element: <ConsoleChatsPage /> },
-          { path: 'console/chats/:id', element: <ConsoleChatPage /> },
-          { path: 'console/spam', element: <ConsoleSpamPage /> },
-          { path: 'console/blacklist', element: <ConsoleBlacklistPage /> },
-          { path: 'console/system', element: <ConsoleSystemPage /> },
+          { path: 'console', lazy: screen(() => import('@/console/pages/Summary')) },
+          {
+            path: 'console/audience',
+            lazy: screen(() => import('@/console/pages/Audience')),
+          },
+          {
+            path: 'console/audience/people',
+            lazy: screen(() => import('@/console/pages/AudiencePeople')),
+          },
+          {
+            path: 'console/audience/:id',
+            lazy: screen(() => import('@/console/pages/AudiencePerson')),
+          },
+          {
+            path: 'console/catalog',
+            lazy: screen(() => import('@/console/pages/Catalog')),
+          },
+          {
+            path: 'console/partners',
+            lazy: screen(() => import('@/console/pages/Partners')),
+          },
+          {
+            path: 'console/partners/new',
+            lazy: screen(() => import('@/console/pages/PartnerNew')),
+          },
+          { path: 'console/chats', lazy: screen(() => import('@/console/pages/Chats')) },
+          {
+            path: 'console/chats/:id',
+            lazy: screen(() => import('@/console/pages/Chat')),
+          },
+          { path: 'console/spam', lazy: screen(() => import('@/console/pages/Spam')) },
+          {
+            path: 'console/blacklist',
+            lazy: screen(() => import('@/console/pages/Blacklist')),
+          },
+          {
+            path: 'console/system',
+            lazy: screen(() => import('@/console/pages/System')),
+          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],
   },
-]);
-
-/**
- * What a browser gets: the console beside its menu, and the way to sign in.
- * Every screen is reached through webapi's session, the catalog's too.
- */
-const browserScreens: Record<BrowserPath, ReactElement> = {
-  '': <ConsoleSummaryPage />,
-  audience: <ConsoleAudiencePage />,
-  'audience/people': <ConsoleAudiencePeoplePage />,
-  'audience/:id': <ConsoleAudiencePersonPage />,
-  catalog: <ConsoleCatalogPage />,
-  partners: <ConsolePartnersPage />,
-  'partners/new': <ConsolePartnerNewPage />,
-  chats: <ConsoleChatsPage />,
-  'chats/:id': <ConsoleChatPage />,
-  spam: <ConsoleSpamPage />,
-  blacklist: <ConsoleBlacklistPage />,
-  signals: <ConsoleSignalsPage />,
-  system: <ConsoleSystemPage />,
-};
-
-export const browserRouter = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
-  {
-    path: '/console',
-    element: <BrowserShell />,
-    children: [
-      ...BROWSER_PATHS.map((path) =>
-        path === ''
-          ? { index: true as const, element: browserScreens[path] }
-          : { path, element: browserScreens[path] },
-      ),
-      { path: '*', element: <BrowserNotFound /> },
-    ],
-  },
-  { path: '*', element: <BrowserNotFound /> },
 ]);
