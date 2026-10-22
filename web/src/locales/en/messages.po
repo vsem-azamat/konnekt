@@ -2972,6 +2972,10 @@ msgstr "Sign out"
 msgid "на проверке"
 msgstr "awaiting review"
 
+#: src/console/pages/Chats.tsx
+msgid "Это аккаунт человека, а не чат или канал."
+msgstr "That is a person's account, not a chat or a channel."
+
 #: src/console/BanSheet.tsx
 msgid "Забанить {name}?"
 msgstr "Ban {name}?"
@@ -2999,10 +3003,6 @@ msgstr "Not set"
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "profiles in 7 days"
-
-#: src/console/pages/Chats.tsx
-msgid "Это канал или человек, а не чат."
-msgstr "That is a channel or a person, not a chat."
 
 #: src/console/ProfileSheet.tsx
 msgid "вчера"

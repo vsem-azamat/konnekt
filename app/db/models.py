@@ -134,6 +134,15 @@ class Chat(Base):
     JOIN_ADMINS = "admins"
     JOIN_MODES = (JOIN_OPEN, JOIN_CAPTCHA, JOIN_ADMINS)
 
+    # What Telegram calls the chat, folded to what a reader tells apart: a
+    # group they can talk in, or a channel they only read. A basic group and a
+    # supergroup are both groups. Only an external listing is ever a channel:
+    # the bot moderates groups, and a channel counted as ours would add
+    # somebody else's subscribers to the reach we advertise. So a channel is
+    # external or taken down, never approved, observed or awaiting a decision.
+    KIND_GROUP = "group"
+    KIND_CHANNEL = "channel"
+
     __table_args__ = (
         sa.CheckConstraint(
             "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
@@ -144,12 +153,18 @@ class Chat(Base):
             name="ck_chats_topic",
         ),
         sa.CheckConstraint("join_mode IN ('open', 'captcha', 'admins')", name="ck_chats_join_mode"),
+        sa.CheckConstraint("kind IN ('group', 'channel')", name="ck_chats_kind"),
+        sa.CheckConstraint(
+            "kind = 'group' OR resource_status IN ('external', 'disabled')",
+            name="ck_chats_channel_external",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     resource_status: Mapped[str] = mapped_column(String, default=STATUS_DISCOVERED, nullable=False)
     is_forum: Mapped[bool] = mapped_column(Boolean, default=False)
+    kind: Mapped[str] = mapped_column(String(16), default=KIND_GROUP, server_default=KIND_GROUP)
     welcome_message: Mapped[str | None] = mapped_column(String, nullable=True)
     time_delete: Mapped[int] = mapped_column(Integer, default=60)
     is_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -239,6 +254,7 @@ class Chat(Base):
         title: str | None = None,
         resource_status: str = STATUS_DISCOVERED,
         is_forum: bool = False,
+        kind: str = KIND_GROUP,
         welcome_message: str | None = None,
         time_delete: int = 60,
         is_welcome_enabled: bool = False,
@@ -255,6 +271,7 @@ class Chat(Base):
         self.title = title
         self.set_resource_status(resource_status)
         self.is_forum = is_forum
+        self.kind = kind
         self.welcome_message = welcome_message
         self.time_delete = time_delete
         self.is_welcome_enabled = is_welcome_enabled

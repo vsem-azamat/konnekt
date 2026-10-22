@@ -42,6 +42,7 @@ from app.webapi.deps import (
 )
 from app.webapi.schemas import (
     ChatDetail,
+    ChatKind,
     ChatNode,
     ChatRead,
     ChatResourceStatus,
@@ -80,6 +81,10 @@ def _join_mode(mode: str) -> JoinMode:
     return cast("JoinMode", mode)
 
 
+def _kind(kind: str) -> ChatKind:
+    return cast("ChatKind", kind)
+
+
 def _mode_without_captcha(chat: Chat) -> str:
     """What switching the captcha off leaves, the bot's behaviour without it unchanged.
 
@@ -113,6 +118,7 @@ async def list_chats(
             title=chat.title,
             resource_status=_resource_status(chat.resource_status),
             is_forum=chat.is_forum,
+            kind=_kind(chat.kind),
             is_welcome_enabled=chat.is_welcome_enabled,
             is_captcha_enabled=chat.is_captcha_enabled,
             join_mode=_join_mode(chat.join_mode),
@@ -224,6 +230,7 @@ async def get_chat(
         title=chat.title,
         resource_status=_resource_status(chat.resource_status),
         is_forum=chat.is_forum,
+        kind=_kind(chat.kind),
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
         join_mode=_join_mode(chat.join_mode),
@@ -270,6 +277,9 @@ async def update_chat(
         status: ChatResourceStatus = fields["resource_status"]
         if status not in Chat.VALID_RESOURCE_STATUSES:
             raise HTTPException(status_code=422, detail="Unknown resource status")
+        # Somebody else's channel is only listed; see Chat.KIND_CHANNEL.
+        if chat.kind == Chat.KIND_CHANNEL and status not in {Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED}:
+            raise HTTPException(status_code=409, detail="A channel is only ever listed as somebody else's")
     if "parent_chat_id" in fields and fields["parent_chat_id"] == chat_id:
         raise HTTPException(status_code=422, detail="A chat cannot be its own parent")
     if "parent_chat_id" in fields and fields["parent_chat_id"] is not None:
@@ -325,6 +335,7 @@ async def update_chat(
         title=chat.title,
         resource_status=_resource_status(chat.resource_status),
         is_forum=chat.is_forum,
+        kind=_kind(chat.kind),
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
         join_mode=_join_mode(chat.join_mode),
@@ -396,6 +407,7 @@ async def refresh_chat_from_telegram(
         title=chat.title,
         resource_status=_resource_status(chat.resource_status),
         is_forum=chat.is_forum,
+        kind=_kind(chat.kind),
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
         join_mode=_join_mode(chat.join_mode),
@@ -443,7 +455,9 @@ async def add_external_chat(
     except TelegramAPIError as err:
         logger.info("external_chat_not_found", username=username, error=str(err), error_type=type(err).__name__)
         raise HTTPException(status_code=422, detail="not_found") from err
-    if found.type not in ("group", "supergroup"):
+    # A channel is listed like a group: a student reads it rather than talks in
+    # it, and the catalogue says which. A person's account is never listed.
+    if found.type not in ("group", "supergroup", "channel"):
         raise HTTPException(status_code=422, detail="not_a_group")
     if await session.get(Chat, found.id) is not None:
         raise HTTPException(status_code=409, detail="already_known")
@@ -453,6 +467,7 @@ async def add_external_chat(
         title=found.title,
         resource_status=Chat.STATUS_EXTERNAL,
         is_forum=bool(found.is_forum),
+        kind=Chat.KIND_CHANNEL if found.type == "channel" else Chat.KIND_GROUP,
         public_link=f"https://t.me/{username}",
     )
     session.add(chat)
@@ -471,6 +486,7 @@ async def add_external_chat(
         title=chat.title,
         resource_status=_resource_status(chat.resource_status),
         is_forum=chat.is_forum,
+        kind=_kind(chat.kind),
         is_welcome_enabled=chat.is_welcome_enabled,
         is_captcha_enabled=chat.is_captcha_enabled,
         join_mode=_join_mode(chat.join_mode),

@@ -138,7 +138,7 @@ class TestWhatGetsIn:
 
 
 class TestWhatComesBack:
-    async def test_the_row_carries_eleven_fields_and_no_more(self, client_factory, db_session_maker) -> None:
+    async def test_the_row_carries_twelve_fields_and_no_more(self, client_factory, db_session_maker) -> None:
         """Whatever a page does with this, it cannot show what is not here."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
 
@@ -153,6 +153,7 @@ class TestWhatComesBack:
             "activity",
             "member_count",
             "is_forum",
+            "kind",
             "external",
             "avatar",
             "city",
