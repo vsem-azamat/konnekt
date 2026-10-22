@@ -32,6 +32,7 @@ import {
 } from '@/components/Ui';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { allPaused, liveCount } from '@/lib/myServices';
 import { openRequests } from '@/lib/openRequests';
 
 /**
@@ -212,11 +213,16 @@ export default function ProfilePage() {
                       ) : (
                         <Trans>черновик — не видна в каталоге</Trans>
                       )}
-                      {helper?.offers.length ? (
+                      {helper && allPaused(helper) ? (
+                        <>
+                          {' · '}
+                          <Trans>все услуги выключены</Trans>
+                        </>
+                      ) : helper && liveCount(helper) ? (
                         <>
                           {' · '}
                           <Plural
-                            value={helper.offers.length}
+                            value={liveCount(helper)}
                             one="# услуга"
                             few="# услуги"
                             many="# услуг"
