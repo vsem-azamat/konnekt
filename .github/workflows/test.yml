@@ -225,6 +225,7 @@ jobs:
     - name: The Mini App lays out inside what Telegram shows
       if: steps.lanes.outputs.web == 'true'
       working-directory: web
+      timeout-minutes: 10
       run: pnpm check:devices
 
     - name: Each path goes to the backend or build that owns it
