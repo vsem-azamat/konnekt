@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.captcha import challenge, waves
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
+from app.core import intro
 from app.core.config import settings
 from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
@@ -187,8 +188,7 @@ async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: C
         sent = await with_retry(
             lambda: bot.send_message(
                 chat_id=row.user_chat_id,
-                text=challenge.passed_text(title),
-                reply_markup=challenge.open_chat(_link(chat)),
+                text=challenge.passed_text(title, _link(chat)),
             )
         )
     except TelegramAPIError as err:
@@ -315,14 +315,13 @@ async def answer(
         return Outcome.GONE
 
     if row.options[pick] == row.answer:
+        await _introduce(bot, row, now)
         try:
             await with_retry(lambda: bot.approve_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
         except TelegramAPIError as err:
             if not already_member(err):
                 return await _refused(bot, db, row, now, title, err, verb="принять")
-        await _close(
-            bot, db, row, JoinCaptcha.STATUS_PASSED, now, challenge.passed_text(title), challenge.open_chat(_link(chat))
-        )
+        await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, challenge.passed_text(title, _link(chat)))
         logger.info("captcha_passed", chat_id=row.chat_id, user_id=row.user_id)
         return Outcome.PASSED
 
@@ -338,11 +337,24 @@ async def answer(
         logger.info("captcha_failed", chat_id=row.chat_id, user_id=row.user_id)
         return Outcome.FAILED
 
-    # A fresh board, so that tapping through the options one by one is no strategy.
-    row.answer, row.options = challenge.draw()
+    # The same board: the message names the answer and is not rewritten, the
+    # popup the caller shows says what to tap. Two guesses on one board of
+    # eight are no better odds than on two.
     await db.commit()
-    await _edit(bot, row, challenge.retry_text(title, row.answer), challenge.keyboard(row.id, row.options))
     return Outcome.RETRY
+
+
+async def _introduce(bot: Bot, row: JoinCaptcha, now: datetime.datetime) -> None:
+    """Konnekt in the private chat, before the approval settles the request and closes it.
+
+    Whether it arrives decides nothing: the applicant is let in either way.
+    """
+    if now - row.created_at >= _WRITE_WINDOW:
+        return
+    try:
+        await intro.send(bot, row.user_chat_id, challenge.INTRO, intro.private_markup())
+    except TelegramAPIError as err:
+        logger.warning("captcha_intro_not_sent", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
 
 
 async def _refused(
@@ -462,7 +474,7 @@ async def remind(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = 
         try:
             await bot.send_message(
                 chat_id=row.user_chat_id,
-                text=challenge.reminder_text(_title(chat), minutes_left),
+                text=challenge.reminder_text(row.answer, minutes_left),
                 reply_parameters=ReplyParameters(message_id=row.message_id, allow_sending_without_reply=True),
             )
         except TelegramAPIError as err:

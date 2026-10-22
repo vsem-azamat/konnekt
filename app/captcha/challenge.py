@@ -39,6 +39,30 @@ EMOJI: tuple[tuple[str, str], ...] = (
     ("🌵", "кактус"),
 )
 NAMES = dict(EMOJI)
+# The same, as the subject of «… ждёт в сообщении выше».
+NOMINATIVE = {
+    "🐱": "кошка",
+    "🐶": "собака",
+    "🍕": "пицца",
+    "🍎": "яблоко",
+    "🍌": "банан",
+    "🚲": "велосипед",
+    "🚗": "машина",
+    "✈️": "самолёт",
+    "🎸": "гитара",
+    "⚽": "мяч",
+    "🔑": "ключ",
+    "🌧": "туча с дождём",
+    "☀️": "солнце",
+    "🌙": "луна",
+    "🏠": "дом",
+    "📚": "книги",
+    "☕": "чашка кофе",
+    "🎁": "подарок",
+    "🐟": "рыба",
+    "🌵": "кактус",
+}
+_PLURAL = {"📚"}
 
 OPTIONS = 8
 ATTEMPTS = 2
@@ -66,30 +90,44 @@ def keyboard(challenge_id: int, options: list[str]) -> InlineKeyboardMarkup:
 
 
 def ask_text(chat_title: str, answer: str, minutes: int) -> str:
+    # The answer in capitals and bold, here and wherever it is named again:
+    # it is the one word the applicant has to find on the board.
     return (
-        f"Привет! Ты подал(а) заявку в чат <b>{html.escape(chat_title)}</b>.\n\n"
-        f"Чтобы мы её приняли, нажми на <b>{NAMES[answer]}</b>.\n\n"
-        f"На ответ {minutes} {plural(minutes, 'минута', 'минуты', 'минут')}. Две ошибки, и заявка отклоняется."
+        f"🔐 Проверка для чата <b>{html.escape(chat_title)}</b>\n\n"
+        f"Нажми на <b>{NAMES[answer].upper()}</b>, и заявку примут.\n\n"
+        f"⏱ {minutes} {plural(minutes, 'минута', 'минуты', 'минут')}."
     )
 
 
-def reminder_text(chat_title: str, minutes_left: int) -> str:
+def waits(answer: str) -> str:
+    return "ждут" if answer in _PLURAL else "ждёт"
+
+
+def reminder_text(answer: str, minutes_left: int) -> str:
     return (
-        f"Заявка в чат <b>{html.escape(chat_title)}</b> ждёт ответа: нажми на нужный эмодзи в сообщении выше. "
-        f"{plural(minutes_left, 'Осталась', 'Осталось', 'Осталось')} {minutes_left} "
-        f"{plural(minutes_left, 'минута', 'минуты', 'минут')}."
+        f"⏳ Ещё {minutes_left} {plural(minutes_left, 'минута', 'минуты', 'минут')} — "
+        f"<b>{NOMINATIVE[answer].upper()}</b> {waits(answer)} в сообщении выше."
     )
 
 
-def retry_text(chat_title: str, answer: str) -> str:
+def retry_hint(answer: str, attempts_left: int) -> str:
+    """The popup after a wrong tap. A popup takes no markup, so the capitals carry the answer alone."""
     return (
-        f"Не то. Осталась одна попытка.\n\n"
-        f"Чтобы попасть в чат <b>{html.escape(chat_title)}</b>, нажми на <b>{NAMES[answer]}</b>."
+        f"Не то — нажми на {NAMES[answer].upper()}. "
+        f"{plural(attempts_left, 'Осталась', 'Осталось', 'Осталось')} {attempts_left} "
+        f"{plural(attempts_left, 'попытка', 'попытки', 'попыток')}"
     )
 
 
-def passed_text(chat_title: str) -> str:
-    return f"Готово, ты в чате <b>{html.escape(chat_title)}</b>."
+def passed_text(chat_title: str, link: str | None) -> str:
+    """The chat's name is its link: one tap into the chat without a button of its own."""
+    title = html.escape(chat_title)
+    where = f'<a href="{html.escape(link)}">{title}</a>' if link else f"<b>{title}</b>"
+    return f"✅ Готово, ты в {where}!"
+
+
+# Under the video after the captcha, with the button into the app.
+INTRO = "👋 Это Konnekt: чаты других факультетов и общежитий и люди, которые помогут с учёбой."
 
 
 def failed_text(chat_title: str) -> str:
@@ -110,9 +148,3 @@ def handed_back_text(chat_title: str) -> str:
 
 def superseded_text(chat_title: str) -> str:
     return f"Эта проверка для чата <b>{html.escape(chat_title)}</b> больше не действует: ты подал(а) новую заявку."
-
-
-def open_chat(link: str | None) -> InlineKeyboardMarkup | None:
-    if not link:
-        return None
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть чат", url=link)]])

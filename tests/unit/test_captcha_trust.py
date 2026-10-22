@@ -143,9 +143,8 @@ async def test_a_trusted_applicant_is_told_they_are_in_with_the_link(session: As
     bot.send_message.assert_awaited_once()
     kwargs = bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == USER_ID
-    assert "Готово" in kwargs["text"]
-    assert "ČVUT FIT" in kwargs["text"]
-    assert kwargs["reply_markup"].inline_keyboard[0][0].url == "https://t.me/cvut_fit"
+    assert kwargs["text"] == '✅ Готово, ты в <a href="https://t.me/cvut_fit">ČVUT FIT</a>!'
+    assert kwargs.get("reply_markup") is None
 
 
 async def test_a_pass_older_than_the_window_asks_again(session: AsyncSession, bot, chat) -> None:

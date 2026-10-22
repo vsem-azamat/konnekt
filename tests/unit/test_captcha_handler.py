@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram.types import Chat, ChatJoinRequest, User
 from app.captcha import service, waves
-from app.captcha.challenge import CaptchaPick
+from app.captcha.challenge import EMOJI, CaptchaPick
 from app.captcha.waves import WaveDecision
 from app.core.config import settings
 from app.core.time import utc_now
@@ -93,6 +93,19 @@ async def test_a_forwarded_captcha_does_nothing_for_someone_else(session: AsyncS
 
     bot.approve_chat_join_request.assert_not_awaited()
     callback.answer.assert_awaited_once()
+
+
+async def test_a_wrong_tap_says_what_to_tap_in_a_popup_that_goes_by_itself(session: AsyncSession, bot, chat) -> None:
+    await service.admit(bot, session, _request(USER_ID), chat)
+    row = await session.scalar(select(JoinCaptcha))
+    assert row is not None
+    wrong = next(i for i, emoji in enumerate(row.options) if emoji != row.answer)
+    callback = _press(USER_ID)
+
+    await captcha_pick(callback, CaptchaPick(challenge_id=row.id, pick=wrong), bot, session)
+
+    name = dict(EMOJI)[row.answer].upper()
+    callback.answer.assert_awaited_once_with(f"Не то — нажми на {name}. Осталась 1 попытка")
 
 
 async def _wave(session: AsyncSession, bot, chat) -> JoinWave:

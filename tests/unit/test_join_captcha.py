@@ -97,8 +97,11 @@ async def test_applicant_gets_the_captcha_in_a_private_message(session: AsyncSes
     kwargs = bot.send_message.await_args.kwargs
     challenge = await _only_challenge(session)
     assert kwargs["chat_id"] == USER_ID
-    assert "ČVUT FIT" in kwargs["text"]
-    assert NAMES[challenge.answer] in kwargs["text"]
+    assert kwargs["text"] == (
+        "🔐 Проверка для чата <b>ČVUT FIT</b>\n\n"
+        f"Нажми на <b>{NAMES[challenge.answer].upper()}</b>, и заявку примут.\n\n"
+        f"⏱ {settings.captcha.answer_minutes} минут."
+    )
     buttons = [b for row in kwargs["reply_markup"].inline_keyboard for b in row]
     assert [b.text for b in buttons] == challenge.options
     assert len(buttons) == OPTIONS
@@ -121,7 +124,7 @@ async def test_the_captcha_gives_as_long_as_configured_and_says_so(session: Asyn
 
     challenge = await _only_challenge(session)
     assert challenge.expires_at - challenge.created_at == datetime.timedelta(minutes=21)
-    assert "На ответ 21 минута." in bot.send_message.await_args.kwargs["text"]
+    assert "⏱ 21 минута." in bot.send_message.await_args.kwargs["text"]
 
 
 async def test_chat_without_captcha_leaves_the_request_to_the_admins(session: AsyncSession, bot) -> None:
@@ -177,13 +180,14 @@ async def test_the_right_emoji_lets_the_applicant_in(session: AsyncSession, bot)
     edit = bot.edit_message_text.await_args.kwargs
     assert edit["chat_id"] == USER_ID
     assert edit["message_id"] == 77
-    assert "Готово" in edit["text"]
-    assert edit["reply_markup"].inline_keyboard[0][0].url == "https://t.me/cvut_fit"
+    assert edit["text"] == '✅ Готово, ты в <a href="https://t.me/cvut_fit">ČVUT FIT</a>!'
+    assert edit["reply_markup"] is None
     await session.refresh(challenge)
     assert challenge.status == JoinCaptcha.STATUS_PASSED
 
 
-async def test_one_mistake_is_forgiven_with_a_fresh_board(session: AsyncSession, bot) -> None:
+async def test_one_mistake_is_forgiven_and_the_message_stays_as_it_was(session: AsyncSession, bot) -> None:
+    """The applicant is told in a popup that goes by itself; the question they are reading does not change."""
     await _seed_chat(session)
     await join_requested(_request(), bot, session)
     challenge = await _only_challenge(session)
@@ -196,9 +200,7 @@ async def test_one_mistake_is_forgiven_with_a_fresh_board(session: AsyncSession,
     bot.decline_chat_join_request.assert_not_awaited()
     await session.refresh(challenge)
     assert challenge.attempts_left == ATTEMPTS - 1
-    edit = bot.edit_message_text.await_args.kwargs
-    assert NAMES[challenge.answer] in edit["text"]
-    assert [b.text for row in edit["reply_markup"].inline_keyboard for b in row] == challenge.options
+    bot.edit_message_text.assert_not_awaited()
 
 
 async def test_two_mistakes_decline_the_request(session: AsyncSession, bot) -> None:
@@ -397,23 +399,86 @@ async def test_a_refusal_other_than_a_closed_request_is_reported_to_the_admins(s
     assert any("CHAT_ADMIN_REQUIRED" in line for line in _report_lines(bot))
 
 
-async def test_a_wrong_tap_draws_a_new_board(session: AsyncSession, bot, monkeypatch) -> None:
-    boards = iter(
-        [
-            ("🐱", ["🐱", "🐶", "🍕", "🍎", "🍌", "🚲", "🚗", "🎸"]),
-            ("🔑", ["🔑", "⚽", "🌵", "🐟", "🎁", "☕", "📚", "🏠"]),
-        ]
-    )
-    monkeypatch.setattr(challenge_module, "draw", lambda: next(boards))
+async def test_a_wrong_tap_keeps_the_answer_the_message_names(session: AsyncSession, bot) -> None:
+    """A fresh board would name an answer the unchanged message does not."""
     await _seed_chat(session)
     await join_requested(_request(), bot, session)
     row = await _only_challenge(session)
+    answer, options = row.answer, list(row.options)
 
-    await service.answer(bot, session, challenge_id=row.id, user_id=USER_ID, pick=1)
+    await service.answer(bot, session, challenge_id=row.id, user_id=USER_ID, pick=_wrong_pick(row))
 
     await session.refresh(row)
-    assert row.answer == "🔑"
-    assert row.options[0] == "🔑"
+    assert (row.answer, row.options) == (answer, options)
+
+
+# --- after passing: Konnekt in the private chat --------------------------------
+
+
+@pytest.fixture
+def intro(bot, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """What happened in order: the introduction, the approval, the edit."""
+    steps: list[str] = []
+    monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
+    monkeypatch.setattr(settings.webapi, "public_url", "https://konnekt.example")
+    bot.send_video = AsyncMock(side_effect=lambda **_: steps.append("video"))
+    bot.approve_chat_join_request.side_effect = lambda **_: steps.append("approve")
+    bot.edit_message_text.side_effect = lambda **_: steps.append("edit")
+    return steps
+
+
+async def _pass(session: AsyncSession, bot, *, after: datetime.timedelta = datetime.timedelta(0)) -> None:
+    await _seed_chat(session, link="https://t.me/cvut_fit")
+    await join_requested(_request(), bot, session)
+    row = await _only_challenge(session)
+    await service.answer(
+        bot,
+        session,
+        challenge_id=row.id,
+        user_id=USER_ID,
+        pick=row.options.index(row.answer),
+        now=row.created_at + after,
+    )
+
+
+async def test_passing_brings_the_konnekt_video_before_the_approval(session: AsyncSession, bot, intro) -> None:
+    """Telegram lets the bot write to an applicant only until the request is settled."""
+    await _pass(session, bot)
+
+    assert intro == ["video", "approve", "edit"]
+    sent = bot.send_video.await_args.kwargs
+    assert sent["chat_id"] == USER_ID
+    assert sent["video"] == "video-file-id"
+    assert sent["caption"] == "👋 Это Konnekt: чаты других факультетов и общежитий и люди, которые помогут с учёбой."
+    [[button]] = sent["reply_markup"].inline_keyboard
+    assert button.text == "Открыть Konnekt 📱"
+    assert button.web_app.url == "https://konnekt.example/chats"
+
+
+async def test_without_a_video_the_introduction_is_text(session: AsyncSession, bot, intro, monkeypatch) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "")
+
+    await _pass(session, bot)
+
+    bot.send_video.assert_not_awaited()
+    texts = [c.kwargs["text"] for c in bot.send_message.await_args_list]
+    assert texts[-1].startswith("👋 Это Konnekt")
+
+
+async def test_an_introduction_that_fails_does_not_hold_up_the_approval(session: AsyncSession, bot, intro) -> None:
+    bot.send_video.side_effect = TelegramForbiddenError(method=MagicMock(), message="bot was blocked by the user")
+
+    await _pass(session, bot)
+
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
+    row = await _only_challenge(session)
+    assert row.status == JoinCaptcha.STATUS_PASSED
+
+
+async def test_no_introduction_once_telegram_no_longer_lets_the_bot_write(session: AsyncSession, bot, intro) -> None:
+    await _pass(session, bot, after=datetime.timedelta(minutes=6))
+
+    assert intro == ["approve", "edit"]
 
 
 async def test_a_new_request_retires_the_old_captcha(session: AsyncSession, bot) -> None:
@@ -545,9 +610,12 @@ async def test_an_unanswered_captcha_is_reminded_once_with_the_time_left(session
     assert bot.send_message.await_count == 2
     kwargs = bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == USER_ID
-    assert "ČVUT FIT" in kwargs["text"]
     left = settings.captcha.answer_minutes - settings.captcha.remind_after_minutes
-    assert f"Осталось {left} минут" in kwargs["text"]
+    answer = challenge_module.NOMINATIVE[challenge.answer].upper()
+    assert (
+        kwargs["text"]
+        == f"⏳ Ещё {left} минут — <b>{answer}</b> {challenge_module.waits(challenge.answer)} в сообщении выше."
+    )
     assert kwargs["reply_parameters"].message_id == 77
 
     await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER + datetime.timedelta(seconds=30))
@@ -563,7 +631,7 @@ async def test_the_time_left_is_rounded_up_and_spelled_right(session: AsyncSessi
 
     await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER)
 
-    assert "Осталась 1 минута" in bot.send_message.await_args.kwargs["text"]
+    assert "Ещё 1 минута —" in bot.send_message.await_args.kwargs["text"]
 
 
 @pytest.mark.parametrize("change", ["unapproved", "captcha_off"])
@@ -591,10 +659,11 @@ async def test_an_answered_captcha_is_not_reminded(session: AsyncSession, bot) -
     await service.answer(
         bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=challenge.options.index(challenge.answer)
     )
+    sent = bot.send_message.await_count
 
     await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER + datetime.timedelta(seconds=10))
 
-    assert bot.send_message.await_count == 1
+    assert bot.send_message.await_count == sent
 
 
 async def test_no_reminder_once_telegram_no_longer_lets_the_bot_write(session: AsyncSession, bot) -> None:
@@ -751,3 +820,15 @@ async def test_undelivered_and_expired_captchas_are_counted_too(session: AsyncSe
     await join_requested(_request(USER_ID + 1), bot, session)
     await service.expire_stale(bot, session, now=utc_now() + PAST_WINDOW)
     assert _events("expired") == expired + 1
+
+
+# --- the words -------------------------------------------------------------------
+
+
+def test_every_answer_can_be_named_as_the_subject_too() -> None:
+    assert set(challenge_module.NOMINATIVE) == set(NAMES)
+
+
+def test_the_reminder_agrees_with_an_answer_in_the_plural() -> None:
+    assert challenge_module.reminder_text("📚", 3) == "⏳ Ещё 3 минуты — <b>КНИГИ</b> ждут в сообщении выше."
+    assert "<b>КОШКА</b> ждёт" in challenge_module.reminder_text("🐱", 3)
