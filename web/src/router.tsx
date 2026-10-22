@@ -13,6 +13,7 @@ import ConsoleChatPage from '@/console/pages/Chat';
 import ConsoleChatsPage from '@/console/pages/Chats';
 import ConsolePartnerNewPage from '@/console/pages/PartnerNew';
 import ConsolePartnersPage from '@/console/pages/Partners';
+import ConsoleSignalsPage from '@/console/pages/Signals';
 import ConsoleSpamPage from '@/console/pages/Spam';
 import ConsoleSummaryPage from '@/console/pages/Summary';
 import ConsoleSystemPage from '@/console/pages/System';
@@ -98,6 +99,7 @@ const browserScreens: Record<BrowserPath, ReactElement> = {
   'chats/:id': <ConsoleChatPage />,
   spam: <ConsoleSpamPage />,
   blacklist: <ConsoleBlacklistPage />,
+  signals: <ConsoleSignalsPage />,
   system: <ConsoleSystemPage />,
 };
 

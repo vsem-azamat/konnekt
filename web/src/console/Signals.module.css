@@ -1,0 +1,63 @@
+/* The Сигналы screen's cards: one per decision the report chat asks for. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  min-width: 0;
+}
+
+/* A wave is the one that cannot wait: people are being kept out right now. */
+.alert {
+  box-shadow: inset 3px 0 0 var(--tone-4-fg);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.head b {
+  display: block;
+  font-size: 16px;
+}
+
+.head span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.text {
+  margin: 6px 0;
+  max-width: 62ch;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 10px 0 8px;
+  font-size: 13px;
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 650;
+}

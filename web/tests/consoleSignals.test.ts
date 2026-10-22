@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { menuCounts, type Signals } from '../src/console/signals.ts';
+import {
+  elapsed,
+  menuCounts,
+  minutesSince,
+  minutesUntil,
+  type Signals,
+} from '../src/console/signals.ts';
 
 const signals: Signals = {
   waves: [
@@ -14,8 +20,10 @@ const signals: Signals = {
       last_surge_at: '2026-10-22T08:10:00',
       held: 64,
       paused: true,
+      quiet_until: '2026-10-22T08:25:00',
     },
   ],
+  wave_per_minute: 20,
   pending_actions: [
     {
       id: 2,
@@ -49,4 +57,29 @@ test('a count that has not arrived is no badge, not a guess', () => {
     spam: 0,
     catalog: 0,
   });
+});
+
+test('webapi times are UTC, whatever zone the reader is in', () => {
+  // In UTC itself a time read as local would pass too.
+  const zone = process.env.TZ;
+  process.env.TZ = 'America/New_York';
+  try {
+    const now = new Date('2026-10-22T08:30:00Z');
+    assert.equal(minutesSince('2026-10-22T08:24:10', now), 5);
+    assert.equal(minutesSince('2026-10-22T08:31:00', now), 0);
+    // A started minute is a minute left: «0 мин» while the pause still holds is wrong.
+    assert.equal(minutesUntil('2026-10-22T08:39:10', now), 10);
+    assert.equal(minutesUntil('2026-10-22T08:29:00', now), 0);
+  } finally {
+    if (zone === undefined) delete process.env.TZ;
+    else process.env.TZ = zone;
+  }
+});
+
+test('how long ago reads in minutes, then in hours', () => {
+  const now = new Date('2026-10-22T08:30:00Z');
+  assert.deepEqual(elapsed('2026-10-22T08:29:30', now), { unit: 'now' });
+  assert.deepEqual(elapsed('2026-10-22T07:31:00', now), { unit: 'minutes', count: 59 });
+  // A wave is kept a day: «1380 мин назад» is unreadable.
+  assert.deepEqual(elapsed('2026-10-21T09:30:00', now), { unit: 'hours', count: 23 });
 });

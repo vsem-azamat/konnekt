@@ -185,6 +185,11 @@ msgstr "No such request"
 msgid "Отключить чат?"
 msgstr "Disable the chat?"
 
+#. placeholder {0}: wave.held
+#: src/console/pages/Signals.tsx
+msgid "Ждут решения: {0}."
+msgstr "Awaiting a decision: {0}."
+
 #: src/console/pages/System.tsx
 msgid "вкл."
 msgstr "on"
@@ -331,6 +336,10 @@ msgstr "How it works"
 msgid "это устройство"
 msgstr "this device"
 
+#: src/console/pages/Signals.tsx
+msgid "{perMinute} заявок в минуту"
+msgstr "{perMinute} requests a minute"
+
 #: src/components/ChatRow.tsx
 msgid "оживлённый"
 msgstr "lively"
@@ -338,6 +347,10 @@ msgstr "lively"
 #: src/console/Login.tsx
 msgid "Вход в консоль"
 msgstr "Sign in to the console"
+
+#: src/console/pages/Signals.tsx
+msgid "Решают кнопками в сообщении бота в чате отчётов."
+msgstr "Decided with the buttons on the bot's message in the report chat."
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -666,6 +679,10 @@ msgstr "{0, plural, one {member} other {members}}"
 msgid "факультеты, общежития, общие"
 msgstr "faculties, dorms, general"
 
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
+msgstr "started {started} · last burst {hoursAgo} h ago"
+
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
 msgstr "The post goes out, and you get links to it."
@@ -690,6 +707,10 @@ msgstr "Loading the list of schools…"
 #: src/console/BanSheet.tsx
 msgid "Как забанить"
 msgstr "How to ban"
+
+#: src/console/pages/Signals.tsx
+msgid "Очереди"
+msgstr "Queues"
 
 #: src/components/HideReasonText.tsx
 msgid "Неправдивые сведения"
@@ -743,6 +764,10 @@ msgstr "Your profile is saved, but it will not be in the catalog."
 msgid "Сколько"
 msgstr "How much"
 
+#: src/console/pages/Signals.tsx
+msgid "Подтвердить или отклонить можно в личном сообщении бота."
+msgstr "Confirm or reject it in the bot's private message."
+
 #: src/pages/Ask.tsx
 msgid "Показать {total}"
 msgstr "Show {total}"
@@ -779,6 +804,10 @@ msgstr "Done"
 #: src/pages/Ads.tsx
 msgid "в разделе «Не про учёбу»"
 msgstr "in «Not about studies»"
+
+#: src/console/pages/Signals.tsx
+msgid "Ни набегов, ни предложенных банов."
+msgstr "No raids and no proposed bans."
 
 #: src/components/Phrase.tsx
 #~ msgid "сдали"
@@ -1003,6 +1032,11 @@ msgstr "What the price is for"
 msgid "Уже в чёрном списке."
 msgstr "Already on the blacklist."
 
+#. placeholder {0}: counts.signals
+#: src/console/BrowserShell.tsx
+msgid "Сигналы, ждут решения: {0}"
+msgstr "Signals, awaiting a decision: {0}"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1109,6 +1143,10 @@ msgstr "Only you can see it for now. Choose «In the catalog» when it is ready.
 msgid "скрыта, автор изменил анкету"
 msgstr "hidden, the author changed it"
 
+#: src/console/pages/Signals.tsx
+msgid "Бан {who} в {chat}"
+msgstr "Ban {who} in {chat}"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
 msgstr "It goes first in the «Not about school» section. Three cards show there: the lowest drops off until another is switched off."
@@ -1140,6 +1178,10 @@ msgstr "A title is needed."
 #: src/pages/Request.tsx
 msgid "Выбрать"
 msgstr "Choose"
+
+#: src/console/pages/Signals.tsx
+msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
+msgstr "Proposed through MCP. Waits for an admin to press, expires in {left} min."
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -1219,6 +1261,10 @@ msgstr "Messages by weekday and hour; busiest: {busiest}"
 msgid "Очно"
 msgstr "In person"
 
+#: src/console/pages/Signals.tsx
+msgid "Капча вернётся через"
+msgstr "Captcha is back in"
+
 #: src/components/TabBar.tsx
 msgid "репетиторство, работы, помощь"
 msgstr "tutoring, written work, exam help"
@@ -1266,6 +1312,7 @@ msgstr "Monogram"
 msgid "Студенты перестанут её видеть. Показы и клики сохранятся."
 msgstr "Students will stop seeing it. Impressions and clicks are kept."
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "открытые, срок не вышел"
 msgstr "open, before their deadline"
@@ -1321,6 +1368,10 @@ msgstr "Help others"
 #: src/console/pages/Chat.tsx
 msgid "Приветствие"
 msgstr "Welcome message"
+
+#: src/console/pages/Signals.tsx
+msgid "Больше {perMinute} заявок в минуту. Пауза закончилась: новые заявки снова получают капчу, эти так и ждут."
+msgstr "More than {perMinute} requests a minute. The pause is over: new requests get the captcha again, these still wait."
 
 #: src/pages/Life.tsx
 msgid "Здесь появятся страховка, визы, банк и переводы."
@@ -1464,6 +1515,11 @@ msgstr "Profile"
 msgid "Реклама за сутки"
 msgstr "Ads in the last day"
 
+#: src/console/BrowserShell.tsx
+#: src/console/pages/Signals.tsx
+msgid "Сигналы"
+msgstr "Signals"
+
 #: src/pages/Helper.tsx
 msgid "Возможно, человек скрыл его."
 msgstr "Maybe they hid it."
@@ -1509,6 +1565,10 @@ msgstr "Free {0}"
 #: src/pages/Life.tsx
 msgid "Пока пусто"
 msgstr "Nothing here yet"
+
+#: src/console/pages/Signals.tsx
+msgid "Порог"
+msgstr "Threshold"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Без страховки визу не продлят."
@@ -1616,6 +1676,14 @@ msgstr "Remotely"
 msgid "изменить"
 msgstr "change"
 
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {ago} мин назад"
+msgstr "started {started} · last burst {ago} min ago"
+
+#: src/console/pages/Signals.tsx
+msgid "Что ждёт решения админа, из чата отчётов и очередей."
+msgstr "What waits for an admin to decide, from the report chat and the queues."
+
 #: src/console/pages/Summary.tsx
 msgid "кто пользовался ботами и Mini App"
 msgstr "who used the bots and the Mini App"
@@ -1640,6 +1708,10 @@ msgstr "captcha"
 #: src/console/pages/Chats.tsx
 msgid "Название или id"
 msgstr "Name or id"
+
+#: src/console/pages/Signals.tsx
+msgid "каталог"
+msgstr "catalog"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Pojišťovna VZP"
@@ -1675,6 +1747,10 @@ msgstr "Couldn't load the catalog"
 #: src/pages/Results.tsx
 msgid "Также"
 msgstr "Also"
+
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск только что"
+msgstr "started {started} · last burst just now"
 
 #: src/components/SubjectSearch.tsx
 msgid "Добавить предмет — математика, čeština, физика"
@@ -1751,6 +1827,7 @@ msgstr "What you need"
 msgid "За 7 дней"
 msgstr "Last 7 days"
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
 msgstr "Chats awaiting review"
@@ -1774,6 +1851,10 @@ msgstr "Sun"
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Thu"
+
+#: src/console/pages/Signals.tsx
+msgid "Набег на {title}"
+msgstr "Raid on {title}"
 
 #: src/components/Incoming.tsx
 msgid "Цена за час, Kč <0>необязательно</0>"
@@ -1851,6 +1932,10 @@ msgstr "Status"
 msgid "Так вложить нельзя: список чатов изменился. Откройте экран заново."
 msgstr "That nesting is not allowed: the chat list has changed. Open the screen again."
 
+#: src/console/pages/Signals.tsx
+msgid "{quiet} мин"
+msgstr "{quiet} min"
+
 #: src/pages/Ask.tsx
 msgid "нострификация аттестата"
 msgstr "nostrification of a school certificate"
@@ -1906,6 +1991,10 @@ msgstr "{0, plural, one {# lesson through us} other {# lessons through us}}"
 #: src/pages/Chats.tsx
 msgid "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {names}} many {ещё # чатов: {names}} other {ещё # чата: {names}}}"
 msgstr "{count, plural, one {# more chat: {names}} other {# more chats: {names}}}"
+
+#: src/console/pages/Signals.tsx
+msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
+msgstr "More than {perMinute} requests a minute. The captcha is paused: the bot doesn't write to new people, nobody got into the chat."
 
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
@@ -1963,6 +2052,10 @@ msgstr "name, photo and member count"
 #: src/pages/OfferPrices.tsx
 msgid "в месяц"
 msgstr "per month"
+
+#: src/console/pages/Signals.tsx
+msgid "Бан {who} во всех чатах"
+msgstr "Ban {who} in every chat"
 
 #: src/console/pages/Chat.tsx
 msgid "Отключить чат"
@@ -2036,9 +2129,17 @@ msgstr "Try again"
 msgid "Нарушает правила"
 msgstr "Breaks the rules"
 
+#: src/console/pages/Signals.tsx
+msgid "Чёрный список: {who}"
+msgstr "Blacklist: {who}"
+
 #: src/console/Login.tsx
 msgid "Войти через Telegram"
 msgstr "Sign in with Telegram"
+
+#: src/console/pages/Signals.tsx
+msgid "Ждут решения"
+msgstr "Awaiting a decision"
 
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
@@ -2080,6 +2181,10 @@ msgstr "What do you charge?"
 msgid "Язык Telegram"
 msgstr "Telegram language"
 
+#: src/console/pages/Signals.tsx
+msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
+msgstr "Proposed through MCP: {reason}. Waits for an admin to press, expires in {left} min."
+
 #: src/lib/workFormat.tsx
 msgid "Хожу вместе"
 msgstr "I come with you"
@@ -2113,6 +2218,7 @@ msgid "Анкета сохранена, но в каталоге её нет. В
 msgstr "Your profile is saved but not in the catalog. You can bring it back below."
 
 #: src/console/pages/Catalog.tsx
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "Заявки без откликов"
 msgstr "Requests with no answer"
@@ -2157,6 +2263,7 @@ msgstr "Author banned"
 #~ msgid "консоль"
 #~ msgstr "console"
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "детектор, все чаты"
 msgstr "detector, all chats"
@@ -2224,6 +2331,7 @@ msgstr "From your faculty"
 msgid "Работы"
 msgstr "Written work"
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Spam.tsx
 msgid "Чат"
 msgstr "Chat"
@@ -2244,6 +2352,7 @@ msgstr "Tap the button to confirm you are not a bot. The request is approved at 
 msgid "Причина: <0/>"
 msgstr "Reason: <0/>"
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "Реклама не разобрана"
 msgstr "Ads to review"
@@ -2329,6 +2438,7 @@ msgstr "The link will be erased: {0}"
 msgid "Очередь пуста: всё разобрано."
 msgstr "The queue is empty: everything is reviewed."
 
+#: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "бот в них есть, но они не одобрены"
 msgstr "the bot is in them, but they are not approved"
@@ -2338,6 +2448,7 @@ msgid "Поиск чата"
 msgstr "Search chats"
 
 #: src/console/pages/Catalog.tsx
+#: src/console/pages/Signals.tsx
 msgid "Новые анкеты"
 msgstr "New profiles"
 
@@ -2865,6 +2976,10 @@ msgstr "tutors, entrance exam preparation, nostrification"
 msgid "{0, plural, one {чат} few {чата} many {чатов} other {чата}}"
 msgstr "{0, plural, one {chat} other {chats}}"
 
+#: src/console/pages/Signals.tsx
+msgid "Очереди пусты."
+msgstr "The queues are empty."
+
 #: src/pages/Chats.tsx
 #: src/pages/ChatSection.tsx
 msgid "Не удалось загрузить чаты"
@@ -2931,8 +3046,10 @@ msgid "Подходят"
 msgstr "Good match"
 
 #. placeholder {0}: chat.member_count
+#. placeholder {0}: wave.member_count
 #: src/components/ChatRow.tsx
 #: src/console/pages/Chat.tsx
+#: src/console/pages/Signals.tsx
 msgid "{0, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
 msgstr "{0, plural, one {# member} other {# members}}"
 

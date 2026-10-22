@@ -35,6 +35,7 @@ export const BROWSER_PATHS = [
   'chats/:id',
   'spam',
   'blacklist',
+  'signals',
   'system',
 ] as const;
 

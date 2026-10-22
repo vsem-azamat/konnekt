@@ -1,3 +1,5 @@
+import { utc } from './session.ts';
+
 /**
  * What waits for an admin, as webapi's `/api/signals` tells it, and the
  * counters the browser's menu shows from it.
@@ -13,6 +15,8 @@ export interface WaveSignal {
   last_surge_at: string;
   held: number;
   paused: boolean;
+  /** When the pause ends unless another burst comes first. */
+  quiet_until: string;
 }
 
 /** A ban or blacklisting proposed through MCP, waiting for a press. */
@@ -32,6 +36,8 @@ export interface PendingActionSignal {
 
 export interface Signals {
   waves: WaveSignal[];
+  /** People asking to join one chat within a minute that make a wave. */
+  wave_per_minute: number;
   pending_actions: PendingActionSignal[];
   queues: { ads_unreviewed: number; chats_in_review: number };
 }
@@ -57,4 +63,25 @@ export function menuCounts(
     spam: signals?.queues.ads_unreviewed ?? 0,
     catalog: catalog?.profiles_to_review ?? 0,
   };
+}
+
+/** Whole minutes from a webapi time to now; a time in the future is zero. */
+export function minutesSince(iso: string, now: Date = new Date()): number {
+  return Math.max(0, Math.floor((now.getTime() - new Date(utc(iso)).getTime()) / 60_000));
+}
+
+/** Minutes left until a webapi time, a started one counted whole; past is zero. */
+export function minutesUntil(iso: string, now: Date = new Date()): number {
+  return Math.max(0, Math.ceil((new Date(utc(iso)).getTime() - now.getTime()) / 60_000));
+}
+
+/** How long ago, as the screen says it: just now, in minutes, then in hours. */
+export function elapsed(
+  iso: string,
+  now: Date = new Date(),
+): { unit: 'now' } | { unit: 'minutes' | 'hours'; count: number } {
+  const minutes = minutesSince(iso, now);
+  if (minutes === 0) return { unit: 'now' };
+  if (minutes < 60) return { unit: 'minutes', count: minutes };
+  return { unit: 'hours', count: Math.floor(minutes / 60) };
 }

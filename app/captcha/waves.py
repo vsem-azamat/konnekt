@@ -264,9 +264,14 @@ async def undecided(db: AsyncSession, now: datetime.datetime) -> list[tuple[Join
     return [(wave, count) for wave, count in rows.tuples()]
 
 
+def quiet_until(wave: JoinWave) -> datetime.datetime:
+    """When the quiet spell after the wave's last burst ends, unless another burst comes."""
+    return wave.last_surge_at + datetime.timedelta(minutes=QUIET_MINUTES)
+
+
 def paused_at(wave: JoinWave, now: datetime.datetime) -> bool:
     """Whether the quiet spell after the wave's last burst is still running."""
-    return pauses(wave) and wave.last_surge_at > now - datetime.timedelta(minutes=QUIET_MINUTES)
+    return pauses(wave) and quiet_until(wave) > now
 
 
 async def _decline_held(bot: Bot, db: AsyncSession, wave: JoinWave, now: datetime.datetime) -> tuple[int, int]:
