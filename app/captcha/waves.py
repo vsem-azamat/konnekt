@@ -119,8 +119,8 @@ async def announce(bot: Bot, db: AsyncSession, wave: JoinWave, chat: Chat) -> No
 def _alert_text(chat: Chat, *, held: int) -> str:
     return (
         f"<b>Набег на {html.escape(chat.title or str(chat.id))}</b>\n\n"
-        f"Больше {PER_MINUTE} заявок в минуту. Капча на паузе: новым людям бот не пишет, "
-        f"в чат входят только прошедшие капчу в другом чате.\n\n"
+        f"Больше {PER_MINUTE} заявок в минуту. Капча на паузе: новым людям бот не пишет и в чат их не пускает. "
+        f"Прошедшие капчу в другом чате входят и так, остановит их только выключенная капча.\n\n"
         f"Ждут решения: {held}."
     )
 

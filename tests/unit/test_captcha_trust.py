@@ -18,7 +18,7 @@ from app.core.config import CaptchaSettings, settings
 from app.core.enums import ModerationEventAction, ModerationEventSource
 from app.core.time import utc_now
 from app.db.models import Chat as DbChat
-from app.db.models import JoinCaptcha, ModerationEvent
+from app.db.models import JoinCaptcha, JoinWave, ModerationEvent
 from app.db.models import User as DbUser
 from app.presentation.telegram.handlers.events import join_requested
 from prometheus_client import REGISTRY
@@ -245,6 +245,21 @@ async def test_a_trusted_applicant_is_let_in_during_a_wave(session: AsyncSession
     for user_id in range(1, waves.PER_MINUTE + 5):
         await service.admit(bot, session, _request(user_id), chat, now=NOW)
     assert (await _latest(session, waves.PER_MINUTE + 4)).status == JoinCaptcha.STATUS_HELD
+    await _settled(session, days_ago=1)
+
+    await service.admit(bot, session, _request(), chat, now=NOW)
+
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
+    assert (await _latest(session)).status == JoinCaptcha.STATUS_TRUSTED
+
+
+async def test_a_trusted_applicant_is_let_in_even_in_a_wave_an_admin_declined(session: AsyncSession, bot, chat) -> None:
+    for user_id in range(1, waves.PER_MINUTE + 5):
+        await service.admit(bot, session, _request(user_id), chat, now=NOW)
+    wave = await session.scalar(select(JoinWave))
+    assert wave is not None
+    wave.decision = JoinWave.DECISION_DECLINE
+    await session.commit()
     await _settled(session, days_ago=1)
 
     await service.admit(bot, session, _request(), chat, now=NOW)

@@ -204,7 +204,11 @@ async def test_someone_who_passed_elsewhere_gets_in_through_a_burst(pg_session_m
             session.add(row)
         await session.commit()
 
-    await asyncio.gather(*(_admit(pg_session_maker, bot, user_id) for user_id in (*range(1, 101), trusted, stale)))
+    await asyncio.gather(*(_admit(pg_session_maker, bot, user_id) for user_id in range(1, 101)))
+    async with pg_session_maker() as session:
+        assert await session.scalar(select(func.count()).select_from(JoinWave)) == 1
+    # Through the wave, side by side with the rest of the burst.
+    await asyncio.gather(*(_admit(pg_session_maker, bot, user_id) for user_id in (*range(101, 121), trusted, stale)))
 
     async with pg_session_maker() as session:
         statuses = dict(
@@ -218,5 +222,5 @@ async def test_someone_who_passed_elsewhere_gets_in_through_a_burst(pg_session_m
         )
         assert await session.scalar(select(func.count()).select_from(JoinWave)) == 1
     assert statuses[trusted] == JoinCaptcha.STATUS_TRUSTED
-    assert statuses[stale] != JoinCaptcha.STATUS_TRUSTED
+    assert statuses[stale] == JoinCaptcha.STATUS_HELD
     bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=trusted)
