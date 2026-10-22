@@ -23,7 +23,6 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
-from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
@@ -43,7 +42,7 @@ from students_cz.db.models.enums import UiLang
 from students_cz.db.session import get_sessionmaker
 from students_cz.services import catalog, people
 from students_cz.services.naming import names_by_id
-from students_cz.services.notify import Notifier, Recipient, quote
+from students_cz.services.notify import Notifier, Recipient, money, quote
 from students_cz.services.requests import live
 
 log = logging.getLogger("students_cz.request_alerts")
@@ -236,7 +235,7 @@ async def _text(session: AsyncSession, request: HelpRequest, lang: UiLang) -> st
     )
     budget = (
         pick(BUDGET_UP_TO, lang).format(
-            amount=_amount(request.budget_max, request.budget_currency)
+            amount=money(request.budget_max, request.budget_currency)
         )
         if request.budget_max is not None
         else ""
@@ -246,9 +245,3 @@ async def _text(session: AsyncSession, request: HelpRequest, lang: UiLang) -> st
         text=quote(request.raw_text),
         budget=budget,
     )
-
-
-def _amount(value: Decimal | float, currency: str) -> str:
-    number = Decimal(str(value))
-    shown = f"{number:f}" if number % 1 else f"{int(number)}"
-    return f"{shown} {'Kč' if currency == 'CZK' else quote(currency, 3)}"
