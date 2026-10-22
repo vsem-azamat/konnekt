@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { ConsoleError } from '../src/console/session.ts';
 import {
+  decisionProblem,
   elapsed,
   menuCounts,
   minutesSince,
@@ -82,4 +84,27 @@ test('how long ago reads in minutes, then in hours', () => {
   assert.deepEqual(elapsed('2026-10-22T07:31:00', now), { unit: 'minutes', count: 59 });
   // A wave is kept a day: «1380 мин назад» is unreadable.
   assert.deepEqual(elapsed('2026-10-21T09:30:00', now), { unit: 'hours', count: 23 });
+});
+
+test('a refused decision says why, in the words webapi gives', () => {
+  assert.equal(decisionProblem(new ConsoleError(409, 'failed', 'gone')), 'gone');
+  assert.equal(decisionProblem(new ConsoleError(404, 'failed', 'no such wave')), 'gone');
+  assert.equal(
+    decisionProblem(new ConsoleError(409, 'failed', 'decided otherwise')),
+    'decided',
+  );
+  assert.equal(
+    decisionProblem(new ConsoleError(409, 'failed', 'protected')),
+    'protected',
+  );
+  assert.equal(
+    decisionProblem(new ConsoleError(409, 'failed', 'unmanaged')),
+    'unmanaged',
+  );
+  // Telegram refused, or the network did: nothing more specific to say.
+  assert.equal(decisionProblem(new ConsoleError(502, 'failed', 'failed')), 'refused');
+  // A gateway's 502 says nothing of the proposal; another try is the honest advice.
+  assert.equal(decisionProblem(new ConsoleError(502)), 'failed');
+  assert.equal(decisionProblem(new ConsoleError(500)), 'failed');
+  assert.equal(decisionProblem(new TypeError('fetch failed')), 'failed');
 });

@@ -6,20 +6,28 @@ chat; the console shows the same ones, so a decision taken there shows here.
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends
+from aiogram import Bot
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import waves
+from app.core.enums import PendingActionStatus
+from app.core.exceptions import ChatNotManagedError, ProtectedUserError
+from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, PendingAction, User
+from app.db.models import Chat, JoinWave, PendingAction, User
+from app.db.session import get_session_maker
 from app.moderation import pending_actions
-from app.webapi.deps import get_session
+from app.webapi.deps import get_publish_bot, get_session, require_super_admin
 from app.webapi.schemas import PendingActionSignal, SignalQueues, Signals, WaveSignal
 from app.webapi.services.member_counts import latest_for
 from app.webapi.services.spam_pings import count_unreviewed
+
+logger = get_logger("webapi.signals")
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -74,3 +82,122 @@ def _proposal(p: PendingAction, titles: dict[int, str | None], target: User | No
         created_at=p.created_at,
         expires_at=p.expires_at,
     )
+
+
+class WaveDecisionRequest(BaseModel):
+    """The report chat's three buttons, by the names `waves` gives them."""
+
+    action: Literal["decline", "resume", "leave"]
+
+
+@router.post("/waves/{wave_id}/decision", status_code=202)
+async def decide_wave(
+    wave_id: int,
+    payload: WaveDecisionRequest,
+    background: BackgroundTasks,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    bot: Annotated[Bot, Depends(get_publish_bot)],
+    admin_id: Annotated[int, Depends(require_super_admin)],
+) -> dict[str, str]:
+    """Settle a wave as its button in the report chat would.
+
+    Answered before the work, as the button is: declining a wave of hundreds
+    takes minutes of Telegram calls. The alert in the report chat says the
+    outcome once it is done, and the wave leaves the signals at once.
+    """
+    if await session.get(JoinWave, wave_id) is None:
+        raise HTTPException(status_code=404, detail="no such wave")
+    # Written down before the answer, so the next reading of the signals no
+    # longer lists it; the work then finds the same decision and carries on.
+    wave = await waves.record(session, wave_id=wave_id, action=payload.action, admin_id=admin_id, now=utc_now())
+    if wave is None:
+        raise HTTPException(status_code=409, detail="decided otherwise")
+    admin_name = await _admin_name(session, admin_id)
+    if payload.action == waves.DECLINE:
+        # Declining takes minutes; the alert says it began, so a restart
+        # halfway leaves it half-done rather than looking undecided.
+        await waves.announce_declining(bot, session, wave, admin_name)
+    background.add_task(_decide_wave, bot, wave_id, payload.action, admin_id, admin_name)
+    return {"accepted": payload.action}
+
+
+async def _decide_wave(bot: Bot, wave_id: int, action: str, admin_id: int, admin_name: str) -> None:
+    async with get_session_maker()() as session:
+        try:
+            await waves.decide(bot, session, wave_id=wave_id, action=action, admin_id=admin_id, admin_name=admin_name)
+        except Exception:
+            # Nobody is waiting on the answer any more; the log is where this goes.
+            logger.exception("console_wave_decision_failed", wave_id=wave_id, action=action)
+
+
+async def _admin_name(session: AsyncSession, admin_id: int) -> str:
+    """How the report chat names the admin, with where they pressed."""
+    user = await session.get(User, admin_id)
+    name = " ".join(filter(None, (user.first_name, user.last_name))) if user else ""
+    return f"{name or admin_id} (консоль)"
+
+
+class ProposalDecisionRequest(BaseModel):
+    confirm: bool
+
+
+# The bot's own words for the same outcomes, so its message and the console agree.
+_DONE = "Подтверждено в консоли и выполнено."
+_DROPPED = "Отклонено в консоли. Ничего не выполнено."
+_PROTECTED = "Не выполнено: главного администратора забанить нельзя."
+_UNMANAGED = "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
+_FAILED = "Не выполнено: Telegram отказал. Запрос закрыт, ничего не изменилось."
+_EXPIRED = "Срок вышел. Ничего не выполнено."
+
+
+@router.post("/actions/{pending_id}")
+async def decide_proposal(
+    pending_id: int,
+    payload: ProposalDecisionRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    bot: Annotated[Bot, Depends(get_publish_bot)],
+    admin_id: Annotated[int, Depends(require_super_admin)],
+) -> dict[str, str]:
+    """Confirm or reject a proposal from MCP, as its buttons in the bot's message would."""
+    service = pending_actions.PendingActionService(bot, session)
+    try:
+        resolved = (
+            await service.confirm(pending_id, admin_id=admin_id)
+            if payload.confirm
+            else await service.reject(pending_id, admin_id=admin_id)
+        )
+    except ProtectedUserError as err:
+        await _close(service, session, pending_id, PendingActionStatus.REJECTED, _PROTECTED)
+        raise HTTPException(status_code=409, detail="protected") from err
+    except ChatNotManagedError as err:
+        await _close(service, session, pending_id, PendingActionStatus.REJECTED, _UNMANAGED)
+        raise HTTPException(status_code=409, detail="unmanaged") from err
+    except Exception as err:
+        logger.warning("console_proposal_failed", pending_id=pending_id, exc_info=True)
+        await _close(service, session, pending_id, PendingActionStatus.FAILED, _FAILED)
+        raise HTTPException(status_code=502, detail="failed") from err
+    if resolved is None:
+        # Already pressed elsewhere, and that press said so on the message. A
+        # deadline this press found passed is closed here, with nobody else to say it.
+        await _close(service, session, pending_id, PendingActionStatus.EXPIRED, _EXPIRED)
+        raise HTTPException(status_code=409, detail="gone")
+    await service.close_message(resolved, _DONE if payload.confirm else _DROPPED)
+    return {"outcome": "confirmed" if payload.confirm else "rejected"}
+
+
+async def _close(
+    service: pending_actions.PendingActionService,
+    session: AsyncSession,
+    pending_id: int,
+    closed_as: PendingActionStatus,
+    note: str,
+) -> None:
+    """Say why on the bot's message, only if the record says it closed that way.
+
+    A failure before the claim, or while writing the outcome down, leaves the
+    proposal open or mid-way; its message then keeps its buttons and words.
+    """
+    await session.rollback()
+    pending = await session.get(PendingAction, pending_id, populate_existing=True)
+    if pending is not None and pending.status == closed_as:
+        await service.close_message(pending, note)

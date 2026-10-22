@@ -125,6 +125,23 @@ export const consoleChanges = {
   refreshChat: (id: number) =>
     consoleGet<ConsoleChat>(`/api/chats/${id}/refresh`, { method: 'POST' }),
 
+  /** A wave settled as its button in the report chat would; the work follows the answer. */
+  decideWave: (waveId: number, action: 'decline' | 'resume' | 'leave') =>
+    consoleGet<{ accepted: string }>(`/api/signals/waves/${waveId}/decision`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
+
+  /** A proposal from MCP confirmed or rejected, as its buttons in the bot's message would. */
+  decideProposal: (pendingId: number, confirm: boolean) =>
+    consoleGet<{ outcome: 'confirmed' | 'rejected' }>(
+      `/api/signals/actions/${pendingId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ confirm }),
+      },
+    ),
+
   /** Banned in every chat the bot moderates, as /banall does; optionally
    *  with every message of theirs the bot recorded. `failed_chats` are the
    *  approved chats where Telegram refused. */

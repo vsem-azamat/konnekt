@@ -1,5 +1,5 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -11,6 +11,8 @@ import {
   TargetIcon,
 } from '@/components/icons';
 import {
+  Action,
+  Actions,
   Count,
   Hint,
   Label,
@@ -22,13 +24,20 @@ import {
   Title,
 } from '@/components/Ui';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
-import { adminCatalogQuery, consoleSignalsQuery } from '@/console/queries';
+import {
+  adminCatalogQuery,
+  consoleChanges,
+  consoleSignalsQuery,
+} from '@/console/queries';
 import css from '@/console/Signals.module.css';
 import { utc } from '@/console/session';
 import {
+  type DecisionProblem,
+  decisionProblem,
   elapsed,
   minutesUntil,
   type PendingActionSignal,
+  type Signals,
   type WaveSignal,
 } from '@/console/signals';
 
@@ -52,6 +61,7 @@ export default function ConsoleSignalsPage() {
 }
 
 function SignalsBody() {
+  const { t } = useLingui();
   const navigate = useNavigate();
   // The minutes on the cards move on their own; an answer that came back the
   // same would not render them again.
@@ -59,6 +69,11 @@ function SignalsBody() {
   // The shell reads both every minute; this screen shares its answers.
   const signals = useQuery(consoleSignalsQuery);
   const catalog = useQuery(adminCatalogQuery);
+  // A refused press closes its card like a decision does; why stays here,
+  // after the card has gone, until it is put away.
+  const [refusals, setRefusals] = useState<Refusal[]>([]);
+  const refused = (refusal: Refusal) =>
+    setRefusals((list) => [...list.filter((item) => item.key !== refusal.key), refusal]);
 
   if (signals.isPending) return <SkeletonRows count={3} />;
   if (signals.error) {
@@ -149,6 +164,25 @@ function SignalsBody() {
       <Label aside={decisions || null}>
         <Trans>Ждут решения</Trans>
       </Label>
+      {refusals.map((refusal) => (
+        <div key={refusal.key} className={css.refusal} role="status">
+          <p>
+            <b>{refusal.label}</b>
+            <span>
+              <ProblemText problem={refusal.problem} />
+            </span>
+          </p>
+          <button
+            type="button"
+            aria-label={t`Скрыть`}
+            onClick={() =>
+              setRefusals((list) => list.filter((item) => item.key !== refusal.key))
+            }
+          >
+            ×
+          </button>
+        </div>
+      ))}
       {decisions ? (
         <div className={css.stack}>
           {waves.map((wave) => (
@@ -157,10 +191,16 @@ function SignalsBody() {
               wave={wave}
               perMinute={wave_per_minute}
               now={now}
+              onRefused={refused}
             />
           ))}
           {proposals.map((proposal) => (
-            <ProposalCard key={`action-${proposal.id}`} proposal={proposal} now={now} />
+            <ProposalCard
+              key={`action-${proposal.id}`}
+              proposal={proposal}
+              now={now}
+              onRefused={refused}
+            />
           ))}
         </div>
       ) : (
@@ -192,10 +232,12 @@ function WaveCard({
   wave,
   perMinute,
   now,
+  onRefused,
 }: {
   wave: WaveSignal;
   perMinute: number;
   now: Date;
+  onRefused: (refusal: Refusal) => void;
 }) {
   const { i18n } = useLingui();
   const title = wave.chat_title ?? String(wave.chat_id);
@@ -291,14 +333,20 @@ function WaveCard({
           </>
         ) : null}
       </dl>
-      <Hint>
-        <Trans>Решают кнопками в сообщении бота в чате отчётов.</Trans>
-      </Hint>
+      <WaveActions wave={wave} label={title} onRefused={onRefused} />
     </section>
   );
 }
 
-function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: Date }) {
+function ProposalCard({
+  proposal,
+  now,
+  onRefused,
+}: {
+  proposal: PendingActionSignal;
+  now: Date;
+  onRefused: (refusal: Refusal) => void;
+}) {
   const who =
     proposal.target_name ??
     (proposal.target_username
@@ -344,10 +392,162 @@ function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: D
           </Trans>
         )}
       </p>
-      <Hint>
-        <Trans>Подтвердить или отклонить можно в личном сообщении бота.</Trans>
-      </Hint>
+      <ProposalActions proposal={proposal} label={who} onRefused={onRefused} />
     </section>
+  );
+}
+
+/**
+ * The report chat's three buttons. The answer comes before the work, as the
+ * button's does: declining a wave of hundreds takes minutes, and the bot's
+ * alert says the outcome when it is done. The card leaves at once; the next
+ * reading of the signals agrees.
+ */
+function WaveActions({
+  wave,
+  label,
+  onRefused,
+}: {
+  wave: WaveSignal;
+  label: string;
+  onRefused: (refusal: Refusal) => void;
+}) {
+  const queryClient = useQueryClient();
+  const decide = useMutation({
+    mutationFn: (action: 'decline' | 'resume' | 'leave') =>
+      consoleChanges.decideWave(wave.id, action),
+    onSuccess: () => forget(queryClient, { wave: wave.id }),
+    onError: (error) => {
+      const problem = decisionProblem(error);
+      // Nothing was written; the card stays, with the reason under its buttons.
+      if (problem === 'failed') return;
+      onRefused({ key: `wave-${wave.id}`, label, problem });
+      forget(queryClient, { wave: wave.id });
+    },
+  });
+  return (
+    <div className={css.decide}>
+      <Actions>
+        <Action
+          danger
+          disabled={decide.isPending}
+          onClick={() => decide.mutate('decline')}
+        >
+          <Trans>Отклонить все</Trans>
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate('resume')}>
+          <Trans>Снять паузу</Trans>
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate('leave')}>
+          <Trans>Пусть висят</Trans>
+        </Action>
+      </Actions>
+      {decide.error ? (
+        <Hint>
+          <ProblemText problem={decisionProblem(decide.error)} />
+        </Hint>
+      ) : (
+        <Hint>
+          <Trans>
+            Те же кнопки, что в сообщении бота в чате отчётов; решение видно и там.
+          </Trans>
+        </Hint>
+      )}
+    </div>
+  );
+}
+
+function ProposalActions({
+  proposal,
+  label,
+  onRefused,
+}: {
+  proposal: PendingActionSignal;
+  label: string;
+  onRefused: (refusal: Refusal) => void;
+}) {
+  const queryClient = useQueryClient();
+  const decide = useMutation({
+    mutationFn: (confirm: boolean) => consoleChanges.decideProposal(proposal.id, confirm),
+    onSuccess: () => forget(queryClient, { proposal: proposal.id }),
+    onError: (error) => {
+      const problem = decisionProblem(error);
+      // No answer came back: the press may not have arrived, so the card stays.
+      if (problem === 'failed') return;
+      // Refused for a reason that will not change: the proposal is closed either way.
+      onRefused({ key: `action-${proposal.id}`, label, problem });
+      forget(queryClient, { proposal: proposal.id });
+    },
+  });
+  return (
+    <div className={css.decide}>
+      <Actions>
+        <Action danger disabled={decide.isPending} onClick={() => decide.mutate(true)}>
+          {proposal.action === 'blacklist' ? (
+            <Trans>В чёрный список</Trans>
+          ) : (
+            <Trans>Подтвердить бан</Trans>
+          )}
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate(false)}>
+          <Trans>Отклонить</Trans>
+        </Action>
+      </Actions>
+      {decide.error ? (
+        <Hint>
+          <ProblemText problem={decisionProblem(decide.error)} />
+        </Hint>
+      ) : (
+        <Hint>
+          <Trans>Те же кнопки, что в личном сообщении бота; решение видно и там.</Trans>
+        </Hint>
+      )}
+    </div>
+  );
+}
+
+/** A press the server refused, kept on screen after its card has gone. */
+interface Refusal {
+  key: string;
+  label: string;
+  problem: DecisionProblem;
+}
+
+function ProblemText({ problem }: { problem: DecisionProblem }) {
+  switch (problem) {
+    case 'gone':
+      return <Trans>Уже решено в Telegram или срок вышел.</Trans>;
+    case 'decided':
+      return <Trans>По этой волне уже решили иначе.</Trans>;
+    case 'protected':
+      return <Trans>Не выполнено: главного администратора забанить нельзя.</Trans>;
+    case 'unmanaged':
+      return (
+        <Trans>Не выполнено: бот больше не модерирует этот чат. Запрос закрыт.</Trans>
+      );
+    case 'refused':
+      return <Trans>Не выполнено: Telegram отказал. Запрос закрыт.</Trans>;
+    default:
+      return <Trans>Не получилось связаться с сервером. Попробуйте ещё раз.</Trans>;
+  }
+}
+
+/** Take a decided card off the screen and the counters without waiting for the next reading. */
+function forget(
+  queryClient: ReturnType<typeof useQueryClient>,
+  decided: { wave: number } | { proposal: number },
+) {
+  queryClient.setQueryData<Signals>(consoleSignalsQuery.queryKey, (old) =>
+    old
+      ? 'wave' in decided
+        ? { ...old, waves: old.waves.filter((wave) => wave.id !== decided.wave) }
+        : {
+            ...old,
+            pending_actions: old.pending_actions.filter(
+              (proposal) => proposal.id !== decided.proposal,
+            ),
+          }
+      : old,
   );
 }
 

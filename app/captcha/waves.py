@@ -143,6 +143,31 @@ async def decision_of(db: AsyncSession, wave_id: int) -> str | None:
     return await db.scalar(select(JoinWave.decision).where(JoinWave.id == wave_id))
 
 
+async def record(
+    db: AsyncSession, *, wave_id: int, action: str, admin_id: int, now: datetime.datetime
+) -> JoinWave | None:
+    """Write the decision down, or find the same one already written; None if it was another.
+
+    The first half of `decide`, apart for a caller that answers before the
+    work: once this commits, the wave is no longer anybody's signal.
+    """
+    # Read afresh under the lock: a copy already in the session would hide a
+    # decision another session committed meanwhile.
+    wave = await db.scalar(
+        select(JoinWave).where(JoinWave.id == wave_id).with_for_update().execution_options(populate_existing=True)
+    )
+    if wave is None or action not in (DECLINE, RESUME, LEAVE):
+        return None
+    if wave.decision is not None and wave.decision != action:
+        return None
+    if wave.decision is None:
+        wave.decision = action
+        wave.decided_by = admin_id
+        wave.decided_at = now
+    await db.commit()
+    return wave
+
+
 async def decide(
     bot: Bot,
     db: AsyncSession,
@@ -159,16 +184,9 @@ async def decide(
     a restart halfway through declining a wave loses nothing but time.
     """
     now = now or utc_now()
-    wave = await db.scalar(select(JoinWave).where(JoinWave.id == wave_id).with_for_update())
-    if wave is None or action not in (DECLINE, RESUME, LEAVE):
+    wave = await record(db, wave_id=wave_id, action=action, admin_id=admin_id, now=now)
+    if wave is None:
         return None
-    if wave.decision is not None and wave.decision != action:
-        return None
-    if wave.decision is None:
-        wave.decision = action
-        wave.decided_by = admin_id
-        wave.decided_at = now
-    await db.commit()
 
     chat = await db.get(Chat, wave.chat_id)
     title = html.escape(chat.title if chat and chat.title else str(wave.chat_id))
@@ -217,6 +235,31 @@ async def decide(
         except TelegramAPIError as err:
             logger.warning("join_wave_alert_not_edited", wave_id=wave.id, error=str(err), error_type=type(err).__name__)
     return note
+
+
+async def announce_declining(bot: Bot, db: AsyncSession, wave: JoinWave, admin_name: str) -> None:
+    """Say on the alert that declining has begun, before the minutes it takes.
+
+    For a press made outside the alert: until the outcome replaces it, the alert
+    would still offer all three buttons, and after a restart halfway it would go
+    on looking undecided. Its one button finishes the job.
+    """
+    if wave.alert_message_id is None:
+        return
+    chat = await db.get(Chat, wave.chat_id)
+    title = html.escape(chat.title if chat and chat.title else str(wave.chat_id))
+    try:
+        await bot.edit_message_text(
+            chat_id=settings.admin.default_report_chat_id,
+            message_id=wave.alert_message_id,
+            text=(
+                f"<b>Набег на {title}: отклоняю заявки</b> ({html.escape(admin_name)}).\n\n"
+                f"Если это сообщение не сменится итогом, нажмите кнопку: бот продолжит с того места, где остановился."
+            ),
+            reply_markup=_decline_again(wave.id),
+        )
+    except TelegramAPIError as err:
+        logger.warning("join_wave_alert_not_edited", wave_id=wave.id, error=str(err), error_type=type(err).__name__)
 
 
 def _decline_again(wave_id: int) -> InlineKeyboardMarkup:

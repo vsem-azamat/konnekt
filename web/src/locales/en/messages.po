@@ -151,6 +151,10 @@ msgstr "It returns to its place by priority."
 msgid "Входит в"
 msgstr "Listed under"
 
+#: src/console/pages/Signals.tsx
+msgid "По этой волне уже решили иначе."
+msgstr "This wave was already decided otherwise."
+
 #: src/components/ChatRow.tsx
 msgid "не наш чат"
 msgstr "not our chat"
@@ -286,6 +290,10 @@ msgstr "What the bot does in the chat"
 msgid "Kč"
 msgstr "Kč"
 
+#: src/console/pages/Signals.tsx
+msgid "В чёрный список"
+msgstr "Blacklist"
+
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Disable"
@@ -294,10 +302,15 @@ msgstr "Disable"
 msgid "сутки"
 msgstr "24 hours"
 
+#: src/console/pages/Signals.tsx
 #: src/console/ProfileSheet.tsx
 #: src/pages/MyHelper.tsx
 msgid "Скрыть"
 msgstr "Hide"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: главного администратора забанить нельзя."
+msgstr "Not done: the main administrator cannot be banned."
 
 #: src/pages/MyHelper.tsx
 msgid "О себе"
@@ -349,8 +362,8 @@ msgid "Вход в консоль"
 msgstr "Sign in to the console"
 
 #: src/console/pages/Signals.tsx
-msgid "Решают кнопками в сообщении бота в чате отчётов."
-msgstr "Decided with the buttons on the bot's message in the report chat."
+#~ msgid "Решают кнопками в сообщении бота в чате отчётов."
+#~ msgstr "Decided with the buttons on the bot's message in the report chat."
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -409,6 +422,10 @@ msgstr "Send response"
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
 msgstr "Advertising or spam"
+
+#: src/console/pages/Signals.tsx
+msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
+msgstr "The same buttons as in the bot's private message; the decision shows there too."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -474,6 +491,10 @@ msgstr "Everyone"
 #: src/console/pages/Summary.tsx
 msgid "где выполнен вход, настройки"
 msgstr "where you are signed in, settings"
+
+#: src/console/pages/Signals.tsx
+msgid "Не получилось связаться с сервером. Попробуйте ещё раз."
+msgstr "Couldn't reach the server. Try again."
 
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
@@ -675,6 +696,10 @@ msgstr "banned in every chat"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {member} other {members}}"
 
+#: src/console/pages/Signals.tsx
+msgid "Подтвердить бан"
+msgstr "Confirm the ban"
+
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
 msgstr "faculties, dorms, general"
@@ -760,13 +785,17 @@ msgstr "Couldn't load"
 msgid "Анкета сохранится, но в каталоге её не будет."
 msgstr "Your profile is saved, but it will not be in the catalog."
 
+#: src/console/pages/Signals.tsx
+msgid "Пусть висят"
+msgstr "Let them wait"
+
 #: src/pages/OfferPrices.tsx
 msgid "Сколько"
 msgstr "How much"
 
 #: src/console/pages/Signals.tsx
-msgid "Подтвердить или отклонить можно в личном сообщении бота."
-msgstr "Confirm or reject it in the bot's private message."
+#~ msgid "Подтвердить или отклонить можно в личном сообщении бота."
+#~ msgstr "Confirm or reject it in the bot's private message."
 
 #: src/pages/Ask.tsx
 msgid "Показать {total}"
@@ -978,6 +1007,10 @@ msgstr "Checking…"
 #: src/pages/OfferPrices.tsx
 msgid "Срок"
 msgstr "Turnaround"
+
+#: src/console/pages/Signals.tsx
+msgid "Отклонить"
+msgstr "Reject"
 
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
@@ -1377,6 +1410,10 @@ msgstr "More than {perMinute} requests a minute. The pause is over: new requests
 msgid "Здесь появятся страховка, визы, банк и переводы."
 msgstr "Insurance, visas, banking, and transfers will show up here."
 
+#: src/console/pages/Signals.tsx
+msgid "Отклонить все"
+msgstr "Decline all"
+
 #: src/lib/workFormat.tsx
 msgid "Как занимаешься"
 msgstr "How you teach"
@@ -1740,6 +1777,10 @@ msgstr "Opens in Telegram"
 msgid "Как увидят студенты"
 msgstr "How students will see it"
 
+#: src/console/pages/Signals.tsx
+msgid "Уже решено в Telegram или срок вышел."
+msgstr "Already decided in Telegram, or its time ran out."
+
 #: src/pages/Home.tsx
 msgid "Не удалось загрузить каталог"
 msgstr "Couldn't load the catalog"
@@ -1847,6 +1888,10 @@ msgstr "Couldn't choose this helper. Try again."
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Sun"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: Telegram отказал. Запрос закрыт."
+msgstr "Not done: Telegram refused. The request is closed."
 
 #: src/console/Charts.tsx
 msgid "Чт"
@@ -2291,6 +2336,10 @@ msgstr "per lesson"
 msgid "страховка, виза, банк, переводы"
 msgstr "insurance, visa, bank, transfers"
 
+#: src/console/pages/Signals.tsx
+msgid "Снять паузу"
+msgstr "Lift the pause"
+
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Partners.tsx
 #: src/console/pages/Summary.tsx
@@ -2614,6 +2663,10 @@ msgstr "Not enough to search on"
 msgid "Пока никого"
 msgstr "No one yet"
 
+#: src/console/pages/Signals.tsx
+msgid "Те же кнопки, что в сообщении бота в чате отчётов; решение видно и там."
+msgstr "The same buttons as on the bot's message in the report chat; the decision shows there too."
+
 #: src/console/pages/Summary.tsx
 msgid "что поймал детектор"
 msgstr "what the detector caught"
@@ -2881,6 +2934,10 @@ msgstr "watched"
 #: src/console/pages/Summary.tsx
 msgid "Требует внимания"
 msgstr "Needs attention"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
+msgstr "Not done: the bot no longer moderates this chat. The request is closed."
 
 #: src/components/RequestSheet.tsx
 msgid "Опубликовать заявку"

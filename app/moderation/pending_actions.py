@@ -277,6 +277,24 @@ class PendingActionService:
         logger.info("pending_action_rejected", pending_id=pending_id, admin_id=admin_id)
         return pending
 
+    async def close_message(self, pending: PendingAction, note: str) -> None:
+        """Put the outcome in place of the buttons, for a press made outside this message.
+
+        Left as it was, the message would still offer buttons that now answer
+        «already handled», and nothing in it would say what happened.
+        """
+        if pending.admin_chat_id is None or pending.admin_message_id is None:
+            return
+        try:
+            await self.bot.edit_message_text(
+                chat_id=pending.admin_chat_id,
+                message_id=pending.admin_message_id,
+                text=f"{self._render(pending)}\n\n<b>{escape_html(note)}</b>",
+                reply_markup=None,
+            )
+        except Exception as err:
+            logger.warning("pending_action_edit_failed", pending_id=pending.id, error_type=type(err).__name__)
+
     async def expire_stale(self) -> int:
         """Convenience wrapper for callers that already hold a service."""
         return await expire_stale(self.db)
