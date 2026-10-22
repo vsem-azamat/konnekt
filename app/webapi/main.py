@@ -29,6 +29,7 @@ from app.webapi.routes import (
     metrics,
     public,
     seen,
+    signals,
     spam,
     stats,
     users,
@@ -130,6 +131,7 @@ def create_app() -> FastAPI:
     app.include_router(chats.router, prefix="/api", dependencies=console)
     app.include_router(spam.router, prefix="/api", dependencies=console)
     app.include_router(stats.router, prefix="/api", dependencies=console)
+    app.include_router(signals.router, prefix="/api", dependencies=console)
     app.include_router(users.router, prefix="/api", dependencies=console)
     app.include_router(admin.router, prefix="/api", dependencies=console)
     app.include_router(audience.router, prefix="/api", dependencies=console)

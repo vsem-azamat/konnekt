@@ -306,6 +306,10 @@ msgstr "Může bot napsat"
 msgid "Экзамены и поступление"
 msgstr "Zkoušky a přijímací řízení"
 
+#: src/console/BrowserShell.tsx
+msgid "админка"
+msgstr "administrace"
+
 #: src/pages/Profile.tsx
 msgid "Чешский для вуза"
 msgstr "Čeština pro vysokou školu"
@@ -2150,8 +2154,8 @@ msgid "Автор забанен"
 msgstr "Autor zabanován"
 
 #: src/console/BrowserShell.tsx
-msgid "консоль"
-msgstr "konzole"
+#~ msgid "консоль"
+#~ msgstr "konzole"
 
 #: src/console/pages/Summary.tsx
 msgid "детектор, все чаты"
