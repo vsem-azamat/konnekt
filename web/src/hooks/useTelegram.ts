@@ -1,7 +1,6 @@
 import {
   backButton,
   hapticFeedback,
-  initData,
   type MainButtonState,
   mainButton,
   miniApp,
@@ -188,13 +187,6 @@ export function useMainButton(config: MainButtonConfig | null): void {
   }, []);
 
   useEffect(() => () => void mainButton.hide.ifAvailable(), []);
-}
-
-// ── who is looking ──────────────────────────────────────────────────────
-
-/** The Telegram user, straight from init data. Undefined outside Telegram. */
-export function useTelegramUser() {
-  return useSignal(initData.user);
 }
 
 // ── haptics ─────────────────────────────────────────────────────────────
