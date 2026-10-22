@@ -32,6 +32,7 @@ import {
   chatDetailQuery,
   consoleChanges,
   consoleChatsQuery,
+  consoleSignalsQuery,
   consoleSystemQuery,
 } from '@/console/queries';
 import { Switch } from '@/console/Switch';
@@ -127,6 +128,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
       (old) => (old ? { ...old, ...changed } : old),
     );
     void queryClient.invalidateQueries({ queryKey: consoleChatsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey });
   };
 
   const update = useMutation({

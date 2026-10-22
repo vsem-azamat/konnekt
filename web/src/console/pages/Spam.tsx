@@ -27,6 +27,7 @@ import { PingSheet } from '@/console/Pings';
 import {
   consoleChanges,
   consoleChatsQuery,
+  consoleSignalsQuery,
   consoleStatsQuery,
   spamCountQuery,
   spamQueueQuery,
@@ -85,6 +86,7 @@ function Spam() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['console', 'spam'] }),
       queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey }),
+      queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey }),
     ]);
   const review = useMutation({
     mutationFn: ({

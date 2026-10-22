@@ -20,6 +20,7 @@ import {
   consoleChanges,
   consoleSignalsQuery,
 } from './queries';
+import { isFinal } from './session';
 import { menuCounts } from './signals';
 
 /**
@@ -47,9 +48,10 @@ export default function BrowserShell() {
   }, [pathname]);
   const queryClient = useQueryClient();
   const session = useQuery(browserSessionQuery);
-  // Not again after a failure: a stale sign-in would be sent every minute.
-  const every = (query: { state: { status: string } }) =>
-    query.state.status === 'error' ? false : 60_000;
+  // Not again after a refusal that another try cannot change; an outage or
+  // a deploy is asked again, or the badges would freeze at their last number.
+  const every = (query: { state: { error: unknown } }) =>
+    isFinal(query.state.error) ? false : 60_000;
   const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: every });
   const catalog = useQuery({ ...adminCatalogQuery, refetchInterval: every });
   const counts = menuCounts(signals.data, catalog.data?.counts);
