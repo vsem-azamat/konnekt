@@ -191,7 +191,7 @@ export function Incoming() {
         )
       ) : chip ? (
         feedSections(data, chip).map((section) => (
-          <div key={section.heading ?? 'all'}>
+          <div key={section.heading ?? 'all'} className={ui.feedSection}>
             {section.heading ? (
               <div className={ui.feedSubhead}>
                 <SectionHeading heading={section.heading} count={section.rows.length} />

@@ -2440,7 +2440,9 @@
   text-transform: uppercase;
 }
 
-.feedSubhead:first-child {
+/* Only the first section's, right under the chips: each section is wrapped,
+   so the heading is a first child in every one of them. */
+.feedSection:first-child .feedSubhead {
   margin-top: 0;
 }
 
