@@ -468,6 +468,23 @@ class TestFloodControl:
         assert await metadata.fetch_metadata(bot=bot, chat_id=-100) is None
         assert bot.get_chat.await_count == 2
 
+    async def test_a_long_retry_after_is_not_waited_out(self, monkeypatch) -> None:
+        from aiogram.exceptions import TelegramRetryAfter
+        from app.chats import metadata
+
+        waited: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            waited.append(seconds)
+
+        monkeypatch.setattr(metadata.asyncio, "sleep", fake_sleep)
+        bot = AsyncMock()
+        bot.get_chat = AsyncMock(side_effect=TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=4837))
+
+        assert await metadata.fetch_metadata(bot=bot, chat_id=-100) is None
+        assert bot.get_chat.await_count == 1
+        assert waited == []
+
 
 class TestBotNotInChat:
     """A chat the bot is not in says "chat not found" every hour, and nothing else.
