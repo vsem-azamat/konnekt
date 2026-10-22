@@ -49,7 +49,7 @@ import {
 export default function ConsoleSignalsPage() {
   return (
     <ConsoleGate>
-      {/* Wide in a browser from the first frame, so loading does not resize the page. */}
+      {/* Wide in a browser while the signals load too, so they do not resize the page. */}
       <div data-wide>
         <Title>
           <Trans>Сигналы</Trans>
