@@ -134,6 +134,19 @@ async def test_get_chat_info_refuses_a_chat_we_do_not_manage(mcp_session, bot_st
     bot_stub.get_chat.assert_not_awaited()
 
 
+async def test_get_chat_info_never_asks_telegram_about_a_chat_known_by_its_invite_page(mcp_session, bot_stub) -> None:
+    """Its id is one of ours, not Telegram's, so it must not reach the Bot API."""
+    preview_id = Chat.preview_id_for("5byLmmR3YvIyYWFi")
+    async with mcp_session() as session:
+        session.add(Chat(id=preview_id, title="UPOL", resource_status=Chat.STATUS_EXTERNAL))
+        await session.commit()
+
+    data = await _call("get_chat_info", {"chat_id": preview_id})
+
+    assert data["error"] == "preview_only"
+    bot_stub.get_chat.assert_not_awaited()
+
+
 async def test_managed_chat_history_is_returned(mcp_session) -> None:
     import datetime
 

@@ -204,6 +204,11 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
         async with session_maker()() as session:
             await managed_chat_id(session, chat_id)
             row = await session.get(Chat, chat_id)
+        if row is not None and row.is_preview_only:
+            # Not a Telegram id: the chat is known only by its invite link's page.
+            raise ToolError(
+                "preview_only", "Telegram does not answer about this chat; it is listed from its invite link."
+            )
 
         bot = moderator_bot()
         chat = await bot.get_chat(chat_id=chat_id)

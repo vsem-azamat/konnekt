@@ -429,8 +429,9 @@ function AddExternalSheet({
     <Sheet title={t`Внешний чат`} closeLabel={t`Отмена`} onClose={onClose}>
       <Sub>
         <Trans>
-          Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат
-          попадёт в каталог с пометкой «не наш».
+          Публичная ссылка вида https://t.me/имя или @имя, или ссылка-приглашение
+          https://t.me/+…. Бота туда не добавляем: чат попадёт в каталог с пометкой «не
+          наш».
         </Trans>
       </Sub>
       <div className={ui.field}>
@@ -468,12 +469,11 @@ function AddFailure({ error }: { error: unknown }) {
     case 'not_public':
       return (
         <Trans>
-          Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат
-          не найти.
+          Нужна ссылка вида https://t.me/имя, @имя или ссылка-приглашение https://t.me/+….
         </Trans>
       );
     case 'not_found':
-      return <Trans>Telegram не знает публичного чата с таким именем.</Trans>;
+      return <Trans>Telegram не знает чата по этой ссылке.</Trans>;
     case 'not_a_group':
       return <Trans>Это аккаунт человека, а не чат или канал.</Trans>;
     case 'already_known':

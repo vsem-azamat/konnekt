@@ -16,6 +16,7 @@ from __future__ import annotations
 import datetime
 from typing import Annotated, cast
 
+import aiohttp
 from aiogram import Bot
 from aiogram.exceptions import (
     ClientDecodeError,
@@ -29,6 +30,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.chats import previews
 from app.chats.avatars import sync_photo
 from app.chats.invite_links import is_invite_link
 from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
@@ -280,6 +282,9 @@ async def update_chat(
         # Somebody else's channel is only listed; see Chat.KIND_CHANNEL.
         if chat.kind == Chat.KIND_CHANNEL and status not in {Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED}:
             raise HTTPException(status_code=409, detail="A channel is only ever listed as somebody else's")
+        # Nor is a chat known only by its invite link; see Chat.PREVIEW_ID_CEILING.
+        if chat.is_preview_only and status not in {Chat.STATUS_EXTERNAL, Chat.STATUS_DISABLED}:
+            raise HTTPException(status_code=409, detail="A chat the bot cannot reach is only ever listed")
     if "parent_chat_id" in fields and fields["parent_chat_id"] == chat_id:
         raise HTTPException(status_code=422, detail="A chat cannot be its own parent")
     if "parent_chat_id" in fields and fields["parent_chat_id"] is not None:
@@ -375,6 +380,17 @@ async def refresh_chat_from_telegram(
     chat = (await session.execute(select(Chat).where(Chat.id == chat_id))).scalar_one_or_none()
     if chat is None:
         raise HTTPException(status_code=404, detail=f"Chat {chat_id} not found")
+    if chat.is_preview_only:
+        # Nothing to ask the bot: the page behind the invite link is all there is.
+        async with aiohttp.ClientSession() as http:
+            preview = await previews.sync(session, http, chat)
+        await session.commit()
+        await session.refresh(chat)
+        public_answers.forget()
+        member_count = preview.member_count if preview is not None else None
+        if member_count is None:
+            member_count = await member_counts.latest(session, chat.id)
+        return _as_read(chat, member_count=member_count)
 
     metadata = await fetch_metadata(
         bot=bot, chat_id=chat_id, username=username_of(chat.public_link) if chat.public_link else None
@@ -444,6 +460,8 @@ async def add_external_chat(
     failing is told apart from the link being wrong, and is not waited out:
     a flood wait can be minutes, which is no time to hold a request open.
     """
+    if (invite := previews.invite_hash_of(payload.public_link)) is not None:
+        return await _add_by_invite(session, invite)
     username = username_of(payload.public_link)
     if username is None:
         raise HTTPException(status_code=422, detail="not_public")
@@ -480,7 +498,51 @@ async def add_external_chat(
         raise HTTPException(status_code=409, detail="already_known") from err
     public_answers.forget()
     await session.refresh(chat)
+    return _as_read(chat, member_count=None)
 
+
+async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
+    """List a private chat by its invite link, from what its public page shows.
+
+    The bot is not there and cannot learn the id, so the row gets one of ours
+    (Chat.PREVIEW_ID_CEILING) and is kept current from the page. The same link
+    always gives the same id, so adding it twice is refused like any other.
+    """
+    chat_id = Chat.preview_id_for(invite)
+    link = previews.invite_link(invite)
+    # A chat the bot runs may keep this very link as its own, in either spelling.
+    spellings = [link, f"https://t.me/joinchat/{invite}"]
+    if await session.get(Chat, chat_id) is not None or await session.scalar(
+        select(Chat.id).where(Chat.public_link.in_(spellings))
+    ):
+        raise HTTPException(status_code=409, detail="already_known")
+    async with aiohttp.ClientSession() as http:
+        preview = await previews.fetch(http, link)
+        if preview is None:
+            # A dead link and an unreachable t.me look the same from here.
+            raise HTTPException(status_code=422, detail="not_found")
+        chat = Chat(
+            id=chat_id,
+            title=preview.title,
+            resource_status=Chat.STATUS_EXTERNAL,
+            kind=Chat.KIND_CHANNEL if preview.is_channel else Chat.KIND_GROUP,
+            public_link=link,
+        )
+        session.add(chat)
+        try:
+            # The insert goes out with sync's first query, so a twin added a
+            # moment earlier is refused there rather than at the commit.
+            await previews.sync(session, http, chat)
+            await session.commit()
+        except IntegrityError as err:
+            await session.rollback()
+            raise HTTPException(status_code=409, detail="already_known") from err
+    public_answers.forget()
+    await session.refresh(chat)
+    return _as_read(chat, member_count=preview.member_count)
+
+
+def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
     return ChatRead(
         id=chat.id,
         title=chat.title,
@@ -498,7 +560,7 @@ async def add_external_chat(
         institution_code=chat.institution_code,
         city=chat.city,
         topic=_topic(chat.topic),
-        member_count=None,
+        member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
         created_at=chat.created_at,

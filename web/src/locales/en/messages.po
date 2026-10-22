@@ -159,6 +159,10 @@ msgstr "A Telegram page opens where you confirm the sign-in. We neither ask for 
 msgid "Похоже, речь о"
 msgstr "This looks like"
 
+#: src/console/pages/Chats.tsx
+msgid "Публичная ссылка вида https://t.me/имя или @имя, или ссылка-приглашение https://t.me/+…. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
+msgstr "A public link like https://t.me/name or @name, or an invite link https://t.me/+…. The bot is not added there: the chat goes into the catalogue marked as not ours."
+
 #: src/console/pages/Partners.tsx
 msgid "Вернётся на своё место по приоритету."
 msgstr "It returns to its place by priority."
@@ -325,6 +329,10 @@ msgstr "{0} today · {1} this week"
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "blacklisted"
+
+#: src/console/pages/Chats.tsx
+msgid "Telegram не знает чата по этой ссылке."
+msgstr "Telegram knows no chat by that link."
 
 #: src/components/ChatRow.tsx
 msgid "активный"
@@ -1326,8 +1334,8 @@ msgid "Встанет первой в разделе «Не про учёбу».
 msgstr "It goes first in the «Not about school» section. Three cards show there: the lowest drops off until another is switched off."
 
 #: src/console/pages/Chats.tsx
-msgid "Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
-msgstr "A public link like https://t.me/name or @name. The bot is not added there: the chat goes into the catalogue marked as not ours."
+#~ msgid "Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
+#~ msgstr "A public link like https://t.me/name or @name. The bot is not added there: the chat goes into the catalogue marked as not ours."
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -2097,8 +2105,8 @@ msgid "Дешевле"
 msgstr "Cheaper"
 
 #: src/console/pages/Chats.tsx
-msgid "Telegram не знает публичного чата с таким именем."
-msgstr "Telegram knows no public chat by that name."
+#~ msgid "Telegram не знает публичного чата с таким именем."
+#~ msgstr "Telegram knows no public chat by that name."
 
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
@@ -2339,6 +2347,10 @@ msgstr "next to nostrification"
 #: src/console/pages/Chat.tsx
 msgid "Снять с публичной вкладки?"
 msgstr "Take it off the public tab?"
+
+#: src/console/pages/Chats.tsx
+msgid "Нужна ссылка вида https://t.me/имя, @имя или ссылка-приглашение https://t.me/+…."
+msgstr "It needs a link like https://t.me/name, @name or an invite link https://t.me/+…."
 
 #: src/pages/Profile.tsx
 msgid "Жизнь в Чехии"
@@ -3061,8 +3073,8 @@ msgid "Этого аккаунта нет среди администратор�
 msgstr "This account is not among the administrators. Sign in with another Telegram account or ask the owner to add you."
 
 #: src/console/pages/Chats.tsx
-msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
-msgstr "It needs a public link like https://t.me/name or @name. A chat can't be found by an invite link."
+#~ msgid "Нужна публичная ссылка вида https://t.me/имя или @имя. По ссылке-приглашению чат не найти."
+#~ msgstr "It needs a public link like https://t.me/name or @name. A chat can't be found by an invite link."
 
 #: src/console/pages/Chat.tsx
 msgid "как у родителя"

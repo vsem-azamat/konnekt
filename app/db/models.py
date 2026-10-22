@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 from typing import Any
 
 import sqlalchemy as sa
@@ -143,6 +144,19 @@ class Chat(Base):
     KIND_GROUP = "group"
     KIND_CHANNEL = "channel"
 
+    # A chat known only by its invite link has no id of Telegram's: the bot is
+    # not in it, and only a member can learn the id. It gets one of ours from
+    # below this line instead. Telegram's ids fit in 52 bits and a browser's
+    # numbers are exact to 53, so the band between is no real chat's and still
+    # survives JSON. Nothing asks the Bot API about an id in it (the loops skip
+    # it, and a check keeps it external or taken down, never moderated); its
+    # title, photo and count come from the link's public page (app/chats/previews.py).
+    #
+    # Should the bot be added there one day, Telegram's own row for the chat is
+    # recorded beside this one, and the listing is moved onto it: parent, city,
+    # topic and link are this row's to give, and the row is then removed.
+    PREVIEW_ID_CEILING = -(2**52)
+
     __table_args__ = (
         sa.CheckConstraint(
             "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
@@ -157,6 +171,10 @@ class Chat(Base):
         sa.CheckConstraint(
             "kind = 'group' OR resource_status IN ('external', 'disabled')",
             name="ck_chats_channel_external",
+        ),
+        sa.CheckConstraint(
+            f"id > {PREVIEW_ID_CEILING} OR resource_status IN ('external', 'disabled')",
+            name="ck_chats_preview_external",
         ),
     )
 
@@ -319,6 +337,17 @@ class Chat(Base):
     @property
     def is_approved(self) -> bool:
         return self.resource_status == self.STATUS_APPROVED
+
+    @classmethod
+    def preview_id_for(cls, invite_hash: str) -> int:
+        """Our id for a chat known by this invite link: the same link always gives the same id."""
+        digest = int.from_bytes(hashlib.sha256(invite_hash.encode()).digest()[:8], "big")
+        return cls.PREVIEW_ID_CEILING - 1 - digest % 2**50
+
+    @property
+    def is_preview_only(self) -> bool:
+        """Known only by its invite link's public page, and never to be asked through the Bot API."""
+        return self.id <= self.PREVIEW_ID_CEILING
 
 
 class User(Base):
