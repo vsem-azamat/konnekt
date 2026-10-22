@@ -91,6 +91,9 @@ class HelpRequest(IdMixin, TimestampMixin, Base):
 
     # Requests rot fast — an exam on 14 February is worthless on the 15th.
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When the author closed it. A request past its deadline closes without
+    # anybody doing it, and that moment is `expires_at`.
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     responses: Mapped[list["RequestResponse"]] = relationship(
         back_populates="request", cascade="all, delete-orphan"

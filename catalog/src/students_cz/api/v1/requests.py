@@ -4,6 +4,8 @@ The largest domain here, because a request has a life — posted, seen, answered
 accepted, closed — and every step of it notifies somebody.
 """
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, BackgroundTasks, Query, status
 from sqlalchemy import func, select
 
@@ -29,6 +31,7 @@ from students_cz.db.models import (
 )
 from students_cz.db.models.enums import (
     PriceUnit,
+    RequestStatus,
 )
 from students_cz.schemas import (
     FeedRequestOut,
@@ -400,6 +403,16 @@ async def close_request(
     return await _request_out(session, request, lang)
 
 
+@router.delete(
+    "/requests/{request_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["requests"],
+)
+async def delete_request(request_id: IdPath, session: SessionDep, user: UserDep) -> None:
+    """Remove a request and its answers for good."""
+    await requests_service.delete(session, user=user, request_id=request_id)
+
+
 async def _request_out(session, request: HelpRequest, lang) -> RequestOut:
     [out] = await _requests_out(session, [request], lang)
     return out
@@ -447,6 +460,12 @@ async def _requests_out(session, requests: list[HelpRequest], lang) -> list[Requ
         if len(bucket) < 4:
             bucket.append(avatar_for(responder))
 
+    now = datetime.now(UTC)
+    # Only an open request asks who could still answer it.
+    seeing = await requests_service.helpers_seeing(
+        session, [r for r in requests if _is_live(r, now)]
+    )
+
     out = []
     for request in requests:
         subject = subjects.get(request.subject_id)
@@ -459,11 +478,31 @@ async def _requests_out(session, requests: list[HelpRequest], lang) -> list[Requ
                 subject=translated(subject, lang) if subject else None,
                 institution=(short_form(institution, lang) if institution else None),
                 service_type=translated(service, lang) if service else None,
+                subject_id=request.subject_id,
+                service_type_id=request.service_type_id,
                 deadline_on=request.deadline_on,
-                status=request.status.value,
+                status=_status_of(request, now),
                 responses_count=counts.get(request.id, 0),
                 responders=responders.get(request.id, []),
+                helpers_seeing=seeing.get(request.id, 0),
                 created_at=request.created_at,
+                expires_at=request.expires_at,
+                closed_at=request.closed_at,
             )
         )
     return out
+
+
+def _is_live(request: HelpRequest, now: datetime) -> bool:
+    """`requests_service.live`, for a row already loaded."""
+    return request.status is RequestStatus.OPEN and (
+        request.expires_at is None or request.expires_at > now
+    )
+
+
+def _status_of(request: HelpRequest, now: datetime) -> str:
+    """`expired` for an open request past its deadline: nothing writes it, and
+    the author's list has to put it among the closed ones."""
+    if request.status is RequestStatus.OPEN and not _is_live(request, now):
+        return RequestStatus.EXPIRED.value
+    return request.status.value

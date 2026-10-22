@@ -220,6 +220,7 @@ def _offer_query(
     service_type_id: int | None,
     max_price: float | None,
     langs: list[str],
+    exclude_helper_id: int | None = None,
 ):
     stmt = (
         select(Offer)
@@ -229,6 +230,8 @@ def _offer_query(
             HelperProfile.status == PublishStatus.PUBLISHED,
         )
     )
+    if exclude_helper_id is not None:
+        stmt = stmt.where(Offer.helper_id != exclude_helper_id)
     if subject_ids is not None:
         stmt = stmt.where(Offer.subject_id.in_(subject_ids))
     if service_type_id:
@@ -274,6 +277,7 @@ async def search(
     sort: SortKey = "relevance",
     limit: int = 20,
     offset: int = 0,
+    exclude_self: bool = False,
 ) -> tuple[int, list[HelperCardOut]]:
     """One card per person, ordered in SQL so paging is coherent.
 
@@ -296,6 +300,7 @@ async def search(
         service_type_id=service_type_id,
         max_price=max_price,
         langs=langs,
+        exclude_helper_id=viewer.id if exclude_self else None,
     )
 
     # with_only_columns on the base query, not a count over base.subquery():

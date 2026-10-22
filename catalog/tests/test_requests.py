@@ -717,3 +717,123 @@ async def test_two_errands_sharing_only_a_date_are_two_requests(
         headers=auth_header(STUDENT),
     )
     assert second.status_code == 201, second.text
+
+
+# ── closing and removing ────────────────────────────────────────────────
+
+
+async def test_closing_says_when(client: AsyncClient) -> None:
+    created = await post_request(client, "матан")
+    assert created["closed_at"] is None
+
+    closed = await client.post(
+        f"/api/v1/requests/{created['id']}/close", headers=auth_header(STUDENT)
+    )
+    assert closed.json()["status"] == "closed"
+    when = closed.json()["closed_at"]
+    assert when is not None
+
+    again = await client.post(
+        f"/api/v1/requests/{created['id']}/close", headers=auth_header(STUDENT)
+    )
+    assert again.json()["closed_at"] == when
+
+
+async def test_a_request_past_its_deadline_is_listed_as_expired(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    created = await post_request(client, "матан, экзамен завтра")
+    request = await session.get(HelpRequest, created["id"])
+    assert request is not None
+    request.expires_at = datetime.now(UTC) - timedelta(days=1)
+    await session.commit()
+
+    [mine] = (await client.get("/api/v1/requests", headers=auth_header(STUDENT))).json()
+    assert mine["status"] == "expired"
+    assert mine["expires_at"] is not None
+
+
+async def test_deleting_removes_the_request_and_its_answers(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER)
+    created = await post_request(client, "матан")
+    answer = await client.post(
+        f"/api/v1/requests/{created['id']}/respond",
+        json={"message": "могу помочь"},
+        headers=helper_header(),
+    )
+    assert answer.status_code == 201, answer.text
+
+    gone = await client.delete(
+        f"/api/v1/requests/{created['id']}", headers=auth_header(STUDENT)
+    )
+    assert gone.status_code == 204
+
+    mine = (await client.get("/api/v1/requests", headers=auth_header(STUDENT))).json()
+    assert mine == []
+    left = await session.scalar(
+        select(func.count(RequestResponse.id)).where(
+            RequestResponse.request_id == created["id"]
+        )
+    )
+    assert left == 0
+
+
+async def test_only_the_author_may_delete(client: AsyncClient) -> None:
+    created = await post_request(client, "матан")
+
+    refused = await client.delete(
+        f"/api/v1/requests/{created['id']}", headers=auth_header(OTHER)
+    )
+    assert refused.status_code == 404
+    mine = (await client.get("/api/v1/requests", headers=auth_header(STUDENT))).json()
+    assert [item["id"] for item in mine] == [created["id"]]
+
+
+# ── who could answer ────────────────────────────────────────────────────
+
+
+async def test_an_open_request_counts_the_helpers_on_its_subject(
+    client: AsyncClient, helper_factory
+) -> None:
+    created = await post_request(client, "нужна помощь с матаном")
+    assert created["subject_id"] is not None
+    before = created["helpers_seeing"]
+
+    await helper_factory(tg_id=HELPER)
+    await helper_factory(tg_id=OTHER, first_name="Jana")
+    [mine] = (await client.get("/api/v1/requests", headers=auth_header(STUDENT))).json()
+    assert mine["helpers_seeing"] == before + 2
+
+    closed = await client.post(
+        f"/api/v1/requests/{created['id']}/close", headers=auth_header(STUDENT)
+    )
+    assert closed.json()["helpers_seeing"] == 0
+
+
+async def test_the_author_is_not_among_the_helpers_seeing(
+    client: AsyncClient, helper_factory
+) -> None:
+    """Nor among those the catalog offers to call instead of waiting."""
+    await post_request(client, "нужна помощь с матаном", tg_id=OTHER)
+    await helper_factory(tg_id=STUDENT)
+
+    created = await post_request(client, "нужна помощь с матаном")
+    [theirs] = (await client.get("/api/v1/requests", headers=auth_header(OTHER))).json()
+    # The same subject: the one helper counted for the other request and not
+    # for this one is the student themselves.
+    assert created["subject_id"] == theirs["subject_id"]
+    assert created["helpers_seeing"] == theirs["helpers_seeing"] - 1
+
+    params = {"subject_id": created["subject_id"], "limit": 50}
+    everyone = await client.get(
+        "/api/v1/search", params=params, headers=auth_header(STUDENT)
+    )
+    others = await client.get(
+        "/api/v1/search",
+        params={**params, "exclude_self": "true"},
+        headers=auth_header(STUDENT),
+    )
+    assert others.status_code == 200, others.text
+    assert others.json()["total"] == everyone.json()["total"] - 1

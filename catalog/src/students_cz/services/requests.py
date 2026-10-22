@@ -44,7 +44,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import shelves_of
+from students_cz.services.lookup import held_by, shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -526,11 +526,61 @@ async def decline(
 
 async def close(session: AsyncSession, *, user: User, request_id: int) -> HelpRequest:
     """Stop taking answers."""
+    request = await _own_request(session, user=user, request_id=request_id)
+    if request.status is not RequestStatus.CLOSED:
+        request.status = RequestStatus.CLOSED
+        request.closed_at = datetime.now(UTC)
+    return request
+
+
+async def delete(session: AsyncSession, *, user: User, request_id: int) -> None:
+    """Remove a request and every answer to it, for good."""
+    await session.delete(await _own_request(session, user=user, request_id=request_id))
+
+
+async def _own_request(
+    session: AsyncSession, *, user: User, request_id: int
+) -> HelpRequest:
+    """404 for someone else's as for a missing one, as with responses below."""
     request = await session.get(HelpRequest, request_id)
     if request is None or request.author_id != user.id:
         raise NotFound("no such request")
-    request.status = RequestStatus.CLOSED
     return request
+
+
+async def helpers_seeing(
+    session: AsyncSession, requests: list[HelpRequest]
+) -> dict[int, int]:
+    """How many listed helpers each request is on the services of.
+
+    The same match as the feed's, read from the request's side: the kind of
+    help it asks for, or a subject that is, or sits on, the one it names. The
+    author is never counted, whatever they offer themselves.
+    """
+    counts: dict[int, int] = {}
+    for request in requests:
+        hits = []
+        if request.service_type_id is not None:
+            hits.append(Offer.service_type_id == request.service_type_id)
+        if request.subject_id is not None:
+            hits.append(Offer.subject_id.in_(await held_by(session, request.subject_id)))
+        if not hits:
+            counts[request.id] = 0
+            continue
+        counts[request.id] = (
+            await session.scalar(
+                select(func.count(func.distinct(Offer.helper_id)))
+                .join(HelperProfile, HelperProfile.user_id == Offer.helper_id)
+                .where(
+                    Offer.is_active.is_(True),
+                    HelperProfile.status == PublishStatus.PUBLISHED,
+                    Offer.helper_id != request.author_id,
+                    or_(*hits),
+                )
+            )
+            or 0
+        )
+    return counts
 
 
 async def _own_response(
