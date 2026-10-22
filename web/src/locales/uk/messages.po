@@ -193,6 +193,10 @@ msgstr "увімк."
 msgid "Обзор"
 msgstr "Огляд"
 
+#: src/pages/Request.tsx
+msgid "{name} получит уведомление. Отменить нельзя."
+msgstr "{name} отримає сповіщення. Скасувати не можна."
+
 #. placeholder {0}: helper.hidden_note
 #: src/pages/MyHelper.tsx
 msgid "Причина: {0}"
@@ -262,8 +266,8 @@ msgid "{0} за сутки · {1} за неделю"
 msgstr "{0} за добу · {1} за тиждень"
 
 #: src/components/Incoming.tsx
-msgid "Не сейчас"
-msgstr "Не зараз"
+#~ msgid "Не сейчас"
+#~ msgstr "Не зараз"
 
 #: src/components/ChatRow.tsx
 msgid "активный"
@@ -373,9 +377,17 @@ msgstr "Показуємо тому, кому вона потрібна зара
 msgid "Их ведёт не Konnekt, и правила там свои."
 msgstr "Їх веде не Konnekt, і правила там свої."
 
+#: src/components/Incoming.tsx
+msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
+msgstr "{name} побачить відгук у своїй заявці й зможе написати тобі в Telegram."
+
 #: src/console/AudienceLabels.tsx
 msgid "Mini App"
 msgstr "Mini App"
+
+#: src/components/Incoming.tsx
+msgid "Отправить отклик"
+msgstr "Надіслати відгук"
 
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
@@ -528,6 +540,10 @@ msgstr "Факультети, гуртожитки, загальні. Спам, 
 #: src/lib/turnaround.tsx
 msgid "Две недели"
 msgstr "Два тижні"
+
+#: src/components/Incoming.tsx
+msgid "{name} просит помощи"
+msgstr "{name} просить допомоги"
 
 #: src/pages/Results.tsx
 msgid "Не поняли запрос"
@@ -800,6 +816,7 @@ msgstr "Готово"
 #: src/console/pages/System.tsx
 #: src/console/Pings.tsx
 #: src/console/ProfileSheet.tsx
+#: src/pages/Request.tsx
 msgid "Отмена"
 msgstr "Скасувати"
 
@@ -1406,6 +1423,10 @@ msgstr "Бот зв’язку"
 msgid "Открыть чат"
 msgstr "Відкрити чат"
 
+#: src/pages/Request.tsx
+msgid "Выбрать помощника?"
+msgstr "Обрати помічника?"
+
 #: src/pages/AdsChats.tsx
 msgid "Как это работает"
 msgstr "Як це працює"
@@ -1463,6 +1484,10 @@ msgstr "Рядок під іменем"
 #: src/console/pages/PartnerNew.tsx
 msgid "Ссылка"
 msgstr "Посилання"
+
+#: src/pages/Request.tsx
+#~ msgid "Выбрать {name}?"
+#~ msgstr "Обрати {name}?"
 
 #: src/components/Phrase.tsx
 msgid "Онлайн и очно"
@@ -1734,6 +1759,10 @@ msgstr "Прихована адміністратором"
 msgid "Подзаголовок"
 msgstr "Підзаголовок"
 
+#: src/pages/Request.tsx
+msgid "Не получилось выбрать — попробуй ещё раз."
+msgstr "Не вдалося обрати — спробуй ще раз."
+
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Нд"
@@ -1741,6 +1770,10 @@ msgstr "Нд"
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Чт"
+
+#: src/components/Incoming.tsx
+msgid "Цена за час, Kč <0>необязательно</0>"
+msgstr "Ціна за годину, Kč <0>необов'язково</0>"
 
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
@@ -1892,6 +1925,7 @@ msgstr "Реклама"
 
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
+#: src/components/Incoming.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
@@ -2034,6 +2068,10 @@ msgstr "Немає доступу до чатів"
 msgid "Сколько берёшь?"
 msgstr "Скільки береш?"
 
+#: src/pages/Request.tsx
+#~ msgid "Помощник получит уведомление. Отменить нельзя."
+#~ msgstr "Помічник отримає сповіщення. Скасувати не можна."
+
 #: src/console/pages/Audience.tsx
 msgid "Язык Telegram"
 msgstr "Мова Telegram"
@@ -2088,8 +2126,8 @@ msgid "Район или где удобно встречаться"
 msgstr "Район або де зручно зустрічатися"
 
 #: src/components/Incoming.tsx
-msgid "Отправить"
-msgstr "Надіслати"
+#~ msgid "Отправить"
+#~ msgstr "Надіслати"
 
 #: src/pages/Request.tsx
 msgid "У этого человека нет @username — написать не получится"
@@ -2654,8 +2692,8 @@ msgid "Забанить…"
 msgstr "Забанити…"
 
 #: src/components/Incoming.tsx
-msgid "Цена за час, Kč — необязательно"
-msgstr "Ціна за годину, Kč — необов'язково"
+#~ msgid "Цена за час, Kč — необязательно"
+#~ msgstr "Ціна за годину, Kč — необов'язково"
 
 #: src/pages/Request.tsx
 msgid "Откликов пока нет"
@@ -2756,6 +2794,14 @@ msgstr "Що викладаєш, де вчишся, як проходять за
 #: src/pages/Request.tsx
 msgid "Отклики"
 msgstr "Відгуки"
+
+#: src/components/Incoming.tsx
+msgid "Отклик на заявку"
+msgstr "Відгук на заявку"
+
+#: src/components/Incoming.tsx
+msgid "Сообщение автору"
+msgstr "Повідомлення авторові"
 
 #: src/pages/AdsApp.tsx
 msgid "Где её видно"
