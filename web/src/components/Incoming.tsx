@@ -22,7 +22,13 @@ import {
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { requestName } from '@/lib/requestHeading';
-import { type Draft, openDraft, responseDraft, withStarter } from '@/lib/responseDraft';
+import {
+  type Draft,
+  MESSAGE_MAX,
+  openDraft,
+  responseDraft,
+  withStarter,
+} from '@/lib/responseDraft';
 import type { FeedRequest, ResponseCreate } from '@/lib/types';
 
 /**
@@ -153,7 +159,7 @@ const NO_DRAFT: Draft = {
   message: '',
   price: '',
   unit: 'hour',
-  suggested: false,
+  suggested: null,
 };
 
 function From({ request }: { request: FeedRequest }) {
@@ -290,7 +296,7 @@ function RespondSheet({
             onChange={(event) => onDraft({ ...draft, message: event.target.value })}
             placeholder={t`Чем можешь помочь и когда`}
             rows={3}
-            maxLength={1000}
+            maxLength={MESSAGE_MAX}
             style={{ all: 'unset', width: '100%', resize: 'none', lineHeight: 1.4 }}
           />
         </div>
@@ -308,14 +314,17 @@ function RespondSheet({
         </div>
 
         <label className={ui.fieldLabel} htmlFor={priceId}>
-          {draft.suggested ? (
+          {/* «из анкеты» only while the field still holds the profile's
+              price; changed or cleared, it is the person's own. */}
+          {draft.suggested !== null && draft.price.trim() === draft.suggested ? (
             <Trans>
               Цена <PriceUnitLabel unit={draft.unit} />, Kč{' '}
               <span className={ui.fieldLabelNote}>из анкеты, можно изменить</span>
             </Trans>
           ) : (
             <Trans>
-              Цена за час, Kč <span className={ui.fieldLabelNote}>необязательно</span>
+              Цена <PriceUnitLabel unit={draft.unit} />, Kč{' '}
+              <span className={ui.fieldLabelNote}>необязательно</span>
             </Trans>
           )}
         </label>

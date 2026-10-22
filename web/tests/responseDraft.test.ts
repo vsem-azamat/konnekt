@@ -54,15 +54,17 @@ test('the draft opens on the price the profile asks for that kind of work', () =
     message: '',
     price: '600',
     unit: 'hour',
-    suggested: true,
+    suggested: '600',
   });
 });
 
 test('without a price in the profile, or one left to agree, the field starts empty and per hour', () => {
-  const empty = { requestId: 7, message: '', price: '', unit: 'hour', suggested: false };
+  const empty = { requestId: 7, message: '', price: '', unit: 'hour', suggested: null };
   assert.deepEqual(openDraft(7, null), empty);
+  // A profile can hold a number marked «договорная»: offering it as fixed
+  // would say the opposite of what the helper meant.
   assert.deepEqual(
-    openDraft(7, { amount: null, currency: 'CZK', unit: 'negotiable' }),
+    openDraft(7, { amount: 800, currency: 'CZK', unit: 'negotiable' }),
     empty,
   );
 });
@@ -77,11 +79,27 @@ test('a starter begins an empty message and follows a typed one as its own sente
     withStarter('Привет!  ', 'Могу на этой неделе'),
     'Привет! Могу на этой неделе',
   );
+  assert.equal(
+    withStarter('Привет,', 'Могу на этой неделе'),
+    'Привет. Могу на этой неделе',
+  );
 });
 
-test('a starter already in the message is not added twice', () => {
+test('after a line break the starter begins the new line', () => {
   assert.equal(
-    withStarter('Могу на этой неделе', 'Могу на этой неделе'),
-    'Могу на этой неделе',
+    withStarter('Привет\n', 'Могу на этой неделе'),
+    'Привет\nМогу на этой неделе',
   );
+});
+
+test('a starter already in the message is not added twice, whatever its case', () => {
+  assert.equal(
+    withStarter('могу на этой неделе', 'Могу на этой неделе'),
+    'могу на этой неделе',
+  );
+});
+
+test('a starter that would not fit the message is not added', () => {
+  const long = 'а'.repeat(990);
+  assert.equal(withStarter(long, 'Могу на этой неделе'), long);
 });

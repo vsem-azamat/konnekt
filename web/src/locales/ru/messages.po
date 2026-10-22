@@ -2165,8 +2165,8 @@ msgid "Набег на {title}"
 msgstr "Набег на {title}"
 
 #: src/components/Incoming.tsx
-msgid "Цена за час, Kč <0>необязательно</0>"
-msgstr "Цена за час, Kč <0>необязательно</0>"
+#~ msgid "Цена за час, Kč <0>необязательно</0>"
+#~ msgstr "Цена за час, Kč <0>необязательно</0>"
 
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
@@ -3343,6 +3343,10 @@ msgstr "Опубликовать заявку"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Заблокированы"
+
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>необязательно</1>"
+msgstr "Цена <0/>, Kč <1>необязательно</1>"
 
 #: src/console/pages/Chat.tsx
 msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
