@@ -5,7 +5,6 @@ import { AppHeader } from '@/components/AppHeader';
 import { Incoming } from '@/components/Incoming';
 import { DocumentIcon, iconForService } from '@/components/icons';
 import { formatDay } from '@/components/Phrase';
-import { TabBar } from '@/components/TabBar';
 import {
   Action,
   AvatarStack,
@@ -68,70 +67,67 @@ export default function MinePage() {
   });
 
   return (
-    <>
-      <Screen withTabs>
-        <AppHeader />
-        <Title>
-          <Trans>Заявки</Trans>
-        </Title>
+    <Screen>
+      <AppHeader />
+      <Title>
+        <Trans>Заявки</Trans>
+      </Title>
 
-        {isHelper ? (
-          <div style={{ marginTop: 14 }}>
-            <Segmented<Tab>
-              value={tab}
-              onChange={switchTo}
-              options={[
-                { value: 'mine', label: <Trans>Мои заявки</Trans> },
-                { value: 'incoming', label: <Trans>Входящие</Trans> },
-              ]}
-            />
-          </div>
-        ) : null}
-
-        {/* The title already says «Заявки»; a section label repeating it under
-            the same words told the reader nothing. */}
-        <div style={{ height: 14 }} />
-
-        {tab === 'incoming' ? (
-          <Incoming />
-        ) : isPending ? (
-          <SkeletonRows count={2} />
-        ) : isError ? (
-          <Empty title={<Trans>Не получилось загрузить</Trans>} />
-        ) : data.length === 0 ? (
-          <Empty
-            title={<Trans>Заявок пока нет</Trans>}
-            body={
-              <Trans>
-                Опиши, что нужно, и получай отклики — вместо того чтобы искать самому.
-              </Trans>
-            }
-            action={
-              <Action
-                onClick={() => {
-                  hapticSelection();
-                  navigate('/ask');
-                }}
-              >
-                <Trans>Мне нужна помощь</Trans>
-              </Action>
-            }
+      {isHelper ? (
+        <div style={{ marginTop: 14 }}>
+          <Segmented<Tab>
+            value={tab}
+            onChange={switchTo}
+            options={[
+              { value: 'mine', label: <Trans>Мои заявки</Trans> },
+              { value: 'incoming', label: <Trans>Входящие</Trans> },
+            ]}
           />
-        ) : (
-          <Cards>
-            {data.map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                locale={i18n.locale}
-                onClick={() => navigate(`/request/${request.id}`)}
-              />
-            ))}
-          </Cards>
-        )}
-      </Screen>
-      <TabBar />
-    </>
+        </div>
+      ) : null}
+
+      {/* The title already says «Заявки»; a section label repeating it under
+            the same words told the reader nothing. */}
+      <div style={{ height: 14 }} />
+
+      {tab === 'incoming' ? (
+        <Incoming />
+      ) : isPending ? (
+        <SkeletonRows count={2} />
+      ) : isError ? (
+        <Empty title={<Trans>Не получилось загрузить</Trans>} />
+      ) : data.length === 0 ? (
+        <Empty
+          title={<Trans>Заявок пока нет</Trans>}
+          body={
+            <Trans>
+              Опиши, что нужно, и получай отклики — вместо того чтобы искать самому.
+            </Trans>
+          }
+          action={
+            <Action
+              onClick={() => {
+                hapticSelection();
+                navigate('/ask');
+              }}
+            >
+              <Trans>Мне нужна помощь</Trans>
+            </Action>
+          }
+        />
+      ) : (
+        <Cards>
+          {data.map((request) => (
+            <RequestCard
+              key={request.id}
+              request={request}
+              locale={i18n.locale}
+              onClick={() => navigate(`/request/${request.id}`)}
+            />
+          ))}
+        </Cards>
+      )}
+    </Screen>
   );
 }
 

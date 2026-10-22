@@ -7,7 +7,6 @@ import { AppHeader } from '@/components/AppHeader';
 import { ChatRow, ChatTitle, Members } from '@/components/ChatRow';
 import { CloseIcon, SearchIcon } from '@/components/icons';
 import { CityName, TopicHeading } from '@/components/Place';
-import { TabBar } from '@/components/TabBar';
 import {
   Action,
   Chevron,
@@ -121,155 +120,152 @@ export default function ChatsPage() {
   useReportEmpty(data !== undefined && data.length === 0, 'chat directory');
 
   return (
-    <>
-      <Screen withTabs>
-        <AppHeader />
-        <Title>
-          <Trans>Найди свой чат</Trans>
-        </Title>
-        <div style={{ marginTop: 6 }}>
-          <Sub>
-            <Trans>
-              Факультеты, общежития, общие. В наших чатах вычищаем спам, скам и фишинг.
-            </Trans>
-          </Sub>
-        </div>
+    <Screen>
+      <AppHeader />
+      <Title>
+        <Trans>Найди свой чат</Trans>
+      </Title>
+      <div style={{ marginTop: 6 }}>
+        <Sub>
+          <Trans>
+            Факультеты, общежития, общие. В наших чатах вычищаем спам, скам и фишинг.
+          </Trans>
+        </Sub>
+      </div>
 
-        <div className={ui.field} style={{ marginTop: 16 }}>
-          <SearchIcon size={18} className={ui.fieldIcon} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            ref={field}
-            placeholder={`${EXAMPLES}…`}
-            aria-label={t`Поиск чата`}
-            maxLength={100}
-            style={{ all: 'unset', flex: 1, minWidth: 0 }}
-          />
-          {query !== '' ? (
-            <button
-              type="button"
-              className={ui.fieldClear}
-              aria-label={t`Очистить поиск`}
-              // Keeps the field focused, so the keyboard does not drop and
-              // come back, moving Telegram's viewport with it.
-              onPointerDown={(event) => event.preventDefault()}
-              onClick={clear}
-            >
-              <CloseIcon size={14} />
-            </button>
-          ) : null}
-        </div>
-
-        {/* Not while searching: a search looks through every city. */}
-        {choices.length > 1 && !searching ? (
-          <fieldset className={ui.cities} aria-label={t`Город`}>
-            <Chips>
-              <ChipView
-                active={city === null}
-                pressed={city === null}
-                onClick={() => pick(null)}
-              >
-                <Trans>Все</Trans>
-              </ChipView>
-              {choices.map((choice) => (
-                <ChipView
-                  key={choice}
-                  active={city === choice}
-                  pressed={city === choice}
-                  onClick={() => pick(choice)}
-                >
-                  <CityName city={choice} />
-                </ChipView>
-              ))}
-            </Chips>
-          </fieldset>
+      <div className={ui.field} style={{ marginTop: 16 }}>
+        <SearchIcon size={18} className={ui.fieldIcon} />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          ref={field}
+          placeholder={`${EXAMPLES}…`}
+          aria-label={t`Поиск чата`}
+          maxLength={100}
+          style={{ all: 'unset', flex: 1, minWidth: 0 }}
+        />
+        {query !== '' ? (
+          <button
+            type="button"
+            className={ui.fieldClear}
+            aria-label={t`Очистить поиск`}
+            // Keeps the field focused, so the keyboard does not drop and
+            // come back, moving Telegram's viewport with it.
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={clear}
+          >
+            <CloseIcon size={14} />
+          </button>
         ) : null}
+      </div>
 
-        {isPending || waitingForHome ? (
-          <>
-            <Label>
-              <Trans>Загружаем</Trans>
-            </Label>
-            <SkeletonRows count={6} />
-          </>
-        ) : isError ? (
-          // Not the cause: the screen cannot tell the network from the server.
+      {/* Not while searching: a search looks through every city. */}
+      {choices.length > 1 && !searching ? (
+        <fieldset className={ui.cities} aria-label={t`Город`}>
+          <Chips>
+            <ChipView
+              active={city === null}
+              pressed={city === null}
+              onClick={() => pick(null)}
+            >
+              <Trans>Все</Trans>
+            </ChipView>
+            {choices.map((choice) => (
+              <ChipView
+                key={choice}
+                active={city === choice}
+                pressed={city === choice}
+                onClick={() => pick(choice)}
+              >
+                <CityName city={choice} />
+              </ChipView>
+            ))}
+          </Chips>
+        </fieldset>
+      ) : null}
+
+      {isPending || waitingForHome ? (
+        <>
+          <Label>
+            <Trans>Загружаем</Trans>
+          </Label>
+          <SkeletonRows count={6} />
+        </>
+      ) : isError ? (
+        // Not the cause: the screen cannot tell the network from the server.
+        <div className={ui.stateBlock}>
+          <Empty
+            title={<Trans>Не удалось загрузить чаты</Trans>}
+            body={<Trans>Список не пришёл. Попробуй ещё раз через минуту.</Trans>}
+            action={
+              <Action onClick={() => void refetch()}>
+                <Trans>Попробовать ещё раз</Trans>
+              </Action>
+            }
+          />
+        </div>
+      ) : searching ? (
+        found.length === 0 ? (
           <div className={ui.stateBlock}>
             <Empty
-              title={<Trans>Не удалось загрузить чаты</Trans>}
-              body={<Trans>Список не пришёл. Попробуй ещё раз через минуту.</Trans>}
+              title={<Trans>Такого чата нет</Trans>}
+              body={<Trans>Ищи по вузу, факультету или общежитию: {EXAMPLES}.</Trans>}
               action={
-                <Action onClick={() => void refetch()}>
-                  <Trans>Попробовать ещё раз</Trans>
+                <Action quiet onClick={clear}>
+                  <Trans>Очистить поиск</Trans>
                 </Action>
               }
             />
           </div>
-        ) : searching ? (
-          found.length === 0 ? (
-            <div className={ui.stateBlock}>
-              <Empty
-                title={<Trans>Такого чата нет</Trans>}
-                body={<Trans>Ищи по вузу, факультету или общежитию: {EXAMPLES}.</Trans>}
-                action={
-                  <Action quiet onClick={clear}>
-                    <Trans>Очистить поиск</Trans>
-                  </Action>
-                }
-              />
-            </div>
-          ) : (
-            <>
-              <Label>
-                <Trans>Нашлось</Trans>
-              </Label>
-              <Rows>
-                {found.map((chat, index) => (
-                  <ChatRow key={chat.link} chat={chat} tone={index} />
-                ))}
-              </Rows>
-            </>
-          )
-        ) : shown.length === 0 ? (
-          <Empty title={<Trans>Чатов пока нет</Trans>} />
         ) : (
-          shown.map((block) => (
-            <div key={block.heading}>
-              <Label aside={block.entries.length}>
-                <TopicHeading topic={block.heading} />
-                {block.heading === 'university' && city !== null ? (
-                  <>
-                    {' · '}
-                    <CityName city={city} />
-                  </>
-                ) : null}
-              </Label>
-              <Rows>
-                {block.entries.map((entry) =>
-                  entry.kind === 'section' ? (
-                    <SectionRow
-                      key={`section:${entry.name}`}
-                      section={entry}
-                      tone={tone++}
-                      onOpen={() => navigate(`/chats/${encodeURIComponent(entry.name)}`)}
-                    />
-                  ) : (
-                    <ChatRow
-                      key={entry.chat.link}
-                      chat={entry.chat}
-                      tone={tone++}
-                      hint={where(entry.chat)}
-                    />
-                  ),
-                )}
-              </Rows>
-            </div>
-          ))
-        )}
-      </Screen>
-      <TabBar />
-    </>
+          <>
+            <Label>
+              <Trans>Нашлось</Trans>
+            </Label>
+            <Rows>
+              {found.map((chat, index) => (
+                <ChatRow key={chat.link} chat={chat} tone={index} />
+              ))}
+            </Rows>
+          </>
+        )
+      ) : shown.length === 0 ? (
+        <Empty title={<Trans>Чатов пока нет</Trans>} />
+      ) : (
+        shown.map((block) => (
+          <div key={block.heading}>
+            <Label aside={block.entries.length}>
+              <TopicHeading topic={block.heading} />
+              {block.heading === 'university' && city !== null ? (
+                <>
+                  {' · '}
+                  <CityName city={city} />
+                </>
+              ) : null}
+            </Label>
+            <Rows>
+              {block.entries.map((entry) =>
+                entry.kind === 'section' ? (
+                  <SectionRow
+                    key={`section:${entry.name}`}
+                    section={entry}
+                    tone={tone++}
+                    onOpen={() => navigate(`/chats/${encodeURIComponent(entry.name)}`)}
+                  />
+                ) : (
+                  <ChatRow
+                    key={entry.chat.link}
+                    chat={entry.chat}
+                    tone={tone++}
+                    hint={where(entry.chat)}
+                  />
+                ),
+              )}
+            </Rows>
+          </div>
+        ))
+      )}
+    </Screen>
   );
 }
 

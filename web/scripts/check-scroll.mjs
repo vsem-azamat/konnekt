@@ -185,7 +185,9 @@ function look() {
 
   const doc = document.documentElement;
   const root = document.getElementById('root');
-  const screen = root?.firstElementChild;
+  // A screen with tabs scrolls in TabsLayout's <main>, one without in #root.
+  const scroller = root?.querySelector(':scope > * > main') ?? root;
+  const screen = scroller?.firstElementChild;
   if (!screen) return { verdict: 'nothing rendered' };
 
   const style = getComputedStyle(screen);
@@ -212,7 +214,10 @@ function look() {
 
   return {
     verdict: 'measured',
-    travel: doc.scrollHeight - doc.clientHeight + (root.scrollHeight - root.clientHeight),
+    travel:
+      doc.scrollHeight -
+      doc.clientHeight +
+      (scroller.scrollHeight - scroller.clientHeight),
     // Everything between the last visible thing and where the screen's own
     // designed clearance begins.
     dead: floor - lowest,

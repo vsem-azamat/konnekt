@@ -490,19 +490,19 @@ hides the bugs this rule exists to prevent.
 ## The web shell scrolls in exactly one place
 
 The Mini App is a screen, not a document. `#root` is the app: it is exactly one
-screenful tall and it is the only element that scrolls. `body` carries
+screenful tall, and one element in it scrolls — `#root` itself on a screen
+without tabs, the `main` of `TabsLayout` on a screen with them. `body` carries
 `overflow: hidden`, which the viewport takes its own overflow from, so the
 document has nothing to scroll and cannot invent travel of its own.
 
-**One screenful is Telegram's number, not the webview's.** `--app-height`,
-published by `bindAppHeight` in `main.tsx` from the viewport's stable height,
-with `100dvh` only as the fallback. On iOS and Android the SDK does not trust
-`window.innerHeight` either — it asks the client and waits for
-`viewport_changed` — and `100dvh` is that same untrusted number. Where they
-disagree, an app sized to the webview puts its last rows below the visible edge
-with nothing able to scroll to them. Zero is not an answer and is skipped: the
-signal reads `0` until the client replies, and a CSS variable set to `0px` is
-defined, so the fallback would not fire.
+**One screenful is what can be seen: the smaller of Telegram's number and the
+webview's** (`--visible-height`). `--app-height` is Telegram's, published by
+`bindAppHeight` in `main.tsx` from the viewport's stable height. Telegram for
+Android reports more than the webview, its header included, and Telegram for
+iOS less while its bottom button is up; `docs/invariants.md` has the rule.
+Zero is not an answer and is skipped: the signal reads `0` until the client
+replies, and a CSS variable set to `0px` is defined, so the fallback would not
+fire.
 
 Four rules follow, and they are what to check before changing layout:
 
@@ -513,18 +513,18 @@ Four rules follow, and they are what to check before changing layout:
   `padding-bottom` is the only breathing room at the foot of a page; a spacer
   under the last element is a stretch of nothing that someone has to scroll
   through to reach.
-- **Anything pinned to an edge is `position: fixed`** — the tab bar, the sheet,
-  the scrim. They are descendants of `#root` but are laid out against the
-  viewport: a scroll container is not a containing block for fixed elements.
-  That is what lets the tab bar stay put while the screen behind it moves.
-- **A fixed bar is opaque behind its own controls.** Whatever a bar is pinned
-  over is moving; the controls on it are not, and a person reading them must
-  not also be reading a card sliding underneath. The tab bar's background was a
-  gradient that reached full opacity only over the lower part of its height,
-  while its contents were centred over the whole of it — so the top of every
-  icon and the whole of the round button were painted onto passing text. A fade
-  is the right idea and the wrong place for it: it belongs *above* the bar,
-  where content is meant to disappear, not across the part that holds controls.
+- **The tab bar is a row of the screen's box, not fixed to the window.** Fixed,
+  it was placed against the webview while the screen was sized to Telegram's
+  height, and wherever the two differ one of them was wrong. As a row below
+  the scroller it ends where the visible area ends, and nothing passes under
+  it: the list stops at its top edge. The fade above it is drawn over the end
+  of the list, outside the bar's own box, where content is meant to disappear.
+  A sheet and its scrim are still fixed: they cover everything.
+- **A screen opened from another starts at its top; Back returns to where the
+  previous one was left.** With one scroller for every tab, its position is the
+  layout's to keep, not the screen's: carried over, a section opened at the
+  depth the list above it had been scrolled to. A chat's preview is a history
+  entry on the same screen and leaves the list where it was.
 - **Telegram's vertical swipe is off** (`swipeBehavior`, Mini Apps 7.7). The
   gesture drags the whole app towards dismissal, and on a screen with nothing
   to scroll a drag and a scroll are the same movement, so the app appears to
@@ -552,16 +552,9 @@ number it subtracts, so a screen that reserves room for a tab bar it does not
 render will pass with a blank strip at its foot. Nothing runs it automatically;
 it wants a browser and a database, which CI here does not give it.
 
-`pnpm check:tabbar` is the third rule, executable, and needs the same running
-stack. It photographs the tab bar with a list scrolled to the top and again
-with that list moved under it, and requires the two pictures to be the same
-pixels: a bar that is opaque behind its controls cannot be changed by what
-passes beneath it, and one that is not changes wherever it is see-through.
-Measured on the three screens that have a list long enough to move (`/`,
-`/results`, `/chats`), at the same three phone sizes. `/chats` needs
-supervisor's webapi behind the dev server; without it the screen shows its
-error row and the check reports it unmeasured. It says nothing about how the bar looks — only that what is
-under it stays under it.
+`pnpm check:devices` holds the second and third rules, in CI: on Telegram's
+Android and iOS viewports, the bar ends on the visible bottom, the end of a
+list clears it, and a section opened from a scrolled list starts at its top.
 
 ## The embedding model ships inside the image
 

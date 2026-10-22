@@ -57,7 +57,7 @@ body {
   background-color: var(--bg);
 
   /* With `html` at `visible`, this is where the viewport takes its overflow
-     from: the document scrolls nowhere, and #root does all of it. No height
+     from: the document scrolls nowhere; #root or the shell inside it does. No height
      to go with it — #root already has a definite one, and a second definition
      of "one screenful" here is a second thing to keep in agreement. */
   overflow: hidden;
@@ -67,7 +67,8 @@ body {
 }
 
 /*
- * The app itself: exactly one screenful, and the only thing that scrolls.
+ * The app itself: exactly one screenful, and what scrolls on a screen without
+ * tabs. A screen with tabs scrolls inside it, in TabsLayout's `main`.
  *
  * `height`, not `min-height`. A box that can grow past the viewport hands its
  * overflow to the document, and the document's scroll is the one nobody asked
@@ -90,8 +91,7 @@ body {
  * taller than its window. Sized to that, #root ran past the bottom of the
  * window and the last rows of a long list could not be scrolled to. Nothing
  * paints outside the window, so the app is the smaller of the two:
- * `--visible-height` in styles/tokens.css. The fixed tab bar keeps `bottom: 0`,
- * which on Android is the same place.
+ * `--visible-height` in styles/tokens.css.
  *
  * 100dvh is the fallback, for the moment before the client answers and for
  * every browser that is not Telegram. dvh and not vh, because in a plain mobile
@@ -104,9 +104,8 @@ body {
  * scrolled by exactly the height of the notch.
  *
  * The bottom inset is deliberately absent: whatever sits at the bottom of a
- * screen owns it. For a screen with tabs that is the fixed tab bar, which has
- * to pad itself anyway because it is outside this box; for a screen without
- * them it is `.screen`. Setting it here as well is what counted it twice.
+ * screen owns it: the tab bar on a screen with tabs, `.screen` on one without.
+ * Setting it here as well is what counted it twice.
  *
  * A flex column, because `min-height: 100%` on a child of an auto-height parent
  * resolves to `auto` and does nothing — which is why screens once sat in the

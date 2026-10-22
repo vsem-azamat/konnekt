@@ -71,10 +71,7 @@
   --pad-screen: 16px;
   --h-row: 52px;
 
-  /* What the tab bar actually occupies, home indicator included. A screen
-     reserves this much at the bottom, so the number has to be the real one:
-     when it was a flat 78px the bar's own inset was reserved a second time by
-     the page and the last row floated 40px above it. */
+  /* What the tab bar occupies, home indicator included. */
   --h-tab: calc(62px + var(--tg-viewport-safe-area-inset-bottom, 0px));
 
   /* How much of the page can be seen: the smaller of Telegram's height and

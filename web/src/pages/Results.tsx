@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 
 import { HelperCardView } from '@/components/HelperCard';
 import { RequestSheet } from '@/components/RequestSheet';
-import { TabBar } from '@/components/TabBar';
 import {
   Cards,
   Chips,
@@ -123,7 +122,7 @@ export default function ResultsPage() {
 
   return (
     <>
-      <Screen withTabs>
+      <Screen>
         {data && data.chips.length > 0 ? (
           <div style={{ marginBottom: 12 }}>
             <Chips>
@@ -268,7 +267,6 @@ export default function ResultsPage() {
           onClose={() => setAsking(false)}
         />
       ) : null}
-      <TabBar />
     </>
   );
 }

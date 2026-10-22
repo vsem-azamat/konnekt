@@ -25,10 +25,27 @@
   padding-bottom: calc(16px + var(--tg-viewport-safe-area-inset-bottom, 0px));
 }
 
-/* Room for the tab bar, which is fixed. Without it the last row hides behind.
-   --h-tab already includes the home indicator, so this does not add it again. */
-.screen.withTabs {
-  padding-bottom: calc(var(--h-tab) + 16px);
+/* The screens with tabs: the screen and the bar below it share the visible
+   area, and only the screen scrolls. See TabsLayout. */
+.tabbed {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* The bar below owns the home indicator. */
+.content > .screen {
+  padding-bottom: 16px;
 }
 
 /* ── header ─────────────────────────────────────────────────────────── */
@@ -1378,25 +1395,18 @@
 /* ── tab bar ────────────────────────────────────────────────────────── */
 
 .tabs {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 10;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 2px;
   height: var(--h-tab);
   padding: 0 14px;
-  /* Fixed, so it sits outside #root's box and clears the home indicator on its
-     own account. --h-tab is this padding plus the bar itself. */
+  /* The last thing in the visible area, so it clears the home indicator.
+     --h-tab is this padding plus the bar itself. */
   padding-bottom: calc(10px + var(--tg-viewport-safe-area-inset-bottom, 0px));
-  /* Opaque, not a gradient. The gradient reached full --bg only over the lower
-     72% of the bar while its contents are centred over the whole height, so
-     the top of every icon and the whole of the round button were painted onto
-     the cards sliding underneath. See catalog/docs/architecture.md and
-     scripts/check-tabbar.mjs, which photographs the bar with a list still and
-     again with it moving and requires the same pixels. */
+  /* Opaque: the fade belongs above the bar, over the end of the list. */
   background: var(--bg);
   color: var(--muted-soft);
 }

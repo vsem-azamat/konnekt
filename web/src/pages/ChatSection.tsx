@@ -4,7 +4,6 @@ import { useParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { ChatRow } from '@/components/ChatRow';
-import { TabBar } from '@/components/TabBar';
 import {
   Empty,
   Hint,
@@ -44,71 +43,66 @@ export default function ChatSectionPage() {
   useReportEmpty(data !== undefined && chats.length === 0, 'chat section');
 
   return (
-    <>
-      <Screen withTabs>
-        <AppHeader />
-        <Title>{group}</Title>
-        {isPending ? (
-          <SkeletonRows count={5} />
-        ) : isError ? (
-          <Rows>
-            <Row
-              title={<Trans>Не удалось загрузить чаты</Trans>}
-              hint={<Trans>Нажми, чтобы попробовать ещё раз</Trans>}
-              onClick={() => void refetch()}
-            />
-          </Rows>
-        ) : chats.length === 0 ? (
-          <Empty
-            title={<Trans>Такой группы больше нет</Trans>}
-            body={<Trans>Вернись к списку чатов.</Trans>}
+    <Screen>
+      <AppHeader />
+      <Title>{group}</Title>
+      {isPending ? (
+        <SkeletonRows count={5} />
+      ) : isError ? (
+        <Rows>
+          <Row
+            title={<Trans>Не удалось загрузить чаты</Trans>}
+            hint={<Trans>Нажми, чтобы попробовать ещё раз</Trans>}
+            onClick={() => void refetch()}
           />
-        ) : (
-          <>
-            <div style={{ marginTop: 6, marginBottom: 16 }}>
-              <Sub>
-                <Plural
-                  value={chats.length}
-                  one="# чат"
-                  few="# чата"
-                  many="# чатов"
-                  other="# чата"
-                />
-              </Sub>
-            </div>
-            {others.length > 0 && ours.length > 0 ? (
-              <Label aside={ours.length}>
-                <Trans>Наши чаты</Trans>
+        </Rows>
+      ) : chats.length === 0 ? (
+        <Empty
+          title={<Trans>Такой группы больше нет</Trans>}
+          body={<Trans>Вернись к списку чатов.</Trans>}
+        />
+      ) : (
+        <>
+          <div style={{ marginTop: 6, marginBottom: 16 }}>
+            <Sub>
+              <Plural
+                value={chats.length}
+                one="# чат"
+                few="# чата"
+                many="# чатов"
+                other="# чата"
+              />
+            </Sub>
+          </div>
+          {others.length > 0 && ours.length > 0 ? (
+            <Label aside={ours.length}>
+              <Trans>Наши чаты</Trans>
+            </Label>
+          ) : null}
+          <Rows>
+            {ours.map((chat, index) => (
+              <ChatRow key={chat.link} chat={chat} tone={index} />
+            ))}
+          </Rows>
+          {others.length > 0 ? (
+            <>
+              <Label aside={others.length}>
+                <Trans>Другие чаты</Trans>
               </Label>
-            ) : null}
-            <Rows>
-              {ours.map((chat, index) => (
-                <ChatRow key={chat.link} chat={chat} tone={index} />
-              ))}
-            </Rows>
-            {others.length > 0 ? (
-              <>
-                <Label aside={others.length}>
-                  <Trans>Другие чаты</Trans>
-                </Label>
-                <div style={{ marginTop: -4, marginBottom: 10 }}>
-                  <Hint>
-                    <Trans>
-                      Их ведёт не Konnekt: спам там чистим не мы, правила свои.
-                    </Trans>
-                  </Hint>
-                </div>
-                <Rows>
-                  {others.map((chat, index) => (
-                    <ChatRow key={chat.link} chat={chat} tone={ours.length + index} />
-                  ))}
-                </Rows>
-              </>
-            ) : null}
-          </>
-        )}
-      </Screen>
-      <TabBar />
-    </>
+              <div style={{ marginTop: -4, marginBottom: 10 }}>
+                <Hint>
+                  <Trans>Их ведёт не Konnekt: спам там чистим не мы, правила свои.</Trans>
+                </Hint>
+              </div>
+              <Rows>
+                {others.map((chat, index) => (
+                  <ChatRow key={chat.link} chat={chat} tone={ours.length + index} />
+                ))}
+              </Rows>
+            </>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }

@@ -26,18 +26,8 @@ function toneStyle(tone: number): React.CSSProperties {
 
 // ── layout ──────────────────────────────────────────────────────────────
 
-export function Screen({
-  children,
-  withTabs = false,
-}: {
-  children: ReactNode;
-  withTabs?: boolean;
-}) {
-  return (
-    <div className={withTabs ? `${css.screen} ${css.withTabs}` : css.screen}>
-      {children}
-    </div>
-  );
+export function Screen({ children }: { children: ReactNode }) {
+  return <div className={css.screen}>{children}</div>;
 }
 
 // The header moved to its own file when it grew controls: see AppHeader.
