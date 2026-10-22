@@ -66,6 +66,16 @@ replaces a stale stable one: `web/src/lib/appHeight.ts`. The safe-area insets
 are not re-asked yet; if they turn out to go stale the same way, they get the
 same treatment.
 
+**Telegram's height is a ceiling on the app, not its size.** Telegram for
+Android reports the sheet's whole swipe container, about a header taller than
+the webview it draws the app in; Telegram for iOS reports less than the webview
+while its bottom button is up. An app sized to Telegram's number alone ran past
+the bottom of the window on a Pixel, and the last rows of «Чаты» could not be
+scrolled to (October 2026). So the app box and the fixed tab bar both end at the
+smaller of Telegram's height and the window's (`--visible-height`,
+`web/src/styles/tokens.css`), and `pnpm check:clearance` measures the end of a
+long list with the two disagreeing both ways.
+
 **A chat's photo is served from our address, and an address names one picture
 forever.** The catalog shows `/api/public/avatars/<file_unique_id>` with a
 year-long `immutable` cache. That is only safe because Telegram changes the

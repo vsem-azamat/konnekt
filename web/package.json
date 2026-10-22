@@ -18,6 +18,7 @@
     "test": "node scripts/test.mjs",
     "check:scroll": "node scripts/check-scroll.mjs",
     "check:tabbar": "node scripts/check-tabbar.mjs",
+    "check:clearance": "node scripts/check-clearance.mjs",
     "i18n:extract": "lingui extract",
     "i18n:compile": "lingui compile",
     "api:generate": "openapi-ts"
