@@ -19,4 +19,6 @@ export function afterHelperSaved(queryClient: QueryClient, me: Me): void {
   // Without a copy it waits for the server.
   queryClient.removeQueries({ queryKey: ['my-helper'] });
   void queryClient.invalidateQueries({ queryKey: ['home'] });
+  // «По твоим услугам» and the count on Profile are worked out from them.
+  void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
 }
