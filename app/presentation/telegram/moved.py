@@ -29,6 +29,7 @@ from app.core.config import settings
 from app.core.enums import Touchpoint
 from app.core.logging import get_logger
 from app.presentation.telegram.middlewares.audience import AudienceMiddleware
+from app.presentation.telegram.profile import LANGUAGES
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable
@@ -66,23 +67,36 @@ async def retire_profile(bot: Bot, konnekt_username: str) -> None:
     to press that button. Each step stands alone, as in `profile.py`, and is
     logged rather than raised: the bot still answers without it.
     """
+    username = konnekt_username
+    scopes = (
+        BotCommandScopeDefault(),
+        BotCommandScopeAllPrivateChats(),
+        BotCommandScopeAllGroupChats(),
+        BotCommandScopeAllChatAdministrators(),
+    )
     steps: list[tuple[str, Awaitable[object]]] = [
         ("menu_button", bot.set_chat_menu_button(menu_button=MenuButtonCommands())),
-        *(
-            (f"commands:{scope.type}", bot.delete_my_commands(scope=scope))
-            for scope in (
-                BotCommandScopeDefault(),
-                BotCommandScopeAllPrivateChats(),
-                BotCommandScopeAllGroupChats(),
-                BotCommandScopeAllChatAdministrators(),
-            )
-        ),
-        ("description", bot.set_my_description(description=MOVED_TEXT.format(username=konnekt_username))),
+        *((f"commands:{scope.type}", bot.delete_my_commands(scope=scope)) for scope in scopes),
+        ("description", bot.set_my_description(description=MOVED_TEXT.format(username=username))),
         (
             "short_description",
-            bot.set_my_short_description(short_description=MOVED_SHORT_TEXT.format(username=konnekt_username)),
+            bot.set_my_short_description(short_description=MOVED_SHORT_TEXT.format(username=username)),
         ),
     ]
+    # Telegram shows a language's own text before the default, and the live bot
+    # writes one for each of these. Emptied, they fall back to the notice above.
+    for language in LANGUAGES:
+        steps += [
+            *(
+                (f"commands:{scope.type}:{language}", bot.delete_my_commands(scope=scope, language_code=language))
+                for scope in scopes
+            ),
+            (f"description:{language}", bot.set_my_description(description="", language_code=language)),
+            (
+                f"short_description:{language}",
+                bot.set_my_short_description(short_description="", language_code=language),
+            ),
+        ]
     for name, step in steps:
         try:
             await step

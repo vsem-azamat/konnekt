@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import MenuButton, MenuButtonCommands, MenuButtonWebApp, WebAppInfo
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
 from app.core.alerts import AlertHandler
@@ -55,27 +54,6 @@ _ALREADY_REPORTED = AlreadyReported()
 # ---------------------------------------------------------------------------
 
 
-async def _publish_menu_button(bot: Bot) -> None:
-    """Put the catalogue on the chat menu, one tap from any private chat.
-
-    Telegram stores this on the bot rather than on a message, so it is set once
-    here and survives every restart — which is also why the plain-http and
-    unconfigured cases must reset it instead of doing nothing. A deployment
-    that turns the public site off would otherwise keep offering a button to an
-    address that no longer answers, set by a deployment that is long gone.
-    """
-    url = settings.webapi.public_url.rstrip("/")
-
-    # https is Telegram's requirement for a Mini App, not ours; local
-    # development runs over http and gets the ordinary command menu.
-    if url.startswith("https://"):
-        button: MenuButton = MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=url))
-    else:
-        button = MenuButtonCommands()
-
-    await bot.set_chat_menu_button(menu_button=button)
-
-
 async def on_startup(bot: Bot) -> None:
     """Main bot startup: clear any leftover webhook before polling."""
     try:
@@ -88,10 +66,6 @@ async def on_startup(bot: Bot) -> None:
     # Deliberately not fatal, and deliberately after the line above: a bot that
     # could not draw its menu button still moderates, and refusing to start
     # over a cosmetic call would trade the whole service for a nicety.
-    try:
-        await _publish_menu_button(bot)
-    except Exception as e:
-        logger.warning("menu_button_not_set", error=str(e), exc_info=True)
     try:
         await publish_profile(bot)
     except Exception as e:
