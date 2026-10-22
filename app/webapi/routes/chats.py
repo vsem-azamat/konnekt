@@ -530,8 +530,9 @@ async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
         )
         session.add(chat)
         try:
-            # The insert goes out with sync's first query, so a twin added a
-            # moment earlier is refused there rather than at the commit.
+            # Sent before the picture, which Postgres checks against it at
+            # once; a twin added a moment earlier is refused here.
+            await session.flush()
             await previews.sync(session, http, chat)
             await session.commit()
         except IntegrityError as err:
