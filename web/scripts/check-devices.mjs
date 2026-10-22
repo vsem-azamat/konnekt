@@ -1,7 +1,7 @@
 /*
  * The layout on the phones Telegram actually runs on.
  *
- * check-scroll and check-tabbar measure the app under the development mock,
+ * check-scroll measures the app under the development mock,
  * which reports `tdesktop`. There the SDK derives the viewport from
  * `window.innerHeight`, so Telegram's height and the webview's are always the
  * same number, and the bugs that live in the difference between them — the
@@ -18,12 +18,14 @@
  * What it asserts is geometric, against what the person can see — the smaller
  * of Telegram's height and the webview's:
  *
- *   - the tab bar sits on the window's bottom edge;
+ *   - the tab bar sits flush on the visible bottom;
  *   - scrolled to the end, the last thing in the list ends above the tab bar
  *     and inside the visible area, in the directory and in a section;
  *   - the first thing on the screen clears the notch and Telegram's header;
  *   - nothing is wider than the screen;
  *   - an open sheet lies inside the visible area;
+ *   - a screen opened from a scrolled list starts at its top, and Back
+ *     returns to the list where it was left;
  *   - after a minimise and restore, the app is as tall as what is visible.
  *
  * What it cannot do: the keyboard, which on iOS shrinks only the visual
@@ -382,21 +384,14 @@ async function checkList(browser, base, profile, { path, last }) {
     );
   } else ok(`${path}: no sideways scroll`);
 
-  // On the window's bottom edge, which is the visible bottom wherever a screen
-  // has tabs. Where Telegram reports less (iOS, its bottom button up) the
-  // button covers the bar's place; no screen shows both, so there the bar is
-  // only required to exist.
   if (!seen.bar) {
     fail(profile, `${path}: no tab bar`);
-  } else if (
-    profile.tg >= profile.height &&
-    Math.abs(seen.bar.bottom - seen.innerHeight) > TOLERANCE
-  ) {
+  } else if (Math.abs(seen.bar.bottom - bottom) > TOLERANCE) {
     fail(
       profile,
-      `${path}: tab bar ends at ${Math.round(seen.bar.bottom)}px, the window at ${seen.innerHeight}px`,
+      `${path}: tab bar ends at ${Math.round(seen.bar.bottom)}px, the visible bottom is ${bottom}px`,
     );
-  } else ok(`${path}: tab bar on the bottom edge (${seen.innerHeight}px)`);
+  } else ok(`${path}: tab bar flush on the visible bottom (${bottom}px)`);
 
   if (!seen.lowest) {
     fail(profile, `${path}: nothing in the list to measure`);
@@ -433,6 +428,52 @@ async function checkList(browser, base, profile, { path, last }) {
     fail(profile, 'tapping a chat opened no sheet');
   }
 
+  await context.close();
+}
+
+/** How far the screen's list is scrolled: the tallest element that scrolls. */
+function scrolled() {
+  const scrollers = [...document.querySelectorAll('*')].filter((el) => {
+    const { overflowY } = getComputedStyle(el);
+    return /(auto|scroll)/.test(overflowY) && el.scrollHeight > el.clientHeight + 1;
+  });
+  const scroller = scrollers.sort((a, b) => b.clientHeight - a.clientHeight)[0];
+  return scroller ? scroller.scrollTop : 0;
+}
+
+/**
+ * A screen opened from a scrolled list starts at its top, and Back returns to
+ * the list where it was left. One scroller shared by every screen kept its
+ * position across the navigation instead: the section opened at its end.
+ */
+async function checkNavigation(browser, base, profile) {
+  const { page, context } = await open(browser, base, profile, '/chats');
+  try {
+    await page.getByText(LAST_CHAT).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+    // Scrolled to the row first: a click would scroll to it by itself, after
+    // the position was taken.
+    const row = page.getByText(SECTION, { exact: true }).first();
+    await row.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    const left = await page.evaluate(scrolled);
+    if (left <= 0) throw new Error('the list did not scroll, so nothing is measured');
+    await row.click();
+    await page.getByText(LAST_IN_SECTION).waitFor({ timeout: 5000 });
+    await page.waitForTimeout(200);
+    const opened = await page.evaluate(scrolled);
+    if (opened > TOLERANCE) {
+      fail(profile, `a section opened from the scrolled list starts ${opened}px down`);
+    } else ok('a screen opened from a scrolled list starts at its top');
+    await page.goBack();
+    await page.getByText(LAST_CHAT).waitFor({ timeout: 5000 });
+    await page.waitForTimeout(200);
+    const back = await page.evaluate(scrolled);
+    if (Math.abs(back - left) > TOLERANCE) {
+      fail(profile, `Back returned to the list at ${back}px, it was left at ${left}px`);
+    } else ok('Back returns to the list where it was left');
+  } catch (error) {
+    fail(profile, `navigation: ${error.message.split('\n')[0]}`);
+  }
   await context.close();
 }
 
@@ -474,6 +515,7 @@ try {
       `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
     );
     for (const list of LISTS) await checkList(browser, base, profile, list);
+    await checkNavigation(browser, base, profile);
     if (profile.platform === 'android') {
       await checkRestore(browser, base, profile);
     }
