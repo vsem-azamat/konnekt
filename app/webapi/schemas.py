@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import re
+import unicodedata
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -11,6 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.core.enums import SpamVerdict
 
 ChatResourceStatus = Literal["discovered", "approved", "observed", "external", "disabled"]
+# Chat.TOPICS, spelled out for the schema.
+ChatTopic = Literal["university", "subjects", "dorms", "work_it", "general"]
 
 # What may be stored as a chat's public link.
 #
@@ -65,6 +68,12 @@ class PublicCatalogItem(BaseModel):
     # which changes when the photo does. None when there is no picture, and the
     # app then keeps its letters. Never a Telegram file id or URL.
     avatar: str | None = None
+    # The city the chat is for, as the taxonomy names it; None is all of
+    # Czechia, and such a chat belongs under every city.
+    city: str | None = None
+    # Its heading. "university" for a university's chat, said or derived from
+    # its institution; None for a chat nobody filed, which the page places.
+    topic: ChatTopic | None = None
 
 
 class PublicReachGroup(BaseModel):
@@ -115,6 +124,8 @@ class ChatRead(BaseModel):
     # looking at the public page and counting.
     public_link: str | None = None
     institution_code: str | None = None
+    city: str | None = None
+    topic: ChatTopic | None = None
     member_count: int | None = None  # last recorded snapshot; None when never measured
     has_photo: bool = False
     last_synced_at: datetime.datetime | None = None
@@ -142,6 +153,18 @@ class ChatUpdate(BaseModel):
     public_link: str | None = None
     # the catalog's code for a university; empty clears it.
     institution_code: str | None = None
+    # As the catalog's taxonomy names it; empty clears it, to all of Czechia.
+    city: str | None = None
+    topic: ChatTopic | None = None
+
+    @field_validator("city")
+    @classmethod
+    def _check_city(cls, value: str | None) -> str | None:
+        """Composed, so «Plzeň» typed as «Plzen» plus a caron still matches the taxonomy's."""
+        city = unicodedata.normalize("NFC", (value or "").strip())
+        if len(city) > 96:
+            raise ValueError("A city is a name, at most 96 characters")
+        return city or None
 
     @field_validator("institution_code")
     @classmethod

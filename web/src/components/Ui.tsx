@@ -526,6 +526,7 @@ export function Action({
   onClick,
   quiet,
   danger,
+  tall,
   disabled,
 }: {
   children: ReactNode;
@@ -533,12 +534,14 @@ export function Action({
   quiet?: boolean;
   /** For what cannot be undone, and nothing else. */
   danger?: boolean;
+  /** 44 px, for the buttons a screen exists to have pressed. */
+  tall?: boolean;
   disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${css.pressable}`}
+      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${tall ? css.actionTall : ''} ${css.pressable}`}
       onClick={onClick}
       disabled={disabled}
     >

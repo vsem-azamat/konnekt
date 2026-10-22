@@ -130,6 +130,10 @@ async def get_public_catalog(
     if (cached := public_answers.remembered("catalog")) is not None:
         return cast("list[PublicCatalogItem]", cached)
     parent = aliased(Chat)
+    # The group's university: the parent's under one, the chat's own at the
+    # top. Never a child's own: one left from when it stood at the top would
+    # split its group.
+    institution = case((Chat.parent_chat_id.is_(None), Chat.institution_code), else_=parent.institution_code)
     since = utc_now() - ACTIVITY_WINDOW
     grounded = await _observed_days(session, since) >= MIN_OBSERVED_DAYS
 
@@ -149,12 +153,14 @@ async def get_public_catalog(
                 Chat.is_forum,
                 Chat.resource_status,
                 _section(parent),
-                # The group's university: the parent's under one, the chat's own
-                # at the top. Never a child's own: one left from when it stood at
-                # the top would split its group.
-                case((Chat.parent_chat_id.is_(None), Chat.institution_code), else_=parent.institution_code).label(
-                    "institution"
-                ),
+                institution.label("institution"),
+                func.coalesce(Chat.city, parent.city).label("city"),
+                func.coalesce(
+                    Chat.topic,
+                    parent.topic,
+                    # A university's chats are university chats without being told.
+                    case((institution.is_not(None), "university")),
+                ).label("topic"),
                 func.coalesce(recent_messages.c.messages, 0).label("messages"),
                 ChatAvatar.unique_id.label("avatar"),
             )
@@ -178,6 +184,8 @@ async def get_public_catalog(
             is_forum=bool(row.is_forum),
             external=row.resource_status == Chat.STATUS_EXTERNAL,
             avatar=f"{AVATAR_PATH}/{row.avatar}" if row.avatar else None,
+            city=row.city,
+            topic=row.topic,
         )
         for row in rows
         if row.title and row.public_link

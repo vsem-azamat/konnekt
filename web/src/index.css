@@ -84,6 +84,15 @@ body {
  * area with nothing left able to scroll to it, which is a worse bug than the
  * one this file is fixing.
  *
+ * But Telegram's number is not a ceiling either. Telegram for Android reports
+ * the height of the sheet's whole swipe container while the webview sits
+ * below its action bar, so an expanded app is told it is about a header
+ * taller than its window. Sized to that, #root ran past the bottom of the
+ * window and the last rows of a long list could not be scrolled to. Nothing
+ * paints outside the window, so the app is the smaller of the two:
+ * `--visible-height` in styles/tokens.css. The fixed tab bar keeps `bottom: 0`,
+ * which on Android is the same place.
+ *
  * 100dvh is the fallback, for the moment before the client answers and for
  * every browser that is not Telegram. dvh and not vh, because in a plain mobile
  * browser vh counts the space behind the toolbar, and a page built to fill one
@@ -106,7 +115,7 @@ body {
 #root {
   display: flex;
   flex-direction: column;
-  height: var(--app-height, 100dvh);
+  height: var(--visible-height);
   overflow-y: auto;
   /* A list that reaches its end should stop there, not hand the gesture on to
      the viewport. `none` there is what actually stops Telegram; this only
