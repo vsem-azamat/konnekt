@@ -1,4 +1,4 @@
-import { utc } from './session.ts';
+import { ConsoleError, utc } from './session.ts';
 
 /**
  * What waits for an admin, as webapi's `/api/signals` tells it, and the
@@ -84,4 +84,17 @@ export function elapsed(
   if (minutes === 0) return { unit: 'now' };
   if (minutes < 60) return { unit: 'minutes', count: minutes };
   return { unit: 'hours', count: Math.floor(minutes / 60) };
+}
+
+/** Why a press on the Сигналы screen did not go through. */
+export type DecisionProblem = 'gone' | 'decided' | 'protected' | 'unmanaged' | 'failed';
+
+/** webapi's refusal of a decision, as the card should explain it. */
+export function decisionProblem(error: unknown): DecisionProblem {
+  if (!(error instanceof ConsoleError)) return 'failed';
+  if (error.status === 404 || error.detail === 'gone') return 'gone';
+  if (error.detail === 'decided otherwise') return 'decided';
+  if (error.detail === 'protected') return 'protected';
+  if (error.detail === 'unmanaged') return 'unmanaged';
+  return 'failed';
 }

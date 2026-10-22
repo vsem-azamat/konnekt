@@ -61,3 +61,18 @@
   margin: 0;
   font-weight: 650;
 }
+
+/* The report chat's buttons, as compact as there: a row that wraps rather
+   than three pills stretched across a wide card. */
+.decide > div {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 6px;
+}
+
+.decide button {
+  flex: none;
+  min-height: 34px;
+  padding: 7px 14px;
+  font-size: 13px;
+}

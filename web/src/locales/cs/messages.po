@@ -151,6 +151,10 @@ msgstr "Vrátí se na své místo podle priority."
 msgid "Входит в"
 msgstr "Patří pod"
 
+#: src/console/pages/Signals.tsx
+msgid "По этой волне уже решили иначе."
+msgstr "O této vlně už bylo rozhodnuto jinak."
+
 #: src/components/ChatRow.tsx
 msgid "не наш чат"
 msgstr "není náš chat"
@@ -286,6 +290,10 @@ msgstr "Co bot v chatu dělá"
 msgid "Kč"
 msgstr "Kč"
 
+#: src/console/pages/Signals.tsx
+msgid "В чёрный список"
+msgstr "Na černou listinu"
+
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Vypnout"
@@ -298,6 +306,10 @@ msgstr "24 hodin"
 #: src/pages/MyHelper.tsx
 msgid "Скрыть"
 msgstr "Skrýt"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: главного администратора забанить нельзя."
+msgstr "Neprovedeno: hlavního administrátora nelze zabanovat."
 
 #: src/pages/MyHelper.tsx
 msgid "О себе"
@@ -349,8 +361,8 @@ msgid "Вход в консоль"
 msgstr "Přihlášení do konzole"
 
 #: src/console/pages/Signals.tsx
-msgid "Решают кнопками в сообщении бота в чате отчётов."
-msgstr "Rozhoduje se tlačítky ve zprávě bota v chatu hlášení."
+#~ msgid "Решают кнопками в сообщении бота в чате отчётов."
+#~ msgstr "Rozhoduje se tlačítky ve zprávě bota v chatu hlášení."
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -409,6 +421,10 @@ msgstr "Odeslat odpověď"
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
 msgstr "Reklama nebo spam"
+
+#: src/console/pages/Signals.tsx
+msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
+msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět i tam."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -675,6 +691,10 @@ msgstr "zabanovaní ve všech chatech"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
 
+#: src/console/pages/Signals.tsx
+msgid "Подтвердить бан"
+msgstr "Potvrdit ban"
+
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
 msgstr "fakulty, koleje, obecné"
@@ -760,13 +780,17 @@ msgstr "Nepodařilo se načíst"
 msgid "Анкета сохранится, но в каталоге её не будет."
 msgstr "Profil se uloží, ale v katalogu nebude."
 
+#: src/console/pages/Signals.tsx
+msgid "Пусть висят"
+msgstr "Nechat čekat"
+
 #: src/pages/OfferPrices.tsx
 msgid "Сколько"
 msgstr "Kolik"
 
 #: src/console/pages/Signals.tsx
-msgid "Подтвердить или отклонить можно в личном сообщении бота."
-msgstr "Potvrdit nebo odmítnout lze v soukromé zprávě bota."
+#~ msgid "Подтвердить или отклонить можно в личном сообщении бота."
+#~ msgstr "Potvrdit nebo odmítnout lze v soukromé zprávě bota."
 
 #: src/pages/Ask.tsx
 msgid "Показать {total}"
@@ -963,6 +987,10 @@ msgstr "Profil už je v katalogu, administrátor ho ještě neviděl."
 msgid "@username, имя или id"
 msgstr "@username, jméno nebo id"
 
+#: src/console/pages/Signals.tsx
+msgid "Не получилось: Telegram отказал или нет связи. Попробуйте ещё раз."
+msgstr "Nepovedlo se: Telegram odmítl nebo není spojení. Zkuste to znovu."
+
 #: src/console/ProfileSheet.tsx
 msgid "Вернуть в каталог"
 msgstr "Vrátit do katalogu"
@@ -978,6 +1006,10 @@ msgstr "Ověřujeme…"
 #: src/pages/OfferPrices.tsx
 msgid "Срок"
 msgstr "Termín"
+
+#: src/console/pages/Signals.tsx
+msgid "Отклонить"
+msgstr "Odmítnout"
 
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
@@ -1377,6 +1409,10 @@ msgstr "Víc než {perMinute} žádostí za minutu. Pauza skončila: nové žád
 msgid "Здесь появятся страховка, визы, банк и переводы."
 msgstr "Tady se objeví pojištění, víza, banka a převody."
 
+#: src/console/pages/Signals.tsx
+msgid "Отклонить все"
+msgstr "Odmítnout vše"
+
 #: src/lib/workFormat.tsx
 msgid "Как занимаешься"
 msgstr "Jak učíš"
@@ -1739,6 +1775,10 @@ msgstr "Otevře se v Telegramu"
 #: src/console/pages/PartnerNew.tsx
 msgid "Как увидят студенты"
 msgstr "Jak to uvidí studenti"
+
+#: src/console/pages/Signals.tsx
+msgid "Уже решено в Telegram или срок вышел."
+msgstr "Už rozhodnuto v Telegramu, nebo vypršel čas."
 
 #: src/pages/Home.tsx
 msgid "Не удалось загрузить каталог"
@@ -2291,6 +2331,10 @@ msgstr "za lekci"
 msgid "страховка, виза, банк, переводы"
 msgstr "pojištění, vízum, banka, převody"
 
+#: src/console/pages/Signals.tsx
+msgid "Снять паузу"
+msgstr "Zrušit pauzu"
+
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Partners.tsx
 #: src/console/pages/Summary.tsx
@@ -2614,6 +2658,10 @@ msgstr "Podle tohohle to zatím nenajdeme"
 msgid "Пока никого"
 msgstr "Zatím nikdo"
 
+#: src/console/pages/Signals.tsx
+msgid "Те же кнопки, что в сообщении бота в чате отчётов; решение видно и там."
+msgstr "Stejná tlačítka jako ve zprávě bota v chatu hlášení; rozhodnutí je vidět i tam."
+
 #: src/console/pages/Summary.tsx
 msgid "что поймал детектор"
 msgstr "co zachytil detektor"
@@ -2881,6 +2929,10 @@ msgstr "sledujeme"
 #: src/console/pages/Summary.tsx
 msgid "Требует внимания"
 msgstr "Vyžaduje pozornost"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
+msgstr "Neprovedeno: bot už tento chat nemoderuje. Žádost je uzavřena."
 
 #: src/components/RequestSheet.tsx
 msgid "Опубликовать заявку"

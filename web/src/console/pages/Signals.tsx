@@ -1,5 +1,5 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -11,6 +11,8 @@ import {
   TargetIcon,
 } from '@/components/icons';
 import {
+  Action,
+  Actions,
   Count,
   Hint,
   Label,
@@ -22,13 +24,20 @@ import {
   Title,
 } from '@/components/Ui';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
-import { adminCatalogQuery, consoleSignalsQuery } from '@/console/queries';
+import {
+  adminCatalogQuery,
+  consoleChanges,
+  consoleSignalsQuery,
+} from '@/console/queries';
 import css from '@/console/Signals.module.css';
 import { utc } from '@/console/session';
 import {
+  type DecisionProblem,
+  decisionProblem,
   elapsed,
   minutesUntil,
   type PendingActionSignal,
+  type Signals,
   type WaveSignal,
 } from '@/console/signals';
 
@@ -291,9 +300,7 @@ function WaveCard({
           </>
         ) : null}
       </dl>
-      <Hint>
-        <Trans>Решают кнопками в сообщении бота в чате отчётов.</Trans>
-      </Hint>
+      <WaveActions wave={wave} />
     </section>
   );
 }
@@ -344,10 +351,130 @@ function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: D
           </Trans>
         )}
       </p>
-      <Hint>
-        <Trans>Подтвердить или отклонить можно в личном сообщении бота.</Trans>
-      </Hint>
+      <ProposalActions proposal={proposal} />
     </section>
+  );
+}
+
+/**
+ * The report chat's three buttons. The answer comes before the work, as the
+ * button's does: declining a wave of hundreds takes minutes, and the bot's
+ * alert says the outcome when it is done. The card leaves at once; the next
+ * reading of the signals agrees.
+ */
+function WaveActions({ wave }: { wave: WaveSignal }) {
+  const queryClient = useQueryClient();
+  const decide = useMutation({
+    mutationFn: (action: 'decline' | 'resume' | 'leave') =>
+      consoleChanges.decideWave(wave.id, action),
+    onSuccess: () => forget(queryClient, { wave: wave.id }),
+    onError: (error) => {
+      if (decisionProblem(error) !== 'failed') forget(queryClient, { wave: wave.id });
+    },
+  });
+  return (
+    <div className={css.decide}>
+      <Actions>
+        <Action
+          danger
+          disabled={decide.isPending}
+          onClick={() => decide.mutate('decline')}
+        >
+          <Trans>Отклонить все</Trans>
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate('resume')}>
+          <Trans>Снять паузу</Trans>
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate('leave')}>
+          <Trans>Пусть висят</Trans>
+        </Action>
+      </Actions>
+      {decide.error ? (
+        <Hint>
+          <ProblemText problem={decisionProblem(decide.error)} />
+        </Hint>
+      ) : (
+        <Hint>
+          <Trans>
+            Те же кнопки, что в сообщении бота в чате отчётов; решение видно и там.
+          </Trans>
+        </Hint>
+      )}
+    </div>
+  );
+}
+
+function ProposalActions({ proposal }: { proposal: PendingActionSignal }) {
+  const queryClient = useQueryClient();
+  const decide = useMutation({
+    mutationFn: (confirm: boolean) => consoleChanges.decideProposal(proposal.id, confirm),
+    onSuccess: () => forget(queryClient, { proposal: proposal.id }),
+    // Refused for a reason that will not change: the proposal is closed either way.
+    onError: () =>
+      void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey }),
+  });
+  return (
+    <div className={css.decide}>
+      <Actions>
+        <Action danger disabled={decide.isPending} onClick={() => decide.mutate(true)}>
+          {proposal.action === 'blacklist' ? (
+            <Trans>В чёрный список</Trans>
+          ) : (
+            <Trans>Подтвердить бан</Trans>
+          )}
+        </Action>
+        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate(false)}>
+          <Trans>Отклонить</Trans>
+        </Action>
+      </Actions>
+      {decide.error ? (
+        <Hint>
+          <ProblemText problem={decisionProblem(decide.error)} />
+        </Hint>
+      ) : (
+        <Hint>
+          <Trans>Те же кнопки, что в личном сообщении бота; решение видно и там.</Trans>
+        </Hint>
+      )}
+    </div>
+  );
+}
+
+function ProblemText({ problem }: { problem: DecisionProblem }) {
+  switch (problem) {
+    case 'gone':
+      return <Trans>Уже решено в Telegram или срок вышел.</Trans>;
+    case 'decided':
+      return <Trans>По этой волне уже решили иначе.</Trans>;
+    case 'protected':
+      return <Trans>Не выполнено: главного администратора забанить нельзя.</Trans>;
+    case 'unmanaged':
+      return (
+        <Trans>Не выполнено: бот больше не модерирует этот чат. Запрос закрыт.</Trans>
+      );
+    default:
+      return (
+        <Trans>Не получилось: Telegram отказал или нет связи. Попробуйте ещё раз.</Trans>
+      );
+  }
+}
+
+/** Take a decided card off the screen and the counters without waiting for the next reading. */
+function forget(
+  queryClient: ReturnType<typeof useQueryClient>,
+  decided: { wave: number } | { proposal: number },
+) {
+  queryClient.setQueryData<Signals>(consoleSignalsQuery.queryKey, (old) =>
+    old
+      ? 'wave' in decided
+        ? { ...old, waves: old.waves.filter((wave) => wave.id !== decided.wave) }
+        : {
+            ...old,
+            pending_actions: old.pending_actions.filter(
+              (proposal) => proposal.id !== decided.proposal,
+            ),
+          }
+      : old,
   );
 }
 
