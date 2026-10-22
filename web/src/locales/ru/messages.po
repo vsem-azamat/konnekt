@@ -615,6 +615,10 @@ msgstr "Данные входа устарели."
 msgid "Ждёт нажатия"
 msgstr "Ждёт нажатия"
 
+#: src/pages/Profile.tsx
+msgid "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
+msgstr "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
+
 #: src/components/Phrase.tsx
 msgid "первый год"
 msgstr "первый год"

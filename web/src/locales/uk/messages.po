@@ -610,6 +610,10 @@ msgstr "Дані входу застаріли."
 msgid "Ждёт нажатия"
 msgstr "Чекає натискання"
 
+#: src/pages/Profile.tsx
+msgid "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
+msgstr "{waitingForMe, plural, one {# заявка за твоїми послугами} few {# заявки за твоїми послугами} many {# заявок за твоїми послугами} other {# заявки за твоїми послугами}}"
+
 #: src/components/Phrase.tsx
 msgid "первый год"
 msgstr "перший рік"

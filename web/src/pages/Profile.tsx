@@ -86,6 +86,15 @@ export default function ProfilePage() {
     queryFn: ({ signal }) => api.getMyHelper(signal),
     enabled: isHelper,
   });
+  // Without those already answered: the number is what still waits for them.
+  // A banned helper's feed is closed, and asking would only get a 403.
+  const readsFeed = isHelper && me?.helper_status !== 'banned';
+  const { data: facets } = useQuery({
+    queryKey: ['request-feed', 'facets', false],
+    queryFn: ({ signal }) => api.getFeedFacets(false, signal),
+    enabled: readsFeed,
+  });
+  const waitingForMe = facets?.mine ?? 0;
 
   const update = useMutation({
     mutationFn: api.updateMe,
@@ -218,10 +227,7 @@ export default function ProfilePage() {
                     </>
                   }
                 />
-                {/* Without a number until the feed can say which requests
-                    match the helper's services: today it returns every live
-                    request in the catalog. A banned helper's feed is closed. */}
-                {me.helper_status === 'banned' ? null : (
+                {readsFeed ? (
                   <Row
                     onClick={() => navigate('/mine?tab=incoming')}
                     leading={
@@ -230,8 +236,22 @@ export default function ProfilePage() {
                       </Tile>
                     }
                     title={<Trans>Входящие</Trans>}
+                    hint={
+                      waitingForMe > 0 ? (
+                        <Plural
+                          value={waitingForMe}
+                          one="# заявка по твоим услугам"
+                          few="# заявки по твоим услугам"
+                          many="# заявок по твоим услугам"
+                          other="# заявки по твоим услугам"
+                        />
+                      ) : undefined
+                    }
+                    trailing={
+                      waitingForMe > 0 ? <Count>{waitingForMe}</Count> : undefined
+                    }
                   />
-                )}
+                ) : null}
               </>
             ) : null}
           </Rows>
