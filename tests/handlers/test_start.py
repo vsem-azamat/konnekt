@@ -11,9 +11,10 @@ stranger is not handed the moderator's toolbox, and that the console button
 belongs to super administrators alone, should not.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from app.presentation.telegram.handlers import start as start_handlers
 
 from tests.plain_language import slang
@@ -264,14 +265,56 @@ class TestTheVideo:
         (button,) = [b for row in kwargs["reply_markup"].inline_keyboard for b in row]
         assert button.web_app.url == f"{SITE}/chats"
 
+    async def test_a_lost_connection_does_not_greet_twice(self, telegram_factory, admin_repo, site, monkeypatch):
+        """The video may have arrived before the connection dropped."""
+        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+        message.answer_video.side_effect = TelegramNetworkError(method=MagicMock(), message="timeout")
+
+        with pytest.raises(TelegramNetworkError):
+            await start_handlers.start_private(message, admin_repo)
+
+        message.answer.assert_not_called()
+
+    async def test_a_group_gets_no_video(self, telegram_factory, admin_repo, site, monkeypatch):
+        """It would stay in the chat for everybody, after a /start maybe meant for another bot."""
+        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        message = _in_group(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        message.answer_video.assert_not_called()
+        assert message.answer.call_args[0][0] == start_handlers.GREETING
+
+    async def test_the_super_admin_gets_the_console_under_the_video(
+        self, telegram_factory, admin_repo, site, monkeypatch
+    ):
+        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        kwargs = message.answer_video.call_args.kwargs
+        assert "/help" in kwargs["caption"]
+        rows = kwargs["reply_markup"].inline_keyboard
+        assert [row[0].web_app.url for row in rows] == [f"{SITE}/console", f"{SITE}/chats"]
+
+    def test_the_longest_caption_fits(self) -> None:
+        """Telegram caps a caption at 1024 characters, a message at 4096."""
+        longest = start_handlers.GREETING + "\n\nВы модерируете 1000 чатов. Все команды — /help"
+        assert len(longest) <= 1024
+
     async def test_a_refused_video_still_greets(self, telegram_factory, admin_repo, site, monkeypatch):
         """A stale file_id must not leave /start silent."""
         monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
         message = _private(telegram_factory, "start", create_normal_user(id=555))
-        message.answer_video.side_effect = RuntimeError("wrong file identifier")
+        message.answer_video.side_effect = TelegramBadRequest(
+            method=MagicMock(), message="Bad Request: wrong file identifier/HTTP URL specified"
+        )
 
         await start_handlers.start_private(message, admin_repo)
 
+        message.answer_video.assert_awaited_once()
         text, buttons = _answered(message)
         assert text == start_handlers.GREETING
         assert [b.text for b in buttons] == ["Открыть Konnekt 📱"]

@@ -11,6 +11,7 @@ role of whoever asked.
 """
 
 from aiogram import Router, types
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -98,13 +99,17 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
     # Deliberately not scheduled for deletion. This is the message somebody
     # comes back to; the справочник below is the one that may go.
     markup = builder.as_markup() if any(builder.buttons) else None
-    if video := settings.telegram.intro_video:
+    # The video only in a private chat: in a group it would stay in the chat
+    # for everybody, after a /start that may have been meant for another bot.
+    if private and (video := settings.telegram.intro_video):
         try:
             await message.answer_video(video=video, caption=text, reply_markup=markup)
             return
-        except Exception as err:
-            # A stale file_id must not leave /start silent.
-            logger.warning("start_video_failed", error=str(err), exc_info=True)
+        except TelegramBadRequest as err:
+            # A file_id of another bot, or a URL Telegram could not fetch, must
+            # not leave /start silent. Network errors are not caught: the video
+            # may have arrived, and a second greeting would follow it.
+            logger.error("start_video_refused", error=str(err))
     await message.answer(text, disable_web_page_preview=True, reply_markup=markup)
 
 
