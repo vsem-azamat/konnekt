@@ -63,22 +63,32 @@ TOPICS = {
 # ČZU is in the taxonomy; its chat was listed before the code was set.
 INSTITUTIONS = {"czu_chat": "czu"}
 
-_FILL = sa.text(
+_FILL = (
     "UPDATE chats SET {column} = :value"
-    " WHERE {column} IS NULL AND lower(rtrim(public_link, '/')) = lower(:link)"
+    " WHERE {column} IS NULL AND lower(rtrim(public_link, '/')) = lower(:link){only_top}"
 )
 
 
-def _fill(column: str, values: dict[str, str]) -> None:
-    statement = sa.text(_FILL.text.format(column=column))
+def _fill(column: str, values: dict[str, str], *, top_only: bool) -> None:
+    """Write each value where it is still empty; say which links matched nothing.
+
+    A chat under a parent takes the parent's city and university, and the
+    console refuses a university on one, so those two go to top chats only.
+    """
+    statement = sa.text(
+        _FILL.format(column=column, only_top=" AND parent_chat_id IS NULL" if top_only else "")
+    )
+    bind = op.get_bind()
     for username, value in values.items():
-        op.execute(statement.bindparams(value=value, link=f"https://t.me/{username}"))
+        result = bind.execute(statement, {"value": value, "link": f"https://t.me/{username}"})
+        if result.rowcount == 0:
+            print(f"catalog data: {column} for t.me/{username} not written (no such empty field)")
 
 
 def upgrade() -> None:
-    _fill("city", CITIES)
-    _fill("topic", TOPICS)
-    _fill("institution_code", INSTITUTIONS)
+    _fill("city", CITIES, top_only=True)
+    _fill("topic", TOPICS, top_only=False)
+    _fill("institution_code", INSTITUTIONS, top_only=True)
 
 
 def downgrade() -> None:

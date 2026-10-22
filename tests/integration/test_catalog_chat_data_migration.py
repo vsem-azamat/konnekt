@@ -12,8 +12,8 @@ pytestmark = pytest.mark.integration
 
 _INSERT = (
     "INSERT INTO chats (id, resource_status, is_forum, time_delete, is_welcome_enabled, is_captcha_enabled,"
-    " created_at, modified_at, public_link, city, topic)"
-    " VALUES (:id, 'approved', false, 60, false, false, now(), now(), :link, :city, :topic)"
+    " created_at, modified_at, public_link, city, topic, parent_chat_id)"
+    " VALUES (:id, 'approved', false, 60, false, false, now(), now(), :link, :city, :topic, :parent)"
 )
 
 
@@ -26,12 +26,29 @@ def _row(conn, chat_id: int) -> tuple:
 def test_listed_chats_are_filed_by_their_link_and_console_edits_stand(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), "c4d81f2a9e60")
     with database.begin() as conn:
-        conn.execute(sa.text(_INSERT), {"id": -1, "link": "https://t.me/strahov_koleje", "city": None, "topic": None})
-        conn.execute(sa.text(_INSERT), {"id": -2, "link": "https://t.me/fyzika_cz/", "city": None, "topic": None})
-        conn.execute(sa.text(_INSERT), {"id": -3, "link": "https://t.me/czu_chat", "city": None, "topic": None})
+        conn.execute(
+            sa.text(_INSERT),
+            {"id": -1, "link": "https://t.me/strahov_koleje", "city": None, "topic": None, "parent": None},
+        )
+        conn.execute(
+            sa.text(_INSERT), {"id": -2, "link": "https://t.me/Fyzika_CZ/", "city": None, "topic": None, "parent": None}
+        )
+        conn.execute(
+            sa.text(_INSERT), {"id": -3, "link": "https://t.me/czu_chat", "city": None, "topic": None, "parent": None}
+        )
         # Already set in the console before the migration ran.
-        conn.execute(sa.text(_INSERT), {"id": -4, "link": "https://t.me/vsb_chat", "city": "Havířov", "topic": None})
-        conn.execute(sa.text(_INSERT), {"id": -5, "link": "https://t.me/someone_else", "city": None, "topic": None})
+        conn.execute(
+            sa.text(_INSERT),
+            {"id": -4, "link": "https://t.me/vsb_chat", "city": "Havířov", "topic": None, "parent": None},
+        )
+        conn.execute(
+            sa.text(_INSERT),
+            {"id": -5, "link": "https://t.me/someone_else", "city": None, "topic": None, "parent": None},
+        )
+        # A dorm under its university: its own topic, but the parent's city.
+        conn.execute(
+            sa.text(_INSERT), {"id": -6, "link": "https://t.me/kajetanka", "city": None, "topic": None, "parent": -3}
+        )
 
     command.upgrade(_alembic(), "head")
 
@@ -41,3 +58,4 @@ def test_listed_chats_are_filed_by_their_link_and_console_edits_stand(database) 
         assert _row(conn, -3) == ("Praha", None, "czu")
         assert _row(conn, -4) == ("Havířov", "university", None)
         assert _row(conn, -5) == (None, None, None)
+        assert _row(conn, -6) == (None, "dorms", None)
