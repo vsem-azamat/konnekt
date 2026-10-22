@@ -40,15 +40,23 @@ def username_of(link: str) -> str | None:
     return match["username"] if match else None
 
 
-async def ask[T](call: Callable[[], Awaitable[T]]) -> T:
-    """Make a call, waiting out one "retry after" from flood control.
+# Longer waits are not worth holding a tick for. On 2026-10-22 a burst of
+# lookups by name earned the bot an 80-minute wait on exactly that call.
+LONGEST_RETRY_WAIT_SECONDS = 60
 
-    Only one: a second refusal means the bot is still over its limit, and the
-    caller would rather skip a chat than hold the whole tick.
+
+async def ask[T](call: Callable[[], Awaitable[T]]) -> T:
+    """Make a call, waiting out one short "retry after" from flood control.
+
+    Only one, and only up to a minute: a second refusal or a longer wait means
+    the bot is over its limit, and the caller would rather skip a chat than
+    hold the whole tick.
     """
     try:
         return await call()
     except TelegramRetryAfter as err:
+        if err.retry_after > LONGEST_RETRY_WAIT_SECONDS:
+            raise
         await asyncio.sleep(err.retry_after)
         return await call()
 
@@ -110,7 +118,8 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
         chat = await ask(lambda: bot.get_chat(chat_id))
     except TelegramAPIError as err:
         logger.warning("get_chat_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
-        if username is None:
+        # Under flood control a second call only adds to the wait.
+        if username is None or isinstance(err, TelegramRetryAfter):
             return None
         try:
             chat = await ask(lambda: bot.get_chat(f"@{username}"))

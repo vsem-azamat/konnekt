@@ -468,6 +468,66 @@ class TestFloodControl:
         assert await metadata.fetch_metadata(bot=bot, chat_id=-100) is None
         assert bot.get_chat.await_count == 2
 
+    @pytest.mark.parametrize(("retry_after", "waits"), [(60, True), (61, False)])
+    async def test_only_a_short_retry_after_is_waited_out(self, monkeypatch, retry_after: int, waits: bool) -> None:
+        from aiogram.exceptions import TelegramRetryAfter
+        from app.chats import metadata
+
+        waited: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            waited.append(seconds)
+
+        monkeypatch.setattr(metadata.asyncio, "sleep", fake_sleep)
+        flood = TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=retry_after)
+        bot = AsyncMock()
+        bot.get_chat_member_count = AsyncMock(side_effect=[flood, 120])
+
+        count = await metadata.fetch_member_count(bot=bot, chat_id=-100)
+
+        assert (count == 120) is waits
+        assert waited == ([retry_after] if waits else [])
+
+    async def test_a_long_retry_after_on_the_name_is_not_waited_out(self, monkeypatch) -> None:
+        """The incident of 2026-10-22: the id is unknown, the name is under an 80-minute wait."""
+        from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+        from app.chats import metadata
+
+        waited: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            waited.append(seconds)
+
+        monkeypatch.setattr(metadata.asyncio, "sleep", fake_sleep)
+        bot = AsyncMock()
+        bot.get_chat = AsyncMock(
+            side_effect=[
+                TelegramBadRequest(method=MagicMock(), message="chat not found"),
+                TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=4837),
+            ]
+        )
+
+        assert await metadata.fetch_metadata(bot=bot, chat_id=-100, username="jcu_chat") is None
+        assert bot.get_chat.await_count == 2
+        assert waited == []
+
+    async def test_a_long_retry_after_on_the_id_does_not_try_the_name(self, monkeypatch) -> None:
+        from aiogram.exceptions import TelegramRetryAfter
+        from app.chats import metadata
+
+        waited: list[float] = []
+
+        async def fake_sleep(seconds: float) -> None:
+            waited.append(seconds)
+
+        monkeypatch.setattr(metadata.asyncio, "sleep", fake_sleep)
+        bot = AsyncMock()
+        bot.get_chat = AsyncMock(side_effect=TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=4837))
+
+        assert await metadata.fetch_metadata(bot=bot, chat_id=-100, username="jcu_chat") is None
+        assert bot.get_chat.await_count == 1
+        assert waited == []
+
 
 class TestBotNotInChat:
     """A chat the bot is not in says "chat not found" every hour, and nothing else.
