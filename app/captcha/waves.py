@@ -36,6 +36,8 @@ logger = get_logger("captcha.waves")
 # chats see a handful a day; twenty a minute is not a semester starting.
 PER_MINUTE = 20
 QUIET_MINUTES = 15
+# How long an undecided wave keeps asking the admins; see `undecided`.
+UNDECIDED_FOR = datetime.timedelta(days=1)
 # Declined per transaction, so a restart loses at most this much progress.
 _BATCH = 50
 
@@ -237,17 +239,23 @@ async def _held_count(db: AsyncSession, wave: JoinWave) -> int:
     return count or 0
 
 
-async def undecided(db: AsyncSession) -> list[tuple[JoinWave, int]]:
+async def undecided(db: AsyncSession, now: datetime.datetime) -> list[tuple[JoinWave, int]]:
     """Waves nobody pressed a button on that still hold requests, newest first, with how many.
 
-    A wave whose held requests have all expired or been settled in Telegram
-    waits for nothing, so it is not here even though nobody decided it.
+    Held requests never close by themselves: Telegram keeps a join request
+    until somebody answers it, and nothing tells the bot when a chat's own
+    admins did. So a wave stops waiting for the report chat a day after its
+    last burst; by then the requests are the chat admins' to settle.
     """
     held = func.count(JoinCaptcha.id).label("held")
     rows = await db.execute(
         select(JoinWave, held)
         .join(JoinCaptcha, JoinCaptcha.wave_id == JoinWave.id)
-        .where(JoinWave.decision.is_(None), JoinCaptcha.status == JoinCaptcha.STATUS_HELD)
+        .where(
+            JoinWave.decision.is_(None),
+            JoinWave.last_surge_at > now - UNDECIDED_FOR,
+            JoinCaptcha.status == JoinCaptcha.STATUS_HELD,
+        )
         .group_by(JoinWave.id)
         .order_by(JoinWave.last_surge_at.desc(), JoinWave.id.desc())
     )

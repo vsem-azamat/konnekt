@@ -86,18 +86,45 @@ async def test_a_wave_nobody_decided_waits_with_the_requests_it_holds(client, db
     assert wave["paused"] is True
 
 
-async def test_a_wave_whose_held_requests_are_all_settled_waits_for_nothing(client, db_session_maker) -> None:
+async def test_a_wave_stops_waiting_once_settled_or_a_day_old(client, db_session_maker) -> None:
     now = utc_now()
     async with db_session_maker() as session:
         session.add(Chat(id=-100, title="Matfyz"))
-        wave = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(hours=2))
-        wave.last_surge_at = now - datetime.timedelta(hours=2)
-        session.add(wave)
+        settled = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(hours=2))
+        settled.last_surge_at = now - datetime.timedelta(hours=2)
+        stale = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(days=2))
+        stale.last_surge_at = now - datetime.timedelta(hours=25)
+        resumed = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(minutes=5))
+        resumed.decision = JoinWave.DECISION_RESUME
+        session.add_all([settled, stale, resumed])
         await session.flush()
-        session.add(_captcha(-100, 1, JoinCaptcha.STATUS_EXPIRED, wave.id, now))
+        session.add_all(
+            [
+                _captcha(-100, 1, JoinCaptcha.STATUS_DECLINED, settled.id, now),
+                _captcha(-100, 2, JoinCaptcha.STATUS_HELD, stale.id, now),
+                _captcha(-100, 3, JoinCaptcha.STATUS_HELD, resumed.id, now),
+            ]
+        )
         await session.commit()
 
     assert (await _signals(client))["waves"] == []
+
+
+async def test_a_wave_quiet_for_longer_than_the_spell_is_no_longer_paused(client, db_session_maker) -> None:
+    now = utc_now()
+    async with db_session_maker() as session:
+        session.add(Chat(id=-100, title="Matfyz"))
+        wave = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(hours=1))
+        wave.last_surge_at = now - datetime.timedelta(minutes=16)
+        session.add(wave)
+        await session.flush()
+        session.add(_captcha(-100, 1, JoinCaptcha.STATUS_HELD, wave.id, now))
+        await session.commit()
+
+    [wave] = (await _signals(client))["waves"]
+    assert wave["paused"] is False
+    # Not counted: the bot has never measured this chat.
+    assert wave["member_count"] is None
 
 
 async def test_a_ban_proposed_through_mcp_waits_until_pressed_or_expired(client, db_session_maker) -> None:

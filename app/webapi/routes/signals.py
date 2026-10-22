@@ -27,7 +27,7 @@ router = APIRouter(prefix="/signals", tags=["signals"])
 @router.get("", response_model=Signals)
 async def read_signals(session: Annotated[AsyncSession, Depends(get_session)]) -> Signals:
     now = utc_now()
-    held_waves = await waves.undecided(session)
+    held_waves = await waves.undecided(session, now)
     proposals = await pending_actions.awaiting(session)
 
     chat_ids = {wave.chat_id for wave, _ in held_waves} | {p.chat_id for p in proposals if p.chat_id is not None}
