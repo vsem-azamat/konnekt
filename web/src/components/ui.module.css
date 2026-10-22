@@ -128,29 +128,6 @@
   letter-spacing: 0.02em;
 }
 
-.avatarBtn {
-  width: 32px;
-  height: 32px;
-  flex: none;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  transition: transform 120ms ease;
-}
-
-.avatarBtn:active {
-  transform: scale(0.94);
-}
-
-/* Two rings so the dark one reads against the avatar rather than blending into
-   whichever tone it happens to have. */
-.avatarBtn[aria-current='page'] {
-  box-shadow:
-    0 0 0 2px var(--bg),
-    0 0 0 4px var(--ink);
-}
-
 .h1 {
   margin: 14px 0 0;
   font-size: 32px;

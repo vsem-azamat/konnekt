@@ -1,11 +1,10 @@
 /**
  * The bar at the top of every screen.
  *
- * Three controls, and each earns its place by being something people look for
- * and cannot find: the language, the palette, and the way back to yourself.
- * They belong on every screen rather than inside a settings page, because the
- * answer to "how do I make this light" should not be "leave what you are doing
- * and go somewhere else".
+ * Two controls, and each earns its place by being something people look for
+ * and cannot find: the language and the palette. They belong on every screen
+ * rather than inside a settings page, because the answer to "how do I make
+ * this light" should not be "leave what you are doing and go somewhere else".
  *
  * It is rendered per screen rather than once above the router. A shared shell
  * would have to know which screens want tabs and which want a back arrow, and
@@ -18,7 +17,7 @@ import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { hapticSelection, useTelegramUser } from '@/hooks/useTelegram';
+import { hapticSelection } from '@/hooks/useTelegram';
 import {
   activateLocale,
   LOCALE_NAMES,
@@ -41,7 +40,6 @@ export function AppHeader() {
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
   const theme = useAppTheme();
-  const user = useTelegramUser();
   const me = useQuery(meQuery);
   const onConsole = pathname === '/console';
 
@@ -102,7 +100,6 @@ export function AppHeader() {
   };
 
   const locale = LOCALES.find((code) => code === i18n.locale) ?? 'ru';
-  const onProfile = pathname === '/profile';
 
   return (
     <header className={css.head}>
@@ -154,22 +151,6 @@ export function AppHeader() {
             {t`Консоль`}
           </button>
         ) : null}
-
-        <button
-          type="button"
-          className={css.avatarBtn}
-          aria-label={t`Профиль`}
-          aria-current={onProfile ? 'page' : undefined}
-          onClick={() => {
-            if (!onProfile) hapticSelection();
-            navigate('/profile');
-          }}
-        >
-          <HeaderAvatar
-            photo={user?.photo_url}
-            initial={(user?.first_name ?? '?').slice(0, 1).toUpperCase()}
-          />
-        </button>
       </div>
 
       {languageOpen ? (
@@ -189,27 +170,5 @@ export function AppHeader() {
         </Sheet>
       ) : null}
     </header>
-  );
-}
-
-/** A Telegram photo URL expires; the initial is what is left when it does. */
-function HeaderAvatar({ photo, initial }: { photo?: string; initial: string }) {
-  if (photo) {
-    return <img className={css.avatar} src={photo} alt="" width={32} height={32} />;
-  }
-  return (
-    <span
-      className={css.avatar}
-      style={{
-        width: 32,
-        height: 32,
-        fontSize: 12,
-        background: 'var(--tone-2-bg)',
-        color: 'var(--tone-2-fg)',
-      }}
-      aria-hidden="true"
-    >
-      {initial}
-    </span>
   );
 }

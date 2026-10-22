@@ -1705,7 +1705,7 @@ msgstr "Обновить из Telegram"
 msgid "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
 msgstr "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
 
-#: src/components/AppHeader.tsx
+#: src/components/TabBar.tsx
 #: src/pages/Profile.tsx
 msgid "Профиль"
 msgstr "Профиль"

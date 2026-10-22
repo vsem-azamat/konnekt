@@ -1705,7 +1705,7 @@ msgstr "Refresh from Telegram"
 msgid "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
 msgstr "No sign-up — you come in with your Telegram account. Helping others starts in the same place."
 
-#: src/components/AppHeader.tsx
+#: src/components/TabBar.tsx
 #: src/pages/Profile.tsx
 msgid "Профиль"
 msgstr "Profile"
