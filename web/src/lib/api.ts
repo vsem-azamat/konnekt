@@ -392,6 +392,10 @@ export const api = {
   closeRequest: (requestId: number) =>
     request<HelpRequest>(`/requests/${requestId}/close`, { method: 'POST' }),
 
+  /** Gone for good, with its responses. The author only; 404 for anyone else. */
+  deleteRequest: (requestId: number) =>
+    request<void>(`/requests/${requestId}`, { method: 'DELETE' }),
+
   /** Open requests worth answering. Helpers only; 403 for everyone else. */
   getRequestFeed: (signal?: AbortSignal) =>
     request<FeedRequest[]>('/requests/feed', { signal }),

@@ -122,6 +122,11 @@ msgstr "Pardubice"
 msgid "На публичной вкладке"
 msgstr "Na veřejné záložce"
 
+#. placeholder {0}: formatDay( request.deadline_on ?? localDay(request.expires_at ?? ''), locale, )
+#: src/pages/Mine.tsx
+msgid "срок вышел {0}"
+msgstr "platnost skončila {0}"
+
 #: src/components/Phrase.tsx
 msgid "оценка"
 msgstr "hodnocení"
@@ -374,6 +379,10 @@ msgstr "Hledání selhalo. Zkuste to znovu."
 msgid "сутки"
 msgstr "24 hodin"
 
+#: src/pages/Request.tsx
+msgid "Действия с заявкой"
+msgstr "Akce s poptávkou"
+
 #: src/console/pages/Signals.tsx
 #: src/console/ProfileSheet.tsx
 #: src/pages/MyHelper.tsx
@@ -403,6 +412,12 @@ msgstr "Zkoušky a přijímací řízení"
 #: src/console/BrowserShell.tsx
 msgid "админка"
 msgstr "administrace"
+
+#: src/components/RemoveRequest.tsx
+#: src/pages/Mine.tsx
+msgctxt "request"
+msgid "Закрыть"
+msgstr "Uzavřít"
 
 #: src/pages/Profile.tsx
 msgid "Чешский для вуза"
@@ -720,6 +735,10 @@ msgstr "Měsíc"
 msgid "Пришли по ссылке"
 msgstr "Přišli přes odkaz"
 
+#: src/pages/Mine.tsx
+msgid "Без откликов"
+msgstr "Bez odpovědí"
+
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
 msgstr "Přihlášení se neuložilo"
@@ -1014,6 +1033,7 @@ msgstr "Uložit"
 msgid "Готово"
 msgstr "Hotovo"
 
+#: src/components/RemoveRequest.tsx
 #: src/console/BanSheet.tsx
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -1052,6 +1072,10 @@ msgstr "Kolik to stojí"
 #: src/pages/MyHelper.tsx
 msgid "Скрыта тобой"
 msgstr "Skrytý tebou"
+
+#: src/pages/Mine.tsx
+msgid "Открытых заявок нет"
+msgstr "Žádné otevřené poptávky"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1225,6 +1249,11 @@ msgstr "Už je na černé listině."
 #: src/console/BrowserShell.tsx
 msgid "Сигналы, ждут решения: {0}"
 msgstr "Signály, čeká na rozhodnutí: {0}"
+
+#. placeholder {0}: daysLeft(request.expires_at)
+#: src/pages/Mine.tsx
+msgid "{0, plural, one {ещё # день} few {ещё # дня} many {ещё # дней} other {ещё # дня}}"
+msgstr "{0, plural, one {ještě # den} few {ještě # dny} many {ještě # dne} other {ještě # dní}}"
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -1650,6 +1679,10 @@ msgstr "připraven: bany a obnovení z Telegramu fungují"
 #: src/console/pages/Partners.tsx
 msgid "Показы и клики за 30 дней."
 msgstr "Zobrazení a kliknutí za 30 dní."
+
+#: src/components/RemoveRequest.tsx
+msgid "уйдёт из ленты, отклики и переписка сохранятся"
+msgstr "zmizí z nabídky, odpovědi a konverzace zůstanou"
 
 #: src/console/ProfileSheet.tsx
 msgid "Скрыть анкету {name}?"
@@ -2220,6 +2253,10 @@ msgstr "Vyber, s čím můžeš pomoct"
 msgid "Чем ты можешь помочь?"
 msgstr "S čím můžeš pomoct?"
 
+#: src/components/RemoveRequest.tsx
+msgid "Убрать заявку"
+msgstr "Odebrat poptávku"
+
 #: src/console/pages/Chats.tsx
 msgid "Telegram сейчас не ответил. Попробуйте через минуту."
 msgstr "Telegram teď neodpověděl. Zkuste to za minutu."
@@ -2273,6 +2310,11 @@ msgstr "Brno"
 #: src/console/pages/Chat.tsx
 msgid "обновите его из Telegram"
 msgstr "obnovte ho z Telegramu"
+
+#. placeholder {0}: formatDay(localDay(request.closed_at), locale)
+#: src/pages/Mine.tsx
+msgid "закрыта {0}"
+msgstr "uzavřena {0}"
 
 #: src/pages/Helper.tsx
 msgid "Чем помогает"
@@ -2415,6 +2457,14 @@ msgstr "Nenastaveno: jen společné uvítání"
 msgid "Попробовать ещё раз"
 msgstr "Zkusit znovu"
 
+#: src/pages/Mine.tsx
+msgid "Закрытых заявок нет"
+msgstr "Žádné uzavřené poptávky"
+
+#: src/components/RemoveRequest.tsx
+msgid "Удалить насовсем"
+msgstr "Smazat natrvalo"
+
 #: src/components/HideReasonText.tsx
 msgid "Нарушает правила"
 msgstr "Porušuje pravidla"
@@ -2495,6 +2545,7 @@ msgstr "Tahle skupina už neexistuje"
 msgid "на сайте"
 msgstr "na webu"
 
+#: src/components/RemoveRequest.tsx
 #: src/pages/Join.tsx
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Nepodařilo se spojit. Zkus to znovu."
@@ -2610,6 +2661,10 @@ msgstr "Zrušit pauzu"
 #: src/console/pages/Summary.tsx
 msgid "Партнёры"
 msgstr "Partneři"
+
+#: src/components/RemoveRequest.tsx
+msgid "заявка и отклики пропадут, вернуть нельзя"
+msgstr "poptávka i odpovědi zmizí, nelze vrátit"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -2788,6 +2843,10 @@ msgstr "Práce a IT"
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
 msgstr "Na tenhle dotaz tu zatím nikdo není"
+
+#: src/pages/Mine.tsx
+msgid "Закрыта"
+msgstr "Uzavřena"
 
 #. placeholder {0}: formatMoney(price.amount)
 #: src/pages/Helper.tsx
@@ -3040,6 +3099,11 @@ msgstr "Vymazat hledání"
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
 msgstr "Zaznamenává historii a počítá členy. Nic nepíše a na nic neodpovídá."
+
+#. placeholder {0}: closed.length
+#: src/pages/Mine.tsx
+msgid "Закрытые · {0}"
+msgstr "Uzavřené · {0}"
 
 #: src/console/ProfileSheet.tsx
 msgid "Скрыта из каталога."
@@ -3519,6 +3583,11 @@ msgstr "Odhlásit toto přihlášení?"
 #: src/pages/AdsChats.tsx
 msgid "Нажмите, чтобы попробовать ещё раз"
 msgstr "Klepněte a zkuste to znovu"
+
+#. placeholder {0}: open.length
+#: src/pages/Mine.tsx
+msgid "Открытые · {0}"
+msgstr "Otevřené · {0}"
 
 #: src/components/Phrase.tsx
 msgid "Разобраться заранее"

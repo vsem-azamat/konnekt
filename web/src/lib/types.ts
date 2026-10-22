@@ -302,6 +302,11 @@ export interface HelpRequest {
   responses_count: number;
   responders: Avatar[];
   created_at: string;
+  /** When an open request stops being shown; null for one without an end. */
+  expires_at: string | null;
+  closed_at: string | null;
+  /** Helpers whose listed, unpaused services match it, the author not counted. */
+  helpers_seeing: number;
 }
 
 /**
