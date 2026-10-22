@@ -70,8 +70,8 @@ loki.process "json" {
   // Mini App sends its Telegram init data (a login valid for a day) in one.
   // It never leaves this host.
   stage.replace {
-    expression = "(?i)\"X-Telegram-Init-Data\": \\[\"([^\"]*)\"\\]"
-    replace    = "<redacted>"
+    expression = "(?i)\"X-Telegram-Init-Data\":\\s*\\[([^\\]]*)\\]"
+    replace    = "\"<redacted>\""
   }
 
   // Lines that are not JSON (a startup banner, a library's last words) pass
