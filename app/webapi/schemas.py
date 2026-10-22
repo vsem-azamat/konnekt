@@ -495,3 +495,50 @@ class AudiencePersonRead(BaseModel):
     opted_out_at: datetime.datetime | None
     touches: list[AudienceTouchRead]
     reach: list[AudienceReachRead]
+
+
+class WaveSignal(BaseModel):
+    """A burst of join requests to one chat that nobody decided yet."""
+
+    id: int
+    chat_id: int
+    chat_title: str | None
+    # As last counted; None when the bot has not counted the chat.
+    member_count: int | None
+    started_at: datetime.datetime
+    last_surge_at: datetime.datetime
+    # Requests from the wave still waiting in Telegram.
+    held: int
+    # The captcha stays off until a quiet spell after the last burst.
+    paused: bool
+
+
+class PendingActionSignal(BaseModel):
+    """A ban or blacklisting proposed through MCP, waiting for an admin's press."""
+
+    id: int
+    action: Literal["ban", "blacklist"]
+    # None for every chat.
+    chat_id: int | None
+    chat_title: str | None
+    target_user_id: int
+    target_username: str | None
+    target_name: str | None
+    reason: str | None
+    created_at: datetime.datetime
+    expires_at: datetime.datetime
+
+
+class SignalQueues(BaseModel):
+    """How many wait in the console's own queues."""
+
+    ads_unreviewed: int
+    chats_in_review: int
+
+
+class Signals(BaseModel):
+    """What waits for an admin: decisions the report chat asks for, and the queues."""
+
+    waves: list[WaveSignal]
+    pending_actions: list[PendingActionSignal]
+    queues: SignalQueues

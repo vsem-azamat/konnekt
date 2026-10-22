@@ -115,6 +115,17 @@ async def expire_stale(db: AsyncSession) -> int:
     return len(stale)
 
 
+async def awaiting(db: AsyncSession) -> list[PendingAction]:
+    """Proposals that still wait for a press, the ones running out first."""
+    return list(
+        await db.scalars(
+            select(PendingAction)
+            .where(PendingAction.status == PendingActionStatus.PENDING, PendingAction.expires_at > utc_now())
+            .order_by(PendingAction.expires_at, PendingAction.id)
+        )
+    )
+
+
 class ActionExecutor(Protocol):
     """Carries out a confirmed action. Injected so tests need no live bot."""
 

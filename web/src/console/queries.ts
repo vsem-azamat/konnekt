@@ -29,6 +29,7 @@ import {
   type SpamVerdict,
   type SystemStatus,
 } from './session';
+import type { Signals } from './signals';
 import {
   nextBefore,
   type PageCursor,
@@ -66,6 +67,15 @@ export const adminPartnersQuery = {
   queryKey: ['console', 'partners'] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) => api.getAdminPartners(signal),
   staleTime: CONSOLE_STALE,
+};
+
+/** What waits for an admin; the browser's menu counts from it. */
+export const consoleSignalsQuery = {
+  queryKey: ['console', 'signals'] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<Signals>('/api/signals', { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
 };
 
 export const consoleStatsQuery = {

@@ -10,6 +10,7 @@ import { FailureText } from '@/console/FailureText';
 import {
   blockedQuery,
   consoleChanges,
+  consoleSignalsQuery,
   consoleStatsQuery,
   consoleSystemQuery,
 } from '@/console/queries';
@@ -92,6 +93,7 @@ export function PingSheet({
       void queryClient.invalidateQueries({ queryKey: ['console', 'chat'] });
       void queryClient.invalidateQueries({ queryKey: blockedQuery.queryKey });
       void queryClient.invalidateQueries({ queryKey: consoleStatsQuery.queryKey });
+      void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey });
       const outcome = banOutcome(answer);
       if (outcome === 'done') onClose();
       else setOutcome({ outcome, failed: answer.failed_chats.length });
