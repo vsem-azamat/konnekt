@@ -25,6 +25,10 @@ msgstr "Она пропадёт из каталога и поиска, и авт
 msgid "+ Внешний чат"
 msgstr "+ Внешний чат"
 
+#: src/pages/Profile.tsx
+msgid "Языки"
+msgstr "Языки"
+
 #. placeholder {0}: blocked.data.length
 #. placeholder {0}: data.new_this_week
 #: src/console/pages/Audience.tsx
@@ -121,6 +125,11 @@ msgstr "На публичной вкладке"
 #: src/components/Phrase.tsx
 msgid "оценка"
 msgstr "оценка"
+
+#. placeholder {0}: feed.length
+#: src/pages/Profile.tsx
+msgid "{0, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
+msgstr "{0, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
 
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
@@ -308,6 +317,10 @@ msgstr "Этот канал ведёт не Konnekt, правила там св�
 msgid "вуз"
 msgstr "вуз"
 
+#: src/pages/Profile.tsx
+msgid "Моё"
+msgstr "Моё"
+
 #: src/console/pages/Chat.tsx
 msgid "как у родителя: <0/>"
 msgstr "как у родителя: <0/>"
@@ -487,6 +500,10 @@ msgstr "Реклама или спам"
 msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
 msgstr "Те же кнопки, что в личном сообщении бота; решение видно и там."
 
+#: src/pages/Profile.tsx
+msgid "Умеешь то, что нужно другим?"
+msgstr "Умеешь то, что нужно другим?"
+
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -513,8 +530,8 @@ msgid "Что происходит в чатах и в каталоге."
 msgstr "Что происходит в чатах и в каталоге."
 
 #: src/pages/Profile.tsx
-msgid "На каких языках тебе удобно"
-msgstr "На каких языках тебе удобно"
+#~ msgid "На каких языках тебе удобно"
+#~ msgstr "На каких языках тебе удобно"
 
 #: src/console/pages/Catalog.tsx
 msgid "Искали и не нашли"
@@ -849,8 +866,8 @@ msgid "репетиторство, работы, документы"
 msgstr "репетиторство, работы, документы"
 
 #: src/pages/Profile.tsx
-msgid "расскажи своими словами, анкету соберём сами"
-msgstr "расскажи своими словами, анкету соберём сами"
+#~ msgid "расскажи своими словами, анкету соберём сами"
+#~ msgstr "расскажи своими словами, анкету соберём сами"
 
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
@@ -905,6 +922,7 @@ msgid "Показать {total}"
 msgstr "Показать {total}"
 
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "Мои заявки"
 msgstr "Мои заявки"
 
@@ -1008,6 +1026,7 @@ msgid "Оставить"
 msgstr "Оставить"
 
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "Входящие"
 msgstr "Входящие"
 
@@ -1159,6 +1178,11 @@ msgstr "с {since}: {0} → {1}"
 msgid "Другое"
 msgstr "Другое"
 
+#. placeholder {0}: waiting.requests
+#: src/pages/Profile.tsx
+msgid "{0, plural, one {# заявка} few {# заявки} many {# заявок} other {# заявки}}"
+msgstr "{0, plural, one {# заявка} few {# заявки} many {# заявок} other {# заявки}}"
+
 #: src/pages/Mine.tsx
 msgid "Пока без откликов"
 msgstr "Пока без откликов"
@@ -1289,8 +1313,8 @@ msgid "рядом с языками"
 msgstr "рядом с языками"
 
 #: src/pages/Profile.tsx
-msgid "Предлагать услуги"
-msgstr "Предлагать услуги"
+#~ msgid "Предлагать услуги"
+#~ msgstr "Предлагать услуги"
 
 #: src/components/TabBar.tsx
 #: src/pages/Mine.tsx
@@ -1967,6 +1991,10 @@ msgstr "Добавить предмет — математика, čeština, ф�
 msgid "Во всех чатах, за всё время. Отменить нельзя."
 msgstr "Во всех чатах, за всё время. Отменить нельзя."
 
+#: src/pages/Profile.tsx
+msgid "своих заявок нет"
+msgstr "своих заявок нет"
+
 #: src/console/pages/Chat.tsx
 msgid "Снять"
 msgstr "Снять"
@@ -2087,6 +2115,10 @@ msgstr "Отметь всё, что умеешь. Цены спросим на �
 #: src/components/Phrase.tsx
 msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
 msgstr "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+
+#: src/pages/Profile.tsx
+msgid "новых заявок нет"
+msgstr "новых заявок нет"
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -2218,6 +2250,10 @@ msgstr "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {
 #: src/console/pages/Signals.tsx
 msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 msgstr "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
+
+#: src/pages/Profile.tsx
+msgid "Предложить услугу"
+msgstr "Предложить услугу"
 
 #: src/components/Place.tsx
 msgid "Брно"
@@ -2419,6 +2455,10 @@ msgstr "Сколько берёшь?"
 #: src/console/pages/Audience.tsx
 msgid "Язык Telegram"
 msgstr "Язык Telegram"
+
+#: src/pages/Profile.tsx
+msgid "Ещё"
+msgstr "Ещё"
 
 #: src/console/pages/Signals.tsx
 msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
@@ -2639,7 +2679,9 @@ msgid "по любому вопросу"
 msgstr "по любому вопросу"
 
 #. placeholder {0}: request.responses_count
+#. placeholder {0}: waiting.responses
 #: src/pages/Mine.tsx
+#: src/pages/Profile.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 
@@ -2966,6 +3008,11 @@ msgstr "Откуда приходят"
 #: src/pages/Request.tsx
 msgid "Ты отказался"
 msgstr "Ты отказался"
+
+#. placeholder {0}: helper.offers.length
+#: src/pages/Profile.tsx
+msgid "{0, plural, one {# услуга} few {# услуги} many {# услуг} other {# услуги}}"
+msgstr "{0, plural, one {# услуга} few {# услуги} many {# услуг} other {# услуги}}"
 
 #: src/pages/Chats.tsx
 msgid "Очистить поиск"
@@ -3379,6 +3426,10 @@ msgstr "За всё время"
 #: src/pages/Join.tsx
 msgid "Студенческие чаты"
 msgstr "Студенческие чаты"
+
+#: src/pages/Profile.tsx
+msgid "Занятия, работы, документы. Анкета в каталоге — две минуты, ничего обязательного."
+msgstr "Занятия, работы, документы. Анкета в каталоге — две минуты, ничего обязательного."
 
 #: src/components/Phrase.tsx
 msgid "Учёба"
