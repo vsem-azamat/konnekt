@@ -60,7 +60,7 @@ from students_cz.schemas import (
 from students_cz.services import requests as requests_service
 from students_cz.services.catalog import avatar_for
 from students_cz.services.naming import names_by_id, rows_by_id, short_form, translated
-from students_cz.services.notify import Recipient, quote
+from students_cz.services.notify import Recipient, money, quote
 from students_cz.services.people import full_name
 
 router = APIRouter()
@@ -293,7 +293,7 @@ async def respond_to_request(
                 helper=quote(rendered.name, 64),
                 price=(
                     pick(FOR_PRICE, author.ui_lang).format(
-                        price=quote(_price_line(rendered.price), 40)
+                        price=_price_line(rendered.price)
                     )
                     if rendered.price and rendered.price.amount is not None
                     else ""
@@ -424,8 +424,7 @@ async def _axes_line(session, request: HelpRequest) -> str:
 def _price_line(price: Price | None) -> str:
     if price is None or price.amount is None:
         return ""
-    amount = int(price.amount) if float(price.amount).is_integer() else price.amount
-    return f"{amount} {price.currency}"
+    return money(price.amount, price.currency)
 
 
 async def _responses_out(

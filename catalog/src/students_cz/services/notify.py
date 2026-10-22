@@ -17,6 +17,7 @@ the person will see it in the app.
 import asyncio
 import logging
 from dataclasses import dataclass
+from decimal import Decimal
 from html import escape
 
 from aiogram import Bot
@@ -282,3 +283,10 @@ def quote(value: str, limit: int = 300) -> str:
     if len(collapsed) > limit:
         collapsed = collapsed[: limit - 1].rstrip() + "…"
     return escape(collapsed)
+
+
+def money(value: Decimal | float, currency: str) -> str:
+    """An amount as people here write it: «500 Kč», never the ISO code «CZK»."""
+    number = Decimal(str(value))
+    shown = f"{number:f}" if number % 1 else f"{int(number)}"
+    return f"{shown} {'Kč' if currency == 'CZK' else quote(currency, 3)}"

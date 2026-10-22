@@ -230,7 +230,7 @@ PARTNERS: list[dict] = [
             "en": (
                 "Sworn translation of your certificate",
                 "court translator · 2 working days",
-                "450 CZK",
+                "450 Kč",
                 "Nostrification almost always stalls on document translation.",
             ),
             "uk": (

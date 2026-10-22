@@ -583,6 +583,31 @@ async def test_the_author_hears_about_an_answer(
     assert button.web_app.url == "https://tests.example"
 
 
+async def test_the_author_reads_the_price_in_crowns(
+    session: AsyncSession, helper_factory
+) -> None:
+    """«500 Kč», as every other price the person sees, not the ISO code."""
+    bot = RecordingBot()
+    transport = ASGITransport(app=app_for(session, bot=bot))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        await helper_factory(tg_id=HELPER)
+        created = await post_request(client, "матан")
+        author = await session.scalar(select(User).where(User.tg_id == STUDENT))
+        assert author is not None
+        author.bot_started_at = datetime.now(UTC)
+        await session.flush()
+
+        response = await client.post(
+            f"/api/v1/requests/{created['id']}/respond",
+            json={"message": "могу помочь с этим", "price_amount": 500},
+            headers=helper_header(),
+        )
+
+    assert response.status_code == 201, response.text
+    assert "500 Kč" in bot.sent[0]["text"]
+    assert "CZK" not in bot.sent[0]["text"]
+
+
 async def test_nobody_hears_about_it_who_never_started_the_bot(
     session: AsyncSession, helper_factory
 ) -> None:
