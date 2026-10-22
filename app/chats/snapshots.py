@@ -28,7 +28,14 @@ from sqlalchemy import select, update
 
 from app.chats import previews
 from app.chats.avatars import sync_photo
-from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import (
+    BotNotInChatError,
+    ChatMigratedError,
+    fetch_member_count,
+    fetch_metadata,
+    username_of,
+)
+from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -123,8 +130,9 @@ async def snapshot_once(
     async with session_maker() as session:
         everything = (await session.execute(select(Chat))).scalars().all()
         # A chat known only by its invite link is not Telegram's to answer
-        # about to this bot: its page is read instead, once a day.
-        chats = [chat for chat in everything if not chat.is_preview_only]
+        # about to this bot: its page is read instead, once a day. A group that
+        # became a supergroup answers nothing about its old id again.
+        chats = [chat for chat in everything if not chat.is_preview_only and chat.migrated_to_chat_id is None]
         previewed = [
             chat
             for chat in everything
@@ -140,6 +148,10 @@ async def snapshot_once(
             asked += 1
             try:
                 members = await fetch_member_count(bot=bot, chat_id=chat.id)
+            except ChatMigratedError as err:
+                logger.info("chat_migrated", chat_id=chat.id, to_chat_id=err.new_chat_id)
+                chat.migrated_to_chat_id = err.new_chat_id
+                continue
             except BotNotInChatError:
                 _note_absent(chat, now)
                 # A public chat still answers getChat by its name, so its title
@@ -195,7 +207,19 @@ async def snapshot_once(
                     if read is not None and read.member_count is not None:
                         written += 1
 
+        # Telegram announces an upgrade once, in a message the bot may have
+        # missed; what it says here is the same fact, so the chat is followed all
+        # the same. A follow that failed or never ran is still pending next hour:
+        # a followed row is always disabled.
+        upgraded = [
+            (chat.id, chat.migrated_to_chat_id)
+            for chat in everything
+            if chat.migrated_to_chat_id is not None and chat.resource_status != Chat.STATUS_DISABLED
+        ]
         await session.commit()
+
+    for old_id, new_id in upgraded:
+        await _follow(session_maker, old_id=old_id, new_id=new_id)
 
     logger.info(
         "snapshot_once committed",
@@ -204,6 +228,17 @@ async def snapshot_once(
         photo_refreshed=photo_refreshed,
     )
     return written
+
+
+async def _follow(session_maker: async_sessionmaker[AsyncSession], *, old_id: int, new_id: int) -> None:
+    async with session_maker() as session:
+        try:
+            await follow_upgrade(session, old_id=old_id, new_id=new_id)
+        except Exception:
+            # The old row stays marked, so nobody asks Telegram about it again,
+            # and the next run tries the follow once more.
+            await session.rollback()
+            logger.exception("chat_upgrade_not_followed", old_id=old_id, new_id=new_id)
 
 
 async def run_snapshot_loop(

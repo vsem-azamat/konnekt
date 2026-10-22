@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramMigrateToChat, TelegramRetryAfter
 
 from app.core.logging import get_logger
 
@@ -146,6 +146,19 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
     )
 
 
+class ChatMigratedError(Exception):
+    """The group was upgraded to a supergroup, which has an id of its own.
+
+    Telegram answers every call about the old id this way, for good: the old
+    group is closed, and the bot meets the new one as a chat it has not seen.
+    """
+
+    def __init__(self, chat_id: int, new_chat_id: int) -> None:
+        super().__init__(f"chat {chat_id} moved to {new_chat_id}")
+        self.chat_id = chat_id
+        self.new_chat_id = new_chat_id
+
+
 async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
     """How many people are in the chat right now. None when Telegram would not say.
 
@@ -153,10 +166,13 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
     page: one means nobody is there, the other means we did not find out.
 
     Raises `BotNotInChatError` when the bot is not in the chat, so the caller can
-    stop asking every hour rather than log the same refusal each time.
+    stop asking every hour rather than log the same refusal each time, and
+    `ChatMigratedError` when the group became a supergroup, so it can stop for good.
     """
     try:
         return await ask(lambda: bot.get_chat_member_count(chat_id))
+    except TelegramMigrateToChat as err:
+        raise ChatMigratedError(chat_id, err.migrate_to_chat_id) from err
     except TelegramAPIError as err:
         if _not_found(err):
             raise BotNotInChatError(chat_id) from err

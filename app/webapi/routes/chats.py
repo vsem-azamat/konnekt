@@ -33,7 +33,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.chats import previews
 from app.chats.avatars import sync_photo
 from app.chats.invite_links import is_invite_link
-from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import (
+    BotNotInChatError,
+    ChatMigratedError,
+    fetch_member_count,
+    fetch_metadata,
+    username_of,
+)
+from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -403,6 +410,9 @@ async def refresh_chat_from_telegram(
 
     try:
         member_count = await fetch_member_count(bot=bot, chat_id=chat.id)
+    except ChatMigratedError as err:
+        chat.migrated_to_chat_id = err.new_chat_id
+        member_count = None
     except BotNotInChatError:
         member_count = None
     else:
@@ -412,6 +422,14 @@ async def refresh_chat_from_telegram(
 
     chat.last_synced_at = utc_now()
     await session.commit()
+    if chat.migrated_to_chat_id is not None:
+        # Retires this row and moves its settings over, as the hourly loop would;
+        # if that fails, the loop tries again within the hour.
+        try:
+            await follow_upgrade(session, old_id=chat.id, new_id=chat.migrated_to_chat_id)
+        except Exception:
+            await session.rollback()
+            logger.exception("chat_upgrade_not_followed", old_id=chat.id, new_id=chat.migrated_to_chat_id)
     await session.refresh(chat)
     # The public catalog remembers its answer for a minute, and it carries the picture's address.
     public_answers.forget()
