@@ -52,6 +52,10 @@ msgstr "Карток партнерів поки немає."
 msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
 msgstr "Заведи в Telegram публічний @username — інакше тобі не відповідять"
 
+#: src/console/TopSearch.tsx
+msgid "нет карточки"
+msgstr "немає картки"
+
 #: src/console/pages/Chats.tsx
 msgid "приветствие"
 msgstr "привітання"
@@ -314,6 +318,10 @@ msgstr "{0} за добу · {1} за тиждень"
 #~ msgid "Не сейчас"
 #~ msgstr "Не зараз"
 
+#: src/console/TopSearch.tsx
+msgid "в чёрном списке"
+msgstr "у чорному списку"
+
 #: src/components/ChatRow.tsx
 msgid "активный"
 msgstr "активний"
@@ -333,6 +341,10 @@ msgstr "До чорного списку"
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Вимкнути"
+
+#: src/console/TopSearch.tsx
+msgid "Не удалось найти. Попробуйте ещё раз."
+msgstr "Не вдалося знайти. Спробуйте ще раз."
 
 #: src/console/pages/Summary.tsx
 msgid "сутки"
@@ -708,6 +720,7 @@ msgstr "Твій предмет — {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "отключён"
 msgstr "вимкнено"
 
@@ -740,6 +753,7 @@ msgstr "Далі · {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "одобрен"
 msgstr "схвалено"
 
@@ -768,6 +782,10 @@ msgstr "забанені в усіх чатах"
 #: src/pages/Ads.tsx
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {учасник} few {учасники} many {учасників} other {учасника}}"
+
+#: src/console/TopSearch.tsx
+msgid "Чат, человек, @username или id"
+msgstr "Чат, людина, @username або id"
 
 #: src/console/pages/Signals.tsx
 msgid "Подтвердить бан"
@@ -1046,6 +1064,7 @@ msgstr "Усе, що шукали, знайшлося."
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Summary.tsx
+#: src/console/TopSearch.tsx
 msgid "Чаты"
 msgstr "Чати"
 
@@ -1628,6 +1647,10 @@ msgstr "Куди потрапить"
 #~ msgid "ČVUT, FIT, Strahov…"
 #~ msgstr "ČVUT, FIT, Strahov…"
 
+#: src/console/TopSearch.tsx
+msgid "Поиск по чатам и людям"
+msgstr "Пошук чатів і людей"
+
 #: src/console/AudienceLabels.tsx
 msgid "Бот связи"
 msgstr "Бот зв’язку"
@@ -1937,6 +1960,7 @@ msgstr "Градець-Кралове"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
+#: src/console/TopSearch.tsx
 msgid "Люди"
 msgstr "Люди"
 
@@ -2065,6 +2089,7 @@ msgstr "30 днів"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "внешний"
 msgstr "зовнішній"
 
@@ -2858,6 +2883,10 @@ msgstr "що впіймав детектор"
 msgid "Как работаешь"
 msgstr "Як працюєш"
 
+#: src/console/TopSearch.tsx
+msgid "Ничего не нашлось."
+msgstr "Нічого не знайшлося."
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Пояснення над карткою"
@@ -2990,6 +3019,7 @@ msgstr "Вийти"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "на проверке"
 msgstr "на перевірці"
 
@@ -3123,6 +3153,7 @@ msgstr "наприклад: від 8 900 Kč"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "наблюдаем"
 msgstr "спостерігаємо"
 
@@ -3187,6 +3218,7 @@ msgstr "Де її видно"
 msgid "{0} всего не разобрано"
 msgstr "{0} усього не розібрано"
 
+#: src/console/TopSearch.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "Ищем…"

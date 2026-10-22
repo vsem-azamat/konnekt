@@ -560,3 +560,32 @@ class Signals(BaseModel):
     wave_per_minute: int
     pending_actions: list[PendingActionSignal]
     queues: SignalQueues
+
+
+class SearchChat(BaseModel):
+    """A chat the console's search found."""
+
+    id: int
+    title: str | None
+    resource_status: str
+    public_link: str | None
+
+
+class SearchPerson(BaseModel):
+    """A person the console's search found.
+
+    in_audience: they have a card on the Audience screen to open.
+    blocked: on the global blacklist.
+    """
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    in_audience: bool
+    blocked: bool
+
+
+class SearchResults(BaseModel):
+    chats: list[SearchChat]
+    people: list[SearchPerson]

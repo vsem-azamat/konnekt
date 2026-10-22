@@ -15,7 +15,7 @@ import {
   type AudienceSummary,
   audiencePath,
 } from './audience';
-
+import { type SearchResults, searchPath } from './search';
 import {
   type AdminSession,
   type BlockedUser,
@@ -87,6 +87,15 @@ export const consoleStatsQuery = {
   // summary must not send the sign-in again.
   retryOnMount: false,
 };
+
+/** The top bar's search; kept a while, so typing back to a word is instant. */
+export const consoleSearchQuery = (text: string) => ({
+  queryKey: ['console', 'search', text] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<SearchResults>(searchPath(text), { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
 
 export const consoleChatsQuery = {
   queryKey: ['console', 'chats'] as const,
