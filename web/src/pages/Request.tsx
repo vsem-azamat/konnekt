@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
+import { HelperCardView } from '@/components/HelperCard';
 import { MoreIcon } from '@/components/icons';
 import { formatDay, PriceUnitLabel } from '@/components/Phrase';
 import { RemoveRequest } from '@/components/RemoveRequest';
@@ -29,6 +30,7 @@ import {
 } from '@/components/Ui';
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import { dontWait } from '@/lib/dontWait';
 import type { RequestResponse } from '@/lib/types';
 
 /**
@@ -65,6 +67,16 @@ export default function RequestPage() {
     enabled: validId,
   });
 
+  // Asked only once the request is known to have no answers. The server counts
+  // `helpers_seeing` the way the search finds them, so «видят 0» comes with no
+  // list; the two are read at different moments, so they can still disagree.
+  const suggest = request ? dontWait(request) : null;
+  const others = useQuery({
+    queryKey: ['dont-wait', suggest],
+    queryFn: ({ signal }) => api.search(suggest ?? {}, signal),
+    enabled: suggest !== null && data?.length === 0,
+  });
+
   if (!validId) {
     return (
       <Screen>
@@ -99,11 +111,13 @@ export default function RequestPage() {
       {request ? (
         <>
           <Sub>{request.text}</Sub>
-          {request.deadline_on ? (
-            <Hint>
+          <Hint>
+            {request.deadline_on ? (
               <Trans>до {formatDay(request.deadline_on, i18n.locale)}</Trans>
-            </Hint>
-          ) : null}
+            ) : (
+              <Trans>без срока</Trans>
+            )}
+          </Hint>
         </>
       ) : null}
 
@@ -115,13 +129,56 @@ export default function RequestPage() {
         <SkeletonRows count={2} />
       ) : isError ? (
         <Empty title={<Trans>Не получилось загрузить</Trans>} />
+      ) : data.length === 0 && request && request.status !== 'open' ? (
+        <Empty title={<Trans>Без откликов</Trans>} />
       ) : data.length === 0 ? (
-        <Empty
-          title={<Trans>Откликов пока нет</Trans>}
-          body={
-            <Trans>Заявку видят все, кто предлагает помощь. Отклики приходят сюда.</Trans>
-          }
-        />
+        <>
+          {/* An empty request turned into something to do: how many helpers
+              already see it, and whom to write to instead of waiting. */}
+          <Empty
+            title={<Trans>Пока тихо</Trans>}
+            followed={Boolean(others.data?.results.length)}
+            body={
+              !request ? null : request.helpers_seeing > 0 ? (
+                <Plural
+                  value={request.helpers_seeing}
+                  one="Заявку уже видит # помощник. Обычно первый отклик приходит за день."
+                  few="Заявку уже видят # помощника. Обычно первый отклик приходит за день."
+                  many="Заявку уже видят # помощников. Обычно первый отклик приходит за день."
+                  other="Заявку уже видят # помощника. Обычно первый отклик приходит за день."
+                />
+              ) : (
+                <Trans>
+                  Подходящих помощников пока нет. Заявку увидят, как только они появятся.
+                </Trans>
+              )
+            }
+          />
+          {others.data?.results.length ? (
+            <>
+              <Label>
+                <Trans>Не ждать</Trans>
+              </Label>
+              <Cards>
+                {others.data.results.map((card) => (
+                  <HelperCardView
+                    key={card.user_id}
+                    card={card}
+                    locale={i18n.locale}
+                    onClick={() => navigate(`/helper/${card.user_id}`)}
+                  />
+                ))}
+              </Cards>
+              <div style={{ marginTop: 9 }}>
+                <Hint>
+                  <Trans>
+                    Можно написать помощнику напрямую, заявка при этом остаётся открытой.
+                  </Trans>
+                </Hint>
+              </div>
+            </>
+          ) : null}
+        </>
       ) : (
         <Cards>
           {data.map((response) => (

@@ -1568,6 +1568,10 @@
   text-align: center;
 }
 
+.emptyFollowed {
+  padding-bottom: 6px;
+}
+
 .emptyTitle {
   font-size: 15px;
   font-weight: 650;

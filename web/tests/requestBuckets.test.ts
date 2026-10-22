@@ -19,6 +19,8 @@ function request(id: number, status: RequestStatus): HelpRequest {
     expires_at: null,
     closed_at: null,
     helpers_seeing: 0,
+    subject_id: null,
+    service_type_id: null,
   };
 }
 
