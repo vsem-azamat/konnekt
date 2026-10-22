@@ -838,7 +838,6 @@ msgstr "Залишити заявку"
 msgid "отключён"
 msgstr "вимкнено"
 
-#: src/components/OwnerStatusCard.tsx
 #: src/console/pages/Chats.tsx
 msgid "На проверке"
 msgstr "На перевірці"
@@ -1238,8 +1237,8 @@ msgid "Все чаты"
 msgstr "Усі чати"
 
 #: src/components/OwnerStatusCard.tsx
-msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
-msgstr "Анкета вже в каталозі, адміністратор її ще не переглядав."
+#~ msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
+#~ msgstr "Анкета вже в каталозі, адміністратор її ще не переглядав."
 
 #: src/console/pages/AudiencePeople.tsx
 msgid "@username, имя или id"
@@ -3205,6 +3204,10 @@ msgstr "Нічого не знайшлося."
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Пояснення над карткою"
+
+#: src/components/ServiceSheet.tsx
+msgid "Да, убрать"
+msgstr "Так, прибрати"
 
 #: src/components/Place.tsx
 msgid "Злин"

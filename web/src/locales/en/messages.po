@@ -838,7 +838,6 @@ msgstr "Post a request"
 msgid "отключён"
 msgstr "disabled"
 
-#: src/components/OwnerStatusCard.tsx
 #: src/console/pages/Chats.tsx
 msgid "На проверке"
 msgstr "Awaiting review"
@@ -1238,8 +1237,8 @@ msgid "Все чаты"
 msgstr "All chats"
 
 #: src/components/OwnerStatusCard.tsx
-msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
-msgstr "Your profile is already in the catalog; an administrator has not looked at it yet."
+#~ msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
+#~ msgstr "Your profile is already in the catalog; an administrator has not looked at it yet."
 
 #: src/console/pages/AudiencePeople.tsx
 msgid "@username, имя или id"
@@ -3205,6 +3204,10 @@ msgstr "Nothing found."
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Note above the card"
+
+#: src/components/ServiceSheet.tsx
+msgid "Да, убрать"
+msgstr "Yes, remove"
 
 #: src/components/Place.tsx
 msgid "Злин"

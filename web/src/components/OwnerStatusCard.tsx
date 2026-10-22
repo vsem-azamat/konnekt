@@ -6,13 +6,13 @@ import type { OwnerStatus } from '@/lib/ownerStatus';
 import type { MyHelper } from '@/lib/types';
 
 /**
- * Where the profile stands, and who can change that: the owner's own states,
- * «на проверке» (listed already, only not looked at yet), and an operator's
- * hide with its reason.
+ * Where the profile stands, and who can change that: the owner's own states
+ * and an operator's hide with its reason.
  *
  * Two screens show it. «О себе и как работаю» holds «Видимость», so its hints
- * point below. «Мои услуги» holds the switches, and has no «на проверке»: the
- * approved screen shows a listed profile as listed, which is what it is.
+ * point below; «Мои услуги» holds the switches. Neither shows «на проверке»:
+ * a profile not looked at yet is listed already, and the approved screens say
+ * just that.
  */
 export function OwnerStatusCard({
   status,
@@ -26,14 +26,12 @@ export function OwnerStatusCard({
   listed: boolean;
   place: 'services' | 'about';
 }) {
-  const shown = place === 'services' && status === 'review' ? 'listed' : status;
+  const shown = status === 'review' ? 'listed' : status;
   return (
     <div className={ui.ownerStatus} data-status={shown}>
       <span className={ui.ownerStatusTitle}>
         {shown === 'draft' ? (
           <Trans>Черновик</Trans>
-        ) : shown === 'review' ? (
-          <Trans>На проверке</Trans>
         ) : shown === 'listed' ? (
           <Trans>В каталоге</Trans>
         ) : shown === 'hidden' ? (
@@ -101,9 +99,8 @@ function AboutHint({
       ) : (
         <Trans>Пока её видишь только ты. Выбери «В каталоге», когда всё готово.</Trans>
       );
-    case 'review':
-      return <Trans>Анкета уже в каталоге, администратор её ещё не смотрел.</Trans>;
     case 'listed':
+    case 'review':
       return <Trans>Тебя видят в поиске и могут написать.</Trans>;
     case 'hidden':
       return <Trans>Анкета сохранена, но в каталоге её нет. Вернуть можно ниже.</Trans>;

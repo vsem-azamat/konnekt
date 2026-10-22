@@ -31,6 +31,9 @@ export function ServiceSheet({
     offer.price_amount == null ? '' : String(Math.round(offer.price_amount)),
   );
   const [unit, setUnit] = useState<PriceUnit>(offer.price_unit);
+  // Removal takes a second tap: the first one is easy to make by mistake at
+  // the bottom of a sheet, and nothing brings a removed service back.
+  const [removing, setRemoving] = useState(false);
 
   const save = useMutation({
     mutationFn: (change: { price_amount: number | null; price_unit: PriceUnit } | null) =>
@@ -137,9 +140,20 @@ export function ServiceSheet({
         </Action>
       </Actions>
       <Actions>
-        <Action quiet danger disabled={save.isPending} onClick={() => save.mutate(null)}>
-          <Trans>Убрать услугу</Trans>
-        </Action>
+        {removing ? (
+          <Action
+            quiet
+            danger
+            disabled={save.isPending}
+            onClick={() => save.mutate(null)}
+          >
+            <Trans>Да, убрать</Trans>
+          </Action>
+        ) : (
+          <Action quiet onClick={() => setRemoving(true)}>
+            <Trans>Убрать услугу</Trans>
+          </Action>
+        )}
       </Actions>
     </Sheet>
   );
