@@ -7,7 +7,7 @@
  */
 
 import { fold } from '../lib/chats.ts';
-import type { ChatStatus, ConsoleChat } from './session.ts';
+import type { ChatStatus, ConsoleChat, ConsoleChatDetail } from './session.ts';
 
 export type StatusFilter = 'all' | ChatStatus;
 
@@ -102,4 +102,22 @@ export function isListed(chat: ConsoleChat): boolean {
     Boolean(chat.title) &&
     Boolean(chat.public_link)
   );
+}
+
+/** A `t.me/+hash` or `joinchat` link, as opposed to a username: webapi's rule. */
+function isInviteLink(link: string): boolean {
+  const tail = link.replace(/\/+$/, '').split('/').pop() ?? '';
+  return tail.startsWith('+') || link.includes('joinchat');
+}
+
+/**
+ * Whether people walk straight into the chat, whatever its mode says: a public
+ * chat that does not approve new members sends the bot no request to answer.
+ * Unknown until the bot has asked Telegram, and then the mode stands.
+ */
+export function joinsDirectly(
+  chat: Pick<ConsoleChatDetail, 'public_link' | 'join_by_request'>,
+): boolean {
+  const isPublic = chat.public_link !== null && !isInviteLink(chat.public_link);
+  return isPublic && chat.join_by_request === false;
 }

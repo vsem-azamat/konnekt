@@ -56,6 +56,10 @@ msgstr "Nastav si v Telegramu veřejný @username — jinak ti nikdo neodpoví"
 msgid "приветствие"
 msgstr "uvítání"
 
+#: src/console/JoinMode.tsx
+msgid "Входят сразу"
+msgstr "Vstupují hned"
+
 #: src/console/AudienceLabels.tsx
 msgid "Старые боты"
 msgstr "Staré boty"
@@ -231,6 +235,10 @@ msgstr "{days, plural, one {# d.} few {# d.} many {# d.} other {# d.}}"
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Přidej předmět — podle samotného termínu není co hledat."
 
+#: src/console/JoinMode.tsx
+msgid "Пускать всех"
+msgstr "Pustit všechny"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
 msgstr "např. vhodné pro prodloužení víza"
@@ -264,6 +272,10 @@ msgstr "Zabanovat a smazat"
 msgid "Главные администраторы"
 msgstr "Hlavní administrátoři"
 
+#: src/console/JoinMode.tsx
+msgid "Вступление"
+msgstr "Vstup"
+
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "matematická analýza ČVUT"
@@ -277,8 +289,8 @@ msgid "Ответ не дошёл. Прежде чем пробовать сно
 msgstr "Odpověď nedorazila. Než to zkusíte znovu, zkontrolujte seznam: karta se mohla uložit."
 
 #: src/console/pages/Chat.tsx
-msgid "Капча при входе"
-msgstr "Captcha při vstupu"
+#~ msgid "Капча при входе"
+#~ msgstr "Captcha při vstupu"
 
 #: src/components/Place.tsx
 msgid "вуз"
@@ -343,6 +355,10 @@ msgstr "O sobě"
 #: src/console/pages/AudiencePerson.tsx
 msgid "Может ли бот написать"
 msgstr "Může bot napsat"
+
+#: src/console/JoinMode.tsx
+msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто прошёл капчу за последние 90 дней, входит без вопроса."
+msgstr "Bot položí v soukromé zprávě otázku a za správnou odpověď žádost schválí. Kdo prošel captchou za posledních 90 dní, vstoupí bez otázky."
 
 #: src/components/Phrase.tsx
 msgid "Экзамены и поступление"
@@ -551,6 +567,10 @@ msgstr "pomoc u zkoušky z matematické analýzy"
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
 msgstr "Bot tu za týden neviděl žádné zprávy."
+
+#: src/console/JoinMode.tsx
+msgid "Входят без проверки: заявки бот одобряет сразу, а его ссылка в чат — без заявки."
+msgstr "Vstupují bez kontroly: žádosti bot schvaluje hned a jeho odkaz do chatu je bez žádosti."
 
 #: src/console/pages/Summary.tsx
 msgid "{activePlacements, plural, one {# карточка} few {# карточки} many {# карточек} other {# карточки}} · показы и клики"
@@ -1087,6 +1107,10 @@ msgstr "bez ochrany"
 #: src/console/pages/Chat.tsx
 msgid "задаётся у родителя"
 msgstr "nastavuje se u nadřazeného"
+
+#: src/console/JoinMode.tsx
+msgid "Капча и «Решают админы» работают только с заявками: включите «Одобрение новых участников» в настройках чата в Telegram."
+msgstr "Captcha a «Rozhodují admini» fungují jen se žádostmi: zapněte «Schvalovat nové členy» v nastavení chatu v Telegramu."
 
 #. placeholder {0}: i18n.number(trend.first)
 #. placeholder {1}: i18n.number(trend.last)
@@ -2348,6 +2372,10 @@ msgstr "na webu"
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Nepodařilo se spojit. Zkus to znovu."
 
+#: src/console/JoinMode.tsx
+msgid "Бот заявки не трогает: их одобряют админы в Telegram."
+msgstr "Bot na žádosti nesahá: schvalují je admini v Telegramu."
+
 #: src/console/pages/Audience.tsx
 msgid "Новые за неделю"
 msgstr "Noví za týden"
@@ -2405,6 +2433,10 @@ msgstr "objeví se po schválení"
 #: src/console/pages/Spam.tsx
 msgid "Автор забанен"
 msgstr "Autor zabanován"
+
+#: src/console/JoinMode.tsx
+msgid "Капча"
+msgstr "Captcha"
 
 #: src/console/BrowserShell.tsx
 #~ msgid "консоль"
@@ -3088,6 +3120,10 @@ msgstr "Vstup do chatu"
 #: src/console/ProfileSheet.tsx
 #~ msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
 #~ msgstr "Zmizí z katalogu i z vyhledávání a autor ho nebude moci znovu zveřejnit. Vrátit ho lze tady, v „Skrytých“. Autorovi nic nepíšeme."
+
+#: src/console/JoinMode.tsx
+msgid "Решают админы"
+msgstr "Rozhodují admini"
 
 #: src/pages/MyHelper.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."

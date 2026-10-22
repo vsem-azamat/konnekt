@@ -219,7 +219,16 @@ export interface SpamPing {
 /** «ad» is written by a ban, the other two in the console. */
 export type SpamVerdict = 'done' | 'not_ad' | 'ad';
 
+/**
+ * Who decides on a request to join. Open: the bot lets everyone in. Captcha:
+ * it asks a question first. Admins: it leaves the requests to the people.
+ */
+export type JoinMode = 'open' | 'captcha' | 'admins';
+
 export interface ConsoleChatDetail extends ConsoleChat {
+  join_mode: JoinMode;
+  /** Telegram's "approve new members" as last asked; null until then. */
+  join_by_request: boolean | null;
   welcome_message: string | null;
   recent_senders: ChatSender[];
   heatmap: HeatmapCell[];
@@ -233,7 +242,7 @@ export type ChatUpdate = Partial<
   Pick<
     ConsoleChatDetail,
     | 'resource_status'
-    | 'is_captcha_enabled'
+    | 'join_mode'
     | 'is_welcome_enabled'
     | 'is_service_cleanup_enabled'
     | 'welcome_message'
