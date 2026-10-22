@@ -81,6 +81,10 @@ msgstr "Pár slov o sobě — co děláš a jak rychle"
 msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
 msgstr "{0, plural, one {rok na platformě} few {roky na platformě} many {roku na platformě} other {let na platformě}}"
 
+#: src/console/pages/Chat.tsx
+msgid "Жирный и ссылки из !welcome после правки здесь пропадут."
+msgstr "Tučné písmo a odkazy z !welcome se úpravou zde ztratí."
+
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Nalezeno"
@@ -1192,6 +1196,10 @@ msgstr "Vidí tě ve vyhledávání a můžou ti napsat."
 msgid "Только наблюдает"
 msgstr "Jen sleduje"
 
+#: src/console/pages/Chat.tsx
+msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
+msgstr "Třetí řádek uvítání, pod „добро пожаловать“ a řádkem o Konnektu. Může zůstat prázdný."
+
 #: src/console/BanSheet.tsx
 msgid "Сообщения останутся."
 msgstr "Zprávy zůstanou."
@@ -2135,8 +2143,8 @@ msgid "Пост в чатах"
 msgstr "Příspěvek v chatech"
 
 #: src/console/pages/Chat.tsx
-msgid "Бот пишет его новичку: «@имя, ваш текст»."
-msgstr "Bot ho pošle nováčkovi: «@jméno, váš text»."
+#~ msgid "Бот пишет его новичку: «@имя, ваш текст»."
+#~ msgstr "Bot ho pošle nováčkovi: «@jméno, váš text»."
 
 #: src/console/pages/Chat.tsx
 #: src/pages/Chats.tsx
@@ -2291,6 +2299,10 @@ msgstr "Zabanovaní ve všech chatech. Banuje se příkazem /banall nebo z obraz
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram odmítl ve všech chatech: zkontrolujte práva bota a zabanujte znovu."
+
+#: src/console/pages/Chat.tsx
+msgid "Не задан: только общее приветствие"
+msgstr "Nenastaveno: jen společné uvítání"
 
 #: src/pages/Chats.tsx
 msgid "Попробовать ещё раз"
@@ -2570,6 +2582,10 @@ msgstr "s jakoukoli otázkou"
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other {# odpovědí}}"
 
+#: src/console/pages/Chat.tsx
+msgid "Вопросы по поступлению — в тему #вопросы."
+msgstr "Dotazy k přijímacímu řízení patří do tématu #dotazy."
+
 #: src/components/Incoming.tsx
 msgid "На эту заявку ты уже отвечал"
 msgstr "Na tuhle poptávku jsi už odpovídal"
@@ -2644,8 +2660,8 @@ msgid "Работа и IT"
 msgstr "Práce a IT"
 
 #: src/console/pages/Chat.tsx
-msgid "правила в закрепе, рекламу не публикуем."
-msgstr "pravidla jsou v připnuté zprávě, reklamu nezveřejňujeme."
+#~ msgid "правила в закрепе, рекламу не публикуем."
+#~ msgstr "pravidla jsou v připnuté zprávě, reklamu nezveřejňujeme."
 
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
@@ -2771,8 +2787,8 @@ msgid "Убрать"
 msgstr "Odebrat"
 
 #: src/console/pages/Chat.tsx
-msgid "не задан"
-msgstr "není nastaven"
+#~ msgid "не задан"
+#~ msgstr "není nastaven"
 
 #: src/pages/Chats.tsx
 #~ msgid "Общие"
