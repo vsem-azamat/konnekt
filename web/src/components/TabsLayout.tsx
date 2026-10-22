@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigationType } from 'react-router';
 
 import { TabBar } from './TabBar';
@@ -26,22 +26,54 @@ export function TabsLayout() {
   const { key, pathname } = useLocation();
   const action = useNavigationType();
   const shown = useRef(pathname);
+  // A position Back could not reach yet: the screen came back as a skeleton
+  // because its data had left the cache, and the browser caps the scroll at
+  // what is there. Held until the screen is tall enough or the person scrolls.
+  const owed = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     const el = content.current;
     if (!el) return;
-    if (action === 'POP') el.scrollTop = positions.get(key) ?? 0;
-    else if (pathname !== shown.current) el.scrollTop = 0;
+    owed.current = null;
+    if (action === 'POP') {
+      const target = positions.get(key) ?? 0;
+      el.scrollTop = target;
+      if (el.scrollTop < target - 1) owed.current = target;
+    } else if (pathname !== shown.current) {
+      el.scrollTop = 0;
+    }
     shown.current = pathname;
-    positions.set(key, el.scrollTop);
+    if (owed.current === null) positions.set(key, el.scrollTop);
   }, [key, pathname, action]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each entry renders its own screen to watch.
+  useEffect(() => {
+    const el = content.current;
+    const screen = el?.firstElementChild;
+    if (!el || !screen) return;
+    const grown = new ResizeObserver(() => {
+      if (owed.current === null) return;
+      el.scrollTop = owed.current;
+      if (el.scrollTop >= owed.current - 1) owed.current = null;
+    });
+    grown.observe(screen);
+    return () => grown.disconnect();
+  }, [key]);
+
+  const letGo = () => {
+    owed.current = null;
+  };
 
   return (
     <div className={css.tabbed}>
       <main
         ref={content}
         className={css.content}
-        onScroll={(event) => positions.set(key, event.currentTarget.scrollTop)}
+        onScroll={(event) => {
+          if (owed.current === null) positions.set(key, event.currentTarget.scrollTop);
+        }}
+        onTouchStart={letGo}
+        onWheel={letGo}
       >
         <Outlet />
       </main>

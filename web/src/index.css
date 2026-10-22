@@ -57,7 +57,7 @@ body {
   background-color: var(--bg);
 
   /* With `html` at `visible`, this is where the viewport takes its overflow
-     from: the document scrolls nowhere, and #root does all of it. No height
+     from: the document scrolls nowhere; #root or the shell inside it does. No height
      to go with it — #root already has a definite one, and a second definition
      of "one screenful" here is a second thing to keep in agreement. */
   overflow: hidden;
@@ -67,7 +67,8 @@ body {
 }
 
 /*
- * The app itself: exactly one screenful, and the only thing that scrolls.
+ * The app itself: exactly one screenful, and what scrolls on a screen without
+ * tabs. A screen with tabs scrolls inside it, in TabsLayout's `main`.
  *
  * `height`, not `min-height`. A box that can grow past the viewport hands its
  * overflow to the document, and the document's scroll is the one nobody asked
