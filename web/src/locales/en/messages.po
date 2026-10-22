@@ -675,6 +675,11 @@ msgstr "Post a request — they answer you"
 msgid "Добавить в каталог"
 msgstr "Add to the catalogue"
 
+#. placeholder {0}: num(p.deals)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {Опыт с этим экзаменом: # человек} few {Опыт с этим экзаменом: # человека} many {Опыт с этим экзаменом: # человек} other {Опыт с этим экзаменом: # человека}}"
+msgstr "{0, plural, one {Experience with this exam: # person} other {Experience with this exam: # people}}"
+
 #: src/console/AudienceLabels.tsx
 #: src/console/pages/Summary.tsx
 msgid "Бот"
@@ -815,6 +820,10 @@ msgstr "No responses"
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
 msgstr "The sign-in was not kept"
+
+#: src/components/Phrase.tsx
+msgid "Не получилось разобрать запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Couldn't make sense of that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
 
 #: src/console/pages/Chat.tsx
 msgid "За неделю здесь никто не писал."
@@ -1446,8 +1455,8 @@ msgid "И то, и другое"
 msgstr "Both"
 
 #: src/console/BanSheet.tsx
-msgid "Забанить и стереть все его сообщения"
-msgstr "Ban and delete all their messages"
+#~ msgid "Забанить и стереть все его сообщения"
+#~ msgstr "Ban and delete all their messages"
 
 #: src/components/Phrase.tsx
 #: src/components/ServiceSheet.tsx
@@ -2307,8 +2316,8 @@ msgid "Отметь всё, что умеешь. Цены спросим на с
 msgstr "Tick everything you can do. Prices come on the next screen."
 
 #: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
-msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
+#~ msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+#~ msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -2976,6 +2985,10 @@ msgstr "not set: the chats under it won't come first for its students"
 msgid "За сутки"
 msgstr "Last 24 hours"
 
+#: src/console/BanSheet.tsx
+msgid "Забанить и стереть все сообщения"
+msgstr "Ban and delete all their messages"
+
 #: src/pages/AdsApp.tsx
 msgid "страховка, визы, банк, переводы"
 msgstr "insurance, visas, bank, translations"
@@ -3506,8 +3519,8 @@ msgstr "Turn moderation on?"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
-msgid "{0, plural, one {Опыт с этим экзаменом: # студент} few {Опыт с этим экзаменом: # студента} many {Опыт с этим экзаменом: # студентов} other {Опыт с этим экзаменом: # студента}}"
-msgstr "{0, plural, one {Experience with this exam: # student} other {Experience with this exam: # students}}"
+#~ msgid "{0, plural, one {Опыт с этим экзаменом: # студент} few {Опыт с этим экзаменом: # студента} many {Опыт с этим экзаменом: # студентов} other {Опыт с этим экзаменом: # студента}}"
+#~ msgstr "{0, plural, one {Experience with this exam: # student} other {Experience with this exam: # students}}"
 
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"

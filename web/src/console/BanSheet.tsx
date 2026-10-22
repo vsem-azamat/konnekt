@@ -71,7 +71,7 @@ export function BanSheet({
           />
           <span>
             <b>
-              <Trans>Забанить и стереть все его сообщения</Trans>
+              <Trans>Забанить и стереть все сообщения</Trans>
             </b>
             <span className={ui.banOptionHint}>
               <Trans>Во всех чатах, за всё время. Отменить нельзя.</Trans>

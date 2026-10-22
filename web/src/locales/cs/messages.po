@@ -675,6 +675,11 @@ msgstr "Zadej poptávku — ozvou se sami"
 msgid "Добавить в каталог"
 msgstr "Přidat do katalogu"
 
+#. placeholder {0}: num(p.deals)
+#: src/components/Phrase.tsx
+msgid "{0, plural, one {Опыт с этим экзаменом: # человек} few {Опыт с этим экзаменом: # человека} many {Опыт с этим экзаменом: # человек} other {Опыт с этим экзаменом: # человека}}"
+msgstr "{0, plural, one {Zkušenost s touto zkouškou: # člověk} few {Zkušenost s touto zkouškou: # lidé} many {Zkušenost s touto zkouškou: # člověka} other {Zkušenost s touto zkouškou: # lidí}}"
+
 #: src/console/AudienceLabels.tsx
 #: src/console/pages/Summary.tsx
 msgid "Бот"
@@ -816,6 +821,10 @@ msgstr "Bez odpovědí"
 msgid "Вход не сохранился"
 msgstr "Přihlášení se neuložilo"
 
+#: src/components/Phrase.tsx
+msgid "Не получилось разобрать запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+msgstr "Dotaz se nepodařilo rozebrat. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
+
 #: src/console/pages/Chat.tsx
 msgid "За неделю здесь никто не писал."
 msgstr "Za týden sem nikdo nepsal."
@@ -918,7 +927,7 @@ msgstr "Jiné…"
 
 #: src/console/BanSheet.tsx
 msgid "{name}: бан прошёл не во всех чатах"
-msgstr "{name}: ban neprošel ve všech chatech"
+msgstr "{name}: ban prošel jen v některých chatech"
 
 #: src/console/TopSearch.tsx
 msgid "Чат, человек, @username или id"
@@ -1446,8 +1455,8 @@ msgid "И то, и другое"
 msgstr "Obojí"
 
 #: src/console/BanSheet.tsx
-msgid "Забанить и стереть все его сообщения"
-msgstr "Zabanovat a smazat všechny jeho zprávy"
+#~ msgid "Забанить и стереть все его сообщения"
+#~ msgstr "Zabanovat a smazat všechny jeho zprávy"
 
 #: src/components/Phrase.tsx
 #: src/components/ServiceSheet.tsx
@@ -2307,8 +2316,8 @@ msgid "Отметь всё, что умеешь. Цены спросим на с
 msgstr "Označ všechno, co umíš. Na ceny se zeptáme na dalším kroku."
 
 #: src/components/Phrase.tsx
-msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
-msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
+#~ msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
+#~ msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
 
 #: src/components/ChatRow.tsx
 msgid "тихий"
@@ -2976,6 +2985,10 @@ msgstr "neuvedena: chaty pod ním se jejím studentům nezobrazí první"
 msgid "За сутки"
 msgstr "Za 24 hodin"
 
+#: src/console/BanSheet.tsx
+msgid "Забанить и стереть все сообщения"
+msgstr "Zabanovat a smazat všechny zprávy"
+
 #: src/pages/AdsApp.tsx
 msgid "страховка, визы, банк, переводы"
 msgstr "pojištění, víza, banka, překlady"
@@ -3506,8 +3519,8 @@ msgstr "Zapnout moderaci?"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
-msgid "{0, plural, one {Опыт с этим экзаменом: # студент} few {Опыт с этим экзаменом: # студента} many {Опыт с этим экзаменом: # студентов} other {Опыт с этим экзаменом: # студента}}"
-msgstr "{0, plural, one {Zkušenost s touto zkouškou: # student} few {Zkušenost s touto zkouškou: # studenti} many {Zkušenost s touto zkouškou: # studenta} other {Zkušenost s touto zkouškou: # studentů}}"
+#~ msgid "{0, plural, one {Опыт с этим экзаменом: # студент} few {Опыт с этим экзаменом: # студента} many {Опыт с этим экзаменом: # студентов} other {Опыт с этим экзаменом: # студента}}"
+#~ msgstr "{0, plural, one {Zkušenost s touto zkouškou: # student} few {Zkušenost s touto zkouškou: # studenti} many {Zkušenost s touto zkouškou: # studenta} other {Zkušenost s touto zkouškou: # studentů}}"
 
 #: src/components/AdsContact.tsx
 msgid "Написать в Telegram"
