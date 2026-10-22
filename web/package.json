@@ -17,7 +17,6 @@
     "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "test": "node scripts/test.mjs",
     "check:scroll": "node scripts/check-scroll.mjs",
-    "check:tabbar": "node scripts/check-tabbar.mjs",
     "check:devices": "node scripts/check-devices.mjs",
     "i18n:extract": "lingui extract",
     "i18n:compile": "lingui compile",
