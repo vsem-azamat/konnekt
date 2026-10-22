@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -467,3 +467,116 @@ class TestFloodControl:
 
         assert await metadata.fetch_metadata(bot=bot, chat_id=-100) is None
         assert bot.get_chat.await_count == 2
+
+
+class TestBotNotInChat:
+    """A chat the bot is not in says "chat not found" every hour, and nothing else.
+
+    On 2026-10-20 the moderator moved to a new bot, and two chats it was never
+    added to filled the log with the same two warnings every tick.
+    """
+
+    async def test_the_first_refusal_marks_the_chat(self, db_session_maker: async_sessionmaker[AsyncSession]) -> None:
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(side_effect=_refused())
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
+        # Nothing to ask getChat about either: it would say the same.
+        bot.get_chat.assert_not_awaited()
+
+    async def test_a_marked_chat_is_not_asked_again_the_same_day(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        absent = Chat(id=-100, title="A")
+        absent.bot_absent_at = utc_now() - datetime.timedelta(hours=2)
+        await _seed(db_session_maker, absent, Chat(id=-200, title="B"))
+        bot = _bot(counts={-200: 80})
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert [call.args[0] for call in bot.get_chat_member_count.await_args_list] == [-200]
+        assert await _snapshots(db_session_maker) == [(-200, 80)]
+
+    async def test_a_day_later_it_is_asked_again_and_counted_once_the_bot_is_there(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Nobody tells the bot it was added to a chat that is not approved; asking is how it finds out."""
+        absent = Chat(id=-100, title="A")
+        absent.bot_absent_at = utc_now() - datetime.timedelta(hours=25)
+        await _seed(db_session_maker, absent)
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(counts={-100: 50}))
+
+        assert await _snapshots(db_session_maker) == [(-100, 50)]
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is None
+
+    async def test_still_absent_a_day_later_moves_the_mark(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        before = utc_now() - datetime.timedelta(hours=25)
+        absent = Chat(id=-100, title="A")
+        absent.bot_absent_at = before
+        await _seed(db_session_maker, absent)
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(side_effect=_refused())
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        marked = (await _chat(db_session_maker, -100)).bot_absent_at
+        assert marked is not None
+        assert marked > before
+
+    async def test_any_other_refusal_does_not_mark_the_chat(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """A timeout or a flood says nothing about whether the bot is there."""
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=TelegramBadRequest(method=MagicMock(), message="Bad Request: something else")
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is None
+
+    async def test_a_public_chat_is_still_asked_by_its_name(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Telegram refuses the id to a bot that is not in the chat, and answers its public name."""
+        chat = Chat(id=-100, title="A", resource_status=Chat.STATUS_EXTERNAL, public_link="https://t.me/cvut_fjfi")
+        await _seed(db_session_maker, chat)
+        bot = _bot_with_photo("big-1", "small-1", "uniq-1")
+        by_name = bot.get_chat.side_effect
+
+        async def _get_chat(chat_id):
+            if isinstance(chat_id, int):
+                raise _refused()
+            return await by_name(chat_id)
+
+        bot.get_chat = AsyncMock(side_effect=_get_chat)
+        bot.get_chat_member_count = AsyncMock(side_effect=_refused())
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert bot.get_chat.await_args_list[-1].args == ("@cvut_fjfi",)
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
+        async with db_session_maker() as session:
+            assert await session.get(ChatAvatar, -100) is not None
+
+    async def test_a_timeout_on_the_recheck_keeps_the_mark(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Otherwise the next tick hears "chat not found" again and warns as if for the first time."""
+        absent = Chat(id=-100, title="A")
+        absent.bot_absent_at = utc_now() - datetime.timedelta(hours=25)
+        await _seed(db_session_maker, absent)
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(side_effect=TelegramNetworkError(method=MagicMock(), message="timeout"))
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is not None

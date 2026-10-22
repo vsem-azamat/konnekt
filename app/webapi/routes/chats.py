@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chats.avatars import sync_photo
 from app.chats.invite_links import is_invite_link
-from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -374,13 +374,21 @@ async def refresh_chat_from_telegram(
         chat.join_by_request = metadata.join_by_request
         await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
 
+    try:
+        member_count = await fetch_member_count(bot=bot, chat_id=chat.id)
+    except BotNotInChatError:
+        member_count = None
+    else:
+        # Somebody who added the bot and pressed this should not wait a day for the hourly counts.
+        if member_count is not None:
+            chat.bot_absent_at = None
+
     chat.last_synced_at = utc_now()
     await session.commit()
     await session.refresh(chat)
     # The public catalog remembers its answer for a minute, and it carries the picture's address.
     public_answers.forget()
 
-    member_count = await fetch_member_count(bot=bot, chat_id=chat.id)
     if member_count is None:
         member_count = await member_counts.latest(session, chat.id)
     return ChatRead(

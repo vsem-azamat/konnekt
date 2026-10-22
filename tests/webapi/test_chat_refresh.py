@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram.exceptions import TelegramBadRequest
 from app.core.config import settings
+from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
@@ -165,6 +166,40 @@ async def test_refresh_falls_back_to_the_last_snapshot(client_factory, db_sessio
         resp = await client.post("/api/chats/-7007/refresh")
 
     assert resp.json()["member_count"] == 11
+
+
+async def test_refresh_of_a_chat_the_bot_is_not_in_falls_back_too(client_factory, db_session_maker) -> None:
+    make, bot_holder = client_factory
+    bot = _bot()
+    bot.get_chat_member_count = AsyncMock(side_effect=TelegramBadRequest(method=MagicMock(), message="chat not found"))
+    bot_holder["bot"] = bot
+    async with db_session_maker() as s:
+        s.add(Chat(id=-7008, title="G"))
+        s.add(ChatMemberSnapshot(chat_id=-7008, member_count=11))
+        await s.commit()
+
+    async with make() as client:
+        resp = await client.post("/api/chats/-7008/refresh")
+
+    assert resp.status_code == 200
+    assert resp.json()["member_count"] == 11
+
+
+async def test_refresh_that_gets_a_count_clears_the_absent_mark(client_factory, db_session_maker) -> None:
+    """The bot was added and somebody pressed refresh: the hourly counts resume on the next tick."""
+    make, bot_holder = client_factory
+    bot_holder["bot"] = _bot(members=50)
+    async with db_session_maker() as s:
+        chat = Chat(id=-7009, title="H")
+        chat.bot_absent_at = utc_now()
+        s.add(chat)
+        await s.commit()
+
+    async with make() as client:
+        await client.post("/api/chats/-7009/refresh")
+
+    async with db_session_maker() as s:
+        assert (await s.get(Chat, -7009)).bot_absent_at is None
 
 
 async def test_refresh_returns_404_for_unknown_chat(client_factory) -> None:
