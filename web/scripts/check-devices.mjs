@@ -24,15 +24,20 @@
  *   - the first thing on the screen clears the notch and Telegram's header;
  *   - nothing is wider than the screen;
  *   - an open sheet lies inside the visible area;
+ *   - on iOS, with Telegram's bottom button up, the screen behind it ends
+ *     above the button, and so does a sheet opened there;
+ *   - on iOS, with the keyboard up, a sheet's field and its last button can
+ *     be seen above the keyboard;
  *   - a screen opened from a scrolled list starts at its top, and Back
  *     returns to the list where it was left, even when the list has to be
  *     loaded again;
  *   - after a minimise and restore, the app is as tall as what is visible.
  *
- * What it cannot do: the keyboard, which on iOS shrinks only the visual
- * viewport and which a headless browser does not emulate, and Telegram's
- * bottom button, which no screen measured here shows; the window shorter
- * than Telegram's height stands in for it.
+ * The keyboard is the stand-in's too. A headless browser opens none, and on
+ * iOS the keyboard shrinks only the visual viewport, so the stand-in replaces
+ * `window.visualViewport` and shrinks it while a field has focus. What it
+ * cannot do is the Android keyboard, which resizes the whole webview and is a
+ * resize like any other.
  *
  * `pnpm build` first. BASE=<url> measures a server that is already running.
  */
@@ -70,6 +75,7 @@ const PROFILES = [
     height: 844,
     tg: 844,
     safe: { top: 47, bottom: 34 },
+    keyboard: 336,
   },
   {
     name: 'ios 390, fullscreen',
@@ -78,10 +84,34 @@ const PROFILES = [
     height: 844,
     tg: 844,
     safe: { top: 47, bottom: 34 },
+    keyboard: 336,
     content: { top: 46 },
   },
-  { name: 'ios 375, no notch', platform: 'ios', width: 375, height: 667, tg: 667 },
+  {
+    name: 'ios 375, no notch',
+    platform: 'ios',
+    width: 375,
+    height: 667,
+    tg: 667,
+    keyboard: 260,
+  },
+  // The smallest phone Telegram for iOS still runs on: a sheet with a field
+  // does not fit above its keyboard, and has to scroll.
+  {
+    name: 'ios 320, small',
+    platform: 'ios',
+    width: 320,
+    height: 568,
+    tg: 568,
+    keyboard: 253,
+  },
 ];
+
+/**
+ * What Telegram for iOS takes off the height it reports while its bottom
+ * button is up: the button lies over the bottom of the webview.
+ */
+const BOTTOM_BUTTON = 58;
 
 /** Sub-pixel layout leaves fractions behind; a hidden row is never this small. */
 const TOLERANCE = 1.5;
@@ -121,9 +151,61 @@ const CHATS = [
   ...chat,
 }));
 
+/** Somebody's page, long enough to scroll, with Telegram's bottom button to write to them. */
+const HELPER = {
+  user_id: 7,
+  name: 'Fixture Helper',
+  avatar: { id: 7, initials: 'FH', tone: 2, photo_url: null },
+  affiliation: 'ČVUT FIT',
+  about: 'Fixture about. '.repeat(40),
+  headline: null,
+  stats: [],
+  offers: [],
+  langs: ['ru'],
+  work_format: 'online',
+  place_note: 'Zz end of the fixture helper',
+  free_slots: [],
+  reviews: [],
+  intro_context: {},
+  telegram_url: 'https://t.me/fixture_helper',
+};
+
+/** A search that found nobody, so the request sheet is what the screen offers. */
+const NOBODY = {
+  total: 0,
+  filters: {
+    subject_id: 1,
+    institution_id: 2,
+    service_type_id: 3,
+    max_price: 500,
+    langs: [],
+    work_format: null,
+  },
+  // Every kind of chip, so the sheet is as tall as it gets.
+  chips: [
+    { kind: 'subject', label: 'Matematická analýza 1', value: 1, confidence: 1 },
+    {
+      kind: 'institution',
+      label: 'ČVUT Fakulta informačních technologií',
+      value: 2,
+      confidence: 1,
+    },
+    {
+      kind: 'service_type',
+      label: 'Doučování a příprava na zkoušku',
+      value: 3,
+      confidence: 1,
+    },
+    { kind: 'budget', label: 'do 500 Kč za hodinu', value: 500, confidence: 1 },
+  ],
+  results: [],
+};
+
 const FIXTURES = {
   'GET /api/public/catalog': CHATS,
   'GET /api/v1/institutions': [],
+  'GET /api/v1/helpers/7': HELPER,
+  'GET /api/v1/search': NOBODY,
   'POST /api/public/seen': null,
   'POST /api/public/client-errors': null,
 };
@@ -154,6 +236,15 @@ function telegramBridge(profile) {
     is_state_stable: state.height === state.stable,
   });
   const answers = {
+    // On iOS the button lies over the webview, and the height Telegram
+    // reports leaves it out. Android shrinks the webview instead.
+    web_app_setup_main_button: ({ is_visible }) => {
+      if (profile.platform !== 'ios' || Boolean(is_visible) === window.__telegram.button)
+        return;
+      window.__telegram.button = Boolean(is_visible);
+      state.height = state.stable = profile.tg - (is_visible ? profile.button : 0);
+      receive('viewport_changed', viewport());
+    },
     web_app_request_viewport: () => receive('viewport_changed', viewport()),
     web_app_request_safe_area: () => receive('safe_area_changed', state.safe),
     web_app_request_content_safe_area: () =>
@@ -162,20 +253,46 @@ function telegramBridge(profile) {
       receive('theme_changed', { theme_params: { bg_color: '#ffffff' } }),
   };
   window.TelegramWebviewProxy = {
-    postEvent(name) {
+    postEvent(name, data) {
       const answer = answers[name];
       // Asynchronously, as a real client does: the SDK subscribes after posting.
-      if (answer) setTimeout(answer, 0);
+      if (answer) setTimeout(() => answer(data ? JSON.parse(data) : {}), 0);
     },
   };
   /** For the check: what Telegram would send when the sheet moves. */
   window.__telegram = {
+    button: false,
     move(height, stable) {
       state.height = height;
       if (stable) state.stable = height;
       receive('viewport_changed', viewport());
     },
   };
+
+  // The iOS keyboard: the layout keeps its height and the visual viewport
+  // loses the keyboard's, for as long as a field has focus.
+  if (!profile.keyboard) return;
+  let covered = 0;
+  const visual = new EventTarget();
+  for (const [key, get] of Object.entries({
+    width: () => window.innerWidth,
+    height: () => window.innerHeight - covered,
+    offsetTop: () => 0,
+    offsetLeft: () => 0,
+    pageTop: () => 0,
+    pageLeft: () => 0,
+    scale: () => 1,
+  })) {
+    Object.defineProperty(visual, key, { get });
+  }
+  Object.defineProperty(window, 'visualViewport', { get: () => visual });
+  const typing = (el) => el instanceof HTMLElement && el.matches('input, textarea');
+  const show = (px) => {
+    covered = px;
+    visual.dispatchEvent(new Event('resize'));
+  };
+  document.addEventListener('focusin', (e) => typing(e.target) && show(profile.keyboard));
+  document.addEventListener('focusout', (e) => typing(e.target) && show(0));
 }
 
 function launchHash(profile) {
@@ -328,7 +445,7 @@ async function open(
     isMobile: true,
     hasTouch: true,
   });
-  await context.addInitScript(telegramBridge, profile);
+  await context.addInitScript(telegramBridge, { button: BOTTOM_BUTTON, ...profile });
   const unknown = new Set();
   let catalogCalls = 0;
   await context.route('**/api/**', async (route) => {
@@ -555,6 +672,91 @@ async function checkRestore(browser, base, profile) {
   await context.close();
 }
 
+/** Where a box lies against what can be seen: an empty string when inside. */
+function outside(box, top, bottom) {
+  const end = box.y + box.height;
+  if (box.y >= top - TOLERANCE && end <= bottom + TOLERANCE) return '';
+  return `spans ${Math.round(box.y)}–${Math.round(end)}px, visible is ${top}–${bottom}px`;
+}
+
+/**
+ * A screen with Telegram's bottom button, on iOS: the button covers the bottom
+ * of the webview, and the screen and the sheet over it end above it.
+ */
+async function checkBottomButton(browser, base, profile) {
+  const { page, context } = await open(browser, base, profile, '/helper/7');
+  try {
+    await page.getByText(HELPER.place_note).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+    if (!(await page.evaluate(() => window.__telegram.button))) {
+      throw new Error('the screen never asked for the bottom button');
+    }
+    const bottom = visibleBottom(profile, profile.tg - BOTTOM_BUTTON);
+    const clearance = (profile.safe?.top ?? 0) + (profile.content?.top ?? 0);
+    const seen = await page.evaluate(measureScreen);
+    const under = (seen.lowest?.bottom ?? Infinity) - bottom;
+    if (under > TOLERANCE) {
+      fail(
+        profile,
+        `bottom button: scrolled to the end, «${seen.lowest?.text}» is ${Math.round(under)}px under it`,
+      );
+    } else ok('bottom button: the end of the screen is above it');
+
+    await page.getByRole('button', { name: 'Язык приложения' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.waitFor({ timeout: 3000 });
+    await page.waitForTimeout(300);
+    const where = outside(await dialog.boundingBox(), clearance, bottom);
+    if (where) fail(profile, `bottom button: the sheet ${where}`);
+    else ok('bottom button: a sheet opened there is above it');
+  } catch (error) {
+    fail(profile, `bottom button: ${error.message.split('\n')[0]}`);
+  }
+  await context.close();
+}
+
+/**
+ * The request sheet with the keyboard up, on iOS: what is typed into, and the
+ * button that sends it, can both be seen above the keyboard.
+ */
+async function checkKeyboard(browser, base, profile) {
+  const { page, context } = await open(
+    browser,
+    base,
+    profile,
+    `/results?q=${encodeURIComponent('matan na FIT')}&subject_id=1&institution_id=2&service_type_id=3&max_price=500&ask=1`,
+  );
+  try {
+    const dialog = page.getByRole('dialog');
+    const field = dialog.locator('textarea');
+    await field.waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+    await field.click();
+    await page.waitForTimeout(300);
+    const bottom = visibleBottom(profile) - profile.keyboard;
+    const clearance = (profile.safe?.top ?? 0) + (profile.content?.top ?? 0);
+
+    const sheet = outside(await dialog.boundingBox(), clearance, bottom);
+    if (sheet) fail(profile, `keyboard: the sheet ${sheet}`);
+    else ok('keyboard: the sheet is above it');
+
+    const typed = outside(await field.boundingBox(), clearance, bottom);
+    if (typed) fail(profile, `keyboard: the field ${typed}`);
+    else ok('keyboard: the field is above it');
+
+    // Scrolled to inside the sheet, without the click that would do it.
+    const send = dialog.getByRole('button').last();
+    await send.evaluate((el) => el.scrollIntoView({ block: 'nearest' }));
+    await page.waitForTimeout(100);
+    const last = outside(await send.boundingBox(), clearance, bottom);
+    if (last) fail(profile, `keyboard: the sheet's last button ${last}`);
+    else ok("keyboard: the sheet's last button can be reached");
+  } catch (error) {
+    fail(profile, `keyboard: ${error.message.split('\n')[0]}`);
+  }
+  await context.close();
+}
+
 const { base, stop } = await serve();
 let browser;
 try {
@@ -568,6 +770,9 @@ try {
     await checkReturn(browser, base, profile);
     if (profile.platform === 'android') {
       await checkRestore(browser, base, profile);
+    } else {
+      await checkBottomButton(browser, base, profile);
+      if (profile.keyboard) await checkKeyboard(browser, base, profile);
     }
   }
 } finally {
