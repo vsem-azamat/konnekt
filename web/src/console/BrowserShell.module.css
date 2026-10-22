@@ -2,14 +2,17 @@
  * The browser's frame around the console's screens: a menu on the left,
  * the screen beside it. The screens themselves are the Mini App's, so the
  * column they sit in keeps their width.
+ *
+ * The menu and the bar over the screen stay put, on rails; only the screen
+ * scrolls. The frame is exactly #root's screenful, so #root has nothing to
+ * scroll, and `.main` is the one scroller.
  */
 
 .frame {
-  /* #root is the scroller and lays its child out as a column; shrunk to its
-     height, the grid squeezed the phone's menu row to make room for a long
-     screen and cut the links in half. */
-  flex: none;
-  min-height: 100dvh;
+  flex: 1 0 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   background: var(--bg);
@@ -17,9 +20,7 @@
 }
 
 .side {
-  position: sticky;
-  top: 0;
-  height: 100dvh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -118,12 +119,19 @@
 
 .main {
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
 }
 
 /* The bar over every screen: the bell now, the search across everything next. */
 .top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -171,15 +179,15 @@
 @media (max-width: 760px) {
   .frame {
     grid-template-columns: 1fr;
-    /* The menu is as tall as its one row, and the screen takes the rest. */
-    grid-template-rows: auto 1fr;
+    /* The menu is as tall as its one row, and the screen takes the rest:
+       minmax(0, …), so a long screen scrolls inside its row rather than
+       squeezing the menu's and cutting the links in half. */
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   /* One row that scrolls sideways: wrapped, the links took three rows of a
      phone's height; clipped, they showed their top halves. */
   .side {
-    position: static;
-    height: auto;
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
