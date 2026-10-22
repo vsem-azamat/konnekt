@@ -33,7 +33,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.chats import previews
 from app.chats.avatars import sync_photo
 from app.chats.invite_links import is_invite_link
-from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import (
+    BotNotInChatError,
+    ChatMigratedError,
+    fetch_member_count,
+    fetch_metadata,
+    username_of,
+)
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -403,6 +409,9 @@ async def refresh_chat_from_telegram(
 
     try:
         member_count = await fetch_member_count(bot=bot, chat_id=chat.id)
+    except ChatMigratedError as err:
+        chat.migrated_to_chat_id = err.new_chat_id
+        member_count = None
     except BotNotInChatError:
         member_count = None
     else:

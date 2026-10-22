@@ -640,3 +640,38 @@ class TestBotNotInChat:
         await snapshot_once(session_maker=db_session_maker, bot=bot)
 
         assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
+
+
+class TestUpgradedToSupergroup:
+    """A group that became a supergroup answers its old id with the new one, for good.
+
+    On 2026-10-22 one such group logged the same warning every hour.
+    """
+
+    async def test_the_old_row_says_where_it_went_and_is_not_asked_again(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        from aiogram.exceptions import TelegramMigrateToChat
+
+        await _seed(db_session_maker, Chat(id=-5319178881, title="Old"), Chat(id=-200, title="B"))
+        bot = _bot()
+        moved = TelegramMigrateToChat(method=MagicMock(), message="upgraded", migrate_to_chat_id=-1004394473356)
+
+        def _count(chat_id: int) -> int:
+            if chat_id == -5319178881:
+                raise moved
+            return 80
+
+        bot.get_chat_member_count = AsyncMock(side_effect=_count)
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        old = await _chat(db_session_maker, -5319178881)
+        assert old.migrated_to_chat_id == -1004394473356
+        # Kept, with its history, and asked once only.
+        asked = [call.args[0] for call in bot.get_chat_member_count.await_args_list]
+        assert asked.count(-5319178881) == 1
+        assert asked.count(-200) == 2
+        assert -5319178881 not in [call.args[0] for call in bot.get_chat.await_args_list]
+        assert await _snapshots(db_session_maker) == [(-200, 80), (-200, 80)]

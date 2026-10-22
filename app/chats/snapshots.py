@@ -28,7 +28,13 @@ from sqlalchemy import select, update
 
 from app.chats import previews
 from app.chats.avatars import sync_photo
-from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
+from app.chats.metadata import (
+    BotNotInChatError,
+    ChatMigratedError,
+    fetch_member_count,
+    fetch_metadata,
+    username_of,
+)
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -123,8 +129,9 @@ async def snapshot_once(
     async with session_maker() as session:
         everything = (await session.execute(select(Chat))).scalars().all()
         # A chat known only by its invite link is not Telegram's to answer
-        # about to this bot: its page is read instead, once a day.
-        chats = [chat for chat in everything if not chat.is_preview_only]
+        # about to this bot: its page is read instead, once a day. A group that
+        # became a supergroup answers nothing about its old id again.
+        chats = [chat for chat in everything if not chat.is_preview_only and chat.migrated_to_chat_id is None]
         previewed = [
             chat
             for chat in everything
@@ -140,6 +147,10 @@ async def snapshot_once(
             asked += 1
             try:
                 members = await fetch_member_count(bot=bot, chat_id=chat.id)
+            except ChatMigratedError as err:
+                logger.info("chat_migrated", chat_id=chat.id, to_chat_id=err.new_chat_id)
+                chat.migrated_to_chat_id = err.new_chat_id
+                continue
             except BotNotInChatError:
                 _note_absent(chat, now)
                 # A public chat still answers getChat by its name, so its title

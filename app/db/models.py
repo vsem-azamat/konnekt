@@ -247,6 +247,11 @@ class Chat(Base):
     # When Telegram last told the bot it does not know this chat, or None while
     # it answers. The hourly loop asks such a chat once a day instead.
     bot_absent_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # The supergroup this group became, as Telegram said when asked about it;
+    # None while it is still itself. The old group is closed for good, so the
+    # hourly loop stops asking it. The row stays, with its history: the new id
+    # is a chat of its own, recorded when the bot meets it there.
+    migrated_to_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
     modified_at: Mapped[datetime.datetime] = mapped_column(
         DateTime,
