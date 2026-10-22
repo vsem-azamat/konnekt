@@ -937,22 +937,42 @@
   position: fixed;
   inset: 0;
   z-index: 20;
+  /* A drag on it would scroll the screen behind, which is its parent. */
+  touch-action: none;
   border: 0;
   padding: 0;
   background: rgb(0 0 0 / 34%);
   animation: fade 140ms ease;
 }
 
+/* Between what covers the bottom of the window and what covers its top, and
+   never taller than the room left between them: what does not fit scrolls in
+   .sheetBody, with the title still in sight. */
 .sheet {
+  /* Above Telegram's bottom button and the home indicator, or above the
+     keyboard, which covers both when it is up. */
+  --sheet-floor: calc(
+    8px +
+    max(
+      var(--hidden-bottom) +
+      var(--tg-viewport-safe-area-inset-bottom, 0px),
+      var(--keyboard)
+    )
+  );
+  /* Below the notch and, in fullscreen, Telegram's header, wherever the top
+     of what can be seen is: iOS pans the view down to a field. */
+  --sheet-ceiling: calc(
+    8px +
+    var(--keyboard-pan) +
+    var(--tg-viewport-safe-area-inset-top, 0px) +
+    var(--top-clearance)
+  );
   position: fixed;
   z-index: 21;
   left: 8px;
   right: 8px;
-  bottom: calc(
-    8px +
-    var(--hidden-bottom) +
-    var(--tg-viewport-safe-area-inset-bottom, 0px)
-  );
+  bottom: var(--sheet-floor);
+  max-height: calc(100vh - var(--sheet-floor) - var(--sheet-ceiling));
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -972,6 +992,14 @@
   align-self: center;
 }
 
+/* The window as it is now, where the engine can say so: 100vh is the tallest
+   it gets, with the browser's own bars hidden. */
+@supports (height: 1dvh) {
+  .sheet {
+    max-height: calc(100dvh - var(--sheet-floor) - var(--sheet-ceiling));
+  }
+}
+
 /* Focus lands on the panel itself when it opens: it names the dialog, and a ring
    round a whole sheet says nothing the sheet's own edges do not. */
 .sheet:focus {
@@ -982,6 +1010,20 @@
   font-size: 17px;
   font-weight: 720;
   letter-spacing: -0.02em;
+}
+
+/* Everything under the title. Its padding reaches the sheet's edges and a
+   little above, so a focus ring on a row is not cut off where the scroll area
+   ends. */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+  margin: -4px -14px -14px;
+  padding: 4px 14px 14px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 
 /* A chat's preview: what a stranger can know before leaving for it. */
@@ -1943,14 +1985,21 @@
   font-weight: 600;
 }
 
-/* A sheet's choices when there may be dozens: they scroll inside the sheet
-   rather than push it past the top of the screen. */
+/* A sheet's choices when there may be dozens: they scroll on their own and
+   give up their height first, so what is above them stays put. Two rows at
+   least; with less room than that the whole body scrolls. */
 .sheetList {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  max-height: 55vh;
+  min-height: 104px;
   overflow-y: auto;
+}
+
+/* One row is all the height it needs. Said as an exception, so an engine
+   without :has() keeps the floor rather than lose it. */
+.sheetList:not(:has(> :nth-child(2))) {
+  min-height: 0;
 }
 
 /* Blocks one under another with the rows' own gap. Not .stack, which is the

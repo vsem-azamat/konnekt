@@ -40,6 +40,7 @@ import {
   scrub,
   startReporting,
 } from '@/lib/clientErrors';
+import { followKeyboard } from '@/lib/keyboard';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { browserRouter, router } from '@/router';
@@ -267,6 +268,7 @@ function initSdk(): void {
   // so a request that never comes back costs a fallback height rather than a
   // page with no height at all.
   bindAppHeight();
+  bindKeyboard();
 
   // Async: the viewport has to ask the client for its dimensions. Nothing
   // downstream waits on it, so the promise is deliberately not awaited — the
@@ -335,6 +337,40 @@ function bindAppHeight(): void {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') askAgain();
   });
+}
+
+/**
+ * Publish what the on-screen keyboard covers, as `--keyboard` and
+ * `--keyboard-pan`: the rules are in `lib/keyboard.ts`. Inside Telegram only,
+ * where the sheets it lifts are.
+ *
+ * A sheet the keyboard shrinks keeps its scroll, so the field that was in view
+ * in the taller sheet can be below the shorter one. It is brought back once
+ * the sheet has its new size.
+ */
+function bindKeyboard(): void {
+  if (!window.visualViewport) return;
+  const root = document.documentElement.style;
+  // The sheet's room is what neither covers. A pan alone moves the sheet
+  // without resizing it, and bringing the field back then would pull the
+  // sheet's scroll away from wherever the person had taken it.
+  let room = 0;
+  followKeyboard(
+    window.visualViewport,
+    () => window.innerHeight,
+    ({ covered, panned }) => {
+      root.setProperty('--keyboard', `${covered}px`);
+      root.setProperty('--keyboard-pan', `${panned}px`);
+      if (covered + panned === room) return;
+      room = covered + panned;
+      requestAnimationFrame(() => {
+        const typing = document.activeElement;
+        if (typing?.closest('[role="dialog"]')) {
+          typing.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    },
+  );
 }
 
 /** Load the one catalog we need before the first paint, to avoid a flash. */
