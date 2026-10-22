@@ -1659,7 +1659,7 @@ msgstr "Obnovit z Telegramu"
 msgid "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
 msgstr "Žádná registrace — přihlásíš se svým účtem na Telegramu. Pomáhat ostatním můžeš odtamtud taky."
 
-#: src/components/AppHeader.tsx
+#: src/components/TabBar.tsx
 #: src/pages/Profile.tsx
 msgid "Профиль"
 msgstr "Profil"

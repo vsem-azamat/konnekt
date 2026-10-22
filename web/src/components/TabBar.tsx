@@ -4,19 +4,20 @@ import { useLocation, useNavigate } from 'react-router';
 
 import { hapticSelection } from '@/hooks/useTelegram';
 
-import { BookmarkIcon, ChatIcon, PlusIcon, SearchIcon } from './icons';
+import { BookmarkIcon, ChatIcon, PersonIcon, PlusIcon, SearchIcon } from './icons';
 import { Pick, Sheet } from './Sheet';
 import { Tile } from './Ui';
 import css from './ui.module.css';
 
 /**
- * Three destinations and one action.
+ * Four destinations and one action.
  *
- * "Профиль" is the avatar in the header, where a person's own face is a better
- * label than the word. "Чаты" is the directory of moderated student chats
- * (supervisor-telegram's), a real list behind the tab. "Помощь" is the catalog.
+ * "Чаты" is the directory of moderated student chats (supervisor-telegram's),
+ * a real list behind the tab. "Помощь" is the catalog. "Профиль" holds a
+ * student's and a helper's own things, which the marketplace made too many to
+ * hide behind an avatar in the header.
  *
- * The round button is not a fourth tab: it posts something, which is the
+ * The round button is not a fifth tab: it posts something, which is the
  * opposite direction from browsing, and keeping it visually apart is what says
  * so.
  */
@@ -24,6 +25,7 @@ const TABS = [
   { to: '/', icon: SearchIcon, label: <Trans>Помощь</Trans> },
   { to: '/chats', icon: ChatIcon, label: <Trans>Чаты</Trans> },
   { to: '/mine', icon: BookmarkIcon, label: <Trans>Заявки</Trans> },
+  { to: '/profile', icon: PersonIcon, label: <Trans>Профиль</Trans> },
 ] as const;
 
 /** A tab stays lit on the screens below it: a chat section is still Чаты. */
