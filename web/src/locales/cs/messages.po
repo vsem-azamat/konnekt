@@ -356,10 +356,6 @@ msgstr "O sobě"
 msgid "Может ли бот написать"
 msgstr "Může bot napsat"
 
-#: src/console/JoinMode.tsx
-msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто прошёл капчу за последние 90 дней, входит без вопроса."
-msgstr "Bot položí v soukromé zprávě otázku a za správnou odpověď žádost schválí. Kdo prošel captchou za posledních 90 dní, vstoupí bez otázky."
-
 #: src/components/Phrase.tsx
 msgid "Экзамены и поступление"
 msgstr "Zkoušky a přijímací řízení"
@@ -2208,6 +2204,10 @@ msgstr "Nechat skrytý"
 #: src/console/Charts.tsx
 msgid "Вт"
 msgstr "Út"
+
+#: src/console/JoinMode.tsx
+msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние 90 дней прошёл капчу в другом нашем чате, входит без вопроса."
+msgstr "Bot položí v soukromé zprávě otázku a za správnou odpověď žádost schválí. Kdo za posledních 90 dní prošel captchou v jiném našem chatu, vstoupí bez otázky."
 
 #. placeholder {0}: system.data.session_ttl_days
 #: src/console/pages/System.tsx

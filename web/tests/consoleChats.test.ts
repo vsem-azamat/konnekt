@@ -20,7 +20,8 @@ function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): Conso
     institution_code: null,
     city: null,
     topic: null,
-    is_captcha_enabled: false,
+    join_mode: 'admins',
+    join_by_request: null,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
     ...over,
@@ -157,5 +158,6 @@ test('only a public chat that does not approve new members lets people straight 
   // The bot's invite link makes the chat private: requests come from the link.
   assert.equal(direct('https://t.me/+AbCdEf123', false), false);
   assert.equal(direct('https://t.me/joinchat/AbCdEf123', false), false);
+  assert.equal(direct('https://t.me/+AbCdEf123/', false), false);
   assert.equal(direct(null, false), false);
 });

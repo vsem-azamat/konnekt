@@ -4,7 +4,7 @@ import { Segmented, ui } from '@/components/Ui';
 
 import { joinsDirectly } from './chats';
 import css from './JoinMode.module.css';
-import type { ConsoleChatDetail, JoinMode } from './session';
+import type { ConsoleChat, JoinMode } from './session';
 
 /**
  * Who lets a person into the chat: everyone, the captcha or the admins, with
@@ -18,7 +18,7 @@ export function JoinModeRow({
   busy,
   onChange,
 }: {
-  chat: Pick<ConsoleChatDetail, 'join_mode' | 'join_by_request' | 'public_link'>;
+  chat: Pick<ConsoleChat, 'join_mode' | 'join_by_request' | 'public_link'>;
   busy: boolean;
   onChange: (mode: JoinMode) => void;
 }) {
@@ -67,8 +67,8 @@ export function JoinModeRow({
           </Trans>
         ) : chat.join_mode === 'captcha' ? (
           <Trans>
-            Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто прошёл капчу
-            за последние 90 дней, входит без вопроса.
+            Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние
+            90 дней прошёл капчу в другом нашем чате, входит без вопроса.
           </Trans>
         ) : (
           <Trans>Бот заявки не трогает: их одобряют админы в Telegram.</Trans>

@@ -58,7 +58,7 @@ msgstr "welcome"
 
 #: src/console/JoinMode.tsx
 msgid "Входят сразу"
-msgstr "Join straight away"
+msgstr "Straight in"
 
 #: src/console/AudienceLabels.tsx
 msgid "Старые боты"
@@ -355,10 +355,6 @@ msgstr "About you"
 #: src/console/pages/AudiencePerson.tsx
 msgid "Может ли бот написать"
 msgstr "Can the bot write"
-
-#: src/console/JoinMode.tsx
-msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто прошёл капчу за последние 90 дней, входит без вопроса."
-msgstr "The bot asks a question in a private message and approves the request for the right answer. Whoever passed the captcha in the last 90 days joins without a question."
 
 #: src/components/Phrase.tsx
 msgid "Экзамены и поступление"
@@ -2208,6 +2204,10 @@ msgstr "Keep hidden"
 #: src/console/Charts.tsx
 msgid "Вт"
 msgstr "Tue"
+
+#: src/console/JoinMode.tsx
+msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние 90 дней прошёл капчу в другом нашем чате, входит без вопроса."
+msgstr "The bot asks a question in a private message and approves the request for the right answer. Whoever passed the captcha in another of our chats in the last 90 days joins without a question."
 
 #. placeholder {0}: system.data.session_ttl_days
 #: src/console/pages/System.tsx
