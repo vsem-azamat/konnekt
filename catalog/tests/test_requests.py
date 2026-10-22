@@ -854,3 +854,39 @@ async def test_the_author_is_not_among_the_helpers_seeing(
     assert created["subject_id"] == theirs["subject_id"]
     assert seeing == theirs["helpers_seeing"] - 1
     assert seeing == listed
+
+
+# ── pricing an answer ───────────────────────────────────────────────────
+
+
+async def test_the_feed_suggests_the_helpers_own_price(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=650)
+    created = await post_request(client, "нужна помощь с матаном")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] == {"amount": 650, "currency": "CZK", "unit": "hour"}
+
+
+async def test_no_price_is_suggested_far_from_the_helpers_offers(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=650)
+    created = await post_request(client, "кто-нибудь знает, где купить велосипед")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] is None
+
+
+async def test_an_offer_without_a_price_suggests_none(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER, price=None)
+    created = await post_request(client, "нужна помощь с матаном")
+
+    feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["suggested_price"] is None

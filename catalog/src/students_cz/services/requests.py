@@ -44,7 +44,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import shelves_of
+from students_cz.services.lookup import held_by, shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -156,6 +156,51 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
         )
         for request, author, on_subject, on_institution, on_service in rows
     ]
+
+
+async def suggested_offers(
+    session: AsyncSession, *, user: User, requests: list[HelpRequest]
+) -> dict[int, Offer]:
+    """The helper's own offer each request is closest to, to price an answer.
+
+    The kind of help and the subject both, or else either: a calculus tutor
+    answering «матан» without a kind of help named quotes their calculus
+    price. An offer with no price suggests nothing.
+    """
+    offers = list(
+        await session.scalars(
+            select(Offer)
+            .where(
+                Offer.helper_id == user.id,
+                Offer.is_active.is_(True),
+                Offer.price_amount.is_not(None),
+            )
+            .order_by(Offer.id)
+        )
+    )
+    if not offers:
+        return {}
+    covered: dict[int, set[int]] = {}
+    suggested: dict[int, Offer] = {}
+    for request in requests:
+        subjects: set[int] = set()
+        if request.subject_id is not None:
+            if request.subject_id not in covered:
+                covered[request.subject_id] = set(
+                    await held_by(session, request.subject_id)
+                )
+            subjects = covered[request.subject_id]
+        best, best_score = None, 0
+        for offer in offers:
+            score = 2 * (offer.subject_id in subjects) + (
+                request.service_type_id is not None
+                and offer.service_type_id == request.service_type_id
+            )
+            if score > best_score:
+                best, best_score = offer, score
+        if best is not None:
+            suggested[request.id] = best
+    return suggested
 
 
 async def _axes_of(

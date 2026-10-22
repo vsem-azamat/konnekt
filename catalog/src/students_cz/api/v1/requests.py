@@ -24,6 +24,7 @@ from students_cz.db.models import (
     HelperProfile,
     HelpRequest,
     Institution,
+    Offer,
     RequestResponse,
     ServiceType,
     Subject,
@@ -118,6 +119,9 @@ async def request_feed(
         session, [row.request for row in rows], lang, count_seeing=False
     )
     subjects_by_id = {item.id: item.subject for item in rendered}
+    offers = await requests_service.suggested_offers(
+        session, user=user, requests=[row.request for row in rows]
+    )
 
     return [
         FeedRequestOut(
@@ -142,9 +146,20 @@ async def request_feed(
                 on_service=row.on_service,
                 subject=subjects_by_id.get(row.request.id),
             ),
+            suggested_price=_offer_price(offers.get(row.request.id)),
         )
         for base, row in zip(rendered, rows, strict=True)
     ]
+
+
+def _offer_price(offer: Offer | None) -> Price | None:
+    if offer is None or offer.price_amount is None:
+        return None
+    return Price(
+        amount=float(offer.price_amount),
+        currency=offer.price_currency,
+        unit=offer.price_unit,
+    )
 
 
 def _feed_reason(

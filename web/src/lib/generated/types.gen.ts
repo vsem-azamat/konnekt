@@ -457,6 +457,7 @@ export type FeedRequestOut = {
      */
     langs?: Array<string>;
     reason?: Phrase | null;
+    suggested_price?: Price | null;
 };
 
 /**

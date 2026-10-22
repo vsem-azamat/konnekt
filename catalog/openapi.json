@@ -2911,6 +2911,16 @@
                 "type": "null"
               }
             ]
+          },
+          "suggested_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Price"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

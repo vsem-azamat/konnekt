@@ -490,6 +490,9 @@ class FeedRequestOut(RequestBase):
     # Why this request surfaced: the same subject you teach, your faculty, or
     # simply that it is new. Rendered by the client, like every other Phrase.
     reason: Phrase | None = None
+    # The reader's own price for the nearest of their offers, to start an
+    # answer from. None when no priced offer of theirs is near it.
+    suggested_price: Price | None = None
 
 
 class ResponseCreate(BaseModel):
