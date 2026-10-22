@@ -6,6 +6,10 @@ captcha goes out the moment the request arrives. The answer window, in
 right emoji approves the request; two wrong ones, or silence, decline it. A
 declined applicant is not banned and may ask again.
 
+Somebody who passed the captcha in another of our chats within
+`settings.captcha.trust_days` is approved without one, waves or not: the
+captcha proves there is a person behind the account, and they already have.
+
 Every decision locks its row, so a tap and the expiry sweep cannot both act on
 one request: whichever comes second finds it settled.
 """
@@ -26,9 +30,10 @@ from app.captcha import challenge, waves
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
 from app.core.config import settings
+from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, JoinCaptcha, JoinWave
+from app.db.models import Chat, JoinCaptcha, JoinWave, ModerationEvent
 
 logger = get_logger("captcha")
 
@@ -54,7 +59,10 @@ class Outcome(enum.Enum):
 async def admit(
     bot: Bot, db: AsyncSession, event: ChatJoinRequest, chat: Chat, *, now: datetime.datetime | None = None
 ) -> None:
-    """Send the captcha for a request, unless a wave says to hold or decline it."""
+    """Send the captcha for a request, unless trust lets them in or a wave says to hold or decline it.
+
+    The blacklist is the caller's to check first: nothing here trusts past it.
+    """
     now = now or utc_now()
     user_id = event.from_user.id
 
@@ -62,6 +70,11 @@ async def admit(
     # burst counts itself short and opens a wave per handful of requests.
     await _lock_chat(db, chat.id)
     superseded = await _supersede(db, chat.id, user_id, now)
+    # Before the wave: a trusted request neither waits in one nor feeds it,
+    # since a wave pauses the captcha for strangers and this is not one.
+    if await _trusted(db, chat.id, user_id, now):
+        await _let_in_on_trust(bot, db, event, chat, superseded, now)
+        return
     wave, opened = await waves.surge(db, chat, user_id, now)
     answer, options = challenge.draw()
     row = JoinCaptcha(
@@ -120,6 +133,103 @@ async def admit(
     await db.commit()
     CAPTCHA_EVENTS.labels(event="sent").inc()
     logger.info("captcha_sent", chat_id=chat.id, user_id=user_id, captcha_id=row.id)
+
+
+async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.datetime) -> bool:
+    """Whether this person passed the captcha in another chat within the window, and was not banned since.
+
+    Another chat only: coming back to one they left is asking again. A ban
+    anywhere inside the window outweighs the pass; it may have been lifted
+    since, which costs that person one captcha.
+    """
+    since = now - datetime.timedelta(days=settings.captcha.trust_days)
+    passed = await db.scalar(
+        select(JoinCaptcha.id)
+        .where(
+            JoinCaptcha.user_id == user_id,
+            JoinCaptcha.chat_id != chat_id,
+            JoinCaptcha.status == JoinCaptcha.STATUS_PASSED,
+            JoinCaptcha.resolved_at >= since,
+        )
+        .limit(1)
+    )
+    if passed is None:
+        return False
+    banned = await db.scalar(
+        select(ModerationEvent.id)
+        .where(
+            ModerationEvent.target_user_id == user_id,
+            ModerationEvent.action == ModerationEventAction.BAN,
+            ModerationEvent.created_at >= since,
+        )
+        .limit(1)
+    )
+    return banned is None
+
+
+async def _let_in_on_trust(
+    bot: Bot,
+    db: AsyncSession,
+    event: ChatJoinRequest,
+    chat: Chat,
+    superseded: list[JoinCaptcha],
+    now: datetime.datetime,
+) -> None:
+    """Approve the request without a captcha, and say so while Telegram still lets the bot write."""
+    row = JoinCaptcha(
+        chat_id=chat.id,
+        user_id=event.from_user.id,
+        user_chat_id=event.user_chat_id,
+        status=JoinCaptcha.STATUS_TRUSTED,
+        answer="",
+        options=[],
+        attempts_left=0,
+        created_at=now,
+        expires_at=now,
+    )
+    row.resolved_at = now
+    db.add(row)
+    # Committed before Telegram is asked, so the chat's lock is not held over the call.
+    await db.commit()
+    for old in superseded:
+        await _edit(bot, old, challenge.superseded_text(_title(chat)), None)
+
+    try:
+        await with_retry(lambda: bot.approve_chat_join_request(chat_id=chat.id, user_id=row.user_id))
+    except TelegramAPIError as err:
+        if not already_member(err):
+            row.status = JoinCaptcha.STATUS_GONE
+            await db.commit()
+            CAPTCHA_EVENTS.labels(event=row.status).inc()
+            if request_gone(err):
+                logger.info("captcha_request_gone", captcha_id=row.id)
+                return
+            logger.warning(
+                "captcha_request_refused",
+                captcha_id=row.id,
+                chat_id=chat.id,
+                error=str(err),
+                error_type=type(err).__name__,
+            )
+            advice = "Проверьте права бота в чате." if lacks_rights(err) else "Заявка ждёт админов чата."
+            await report(
+                bot,
+                f"Капча не смогла принять заявку в {html.escape(_title(chat))} ({row.user_id}): "
+                f"{html.escape(err.message)}. {advice}",
+            )
+            return
+    CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_TRUSTED).inc()
+    logger.info("captcha_trusted", chat_id=chat.id, user_id=row.user_id, captcha_id=row.id)
+
+    try:
+        await bot.send_message(
+            chat_id=row.user_chat_id,
+            text=challenge.passed_text(_title(chat)),
+            reply_markup=challenge.open_chat(_link(chat)),
+        )
+    except TelegramAPIError as err:
+        # They are in either way; only the note is lost.
+        logger.warning("captcha_trusted_not_told", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
 
 
 async def _lock_chat(db: AsyncSession, chat_id: int) -> None:

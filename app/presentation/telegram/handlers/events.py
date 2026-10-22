@@ -155,7 +155,8 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
 
     Nobody is approved outright. With captcha on, the applicant approves
     themselves by passing it: a Mini App when this bot guards the chat, a
-    private message otherwise. Without it the decision stays with the humans.
+    private message otherwise, unless a captcha they passed in another chat
+    lately vouches for them. Without it the decision stays with the humans.
     A guard bot must answer either way — leaving the query unanswered hangs
     the request.
     """

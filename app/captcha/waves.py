@@ -75,10 +75,15 @@ async def surge(db: AsyncSession, chat: Chat, user_id: int, now: datetime.dateti
         # The burst the admin let through does not count against the next one.
         since = max(since, current.decided_at)
 
-    # People, not requests: one person asking twice is not two bots.
+    # People, not requests: one person asking twice is not two bots. Nor are
+    # those let in on trust strangers, so they are not counted.
     seen = set(
         await db.scalars(
-            select(JoinCaptcha.user_id).where(JoinCaptcha.chat_id == chat.id, JoinCaptcha.created_at > since)
+            select(JoinCaptcha.user_id).where(
+                JoinCaptcha.chat_id == chat.id,
+                JoinCaptcha.created_at > since,
+                JoinCaptcha.status != JoinCaptcha.STATUS_TRUSTED,
+            )
         )
     )
     seen.add(user_id)
