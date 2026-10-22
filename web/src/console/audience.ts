@@ -34,6 +34,10 @@ export interface AudienceSummary {
   new_by_week: number[];
   new_this_week: number;
   languages: { code: string; count: number }[];
+  /** People who have written to the ads bot, which is also the contact bot. */
+  ads_conversations: number;
+  /** People who blocked the contact bot; the main bot's blocks are in reach. */
+  contact_bot_blocked: number;
 }
 
 export interface AudienceMember {

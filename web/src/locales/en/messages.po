@@ -69,6 +69,7 @@ msgid "Входят сразу"
 msgstr "Straight in"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Старые боты"
 msgstr "Old bots"
 
@@ -156,6 +157,11 @@ msgstr "None yet. Add one below — without them search cannot find you."
 msgid "{0, plural, one {новая анкета} few {новые анкеты} many {новых анкет} other {новых анкет}}"
 msgstr "{0, plural, one {new profile} other {new profiles}}"
 
+#. placeholder {0}: wave.held
+#: src/console/pages/Summary.tsx
+msgid "{0, plural, one {# заявка ждёт} few {# заявки ждут} many {# заявок ждут} other {# заявки ждут}}"
+msgstr "{0, plural, one {# request waiting} other {# requests waiting}}"
+
 #: src/console/pages/Spam.tsx
 msgid "Детектор ничего не находил."
 msgstr "The detector has found nothing."
@@ -236,6 +242,7 @@ msgid "предмет"
 msgstr "subject"
 
 #: src/console/BrowserShell.tsx
+#: src/console/pages/Summary.tsx
 msgid "Обзор"
 msgstr "Overview"
 
@@ -350,6 +357,10 @@ msgstr "{0} today · {1} this week"
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "blacklisted"
+
+#: src/console/pages/Summary.tsx
+msgid "«Написать нам» и реклама"
+msgstr "“Write to us” and ads"
 
 #: src/console/pages/Chats.tsx
 msgid "Telegram не знает чата по этой ссылке."
@@ -530,6 +541,10 @@ msgstr "Advertising or spam"
 msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
 msgstr "The same buttons as in the bot's private message; the decision shows there too."
 
+#: src/console/pages/Summary.tsx
+msgid "могут получить сообщение"
+msgstr "can receive a message"
+
 #: src/pages/Profile.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Good at something others need?"
@@ -556,12 +571,24 @@ msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {#
 msgstr "{count, plural, one {# chat: {names}} other {# chats: {names}}}"
 
 #: src/console/pages/Summary.tsx
+msgid "{held} · только что"
+msgstr "{held} · just now"
+
+#: src/console/pages/Summary.tsx
+msgid "Основной бот"
+msgstr "Main bot"
+
+#: src/console/pages/Summary.tsx
 msgid "Что происходит в чатах и в каталоге."
 msgstr "What is happening in the chats and the catalog."
 
 #: src/pages/Profile.tsx
 #~ msgid "На каких языках тебе удобно"
 #~ msgstr "Which languages you're comfortable with"
+
+#: src/console/pages/Summary.tsx
+msgid "Капча на паузе"
+msgstr "Captcha paused"
 
 #: src/console/pages/Catalog.tsx
 msgid "Искали и не нашли"
@@ -578,6 +605,10 @@ msgstr "The link must lead to a Telegram chat: https://t.me/…"
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
 msgstr "The sign-in data has expired."
+
+#: src/console/pages/Summary.tsx
+msgid "Ждёт нажатия"
+msgstr "Awaiting a tap"
 
 #: src/components/Phrase.tsx
 msgid "первый год"
@@ -620,6 +651,7 @@ msgid "Добавить в каталог"
 msgstr "Add to the catalogue"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бот"
 msgstr "Bot"
 
@@ -768,6 +800,10 @@ msgstr "Plzeň"
 msgid "Реклама для студентов"
 msgstr "Advertising to students"
 
+#: src/console/pages/Summary.tsx
+msgid "Число"
+msgstr "Count"
+
 #: src/console/BanSheet.tsx
 msgid "{name} забанен не везде"
 msgstr "{name} is not banned everywhere"
@@ -879,6 +915,10 @@ msgstr "First time: {0}"
 msgid "Показан в «Чатах»"
 msgstr "Shown in «Chats»"
 
+#: src/console/pages/Summary.tsx
+msgid "переехавшие подписчики"
+msgstr "subscribers who moved over"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
 msgstr "A university's chat needs none: its university puts it under “Universities”."
@@ -898,6 +938,10 @@ msgstr "Queues"
 #: src/components/HideReasonText.tsx
 msgid "Неправдивые сведения"
 msgstr "Misleading information"
+
+#: src/console/pages/Summary.tsx
+msgid "предложено через MCP · истекает через {left} мин"
+msgstr "proposed via MCP · expires in {left} min"
 
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
@@ -923,6 +967,10 @@ msgstr "Only watch?"
 #: src/pages/AdsApp.tsx
 msgid "«Не про учёбу»"
 msgstr "«Not about studies»"
+
+#: src/console/pages/Summary.tsx
+msgid "бот для действий консоли: не настроен"
+msgstr "console action bot: not set up"
 
 #: src/console/BanSheet.tsx
 msgid "{name} в чёрном списке"
@@ -1036,6 +1084,10 @@ msgstr "Write to us"
 #: src/pages/OfferPrices.tsx
 msgid "Сохранить"
 msgstr "Save"
+
+#: src/console/pages/Summary.tsx
+msgid "бот и Mini App"
+msgstr "bot and Mini App"
 
 #: src/console/BanSheet.tsx
 msgid "Готово"
@@ -1293,6 +1345,11 @@ msgstr "Nothing"
 msgid "Пусто — город родителя. Свой город нужен, только если он другой."
 msgstr "Empty means the parent's city. Set one only if it differs."
 
+#. placeholder {0}: n(audience.ads_conversations)
+#: src/console/pages/Summary.tsx
+msgid "первых касаний; диалогов о рекламе: {0}"
+msgstr "first touches; ad conversations: {0}"
+
 #: src/pages/Ads.tsx
 msgid "Форматы"
 msgstr "Formats"
@@ -1382,6 +1439,7 @@ msgid "скрыта, автор изменил анкету"
 msgstr "hidden, the author changed it"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бан {who} в {chat}"
 msgstr "Ban {who} in {chat}"
 
@@ -1745,6 +1803,7 @@ msgid "Поиск по чатам и людям"
 msgstr "Search chats and people"
 
 #: src/console/AudienceLabels.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бот связи"
 msgstr "Contact bot"
 
@@ -1993,6 +2052,7 @@ msgid "Название или id"
 msgstr "Name or id"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "каталог"
 msgstr "catalog"
 
@@ -2161,6 +2221,7 @@ msgid "Чт"
 msgstr "Thu"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Набег на {title}"
 msgstr "Raid on {title}"
 
@@ -2390,6 +2451,7 @@ msgid "в месяц"
 msgstr "per month"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Бан {who} во всех чатах"
 msgstr "Ban {who} in every chat"
 
@@ -2433,6 +2495,10 @@ msgstr "The author can edit it but cannot publish it."
 #~ msgid "Этот чат ведёт не Konnekt, и правила там свои."
 #~ msgstr "Konnekt doesn't run this chat, and its rules are its own."
 
+#: src/console/pages/Summary.tsx
+msgid "Заблокировали"
+msgstr "Blocked"
+
 #: src/lib/turnaround.tsx
 msgid "{days} дн."
 msgstr "{days} days"
@@ -2469,6 +2535,10 @@ msgstr "Not set: only the standard greeting"
 msgid "Попробовать ещё раз"
 msgstr "Try again"
 
+#: src/console/pages/Summary.tsx
+msgid "{held} · {hoursAgo} ч назад"
+msgstr "{held} · {hoursAgo} h ago"
+
 #: src/pages/Mine.tsx
 msgid "Закрытых заявок нет"
 msgstr "No closed requests"
@@ -2482,6 +2552,7 @@ msgid "Нарушает правила"
 msgstr "Breaks the rules"
 
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Чёрный список: {who}"
 msgstr "Blacklist: {who}"
 
@@ -2591,6 +2662,10 @@ msgstr "Your profile is saved but not in the catalog. You can bring it back belo
 #: src/console/pages/Summary.tsx
 msgid "Заявки без откликов"
 msgstr "Requests with no answer"
+
+#: src/console/pages/Summary.tsx
+msgid "первых касаний"
+msgstr "first touches"
 
 #: src/console/pages/Catalog.tsx
 msgid "без откликов"
@@ -2843,8 +2918,13 @@ msgstr "the bot is in them, but they are not approved"
 msgid "Поиск чата"
 msgstr "Search chats"
 
+#: src/console/pages/Summary.tsx
+msgid "{held} · {ago} мин назад"
+msgstr "{held} · {ago} min ago"
+
 #: src/console/pages/Catalog.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Новые анкеты"
 msgstr "New profiles"
 
@@ -2950,6 +3030,10 @@ msgstr "Latest activity"
 #: src/console/BanSheet.tsx
 msgid "{name} не забанен ни в одном чате"
 msgstr "{name} is not banned in any chat"
+
+#: src/console/pages/Summary.tsx
+msgid "Боты"
+msgstr "Bots"
 
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"
@@ -3492,6 +3576,10 @@ msgstr "The list of schools did not load. Try again later."
 msgid "Обновляем…"
 msgstr "Refreshing…"
 
+#: src/console/pages/Summary.tsx
+msgid "бот для действий консоли: готов"
+msgstr "console action bot: ready"
+
 #: src/console/pages/Partners.tsx
 msgid "Выключить карточку?"
 msgstr "Switch the card off?"
@@ -3585,6 +3673,10 @@ msgstr "Saved. Your profile is still hidden; an administrator will look at it ag
 #: src/console/pages/Summary.tsx
 msgid "Чёрный список"
 msgstr "Blacklist"
+
+#: src/console/pages/Summary.tsx
+msgid "Что считаем"
+msgstr "What is counted"
 
 #: src/console/BanSheet.tsx
 msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from sqlalchemy import and_, case, func, or_, select
 
 from app.core.enums import Touchpoint
-from app.db.models import AudienceMember, AudienceReach, AudienceTouch
+from app.db.models import AdsTopic, AudienceMember, AudienceReach, AudienceTouch
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,6 +86,12 @@ async def summary(db: AsyncSession, *, now: datetime.datetime) -> dict[str, Any]
         .group_by(AudienceMember.language_code)
         .order_by(func.count().desc(), AudienceMember.language_code)
     )
+    # People who wrote to the ads bot: each has a topic in the staff group, and
+    # one more if the desk moved groups, so count people rather than topics.
+    ads_conversations = await db.scalar(select(func.count(AdsTopic.user_id.distinct())))
+    contact_bot_blocked = await db.scalar(
+        select(func.count()).where(AudienceReach.bot == Touchpoint.CONTACT_BOT, AudienceReach.blocked_at.is_not(None))
+    )
     return {
         "total": sum(reach.values()),
         "reach": reach,
@@ -93,6 +99,8 @@ async def summary(db: AsyncSession, *, now: datetime.datetime) -> dict[str, Any]
         "new_by_week": new_by_week,
         "new_this_week": new_by_week[-1],
         "languages": [{"code": code, "count": count} for code, count in languages],
+        "ads_conversations": ads_conversations or 0,
+        "contact_bot_blocked": contact_bot_blocked or 0,
     }
 
 

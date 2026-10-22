@@ -1,11 +1,13 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   BagIcon,
+  BlockIcon,
   ChatIcon,
   DocumentIcon,
+  PeopleIcon,
   PersonIcon,
   ShieldIcon,
   TargetIcon,
@@ -24,6 +26,9 @@ import {
   ui,
 } from '@/components/Ui';
 import { dayCells, memberChange, signed } from '@/console/activity';
+import type { AudienceSummary } from '@/console/audience';
+import { useBrowserConsole } from '@/console/browserContext';
+import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   adminCatalogQuery,
@@ -31,9 +36,18 @@ import {
   audienceSummaryQuery,
   blockedQuery,
   consoleChatsQuery,
+  consoleSignalsQuery,
   consoleStatsQuery,
+  consoleSystemQuery,
 } from '@/console/queries';
+import css from '@/console/Summary.module.css';
 import { type AttentionKey, attention, type BusyChat } from '@/console/session';
+import {
+  elapsed,
+  minutesUntil,
+  type PendingActionSignal,
+  type WaveSignal,
+} from '@/console/signals';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -41,12 +55,14 @@ import { hapticSelection } from '@/hooks/useTelegram';
  * chats are busy, then its sections.
  */
 export default function ConsoleSummaryPage() {
+  // In a browser the menu names this screen Обзор; the Mini App has no menu.
+  const inBrowser = useBrowserConsole();
   return (
     <ConsoleGate>
-      <Title>
-        <Trans>Консоль</Trans>
-      </Title>
-      <Summary />
+      <div data-wide>
+        <Title>{inBrowser ? <Trans>Обзор</Trans> : <Trans>Консоль</Trans>}</Title>
+        <Summary />
+      </div>
     </ConsoleGate>
   );
 }
@@ -65,6 +81,11 @@ function Summary() {
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
+  // The browser's summary also lists the waves and the proposals, and says
+  // whether the console's bot can act; the menu reads the signals already.
+  const inBrowser = useBrowserConsole();
+  const signals = useQuery({ ...consoleSignalsQuery, enabled: inBrowser });
+  const system = useQuery({ ...consoleSystemQuery, enabled: inBrowser });
 
   const open = (path: string) => {
     hapticSelection();
@@ -73,12 +94,16 @@ function Summary() {
 
   // Each backend answers for itself: webapi refusing must not hide what the
   // catalog said, and the other way round.
-  const webapiError = stats.error ?? chats.error;
+  // Signals are asked for only in a browser; a disabled query stays pending.
+  const webapiError = stats.error ?? chats.error ?? signals.error;
   const loading =
-    catalog.isPending || (!webapiError && (stats.isPending || chats.isPending));
+    catalog.isPending ||
+    (!webapiError &&
+      (stats.isPending || chats.isPending || (inBrowser && signals.isPending)));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
     chats: chats.data ?? [],
+    profilesToReview: inBrowser ? catalog.data?.counts.profiles_to_review : undefined,
     requestsUnanswered: catalog.data?.counts.unanswered ?? 0,
   });
   const approved = chats.data?.filter(
@@ -115,6 +140,20 @@ function Summary() {
         onClick={() => open('/console/chats?status=discovered')}
       />
     ),
+    profiles: (count) => (
+      <Row
+        key="profiles"
+        leading={
+          <Tile tone={2}>
+            <PersonIcon size={19} />
+          </Tile>
+        }
+        title={<Trans>Новые анкеты</Trans>}
+        hint={<Trans>каталог</Trans>}
+        trailing={<Count>{count}</Count>}
+        onClick={() => open('/console/catalog')}
+      />
+    ),
     requests: (count) => (
       <Row
         key="requests"
@@ -131,20 +170,43 @@ function Summary() {
     ),
   };
 
-  return (
-    <>
-      <div style={{ marginTop: 6 }}>
-        <Sub>
-          {stats.dataUpdatedAt ? (
-            <Updated at={stats.dataUpdatedAt} />
-          ) : (
-            <Trans>Что происходит в чатах и в каталоге.</Trans>
-          )}
-        </Sub>
-      </div>
+  // Each wave and proposal on a row of its own, above the queues, as the
+  // Сигналы screen puts them.
+  const waiting = inBrowser
+    ? [
+        ...(signals.data?.waves ?? []).map((wave) => (
+          <WaveRow
+            key={`wave-${wave.id}`}
+            wave={wave}
+            onClick={() => open('/console/signals')}
+          />
+        )),
+        ...(signals.data?.pending_actions ?? []).map((proposal) => (
+          <ProposalRow
+            key={`proposal-${proposal.id}`}
+            proposal={proposal}
+            onClick={() => open('/console/signals')}
+          />
+        )),
+      ]
+    : [];
 
+  const updated = (
+    <div style={{ marginTop: 6 }}>
+      <Sub>
+        {stats.dataUpdatedAt ? (
+          <Updated at={stats.dataUpdatedAt} />
+        ) : (
+          <Trans>Что происходит в чатах и в каталоге.</Trans>
+        )}
+      </Sub>
+    </div>
+  );
+
+  const tiles = (
+    <>
       {stats.data || catalog.data ? (
-        <div className={ui.summaryTiles}>
+        <div className={inBrowser ? css.kpis : ui.summaryTiles}>
           {stats.data ? <MembersTile stats={stats.data.members_delta} /> : null}
           {audience.data ? (
             <div className={ui.summaryTile} data-tone="0">
@@ -187,12 +249,16 @@ function Summary() {
           ) : null}
         </div>
       ) : null}
+    </>
+  );
 
+  const needs = (
+    <>
       <Label
         aside={
-          loading || !items.length
+          loading || !(items.length + waiting.length)
             ? null
-            : items.reduce((sum, item) => sum + item.count, 0)
+            : items.reduce((sum, item) => sum + item.count, waiting.length)
         }
       >
         <Trans>Требует внимания</Trans>
@@ -207,14 +273,18 @@ function Summary() {
               retry={() => {
                 void stats.refetch();
                 void chats.refetch();
+                if (inBrowser) void signals.refetch();
               }}
             />
           ) : null}
           {catalog.error ? (
             <ConsoleFailure error={catalog.error} retry={() => void catalog.refetch()} />
           ) : null}
-          {items.length > 0 ? (
-            <Rows>{items.map((item) => attentionRow[item.key](item.count))}</Rows>
+          {items.length + waiting.length > 0 ? (
+            <Rows>
+              {waiting}
+              {items.map((item) => attentionRow[item.key](item.count))}
+            </Rows>
           ) : !webapiError && !catalog.error ? (
             <Hint>
               <Trans>Сейчас ничего не ждёт.</Trans>
@@ -222,6 +292,46 @@ function Summary() {
           ) : null}
         </div>
       )}
+    </>
+  );
+
+  if (inBrowser) {
+    return (
+      <>
+        {updated}
+        {tiles}
+        <div className={css.grid}>
+          <div>{needs}</div>
+          <div className={css.column}>
+            <section className={css.card}>
+              <Bots
+                audience={audience.data}
+                error={audience.error}
+                retry={() => void audience.refetch()}
+                ready={system.data?.publish_bot_ready}
+              />
+            </section>
+            {stats.data ? (
+              <section className={css.card}>
+                <Label aside={<Trans>сутки</Trans>}>
+                  <Trans>Самые живые чаты, сообщения по часам</Trans>
+                </Label>
+                <HourlyChats chats={stats.data.chat_heatmap.slice(0, 5)} />
+              </section>
+            ) : null}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {updated}
+
+      {tiles}
+
+      {needs}
 
       {stats.data ? (
         <>
@@ -452,6 +562,261 @@ function BusyChats({ chats }: { chats: BusyChat[] }) {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** A wave on the summary: where, how many wait, and whether the captcha is paused. */
+function WaveRow({ wave, onClick }: { wave: WaveSignal; onClick: () => void }) {
+  const title = wave.chat_title ?? String(wave.chat_id);
+  const surge = elapsed(wave.last_surge_at);
+  const ago = surge.unit === 'minutes' ? surge.count : 0;
+  const hoursAgo = surge.unit === 'hours' ? surge.count : 0;
+  const held = (
+    <Plural
+      value={wave.held}
+      one="# заявка ждёт"
+      few="# заявки ждут"
+      many="# заявок ждут"
+      other="# заявки ждут"
+    />
+  );
+  return (
+    <Row
+      leading={
+        <Tile tone={4}>
+          <PeopleIcon size={19} />
+        </Tile>
+      }
+      title={<Trans>Набег на {title}</Trans>}
+      hint={
+        surge.unit === 'now' ? (
+          <Trans>{held} · только что</Trans>
+        ) : surge.unit === 'minutes' ? (
+          <Trans>
+            {held} · {ago} мин назад
+          </Trans>
+        ) : (
+          <Trans>
+            {held} · {hoursAgo} ч назад
+          </Trans>
+        )
+      }
+      trailing={
+        wave.paused ? (
+          <span className={`${table.pill} ${table.warn}`}>
+            <Trans>Капча на паузе</Trans>
+          </span>
+        ) : (
+          <Chevron />
+        )
+      }
+      onClick={onClick}
+    />
+  );
+}
+
+/** A ban proposed through MCP on the summary: whom, and how long it waits. */
+function ProposalRow({
+  proposal,
+  onClick,
+}: {
+  proposal: PendingActionSignal;
+  onClick: () => void;
+}) {
+  const who =
+    proposal.target_name ??
+    (proposal.target_username
+      ? `@${proposal.target_username}`
+      : String(proposal.target_user_id));
+  const chat = proposal.chat_title ?? String(proposal.chat_id);
+  const left = minutesUntil(proposal.expires_at);
+  return (
+    <Row
+      leading={
+        <Tile tone={1}>
+          <BlockIcon size={19} />
+        </Tile>
+      }
+      title={
+        proposal.action === 'blacklist' ? (
+          <Trans>Чёрный список: {who}</Trans>
+        ) : proposal.chat_id === null ? (
+          <Trans>Бан {who} во всех чатах</Trans>
+        ) : (
+          <Trans>
+            Бан {who} в {chat}
+          </Trans>
+        )
+      }
+      hint={<Trans>предложено через MCP · истекает через {left} мин</Trans>}
+      trailing={
+        <span className={`${table.pill} ${table.warn}`}>
+          <Trans>Ждёт нажатия</Trans>
+        </span>
+      }
+      onClick={onClick}
+    />
+  );
+}
+
+/**
+ * Who each bot can reach. The main bot by whether it may write (the
+ * announcements' measure); the others by the people they met first, as the
+ * Audience screen counts them; the ads bot by the people who wrote to it.
+ */
+function Bots({
+  audience,
+  error,
+  retry,
+  ready,
+}: {
+  audience: AudienceSummary | undefined;
+  error: Error | null;
+  retry: () => void;
+  ready: boolean | undefined;
+}) {
+  const { i18n } = useLingui();
+  const n = (value: number) => i18n.number(value);
+  return (
+    <>
+      <Label
+        aside={
+          ready === undefined ? null : ready ? (
+            <Trans>бот для действий консоли: готов</Trans>
+          ) : (
+            <Trans>бот для действий консоли: не настроен</Trans>
+          )
+        }
+      >
+        <Trans>Боты</Trans>
+      </Label>
+      {audience ? (
+        <div className={css.tableWrap}>
+          <table className={css.table}>
+            <thead>
+              <tr>
+                <th>
+                  <Trans>Бот</Trans>
+                </th>
+                <th className={css.num}>
+                  <Trans>Число</Trans>
+                </th>
+                <th>
+                  <Trans>Что считаем</Trans>
+                </th>
+                <th>
+                  <Trans>Заблокировали</Trans>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <b>
+                    <Trans>Основной бот</Trans>
+                  </b>
+                  <small>
+                    <Trans>бот и Mini App</Trans>
+                  </small>
+                </td>
+                <td className={css.num}>{n(audience.reach.reachable)}</td>
+                <td>
+                  <Trans>могут получить сообщение</Trans>
+                </td>
+                <td>{n(audience.reach.blocked)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <b>
+                    <Trans>Бот связи</Trans>
+                  </b>
+                  <small>
+                    <Trans>«Написать нам» и реклама</Trans>
+                  </small>
+                </td>
+                <td className={css.num}>{n(audience.first_touch.contact_bot ?? 0)}</td>
+                <td>
+                  <Trans>
+                    первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
+                  </Trans>
+                </td>
+                <td>{n(audience.contact_bot_blocked)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <b>
+                    <Trans>Старые боты</Trans>
+                  </b>
+                  <small>
+                    <Trans>переехавшие подписчики</Trans>
+                  </small>
+                </td>
+                <td className={css.num}>{n(audience.first_touch.moved_bot ?? 0)}</td>
+                <td>
+                  <Trans>первых касаний</Trans>
+                </td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : error ? (
+        <ConsoleFailure error={error} retry={retry} />
+      ) : (
+        <SkeletonRows count={2} />
+      )}
+    </>
+  );
+}
+
+/**
+ * The busiest chats of the last day by the hour, with room for all 24 of
+ * them, and each chat's total. One scale for all, as in BusyChats.
+ */
+function HourlyChats({ chats }: { chats: BusyChat[] }) {
+  const { t, i18n } = useLingui();
+  if (chats.length === 0) {
+    return (
+      <Hint>
+        <Trans>За сутки бот не видел сообщений.</Trans>
+      </Hint>
+    );
+  }
+  const offset = -new Date().getTimezoneOffset();
+  const rows = chats.map((chat) => ({ chat, cells: dayCells(chat.hours, offset, 1) }));
+  const max = Math.max(1, ...rows.flatMap((row) => row.cells));
+  return (
+    <div
+      className={css.heatmap}
+      role="img"
+      aria-label={t`Сообщения за сутки по часам: ${chats
+        .map((chat) => `${chat.title ?? chat.chat_id} — ${chat.total_messages}`)
+        .join(', ')}`}
+    >
+      {rows.map(({ chat, cells }) => (
+        <Fragment key={chat.chat_id}>
+          <span className={css.heatName}>{chat.title ?? chat.chat_id}</span>
+          <span className={css.heat}>
+            {cells.map((count, hour) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: the hours are the identity.
+                key={hour}
+                style={count ? { opacity: 0.18 + 0.82 * (count / max) } : undefined}
+                data-empty={count === 0 || undefined}
+              />
+            ))}
+          </span>
+          <span className={css.num}>{i18n.number(chat.total_messages)}</span>
+        </Fragment>
+      ))}
+      <span />
+      <span className={css.hours}>
+        {[0, 6, 12, 18].map((hour) => (
+          <span key={hour}>{hour}</span>
+        ))}
+      </span>
+      <span />
     </div>
   );
 }

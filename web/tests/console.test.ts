@@ -152,6 +152,18 @@ test('what needs attention is what has a number above zero', () => {
   assert.deepEqual(attention({ adsUnreviewed: 0, chats: [], requestsUnanswered: 4 }), [
     { key: 'requests', count: 4 },
   ]);
+  assert.deepEqual(
+    attention({
+      adsUnreviewed: 0,
+      chats: [],
+      profilesToReview: 3,
+      requestsUnanswered: 1,
+    }),
+    [
+      { key: 'profiles', count: 3 },
+      { key: 'requests', count: 1 },
+    ],
+  );
 });
 
 test('the click rate is a percentage with one decimal, and nothing without views', () => {

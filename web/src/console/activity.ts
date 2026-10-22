@@ -30,15 +30,20 @@ export function localHeatmap(
 }
 
 /**
- * A day's messages by UTC hour as eight three-hour cells of the reader's own
- * day, 00–03 first. Approximate as localHeatmap is, and for the same reasons.
+ * A day's messages by UTC hour as cells of the reader's own day, midnight
+ * first: eight of three hours by default, 24 of one where there is room.
+ * Approximate as localHeatmap is, and for the same reasons.
  */
-export function dayCells(hours: number[], offsetMinutes: number): number[] {
-  const cells = Array<number>(8).fill(0);
+export function dayCells(
+  hours: number[],
+  offsetMinutes: number,
+  hoursPerCell: 1 | 3 = 3,
+): number[] {
+  const cells = Array<number>(24 / hoursPerCell).fill(0);
   const shift = Math.trunc(offsetMinutes / 60);
   hours.forEach((count, hour) => {
     const local = (((hour + shift) % 24) + 24) % 24;
-    const at = Math.floor(local / 3);
+    const at = Math.floor(local / hoursPerCell);
     cells[at] = (cells[at] ?? 0) + count;
   });
   return cells;

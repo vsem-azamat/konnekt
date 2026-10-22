@@ -150,6 +150,21 @@ test('west of Greenwich a day folds back, and a half-hour zone moves by its whol
   assert.deepEqual(dayCells(hours, 330), [0, 0, 4, 0, 0, 0, 0, 0]);
 });
 
+test('with room for every hour, each cell is one hour of the local day', () => {
+  const hours = Array<number>(24).fill(0);
+  hours[18] = 5; // 18 UTC
+  hours[23] = 1;
+  const cells = dayCells(hours, 120, 1);
+  assert.equal(cells.length, 24);
+  // Prague in summer: 18 UTC is 20, 23 UTC is 01 the next day.
+  assert.equal(cells[20], 5);
+  assert.equal(cells[1], 1);
+  assert.equal(
+    cells.reduce((a, b) => a + b, 0),
+    6,
+  );
+});
+
 test('a change is written with its sign, a true minus, and ± for none', () => {
   const format = (n: number) => String(n);
   assert.equal(signed(37, format), '+37');

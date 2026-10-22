@@ -457,6 +457,10 @@ class AudienceSummary(BaseModel):
     new_by_week: list[int]
     new_this_week: int
     languages: list[AudienceLanguage]
+    # People who have written to the ads bot, which is also the contact bot.
+    ads_conversations: int
+    # People who blocked the contact bot; the main bot's blocks are in reach.
+    contact_bot_blocked: int
 
 
 class AudienceMemberRead(BaseModel):
