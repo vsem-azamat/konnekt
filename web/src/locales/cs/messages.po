@@ -52,6 +52,10 @@ msgstr "Zatím žádné karty partnerů."
 msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
 msgstr "Nastav si v Telegramu veřejný @username — jinak ti nikdo neodpoví"
 
+#: src/console/TopSearch.tsx
+msgid "нет карточки"
+msgstr "bez karty"
+
 #: src/console/pages/Chats.tsx
 msgid "приветствие"
 msgstr "uvítání"
@@ -318,6 +322,10 @@ msgstr "{0} za den · {1} za týden"
 #~ msgid "Не сейчас"
 #~ msgstr "Teď ne"
 
+#: src/console/TopSearch.tsx
+msgid "в чёрном списке"
+msgstr "na černé listině"
+
 #: src/components/ChatRow.tsx
 msgid "активный"
 msgstr "aktivní"
@@ -337,6 +345,10 @@ msgstr "Na černou listinu"
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
 msgstr "Vypnout"
+
+#: src/console/TopSearch.tsx
+msgid "Не удалось найти. Попробуйте ещё раз."
+msgstr "Hledání selhalo. Zkuste to znovu."
 
 #: src/console/pages/Summary.tsx
 msgid "сутки"
@@ -716,6 +728,7 @@ msgstr "Tvůj předmět — {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "отключён"
 msgstr "vypnutý"
 
@@ -748,6 +761,7 @@ msgstr "Dál · {0}"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "одобрен"
 msgstr "schválený"
 
@@ -776,6 +790,10 @@ msgstr "zabanovaní ve všech chatech"
 #: src/pages/Ads.tsx
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
+
+#: src/console/TopSearch.tsx
+msgid "Чат, человек, @username или id"
+msgstr "Chat, člověk, @username nebo id"
 
 #: src/console/pages/Signals.tsx
 msgid "Подтвердить бан"
@@ -1059,6 +1077,7 @@ msgstr "Všechno, co se hledalo, se našlo."
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Summary.tsx
+#: src/console/TopSearch.tsx
 msgid "Чаты"
 msgstr "Chaty"
 
@@ -1641,6 +1660,10 @@ msgstr "Kam se dostane"
 #~ msgid "ČVUT, FIT, Strahov…"
 #~ msgstr "ČVUT, FIT, Strahov…"
 
+#: src/console/TopSearch.tsx
+msgid "Поиск по чатам и людям"
+msgstr "Hledat chaty a lidi"
+
 #: src/console/AudienceLabels.tsx
 msgid "Бот связи"
 msgstr "Kontaktní bot"
@@ -1954,6 +1977,7 @@ msgstr "Hradec Králové"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
+#: src/console/TopSearch.tsx
 msgid "Люди"
 msgstr "Lidé"
 
@@ -2082,6 +2106,7 @@ msgstr "30 dní"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "внешний"
 msgstr "externí"
 
@@ -2879,6 +2904,10 @@ msgstr "co zachytil detektor"
 msgid "Как работаешь"
 msgstr "Jak to děláš"
 
+#: src/console/TopSearch.tsx
+msgid "Ничего не нашлось."
+msgstr "Nic nenalezeno."
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Poznámka nad kartou"
@@ -3011,6 +3040,7 @@ msgstr "Odhlásit se"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "на проверке"
 msgstr "ke schválení"
 
@@ -3144,6 +3174,7 @@ msgstr "např. od 8 900 Kč"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "наблюдаем"
 msgstr "sledujeme"
 
@@ -3208,6 +3239,7 @@ msgstr "Kde je vidět"
 msgid "{0} всего не разобрано"
 msgstr "{0} nevyřízeno celkem"
 
+#: src/console/TopSearch.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
 msgid "Ищем…"

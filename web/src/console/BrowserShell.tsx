@@ -24,6 +24,7 @@ import {
 } from './queries';
 import { isFinal } from './session';
 import { menuCounts } from './signals';
+import TopSearch from './TopSearch';
 
 /**
  * The menu and the room for a screen, for the console opened in a browser.
@@ -154,6 +155,7 @@ export default function BrowserShell() {
       </aside>
       <main ref={screen} tabIndex={-1} className={css.main}>
         <header ref={bar} className={css.top}>
+          <TopSearch />
           <Link
             to="/console/signals"
             className={css.bell}

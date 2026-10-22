@@ -28,6 +28,7 @@ from app.webapi.routes import (
     join_check,
     metrics,
     public,
+    search,
     seen,
     signals,
     spam,
@@ -136,6 +137,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router, prefix="/api", dependencies=console)
     app.include_router(audience.router, prefix="/api", dependencies=console)
     app.include_router(catalog.router, prefix="/api", dependencies=console)
+    app.include_router(search.router, prefix="/api", dependencies=console)
 
     # Default no-op singleton for test environments (ASGITransport bypasses
     # lifespan). _lifespan replaces this with the real instance at startup.

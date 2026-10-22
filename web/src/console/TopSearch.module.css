@@ -1,0 +1,117 @@
+/* The top bar's search across chats and people (#288, layout A). */
+
+.box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 460px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.field:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.field input {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.field input::placeholder {
+  color: var(--muted);
+}
+
+.field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+}
+
+.panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group {
+  margin: 0;
+  padding: 8px 10px 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.entry {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.entry small {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.entry:hover,
+.entry:focus-visible {
+  background: var(--surface);
+  outline: none;
+}
+
+.inert {
+  cursor: default;
+}
+
+.inert:hover {
+  background: none;
+}
+
+.name {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note:empty {
+  display: none;
+}
+
+.note {
+  margin: 0;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
