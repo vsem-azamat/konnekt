@@ -13,6 +13,7 @@ up when the bot stopped is not deleted.
 """
 
 import asyncio
+import html
 from dataclasses import dataclass, field
 
 from aiogram import Bot
@@ -91,7 +92,16 @@ def _name(user: User) -> str:
 async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _Greeting | None:
     markup = await _markup(bot)
     try:
-        sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
+        try:
+            sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
+        except TelegramBadRequest as err:
+            # `!welcome` stores HTML, the console stores what the admin typed:
+            # a raw `&` or `<` there is not markup, and the greeting goes out
+            # as HTML. Shown as typed rather than losing the whole greeting.
+            if not chat_text or "can't parse entities" not in str(err):
+                raise
+            chat_text = html.escape(chat_text, quote=False)
+            sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
     except TelegramAPIError as err:
         # A greeting Telegram refuses is the chat's problem, not the join's.
         logger.warning("welcome_not_sent", chat_id=chat_id, error=str(err), error_type=type(err).__name__)

@@ -397,10 +397,37 @@ async def test_names_that_would_not_fit_under_the_video_are_counted(
 
 async def test_a_greeting_telegram_refuses_does_not_break_the_join(session: AsyncSession, bot, timers) -> None:
     """One bad stored value used to fail every join in the chat."""
-    await _seed(session, welcome_message="Привет <b>", is_welcome_enabled=True)
-    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="can't parse entities")
+    await _seed(session, welcome_message="Привет", is_welcome_enabled=True)
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="not enough rights to send")
 
     await user_joined(_join(), bot, session)
     await user_joined(_join(2), bot, session)
 
     assert bot.send_message.await_count == 2
+
+
+async def test_a_raw_text_telegram_cannot_parse_is_shown_as_typed(session: AsyncSession, bot, timers) -> None:
+    """The console stores what the admin typed, `&` and `<` included; the greeting goes out as HTML."""
+    await _seed(session, welcome_message="Q&A <3", is_welcome_enabled=True)
+
+    def parse(**kwargs):
+        if "Q&A" in kwargs["text"]:
+            raise TelegramBadRequest(method=MagicMock(), message="can't parse entities")
+        return MagicMock(message_id=9)
+
+    bot.send_message.side_effect = parse
+
+    await user_joined(_join(1), bot, session)
+    await user_joined(_join(2), bot, session)
+
+    assert _sent_text(bot).endswith(KONNEKT_LINE + "\n\nQ&amp;A &lt;3")
+    assert bot.edit_message_text.await_args.kwargs["text"].endswith("\n\nQ&amp;A &lt;3")
+
+
+async def test_a_refusal_for_another_reason_is_not_retried(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, welcome_message="Q&A", is_welcome_enabled=True)
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="not enough rights to send")
+
+    await user_joined(_join(), bot, session)
+
+    bot.send_message.assert_awaited_once()
