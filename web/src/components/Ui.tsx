@@ -367,6 +367,7 @@ export function Chips({ children }: { children: ReactNode }) {
 export function ChipView({
   children,
   active = false,
+  pressed,
   ghost = false,
   onRemove,
   onClick,
@@ -374,6 +375,8 @@ export function ChipView({
 }: {
   children: ReactNode;
   active?: boolean;
+  /** Set only on a chip that toggles: one that acts is not a toggle, and says so by having none. */
+  pressed?: boolean;
   ghost?: boolean;
   onRemove?: () => void;
   onClick?: () => void;
@@ -406,7 +409,12 @@ export function ChipView({
   // another is invalid and breaks keyboard order.
   if (onClick && !onRemove) {
     return (
-      <button type="button" className={`${className} ${css.pressable}`} onClick={onClick}>
+      <button
+        type="button"
+        className={`${className} ${css.pressable}`}
+        aria-pressed={pressed}
+        onClick={onClick}
+      >
         {body}
       </button>
     );

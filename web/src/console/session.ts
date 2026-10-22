@@ -8,6 +8,8 @@
  * a request meets its absence, once, and never retries a refusal.
  */
 
+import type { Topic } from '../lib/chats.ts';
+
 /**
  * Why a console request failed, which decides what the screen says:
  * - `refused`: signed in, and webapi said this account is not a super admin;
@@ -137,6 +139,10 @@ export interface ConsoleChat {
   parent_chat_id: number | null;
   /** The university in the catalog's taxonomy, set on a chat at the top. */
   institution_code: string | null;
+  /** As the taxonomy spells it («Praha»); null is all of Czechia, or the parent's. */
+  city: string | null;
+  /** The catalogue's heading; null is a university's chat, or one not filed yet. */
+  topic: Topic | null;
   is_captcha_enabled: boolean;
   is_welcome_enabled: boolean;
   is_service_cleanup_enabled: boolean;
@@ -233,6 +239,8 @@ export type ChatUpdate = Partial<
     | 'welcome_message'
     | 'parent_chat_id'
     | 'institution_code'
+    | 'city'
+    | 'topic'
   > & { public_link: string }
 >;
 

@@ -148,21 +148,26 @@ one thing, and builds its entries in `lib/chats.ts`:
 - chats that share a `group` form a section, which opens its own screen;
 - a group with one chat is not a section, and its chat stands as a row of its
   own, because a screen with one line behind it is a tap for nothing;
-- chats without a group come last, under «Остальные», supervisor's own word
-  for them;
-- the entries above them have no heading: supervisor's groups are top-level
-  chats, not a category the app could name;
-- a search is flat: the chats whose title or group contains the words, with
-  case and diacritics ignored, so `cvut` finds `ČVUT`;
-- activity is a chip for `busy`, `active` and `quiet`, and nothing for
-  `unknown`, because supervisor says `unknown` when it has not measured enough
-  to say anything.
+- entries stand under supervisor's `topic`: Вузы, then Предметы, Общежития,
+  Работа и IT and Общее; a section goes by its own chat, and a chat nobody
+  filed goes under Общее;
+- city chips under the search filter by supervisor's `city`, spelled as the
+  taxonomy spells it. The chips are the cities that have chats; the screen
+  opens on the city of the reader's university when it is one of them, and
+  on «Все» otherwise. A chat with no city is for all of Czechia and stands
+  under every city. The pick is kept in the address (`?city=`), so Back from
+  a section returns to it;
+- a search is flat and ignores the city: the chats whose title or group
+  contains the words, with case and diacritics ignored, so `cvut` finds
+  `ČVUT`;
+- a row shows its member count, with a filled dot for `busy` and a ring for
+  `active`; somebody else's chat carries «не наш» after its name.
 
-A tap on a chat opens a preview sheet, not Telegram: the chat's university
-and city, its member count when supervisor measured one, its activity and
-whether it has topics. Only «Открыть чат» in the sheet opens the Telegram link,
-so looking at a chat never leaves the app. The rows themselves show no member
-counts.
+A tap on a chat opens a preview sheet, not Telegram: «не наш» when it is not
+ours, the chat's university or topic and its city, its member count when
+supervisor measured one, its activity in words and whether it has topics.
+Only «Открыть чат» in the sheet opens the Telegram link, so looking at a chat
+never leaves the app.
 
 **The ads page is a showcase, not a shop.** `/ads` is for a business that
 wants students to see it. It shows two formats and how far they reach, then

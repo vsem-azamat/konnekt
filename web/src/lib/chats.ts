@@ -12,6 +12,12 @@ import { find } from './search.ts';
 /** Supervisor's own words for how much a chat talks. `unknown` is an answer. */
 export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
 
+/**
+ * What a chat is about, and the catalogue's heading for it. Supervisor says
+ * `university` for a university's chats; a chat nobody filed has none.
+ */
+export type Topic = 'university' | 'subjects' | 'dorms' | 'work_it' | 'general';
+
 /** One chat as supervisor publishes it: no ids, nothing about who is in it. */
 export interface PublicChat {
   title: string;
@@ -39,9 +45,24 @@ export interface PublicChat {
    * keeps its letters.
    */
   avatar: string | null;
+  /**
+   * The city the chat is for, spelled as the catalog's taxonomy spells it
+   * («Praha»). Null is all of Czechia, not unknown: such a chat is in every city.
+   */
+  city: string | null;
+  topic: Topic | null;
 }
 
 const ACTIVITIES: readonly Activity[] = ['unknown', 'quiet', 'active', 'busy'];
+
+/** The catalogue's headings, in the order it shows them. */
+export const TOPICS: readonly Topic[] = [
+  'university',
+  'subjects',
+  'dorms',
+  'work_it',
+  'general',
+];
 
 /** A catalog institution code, the shape supervisor stores. */
 const INSTITUTION_CODE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
@@ -74,6 +95,8 @@ export function sanitize(payload: unknown[]): PublicChat[] {
       is_forum,
       external,
       avatar,
+      city,
+      topic,
     } = item as Record<string, unknown>;
     if (typeof title !== 'string' || !title.trim()) continue;
     if (typeof link !== 'string' || !TELEGRAM_LINK.test(link)) continue;
@@ -95,6 +118,8 @@ export function sanitize(payload: unknown[]): PublicChat[] {
       is_forum: is_forum === true,
       external: external === true,
       avatar: typeof avatar === 'string' && AVATAR_PATH.test(avatar) ? avatar : null,
+      city: typeof city === 'string' && city.trim() ? city : null,
+      topic: TOPICS.includes(topic as Topic) ? (topic as Topic) : null,
     });
   }
   return chats;
@@ -149,6 +174,77 @@ export function directory(chats: PublicChat[], mine: string | null = null): Dire
   return { entries, rest };
 }
 
+/** One heading of the catalogue and what stands under it. */
+export interface Block {
+  heading: Topic;
+  entries: Entry[];
+}
+
+/** The chat that speaks for an entry: a section's own chat, or its first. */
+function lead(entry: Entry): PublicChat | undefined {
+  return entry.kind === 'chat' ? entry.chat : (ownChat(entry) ?? entry.chats[0]);
+}
+
+/**
+ * The catalogue under its headings, for one city or for all (`city` null).
+ *
+ * Built on {@link directory}, so sections and the student's own university
+ * first work as they did. An entry is filed by its lead chat's topic, and an
+ * unfiled one under «Общее». A city keeps the entries for it and those for
+ * all of Czechia; a section goes by its own chat's city, so a university's
+ * faculties are never split between two cities. Empty headings are left out.
+ */
+export function blocks(
+  chats: PublicChat[],
+  { mine, city }: { mine: string | null; city: string | null },
+): Block[] {
+  const { entries, rest } = directory(chats, mine);
+  const all: Entry[] = [
+    ...entries,
+    ...rest.map((chat) => ({ kind: 'chat' as const, chat })),
+  ];
+  const shown = all.filter((entry) => {
+    const where = lead(entry)?.city ?? null;
+    return city === null || where === null || where === city;
+  });
+  return TOPICS.map((heading) => ({
+    heading,
+    entries: shown.filter((entry) => (lead(entry)?.topic ?? 'general') === heading),
+  })).filter((block) => block.entries.length > 0);
+}
+
+/**
+ * The cities a reader can pick: those that have entries of their own, the one
+ * with most first. Chats for all of Czechia name no city.
+ */
+export function cityChoices(chats: PublicChat[]): string[] {
+  // By the same chat {@link blocks} filters by: a faculty in another city
+  // than its university's would otherwise offer a chip that shows nothing.
+  const { entries, rest } = directory(chats);
+  const counts = new Map<string, number>();
+  for (const entry of [
+    ...entries,
+    ...rest.map((chat) => ({ kind: 'chat' as const, chat })),
+  ]) {
+    const city = lead(entry)?.city;
+    if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
+  }
+  return [...counts]
+    .sort(([a, x], [b, y]) => y - x || a.localeCompare(b, 'cs'))
+    .map(([city]) => city);
+}
+
+/**
+ * Where the catalogue opens: the city of the student's university when it has
+ * chats, otherwise all of them.
+ */
+export function defaultCity(
+  choices: readonly string[],
+  universityCity: string | null | undefined,
+): string | null {
+  return universityCity && choices.includes(universityCity) ? universityCity : null;
+}
+
 /**
  * A section's chats split by who runs them, each half in the order given:
  * ours above, the ones it only lists below under their own heading.
@@ -181,6 +277,16 @@ export function sectionAvatar(
   section: Extract<Entry, { kind: 'section' }>,
 ): string | null {
   return ownChat(section)?.avatar ?? null;
+}
+
+/**
+ * The chat a section's row speaks for: the university's own, named like the
+ * section. Its activity and whether it is ours are the row's, as its photo is.
+ */
+export function sectionLead(
+  section: Extract<Entry, { kind: 'section' }>,
+): PublicChat | undefined {
+  return ownChat(section);
 }
 
 /**
@@ -251,6 +357,7 @@ export function search(
       chat.group,
       chat.institution,
       { exact: chat.institution === null ? null : cityOf.get(chat.institution) },
+      { exact: chat.city },
     ],
     query,
   );
@@ -266,18 +373,23 @@ export function cities(
 }
 
 /**
- * Where a chat is, for its preview: the university's full name and its city,
- * from the catalog's taxonomy. Null when the chat names no university or the
- * taxonomy has not heard of it: a bare code says nothing to a reader.
+ * Where a chat is, for its preview: the university's full name when it is a
+ * university's chat, and the city supervisor gave, null being all of Czechia —
+ * the same value the list filters by, so the two never disagree. No name when
+ * the taxonomy has not heard of the university: a bare code says nothing.
  */
 export function placeOf(
   chat: PublicChat,
-  taxonomy: readonly { code: string; name: string; city: string | null }[],
-): string | null {
-  if (chat.institution === null) return null;
-  const university = taxonomy.find(({ code }) => code === chat.institution);
-  if (!university) return null;
-  return university.city ? `${university.name} · ${university.city}` : university.name;
+  taxonomy: readonly { code: string; name: string }[],
+): { university: string | null; city: string | null } {
+  const university =
+    chat.institution === null
+      ? undefined
+      : taxonomy.find(({ code }) => code === chat.institution);
+  return {
+    university: chat.topic === 'university' ? (university?.name ?? null) : null,
+    city: chat.city,
+  };
 }
 
 /** Which chip a chat wears. None for `unknown`: an empty space is the honest answer. */
@@ -286,10 +398,11 @@ export function chipFor(activity: Activity): Exclude<Activity, 'unknown'> | null
 }
 
 /**
- * Which chip a chat wears in a list. None for `quiet` either: most chats are,
- * and next to the number of people the word adds nothing. Its sheet still says it.
+ * Which dot a chat has by its member count in a list: filled for `busy`, a
+ * ring for `active`. None for `quiet` either: most chats are, and a mark on
+ * nearly every row says nothing. Its sheet still says it in words.
  */
-export function rowChipFor(activity: Activity): 'active' | 'busy' | null {
+export function rowDotFor(activity: Activity): 'active' | 'busy' | null {
   return activity === 'active' || activity === 'busy' ? activity : null;
 }
 

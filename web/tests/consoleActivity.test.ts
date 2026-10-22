@@ -71,6 +71,8 @@ function chat(id: number, title: string, parent: number | null = null): ConsoleC
     public_link: null,
     parent_chat_id: parent,
     institution_code: null,
+    city: null,
+    topic: null,
     is_captcha_enabled: false,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
