@@ -15,7 +15,7 @@ import {
   placeOf,
   rowDotFor,
 } from '@/lib/chats';
-import { PersonIcon } from './icons';
+import { MegaphoneIcon, PersonIcon } from './icons';
 import { CityName, TopicWord } from './Place';
 import { Sheet } from './Sheet';
 import { Action, Chevron, Count, Hint, Letters, Row, Tile } from './Ui';
@@ -51,16 +51,21 @@ function ActivityWord({ activity }: { activity: Activity }) {
  * How many people a row's chat has, beside its chevron, and a dot for how much
  * it talks: filled for «оживлённый», a ring for «активный». The words are for
  * a screen reader. Nothing when never measured and quiet.
+ *
+ * A channel's people are subscribers, and it has no talk to measure: the same
+ * figure with no dot, and the reader hears «подписчиков».
  */
 export function Members({
   count,
   activity,
+  channel,
 }: {
   count: number | null;
   activity: Activity;
+  channel: boolean;
 }) {
   const { i18n } = useLingui();
-  const dot = rowDotFor(activity);
+  const dot = channel ? null : rowDotFor(activity);
   if (count === null && dot === null) return null;
   return (
     <Count>
@@ -79,17 +84,27 @@ export function Members({
             {i18n.number(count)}
             <span className={css.srOnly}>
               {' '}
-              <Plural
-                value={count}
-                one="участник"
-                few="участника"
-                many="участников"
-                other="участника"
-              />
+              {channel ? (
+                <Plural
+                  value={count}
+                  one="подписчик"
+                  few="подписчика"
+                  many="подписчиков"
+                  other="подписчика"
+                />
+              ) : (
+                <Plural
+                  value={count}
+                  one="участник"
+                  few="участника"
+                  many="участников"
+                  other="участника"
+                />
+              )}
             </span>
           </>
         )}
-        {chipFor(activity) ? (
+        {!channel && chipFor(activity) ? (
           <span className={css.srOnly}>
             {', '}
             <ActivityWord activity={activity} />
@@ -101,15 +116,52 @@ export function Members({
 }
 
 /** A chat's name, and «не наш» after it when somebody else runs the chat. */
-export function ChatTitle({ title, external }: { title: string; external: boolean }) {
+export function ChatTitle({
+  title,
+  external,
+  channel,
+}: {
+  title: string;
+  external: boolean;
+  channel: boolean;
+}) {
   if (!external) return <>{title}</>;
   return (
     <span className={css.nameLine}>
       <span className={css.name}>{title}</span>
       <NotOurs />
-      <span className={css.srOnly}>
-        {', '}
-        <Trans>не наш чат</Trans>
+      <NotOursSaid channel={channel} />
+    </span>
+  );
+}
+
+/** What a screen reader hears for the plaque. */
+function NotOursSaid({ channel }: { channel: boolean }) {
+  return (
+    <span className={css.srOnly}>
+      {', '}
+      {channel ? <Trans>не наш канал</Trans> : <Trans>не наш чат</Trans>}
+    </span>
+  );
+}
+
+/**
+ * A chat's photo or letters. A channel's has a megaphone at its lower right,
+ * which says it is read rather than talked in; a screen reader is told by the
+ * count's «подписчиков» instead.
+ */
+function Avatar({ chat, tone }: { chat: PublicChat; tone: number }) {
+  const tile = (
+    <Tile tone={tone} round photo={chat.avatar}>
+      <Letters text={initials(chat.title)} />
+    </Tile>
+  );
+  if (chat.kind !== 'channel') return tile;
+  return (
+    <span className={css.avatarWithBadge}>
+      {tile}
+      <span className={css.channelBadge} aria-hidden="true">
+        <MegaphoneIcon size={10} strokeWidth={2.2} />
       </span>
     </span>
   );
@@ -150,19 +202,22 @@ export function ChatRow({
     // and writes it there synchronously on navigate.
     stateNow: () => (window.history.state as { usr?: unknown } | null)?.usr,
   });
+  const channel = chat.kind === 'channel';
   return (
     <>
       <Row
-        leading={
-          <Tile tone={tone} round photo={chat.avatar}>
-            <Letters text={initials(chat.title)} />
-          </Tile>
+        leading={<Avatar chat={chat} tone={tone} />}
+        title={
+          <ChatTitle title={chat.title} external={chat.external} channel={channel} />
         }
-        title={<ChatTitle title={chat.title} external={chat.external} />}
         hint={hint}
         trailing={
           <>
-            <Members count={chat.member_count} activity={chat.activity} />
+            <Members
+              count={chat.member_count}
+              activity={chat.activity}
+              channel={channel}
+            />
             <Chevron />
           </>
         }
@@ -200,8 +255,11 @@ function ChatPreview({
   // it here, and until it comes the line has the chat's own city only.
   const institutions = useQuery(institutionsQuery);
   const place = placeOf(chat, institutions.data ?? []);
+  const channel = chat.kind === 'channel';
   const hasFacts =
-    chat.member_count !== null || chipFor(chat.activity) !== null || chat.is_forum;
+    chat.member_count !== null ||
+    (!channel && chipFor(chat.activity) !== null) ||
+    chat.is_forum;
 
   return (
     <Sheet
@@ -220,12 +278,7 @@ function ChatPreview({
                 {place.university || chat.topic ? ' · ' : null}
                 <CityName city={place.city} />
               </span>
-              {chat.external ? (
-                <span className={css.srOnly}>
-                  {', '}
-                  <Trans>не наш чат</Trans>
-                </span>
-              ) : null}
+              {chat.external ? <NotOursSaid channel={channel} /> : null}
             </span>
           </span>
         </span>
@@ -237,16 +290,26 @@ function ChatPreview({
         <div className={css.facts}>
           {chat.member_count !== null ? (
             <span className={css.fact}>
-              <Plural
-                value={chat.member_count}
-                one="# участник"
-                few="# участника"
-                many="# участников"
-                other="# участника"
-              />
+              {channel ? (
+                <Plural
+                  value={chat.member_count}
+                  one="# подписчик"
+                  few="# подписчика"
+                  many="# подписчиков"
+                  other="# подписчика"
+                />
+              ) : (
+                <Plural
+                  value={chat.member_count}
+                  one="# участник"
+                  few="# участника"
+                  many="# участников"
+                  other="# участника"
+                />
+              )}
             </span>
           ) : null}
-          <ActivityChip activity={chat.activity} />
+          {channel ? null : <ActivityChip activity={chat.activity} />}
           {chat.is_forum ? (
             <span className={css.fact}>
               <Trans>с темами</Trans>
@@ -256,12 +319,16 @@ function ChatPreview({
       ) : null}
       {chat.external ? (
         <p className={css.sheetNote}>
-          <Trans>Этот чат ведёт не Konnekt: спам там чистим не мы, правила свои.</Trans>
+          {channel ? (
+            <Trans>Этот канал ведёт не Konnekt, правила там свои.</Trans>
+          ) : (
+            <Trans>Этот чат ведёт не Konnekt: спам там чистим не мы, правила свои.</Trans>
+          )}
         </p>
       ) : null}
       <div className={css.actions}>
         <Action onClick={onJoin}>
-          <Trans>Открыть чат</Trans>
+          {channel ? <Trans>Открыть канал</Trans> : <Trans>Открыть чат</Trans>}
         </Action>
       </div>
       <div className={css.sheetFoot}>

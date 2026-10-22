@@ -10,11 +10,14 @@
 interface IconProps {
   size?: number;
   className?: string;
+  /** Heavier for an icon drawn small, where 1.7 thins to a hairline. */
+  strokeWidth?: number;
 }
 
 function Svg({
   size = 20,
   className,
+  strokeWidth = 1.7,
   children,
 }: IconProps & { children: React.ReactNode }) {
   return (
@@ -24,7 +27,7 @@ function Svg({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.7}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -47,6 +50,13 @@ export const PersonIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="9" r="3.4" />
     <path d="M5.4 19.4a6.9 6.9 0 0 1 13.2 0" />
+  </Svg>
+);
+
+export const MegaphoneIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 10.2v3.6l2.6.4L18 18V6L6.6 9.8z" />
+    <path d="M7.6 14.5l1 4.3h2.6l-.8-3.6" />
   </Svg>
 );
 

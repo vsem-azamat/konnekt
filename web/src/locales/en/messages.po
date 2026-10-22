@@ -296,6 +296,10 @@ msgstr "The answer did not arrive. Before trying again, check the list: the card
 #~ msgid "Капча при входе"
 #~ msgstr "Captcha on joining"
 
+#: src/components/ChatRow.tsx
+msgid "Этот канал ведёт не Konnekt, правила там свои."
+msgstr "Konnekt does not run this channel; it has its own rules."
+
 #: src/components/Place.tsx
 msgid "вуз"
 msgstr "university"
@@ -652,6 +656,10 @@ msgstr "We did not understand"
 msgid "Аккаунта нет среди главных администраторов бота."
 msgstr "This account is not one of the bot's main administrators."
 
+#: src/components/ChatRow.tsx
+msgid "не наш канал"
+msgstr "not our channel"
+
 #: src/console/pages/Spam.tsx
 msgid "Чат: все ▾"
 msgstr "Chat: all ▾"
@@ -881,6 +889,11 @@ msgstr "Show {total}"
 #: src/pages/Mine.tsx
 msgid "Мои заявки"
 msgstr "My requests"
+
+#. placeholder {0}: chat.member_count
+#: src/components/ChatRow.tsx
+msgid "{0, plural, one {# подписчик} few {# подписчика} many {# подписчиков} other {# подписчика}}"
+msgstr "{0, plural, one {# subscriber} other {# subscribers}}"
 
 #: src/console/pages/Chat.tsx
 msgid "ни во что: стоит отдельно"
@@ -1811,6 +1824,10 @@ msgstr "Everyone who offers help will see it. We read the date out of your words
 msgid "Одобрить"
 msgstr "Approve"
 
+#: src/components/ChatRow.tsx
+msgid "{count, plural, one {подписчик} few {подписчика} many {подписчиков} other {подписчика}}"
+msgstr "{count, plural, one {subscriber} other {subscribers}}"
+
 #: src/pages/Results.tsx
 msgid "Никто пока не предлагает то, что ты ищешь."
 msgstr "Nobody is offering what you are looking for yet."
@@ -2718,6 +2735,10 @@ msgstr "chosen"
 #: src/components/Phrase.tsx
 msgid "Работает именно с этим вузом"
 msgstr "Works specifically with this university"
+
+#: src/components/ChatRow.tsx
+msgid "Открыть канал"
+msgstr "Open the channel"
 
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"

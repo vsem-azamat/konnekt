@@ -480,6 +480,27 @@
   gap: 4px;
 }
 
+/* A channel's avatar, with a megaphone at its lower right; a chat has none. */
+.avatarWithBadge {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+
+.channelBadge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--ink-soft);
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
 /* How much a chat talks, by its member count: filled for busy, a ring for
    active, nothing for the rest. Green, as live things are. */
 .dot {

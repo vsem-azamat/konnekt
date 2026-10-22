@@ -281,6 +281,7 @@ function SectionRow({
 }) {
   const lead = sectionLead(section);
   const external = lead?.external ?? false;
+  const channel = lead?.kind === 'channel';
   return (
     <Row
       leading={
@@ -288,13 +289,14 @@ function SectionRow({
           <Letters text={initials(section.name)} />
         </Tile>
       }
-      title={<ChatTitle title={section.name} external={external} />}
+      title={<ChatTitle title={section.name} external={external} channel={channel} />}
       hint={<SectionHint section={section} />}
       trailing={
         <>
           <Members
             count={sectionMembers(section)}
             activity={lead?.activity ?? 'unknown'}
+            channel={channel}
           />
           <Chevron />
         </>

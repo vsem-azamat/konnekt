@@ -18,6 +18,12 @@ export type Activity = 'unknown' | 'quiet' | 'active' | 'busy';
  */
 export type Topic = 'university' | 'subjects' | 'dorms' | 'work_it' | 'general';
 
+/**
+ * A group people talk in, or a channel they only read. Only somebody else's
+ * chat is ever a channel, and its count is of subscribers.
+ */
+export type ChatKind = 'group' | 'channel';
+
 /** One chat as supervisor publishes it: no ids, nothing about who is in it. */
 export interface PublicChat {
   title: string;
@@ -34,6 +40,11 @@ export interface PublicChat {
   member_count: number | null;
   /** Whether the chat is split into Telegram topics. */
   is_forum: boolean;
+  /**
+   * A kind this app does not know, or none, is a group: it draws as before. So
+   * is a channel said to be ours, which cannot be.
+   */
+  kind: ChatKind;
   /**
    * Somebody else's chat, listed so it can be found: Konnekt does not run it,
    * so its rules are not ours. False for every chat we run.
@@ -93,6 +104,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
       activity,
       member_count,
       is_forum,
+      kind,
       external,
       avatar,
       city,
@@ -116,6 +128,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
           ? (member_count as number)
           : null,
       is_forum: is_forum === true,
+      kind: kind === 'channel' && external === true ? 'channel' : 'group',
       external: external === true,
       avatar: typeof avatar === 'string' && AVATAR_PATH.test(avatar) ? avatar : null,
       city: typeof city === 'string' && city.trim() ? city : null,

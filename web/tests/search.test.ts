@@ -17,6 +17,7 @@ function chat(
     activity: 'active',
     member_count: null,
     is_forum: false,
+    kind: 'group',
     external: false,
     avatar: null,
     city: null,
