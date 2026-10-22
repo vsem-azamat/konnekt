@@ -1492,6 +1492,10 @@ msgstr "It goes first in the «Not about school» section. Three cards show ther
 msgid "Защита"
 msgstr "Protection"
 
+#: src/console/pages/Spam.tsx
+msgid "ссылка"
+msgstr "link"
+
 #: src/console/pages/Chat.tsx
 msgid "Модерирует"
 msgstr "Moderates"
@@ -2852,6 +2856,10 @@ msgstr "There is no such page"
 #: src/console/pages/Spam.tsx
 msgid "Этот случай уже разобрал другой модератор."
 msgstr "Another moderator has already reviewed this one."
+
+#: src/console/pages/Spam.tsx
+msgid "упоминание"
+msgstr "mention"
 
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"

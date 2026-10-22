@@ -51,13 +51,11 @@ import { hapticSelection } from '@/hooks/useTelegram';
  */
 export default function ConsoleSpamPage() {
   return (
-    <ConsoleGate>
-      <div data-wide>
-        <Title>
-          <Trans>Реклама</Trans>
-        </Title>
-        <Spam />
-      </div>
+    <ConsoleGate wide>
+      <Title>
+        <Trans>Реклама</Trans>
+      </Title>
+      <Spam />
     </ConsoleGate>
   );
 }
@@ -329,8 +327,11 @@ function PingCard({
   onBan: () => void;
   onReview: (verdict: Exclude<SpamVerdict, 'ad'>) => void;
 }) {
-  const { i18n } = useLingui();
+  const { t, i18n } = useLingui();
   const time = i18n.date(utc(ping.detected_at), { hour: '2-digit', minute: '2-digit' });
+  // What the detector caught; a kind it learns later goes unnamed until named here.
+  const kind =
+    ping.kind === 'link' ? t`ссылка` : ping.kind === 'mention' ? t`упоминание` : null;
   return (
     <div className={ui.pingCard}>
       <button
@@ -351,7 +352,10 @@ function PingCard({
             ) : null}
             {personName(ping)}
           </span>
-          <span>{time}</span>
+          <span className={ui.pingCardWhen}>
+            {kind ? <span className={ui.pingCardKind}>{kind}</span> : null}
+            {time}
+          </span>
         </span>
         <span className={ui.pingCardText}>{ping.snippet ?? ping.matches.join(', ')}</span>
       </button>
