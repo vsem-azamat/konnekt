@@ -536,6 +536,9 @@ class JoinCaptcha(Base):
     # Arrived during a wave: not written to, left in Telegram for the admins.
     STATUS_HELD = "held"
     STATUS_PASSED = "passed"
+    # Approved without a captcha: passed one in another chat lately. Never
+    # itself a reason to trust, or trust would renew without anybody tapping.
+    STATUS_TRUSTED = "trusted"
     # Out of tries.
     STATUS_FAILED = "failed"
     # Out of time.

@@ -365,6 +365,14 @@ class CaptchaSettings(Settings):
         lt=5,
         description="When an applicant who has not answered gets one reminder",
     )
+    # Passes are kept 180 days (RETENTION_DAYS in app/captcha/service.py), so
+    # a longer window would quietly be 180.
+    trust_days: int = Field(
+        default=90,
+        ge=0,
+        le=180,
+        description="How long a captcha passed in one chat lets the person into the others without one; 0 turns it off",
+    )
 
     @model_validator(mode="after")
     def _reminder_inside_window(self) -> CaptchaSettings:

@@ -182,3 +182,45 @@ async def test_two_sweeps_at_once_remind_once(pg_session_maker, bot, chat) -> No
         settled = await session.get(JoinCaptcha, row.id)
         assert settled is not None
         assert settled.reminded_at == due
+
+
+async def test_someone_who_passed_elsewhere_gets_in_through_a_burst(pg_session_maker, bot, chat) -> None:
+    trusted, stale = 4242, 4243
+    async with pg_session_maker() as session:
+        for user_id, days_ago in ((trusted, settings.captcha.trust_days - 1), (stale, settings.captcha.trust_days + 1)):
+            at = T0 - datetime.timedelta(days=days_ago)
+            row = JoinCaptcha(
+                chat_id=CHAT_ID - 1,
+                user_id=user_id,
+                user_chat_id=user_id,
+                status=JoinCaptcha.STATUS_PASSED,
+                answer="🐶",
+                options=["🐶"],
+                attempts_left=0,
+                created_at=at,
+                expires_at=at,
+            )
+            row.resolved_at = at
+            session.add(row)
+        await session.commit()
+
+    await asyncio.gather(*(_admit(pg_session_maker, bot, user_id) for user_id in range(1, 101)))
+    async with pg_session_maker() as session:
+        assert await session.scalar(select(func.count()).select_from(JoinWave)) == 1
+    # Through the wave, side by side with the rest of the burst.
+    await asyncio.gather(*(_admit(pg_session_maker, bot, user_id) for user_id in (*range(101, 121), trusted, stale)))
+
+    async with pg_session_maker() as session:
+        statuses = dict(
+            (
+                await session.execute(
+                    select(JoinCaptcha.user_id, JoinCaptcha.status).where(JoinCaptcha.chat_id == CHAT_ID)
+                )
+            )
+            .tuples()
+            .all()
+        )
+        assert await session.scalar(select(func.count()).select_from(JoinWave)) == 1
+    assert statuses[trusted] == JoinCaptcha.STATUS_TRUSTED
+    assert statuses[stale] == JoinCaptcha.STATUS_HELD
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=trusted)
