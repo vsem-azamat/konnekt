@@ -92,6 +92,8 @@ async def create_request(
         deadline_on=payload.deadline_on,
         budget_max=payload.budget_max,
         langs=payload.langs,
+        work_format=payload.work_format,
+        city=payload.city,
         # What the caller actually mentioned. A chip the person removed arrives
         # as an explicit `null`, which means "any" and not "work it out".
         given=frozenset(payload.model_fields_set),
@@ -185,8 +187,6 @@ async def request_feed(
             suggested_price=_offer_price(offers.get(row.request.id)),
             on_my_services=row.on_my_services,
             responded=row.responded,
-            work_format=row.request.work_format,
-            city=row.request.city,
         )
         for base, row in zip(rendered, rows, strict=True)
     ]
@@ -583,6 +583,8 @@ async def _requests_out(
                 responses_count=counts.get(request.id, 0),
                 responders=responders.get(request.id, []),
                 helpers_seeing=seeing.get(request.id, 0),
+                work_format=request.work_format,
+                city=request.city,
                 created_at=request.created_at,
                 expires_at=request.expires_at,
                 closed_at=request.closed_at,

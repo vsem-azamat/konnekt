@@ -4747,6 +4747,28 @@
             "type": "array",
             "maxItems": 12,
             "title": "Langs"
+          },
+          "work_format": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkFormat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 96
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           }
         },
         "type": "object",
@@ -4857,6 +4879,21 @@
             "type": "integer",
             "title": "Helpers Seeing",
             "default": 0
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat",
+            "default": "both"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           },
           "expires_at": {
             "anyOf": [

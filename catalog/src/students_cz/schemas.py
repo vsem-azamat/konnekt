@@ -456,6 +456,12 @@ class RequestCreate(BaseModel):
     deadline_on: date | None = None
     budget_max: float | None = Field(default=None, ge=0, le=1_000_000)
     langs: list[LangCode] = Field(default_factory=list, max_length=12)
+    # What the feed's «Онлайн», «Офлайн» and city chips narrow by. `null`, a
+    # chip taken off, is either; a city is dropped for help given online.
+    work_format: WorkFormat | None = None
+    city: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=96)
+    ] = None
 
 
 class RequestBase(BaseModel):
@@ -483,6 +489,8 @@ class RequestOut(RequestBase):
     # How many people /search lists on subject_id and service_type_id, the
     # author aside. Counted only while it is open; 0 after.
     helpers_seeing: int = 0
+    work_format: WorkFormat = WorkFormat.BOTH
+    city: str | None = None
     expires_at: datetime | None = None
     closed_at: datetime | None = None
 
