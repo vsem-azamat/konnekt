@@ -35,6 +35,7 @@ from app.chats.metadata import (
     fetch_metadata,
     username_of,
 )
+from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -138,6 +139,7 @@ async def snapshot_once(
             if chat.is_preview_only and (chat.last_synced_at is None or chat.last_synced_at < cutoff)
         ]
         pictured = set((await session.execute(select(ChatAvatar.chat_id))).scalars())
+        upgraded: list[tuple[int, int]] = []
         asked = 0
         for chat in chats:
             if chat.bot_absent_at is not None and chat.bot_absent_at > absent_cutoff:
@@ -150,6 +152,7 @@ async def snapshot_once(
             except ChatMigratedError as err:
                 logger.info("chat_migrated", chat_id=chat.id, to_chat_id=err.new_chat_id)
                 chat.migrated_to_chat_id = err.new_chat_id
+                upgraded.append((chat.id, err.new_chat_id))
                 continue
             except BotNotInChatError:
                 _note_absent(chat, now)
@@ -208,6 +211,11 @@ async def snapshot_once(
 
         await session.commit()
 
+    # Telegram announces an upgrade once, in a message the bot may have missed;
+    # what it says here is the same fact, so the chat is followed all the same.
+    for old_id, new_id in upgraded:
+        await _follow(session_maker, old_id=old_id, new_id=new_id)
+
     logger.info(
         "snapshot_once committed",
         snapshots=written,
@@ -215,6 +223,17 @@ async def snapshot_once(
         photo_refreshed=photo_refreshed,
     )
     return written
+
+
+async def _follow(session_maker: async_sessionmaker[AsyncSession], *, old_id: int, new_id: int) -> None:
+    async with session_maker() as session:
+        try:
+            await follow_upgrade(session, old_id=old_id, new_id=new_id)
+        except Exception:
+            # The old row stays marked, so nobody asks Telegram about it again;
+            # moving it over is then left to a person.
+            await session.rollback()
+            logger.exception("chat_upgrade_not_followed", old_id=old_id, new_id=new_id)
 
 
 async def run_snapshot_loop(

@@ -217,9 +217,10 @@ async def test_refresh_of_a_group_that_became_a_supergroup_says_where_it_went(cl
         resp = await client.post("/api/chats/-7010/refresh")
 
     assert resp.status_code == 200
-    assert resp.json()["member_count"] is None
+    assert (resp.json()["member_count"], resp.json()["resource_status"]) == (None, "disabled")
     async with db_session_maker() as s:
         assert (await s.get(Chat, -7010)).migrated_to_chat_id == -1004394473356
+        assert await s.get(Chat, -1004394473356) is not None
 
 
 async def test_refresh_returns_404_for_unknown_chat(client_factory) -> None:

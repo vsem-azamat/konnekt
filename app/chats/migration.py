@@ -57,6 +57,7 @@ async def follow_upgrade(db: AsyncSession, *, old_id: int, new_id: int) -> bool:
     old_status = old.resource_status
     old.public_link = None
     old.resource_status = Chat.STATUS_DISABLED
+    old.migrated_to_chat_id = new_id
     old.relation_notes = f"Стал супергруппой {new_id}"
     if new.resource_status != Chat.STATUS_DISCOVERED:
         # Somebody already decided about the new chat; the old one's settings

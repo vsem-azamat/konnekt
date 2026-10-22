@@ -40,6 +40,7 @@ from app.chats.metadata import (
     fetch_metadata,
     username_of,
 )
+from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, Message, User
@@ -421,6 +422,9 @@ async def refresh_chat_from_telegram(
 
     chat.last_synced_at = utc_now()
     await session.commit()
+    if chat.migrated_to_chat_id is not None:
+        # Retires this row and moves its settings over, as the hourly loop would.
+        await follow_upgrade(session, old_id=chat.id, new_id=chat.migrated_to_chat_id)
     await session.refresh(chat)
     # The public catalog remembers its answer for a minute, and it carries the picture's address.
     public_answers.forget()

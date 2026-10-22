@@ -674,4 +674,31 @@ class TestUpgradedToSupergroup:
         assert asked.count(-5319178881) == 1
         assert asked.count(-200) == 2
         assert -5319178881 not in [call.args[0] for call in bot.get_chat.await_args_list]
-        assert await _snapshots(db_session_maker) == [(-200, 80), (-200, 80)]
+        # The second run counts the supergroup it was followed to instead.
+        assert await _snapshots(db_session_maker) == [(-1004394473356, 80), (-200, 80), (-200, 80)]
+
+    async def test_a_listed_chat_is_followed_to_its_new_id(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """The upgrade's announcement may never have reached the bot; Telegram's answer is the same fact."""
+        from aiogram.exceptions import TelegramMigrateToChat
+
+        await _seed(
+            db_session_maker,
+            Chat(id=-5319178881, title="Old", resource_status=Chat.STATUS_APPROVED, public_link="https://t.me/old"),
+        )
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=TelegramMigrateToChat(method=MagicMock(), message="upgraded", migrate_to_chat_id=-1004394473356)
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        old = await _chat(db_session_maker, -5319178881)
+        new = await _chat(db_session_maker, -1004394473356)
+        assert (old.resource_status, old.public_link, old.migrated_to_chat_id) == (
+            Chat.STATUS_DISABLED,
+            None,
+            -1004394473356,
+        )
+        assert (new.resource_status, new.public_link) == (Chat.STATUS_APPROVED, "https://t.me/old")
