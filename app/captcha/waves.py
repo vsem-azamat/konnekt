@@ -143,6 +143,27 @@ async def decision_of(db: AsyncSession, wave_id: int) -> str | None:
     return await db.scalar(select(JoinWave.decision).where(JoinWave.id == wave_id))
 
 
+async def record(
+    db: AsyncSession, *, wave_id: int, action: str, admin_id: int, now: datetime.datetime
+) -> JoinWave | None:
+    """Write the decision down, or find the same one already written; None if it was another.
+
+    The first half of `decide`, apart for a caller that answers before the
+    work: once this commits, the wave is no longer anybody's signal.
+    """
+    wave = await db.scalar(select(JoinWave).where(JoinWave.id == wave_id).with_for_update())
+    if wave is None or action not in (DECLINE, RESUME, LEAVE):
+        return None
+    if wave.decision is not None and wave.decision != action:
+        return None
+    if wave.decision is None:
+        wave.decision = action
+        wave.decided_by = admin_id
+        wave.decided_at = now
+    await db.commit()
+    return wave
+
+
 async def decide(
     bot: Bot,
     db: AsyncSession,
@@ -159,16 +180,9 @@ async def decide(
     a restart halfway through declining a wave loses nothing but time.
     """
     now = now or utc_now()
-    wave = await db.scalar(select(JoinWave).where(JoinWave.id == wave_id).with_for_update())
-    if wave is None or action not in (DECLINE, RESUME, LEAVE):
+    wave = await record(db, wave_id=wave_id, action=action, admin_id=admin_id, now=now)
+    if wave is None:
         return None
-    if wave.decision is not None and wave.decision != action:
-        return None
-    if wave.decision is None:
-        wave.decision = action
-        wave.decided_by = admin_id
-        wave.decided_at = now
-    await db.commit()
 
     chat = await db.get(Chat, wave.chat_id)
     title = html.escape(chat.title if chat and chat.title else str(wave.chat_id))

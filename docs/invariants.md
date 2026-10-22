@@ -404,7 +404,10 @@ reversible or self-expiring, and removals are only ever proposed.
 
 **Removing a person is never performed by a tool call.** `propose_ban` and
 `propose_blacklist` create a pending action and return. A super admin presses
-confirm in the moderator bot, or it expires having done nothing. Any tool that
+confirm in the moderator bot or on the console's Сигналы screen, or it expires
+having done nothing. Both presses go through the same claim, so of two at once
+exactly one runs, and the console's press takes the buttons off the bot's
+message so it cannot offer a decision already made. Any tool that
 bans directly re-opens this — as would any tool that decides and acts in one
 call, which is what the removed assistant's `analyze_message` did.
 
