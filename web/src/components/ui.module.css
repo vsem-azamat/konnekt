@@ -1317,6 +1317,14 @@
   background: var(--surface-pressed);
 }
 
+/* Quick starts under the answer's message: a tap adds the sentence. */
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
 .cardName {
   font-size: 14.5px;
   font-weight: 680;

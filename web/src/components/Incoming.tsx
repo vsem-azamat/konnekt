@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { formatDay, PhraseView } from '@/components/Phrase';
+import { formatDay, PhraseView, PriceUnitLabel } from '@/components/Phrase';
 import { Sheet } from '@/components/Sheet';
 import {
   Action,
@@ -11,6 +11,7 @@ import {
   AvatarView,
   Card,
   Cards,
+  ChipView,
   CLAMP_TWO_LINES,
   Empty,
   formatMoney,
@@ -21,7 +22,7 @@ import {
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { requestName } from '@/lib/requestHeading';
-import { responseDraft } from '@/lib/responseDraft';
+import { type Draft, openDraft, responseDraft, withStarter } from '@/lib/responseDraft';
 import type { FeedRequest, ResponseCreate } from '@/lib/types';
 
 /**
@@ -37,7 +38,7 @@ export function Incoming() {
   const [answering, setAnswering] = useState<FeedRequest | null>(null);
   // What was typed survives the sheet closing: a tap beside it by mistake
   // must not cost the two sentences. Kept for one request, the last one.
-  const [draft, setDraft] = useState<Draft>({ requestId: null, message: '', price: '' });
+  const [draft, setDraft] = useState<Draft>(NO_DRAFT);
   const queryClient = useQueryClient();
 
   // Here rather than in the sheet: the sheet can be closed while an answer is
@@ -54,9 +55,7 @@ export function Incoming() {
       // Only if it is still this request on screen: by now the person may
       // have closed the sheet and opened another one.
       setAnswering((open) => (open?.id === requestId ? null : open));
-      setDraft((kept) =>
-        kept.requestId === requestId ? { requestId: null, message: '', price: '' } : kept,
-      );
+      setDraft((kept) => (kept.requestId === requestId ? NO_DRAFT : kept));
     },
   });
 
@@ -76,9 +75,7 @@ export function Incoming() {
     const found = data.find((request) => request.id === linked);
     if (found && !found.responded) {
       setDraft((kept) =>
-        kept.requestId === found.id
-          ? kept
-          : { requestId: found.id, message: '', price: '' },
+        kept.requestId === found.id ? kept : openDraft(found.id, found.suggested_price),
       );
       setAnswering(found);
     }
@@ -124,7 +121,7 @@ export function Incoming() {
             locale={i18n.locale}
             onRespond={() => {
               if (draft.requestId !== request.id) {
-                setDraft({ requestId: request.id, message: '', price: '' });
+                setDraft(openDraft(request.id, request.suggested_price));
               }
               setAnswering(request);
             }}
@@ -151,11 +148,13 @@ export function Incoming() {
   );
 }
 
-interface Draft {
-  requestId: number | null;
-  message: string;
-  price: string;
-}
+const NO_DRAFT: Draft = {
+  requestId: null,
+  message: '',
+  price: '',
+  unit: 'hour',
+  suggested: false,
+};
 
 function From({ request }: { request: FeedRequest }) {
   const name = request.author_name;
@@ -254,7 +253,13 @@ function RespondSheet({
   const { t } = useLingui();
   const messageId = useId();
   const priceId = useId();
-  const payload = responseDraft(draft.message, draft.price);
+  const payload = responseDraft(draft.message, draft.price, draft.unit);
+  // A tap or two instead of typing: each adds its sentence to the message.
+  const starters = [
+    t`Могу на этой неделе`,
+    t`Первые 20 минут бесплатно`,
+    t`Онлайн или лично`,
+  ];
 
   const name = request.author_name;
 
@@ -289,11 +294,30 @@ function RespondSheet({
             style={{ all: 'unset', width: '100%', resize: 'none', lineHeight: 1.4 }}
           />
         </div>
+        <div className={ui.starters}>
+          {starters.map((starter) => (
+            <ChipView
+              key={starter}
+              onClick={() =>
+                onDraft({ ...draft, message: withStarter(draft.message, starter) })
+              }
+            >
+              {starter}
+            </ChipView>
+          ))}
+        </div>
 
         <label className={ui.fieldLabel} htmlFor={priceId}>
-          <Trans>
-            Цена за час, Kč <span className={ui.fieldLabelNote}>необязательно</span>
-          </Trans>
+          {draft.suggested ? (
+            <Trans>
+              Цена <PriceUnitLabel unit={draft.unit} />, Kč{' '}
+              <span className={ui.fieldLabelNote}>из анкеты, можно изменить</span>
+            </Trans>
+          ) : (
+            <Trans>
+              Цена за час, Kč <span className={ui.fieldLabelNote}>необязательно</span>
+            </Trans>
+          )}
         </label>
         <div className={`${ui.field} ${ui.fieldOutlined}`}>
           <input

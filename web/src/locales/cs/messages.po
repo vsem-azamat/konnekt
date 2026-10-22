@@ -333,6 +333,10 @@ msgstr "Moje"
 msgid "как у родителя: <0/>"
 msgstr "jako u nadřazeného: <0/>"
 
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>из анкеты, можно изменить</1>"
+msgstr "Cena <0/>, Kč <1>z profilu, lze změnit</1>"
+
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
 #: src/console/pages/Summary.tsx
@@ -718,6 +722,10 @@ msgstr "není náš kanál"
 #: src/console/pages/Spam.tsx
 msgid "Чат: все ▾"
 msgstr "Chat: všechny ▾"
+
+#: src/components/Incoming.tsx
+msgid "Онлайн или лично"
+msgstr "Online nebo osobně"
 
 #: src/console/pages/Chats.tsx
 msgid "7 дней"
@@ -2090,6 +2098,10 @@ msgstr "Odpovíme, ve kterých chatech se to hodí a kolik to stojí."
 msgid "можно написать"
 msgstr "lze napsat"
 
+#: src/components/Incoming.tsx
+msgid "Первые 20 минут бесплатно"
+msgstr "Prvních 20 minut zdarma"
+
 #: src/pages/Profile.tsx
 msgid "черновик — не видна в каталоге"
 msgstr "koncept — v katalogu není vidět"
@@ -2544,6 +2556,10 @@ msgstr "Tahle skupina už neexistuje"
 #: src/console/pages/Chats.tsx
 msgid "на сайте"
 msgstr "na webu"
+
+#: src/components/Incoming.tsx
+msgid "Могу на этой неделе"
+msgstr "Můžu tento týden"
 
 #: src/components/RemoveRequest.tsx
 #: src/pages/Join.tsx
