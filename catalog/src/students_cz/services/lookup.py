@@ -232,6 +232,13 @@ _SHELVES_OF_SQL = text(
     """
 )
 
+_SHELVES_BY_SUBJECT_SQL = text(
+    f"""
+    SELECT s.id, shelf.id FROM subjects s, subjects shelf
+     WHERE s.id = ANY(:ids) AND (shelf.id = s.id OR shelf.is_active AND {_HOLDS})
+    """
+)
+
 
 async def held_by(session: AsyncSession, subject_id: int) -> list[int]:
     """What a search for this subject covers: itself, and for a shelf what the
@@ -248,6 +255,20 @@ async def shelves_of(session: AsyncSession, subject_ids: set[int]) -> set[int]:
     if not subject_ids:
         return set()
     return set(await session.scalars(_SHELVES_OF_SQL, {"ids": sorted(subject_ids)}))
+
+
+async def shelves_by_subject(
+    session: AsyncSession, subject_ids: set[int]
+) -> dict[int, set[int]]:
+    """`shelves_of` for each subject apart, in one query rather than one each."""
+    shelves: dict[int, set[int]] = {subject_id: set() for subject_id in subject_ids}
+    if subject_ids:
+        rows = await session.execute(
+            _SHELVES_BY_SUBJECT_SQL, {"ids": sorted(subject_ids)}
+        )
+        for subject_id, shelf_id in rows:
+            shelves[subject_id].add(shelf_id)
+    return shelves
 
 
 _INSTITUTION_SQL = text(

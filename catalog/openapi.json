@@ -1106,7 +1106,7 @@
           "requests"
         ],
         "summary": "Request Feed",
-        "description": "Open requests, for someone who could answer them.",
+        "description": "Open requests, for someone who could answer them, narrowed by the chips.",
         "operationId": "request_feed_api_v1_requests_feed_get",
         "parameters": [
           {
@@ -1119,6 +1119,113 @@
               "minimum": 1,
               "default": 20,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Mine"
+            }
+          },
+          {
+            "name": "with_responded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "With Responded"
+            }
+          },
+          {
+            "name": "service_type_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Type Id"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 9223372036854775807,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "name": "work_format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/WorkFormat"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Work Format"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 96
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "name": "budget_upto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Budget Upto"
             }
           },
           {
@@ -1149,6 +1256,66 @@
                     "$ref": "#/components/schemas/FeedRequestOut"
                   },
                   "title": "Response Request Feed Api V1 Requests Feed Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/requests/feed/facets": {
+      "get": {
+        "tags": [
+          "requests"
+        ],
+        "summary": "Request Feed Facets",
+        "description": "The numbers on the chips over the feed, each over the whole feed.",
+        "operationId": "request_feed_facets_api_v1_requests_feed_facets_get",
+        "parameters": [
+          {
+            "name": "with_responded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "With Responded"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedFacetsOut"
                 }
               }
             }
@@ -2793,6 +2960,25 @@
         "title": "Avatar",
         "description": "Enough to draw the little circle without fetching anything.\n\nTelegram avatar URLs expire, so a monogram is the fallback rather than a\nbroken image. The colour is derived from the user id, which keeps the same\nperson the same colour across screens."
       },
+      "BudgetCount": {
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "count"
+        ],
+        "title": "BudgetCount",
+        "description": "Requests whose budget is at most `amount`; none named is in no step."
+      },
       "Chip": {
         "properties": {
           "kind": {
@@ -2830,6 +3016,24 @@
         ],
         "title": "Chip",
         "description": "One piece of what we understood, shown back for correction."
+      },
+      "CityCount": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "count"
+        ],
+        "title": "CityCount"
       },
       "Clarify": {
         "properties": {
@@ -2884,6 +3088,84 @@
         ],
         "title": "ContactOut",
         "description": "Where to continue the conversation."
+      },
+      "FacetOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "count"
+        ],
+        "title": "FacetOut"
+      },
+      "FeedFacetsOut": {
+        "properties": {
+          "all": {
+            "type": "integer",
+            "title": "All"
+          },
+          "mine": {
+            "type": "integer",
+            "title": "Mine"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOut"
+            },
+            "type": "array",
+            "title": "Subjects"
+          },
+          "service_types": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOut"
+            },
+            "type": "array",
+            "title": "Service Types"
+          },
+          "formats": {
+            "$ref": "#/components/schemas/FormatCounts"
+          },
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/CityCount"
+            },
+            "type": "array",
+            "title": "Cities"
+          },
+          "budget_upto": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetCount"
+            },
+            "type": "array",
+            "title": "Budget Upto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "all",
+          "mine",
+          "subjects",
+          "service_types",
+          "formats",
+          "cities",
+          "budget_upto"
+        ],
+        "title": "FeedFacetsOut",
+        "description": "The numbers on the chips over the feed, each over the whole feed.\n\n`subjects` are shelves («Математика»), which `subject_id` on the feed\ntakes as everything they hold."
       },
       "FeedRequestOut": {
         "properties": {
@@ -2992,6 +3274,31 @@
                 "type": "null"
               }
             ]
+          },
+          "on_my_services": {
+            "type": "boolean",
+            "title": "On My Services",
+            "default": false
+          },
+          "responded": {
+            "type": "boolean",
+            "title": "Responded",
+            "default": false
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat",
+            "default": "both"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           }
         },
         "type": "object",
@@ -3005,6 +3312,25 @@
         ],
         "title": "FeedRequestOut",
         "description": "A request as a helper sees it.\n\nDeliberately not a subclass of RequestOut: how many people have already\nanswered, and who they are, is the competition's business and not this\nreader's. A helper who can see \"3 answers already\" simply skips those,\nwhich is the opposite of what the feed is for — and inheriting the fields\nto blank them would still leave them in the schema."
+      },
+      "FormatCounts": {
+        "properties": {
+          "online": {
+            "type": "integer",
+            "title": "Online"
+          },
+          "offline": {
+            "type": "integer",
+            "title": "Offline"
+          }
+        },
+        "type": "object",
+        "required": [
+          "online",
+          "offline"
+        ],
+        "title": "FormatCounts",
+        "description": "`both` counts under each."
       },
       "HTTPValidationError": {
         "properties": {
