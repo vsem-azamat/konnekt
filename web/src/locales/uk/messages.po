@@ -2573,14 +2573,14 @@ msgstr "Ховати «увійшов» і «вийшов»"
 msgid "по любому вопросу"
 msgstr "з будь-якого питання"
 
-#: src/console/pages/Chat.tsx
-msgid "Правила в закрепе, рекламу не публикуем."
-msgstr "Правила в закріпі, рекламу не публікуємо."
-
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# відповідь} few {# відповіді} many {# відповідей} other {# відповіді}}"
+
+#: src/console/pages/Chat.tsx
+msgid "Вопросы по поступлению — в тему #вопросы."
+msgstr "Питання про вступ — у тему #питання."
 
 #: src/components/Incoming.tsx
 msgid "На эту заявку ты уже отвечал"

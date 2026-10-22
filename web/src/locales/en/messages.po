@@ -2573,14 +2573,14 @@ msgstr "Hide «joined» and «left»"
 msgid "по любому вопросу"
 msgstr "about anything"
 
-#: src/console/pages/Chat.tsx
-msgid "Правила в закрепе, рекламу не публикуем."
-msgstr "The rules are pinned, no ads please."
-
 #. placeholder {0}: request.responses_count
 #: src/pages/Mine.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# response} other {# responses}}"
+
+#: src/console/pages/Chat.tsx
+msgid "Вопросы по поступлению — в тему #вопросы."
+msgstr "Admission questions go to the #questions topic."
 
 #: src/components/Incoming.tsx
 msgid "На эту заявку ты уже отвечал"

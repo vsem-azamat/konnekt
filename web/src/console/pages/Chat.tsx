@@ -805,7 +805,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
             </Trans>
           }
           initial={chat.welcome_message ?? ''}
-          placeholder={t`Правила в закрепе, рекламу не публикуем.`}
+          placeholder={t`Вопросы по поступлению — в тему #вопросы.`}
           busy={busy}
           error={sheetError}
           onClose={close}
