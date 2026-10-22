@@ -102,6 +102,11 @@ async def snapshot_once(
                 continue
             if _apply_title(chat, metadata.title):
                 refreshed += 1
+            if unasked and chat.join_mode == Chat.JOIN_ADMINS and metadata.username is None:
+                # The migration could not tell a chat without a link private or
+                # public and gave it to the admins. A private one had the bot's
+                # link asking for nothing, as a new private chat is given now.
+                chat.join_mode = Chat.JOIN_OPEN
             chat.join_by_request = metadata.join_by_request
             outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
             if outcome in {"fetched", "removed"}:

@@ -375,10 +375,12 @@ async def test_an_unknown_join_mode_is_refused(client_factory, db_session_maker)
         # Telegram's own requests went to the admins.
         ("https://t.me/public_room", None, "admins"),
         ("https://t.me/public_room", False, "admins"),
+        ("https://t.me/+private_invite", None, "open"),
+        ("https://t.me/+private_invite", True, "admins"),
+        # No link: could be public with requests on, so nobody is let in unseen.
         (None, True, "admins"),
-        # Not asked yet: could be public with requests on, so nobody is let in unseen.
         (None, None, "admins"),
-        (None, False, "open"),
+        (None, False, "admins"),
     ],
 )
 async def test_the_old_captcha_switch_turned_off_changes_nothing_else(

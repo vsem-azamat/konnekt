@@ -1,7 +1,7 @@
-"""A group upgraded to a supergroup takes its captcha along, and only that.
+"""A group upgraded to a supergroup takes its captcha and the admins' say along.
 
-The other modes depend on whether the chat is public, which an upgrade often
-changes: a private OPEN group made public would let everyone in where the
+Letting everyone in depends on whether the chat is public, which an upgrade
+often changes: a private OPEN group made public would let everyone in where the
 admins used to decide.
 """
 
@@ -42,5 +42,14 @@ async def test_letting_everyone_in_does_not(session: AsyncSession) -> None:
     new = Chat(id=NEW, title="Supergroup", resource_status=Chat.STATUS_DISCOVERED, join_mode=Chat.JOIN_ADMINS)
 
     upgraded = await _upgrade(session, Chat.JOIN_OPEN, new=new)
+
+    assert upgraded.join_mode == Chat.JOIN_ADMINS
+
+
+async def test_the_admins_keep_their_say(session: AsyncSession) -> None:
+    """A private group stays private often enough; its new link must not start skipping them."""
+    new = Chat(id=NEW, title="Supergroup", resource_status=Chat.STATUS_DISCOVERED, join_mode=Chat.JOIN_OPEN)
+
+    upgraded = await _upgrade(session, Chat.JOIN_ADMINS, new=new)
 
     assert upgraded.join_mode == Chat.JOIN_ADMINS

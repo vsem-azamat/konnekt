@@ -154,6 +154,10 @@ async def ensure_link(bot: Bot, chat: Chat) -> str:
             return "kept"
         chat.public_link = target
         if current is not None and is_invite_link(current):
+            # It was private when its mode was given. A public chat's requests
+            # come from its own setting and were always the admins' to answer.
+            if chat.join_mode == Chat.JOIN_OPEN:
+                chat.join_mode = Chat.JOIN_ADMINS
             await _retire(bot, chat, current)
         _settled(chat)
         return "username"

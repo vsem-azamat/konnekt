@@ -176,6 +176,23 @@ async def test_a_chat_with_a_username_is_served_by_it() -> None:
     bot.revoke_chat_invite_link.assert_awaited_once_with(chat_id=chat.id, invite_link=OURS)
 
 
+async def test_a_chat_that_lets_everyone_in_goes_to_the_admins_when_it_turns_public() -> None:
+    """Its mode was given while private; a public chat's requests were always the admins'."""
+    bot, chat = _bot(username="room_chat"), _chat(join_mode=Chat.JOIN_OPEN)
+
+    assert await ensure_link(bot, chat) == "username"
+
+    assert chat.join_mode == Chat.JOIN_ADMINS
+
+
+async def test_a_public_chat_set_to_let_everyone_in_keeps_it() -> None:
+    bot, chat = _bot(username="room_chat"), _chat("https://t.me/room_chat", join_mode=Chat.JOIN_OPEN)
+
+    assert await ensure_link(bot, chat) == "kept"
+
+    assert chat.join_mode == Chat.JOIN_OPEN
+
+
 async def test_a_username_link_that_is_already_right_is_left_alone() -> None:
     bot, chat = _bot(username="room_chat"), _chat("https://t.me/room_chat")
 

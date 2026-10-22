@@ -69,11 +69,11 @@ async def follow_upgrade(db: AsyncSession, *, old_id: int, new_id: int) -> bool:
         # Restoring a status must not silently republish a link: only a listed
         # old chat's link may follow it.
         carried.pop("public_link", None)
-    # Only a captcha follows the chat. The other modes depend on whether it is
-    # public, which an upgrade often changes; the new chat keeps the one it
-    # was given when the bot first met it.
-    if old.join_mode == Chat.JOIN_CAPTCHA:
-        carried["join_mode"] = Chat.JOIN_CAPTCHA
+    # Letting everyone in depends on whether the chat is public, which an
+    # upgrade often changes, so the new chat keeps the mode it was given when
+    # the bot first met it. A captcha or the admins' say follows it.
+    if old.join_mode != Chat.JOIN_OPEN:
+        carried["join_mode"] = old.join_mode
     for name, value in carried.items():
         setattr(new, name, value)
     await db.flush()

@@ -36,6 +36,7 @@ def _bot(
     title: str = "Как в Telegram",
     photo: str | None = None,
     join_by_request: bool | None = None,
+    username: str | None = None,
 ):
     """A bot that answers about every chat unless told otherwise."""
     bot = AsyncMock()
@@ -46,6 +47,7 @@ def _bot(
         chat.title = title
         chat.photo = MagicMock(big_file_id=photo) if photo else None
         chat.join_by_request = join_by_request
+        chat.username = username
         return chat
 
     bot.get_chat = AsyncMock(side_effect=_get_chat)
@@ -175,6 +177,33 @@ class TestMetadata:
         await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=True))
 
         assert (await _chat(db_session_maker, -100)).join_by_request is True
+
+    @pytest.mark.parametrize(("username", "settled"), [(None, Chat.JOIN_OPEN), ("public_room", Chat.JOIN_ADMINS)])
+    async def test_the_first_answer_settles_a_mode_the_migration_had_to_guess(
+        self, db_session_maker: async_sessionmaker[AsyncSession], username: str | None, settled: str
+    ) -> None:
+        """A chat with no link could be private or public; the migration chose the admins to be safe.
+
+        A private one had the bot's link asking for no request, so once Telegram
+        says it has no username it lets everyone in again, as a new chat would.
+        """
+        await _seed(db_session_maker, Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS))
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False, username=username))
+
+        assert (await _chat(db_session_maker, -100)).join_mode == settled
+
+    async def test_a_mode_is_not_resettled_once_the_chat_has_been_asked(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """After the first answer the admins are somebody's choice, not the migration's guess."""
+        chat = Chat(id=-100, title="A", join_mode=Chat.JOIN_ADMINS)
+        chat.join_by_request = False
+        await _seed(db_session_maker, chat)
+
+        await snapshot_once(session_maker=db_session_maker, bot=_bot(join_by_request=False))
+
+        assert (await _chat(db_session_maker, -100)).join_mode == Chat.JOIN_ADMINS
 
     async def test_a_brand_new_chat_is_synced_immediately(
         self, db_session_maker: async_sessionmaker[AsyncSession]

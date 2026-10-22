@@ -30,6 +30,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chats.avatars import sync_photo
+from app.chats.invite_links import is_invite_link
 from app.chats.metadata import fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -82,13 +83,13 @@ def _join_mode(mode: str) -> JoinMode:
 def _mode_without_captcha(chat: Chat) -> str:
     """What switching the captcha off leaves, the bot's behaviour without it unchanged.
 
-    A public chat's requests come from its own setting and went to the admins;
-    a private one has the bot's link, which without a captcha asked for none.
-    A chat not yet asked about its setting is taken to have it, the side that
-    lets nobody in unseen.
+    A chat with the bot's invite link is private, and that link asked for no
+    request without a captcha. Anything else may be public, whose requests come
+    from its own setting and went to the admins; so does a private chat that
+    asks for requests itself.
     """
-    public = chat.public_link is not None and username_of(chat.public_link) is not None
-    return Chat.JOIN_ADMINS if public or chat.join_by_request is not False else Chat.JOIN_OPEN
+    private = chat.public_link is not None and is_invite_link(chat.public_link)
+    return Chat.JOIN_OPEN if private and chat.join_by_request is not True else Chat.JOIN_ADMINS
 
 
 def _build_heatmap(timestamps: list[datetime.datetime]) -> list[HeatmapCell]:
