@@ -254,7 +254,7 @@ msgid "{name} получит уведомление. Отменить нельз
 msgstr "{name} will be notified. This cannot be undone."
 
 #. placeholder {0}: helper.hidden_note
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Причина: {0}"
 msgstr "Reason: {0}"
 
@@ -282,7 +282,7 @@ msgstr "Members were counted fewer than twice: no line yet."
 msgid "Помощь"
 msgstr "Help"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Видимость"
 msgstr "Visibility"
 
@@ -315,7 +315,7 @@ msgstr "calculus ČVUT"
 msgid "Вернись к списку чатов."
 msgstr "Go back to the list of chats."
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Новые заявки в Telegram"
 msgstr "New requests in Telegram"
 
@@ -375,7 +375,7 @@ msgstr "active"
 msgid "Что бот делает в чате"
 msgstr "What the bot does in the chat"
 
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 msgid "Kč"
 msgstr "Kč"
 
@@ -401,7 +401,7 @@ msgstr "Request actions"
 
 #: src/console/pages/Signals.tsx
 #: src/console/ProfileSheet.tsx
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Скрыть"
 msgstr "Hide"
 
@@ -417,7 +417,7 @@ msgstr "No requests match this filter right now"
 msgid "вся Чехия"
 msgstr "all of Czechia"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "О себе"
 msgstr "About you"
 
@@ -475,12 +475,12 @@ msgstr "Sign in to the console"
 #~ msgid "Решают кнопками в сообщении бота в чате отчётов."
 #~ msgstr "Decided with the buttons on the bot's message in the report chat."
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Присылать"
 msgstr "Send"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за неделю"
 msgstr "per week"
@@ -493,7 +493,7 @@ msgstr "Respond"
 msgid "Обновлено"
 msgstr "Updated"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Где"
 msgstr "Where"
 
@@ -594,6 +594,10 @@ msgstr "Captcha paused"
 #: src/console/pages/Catalog.tsx
 msgid "Искали и не нашли"
 msgstr "Searched and not found"
+
+#: src/pages/MyHelper.tsx
+msgid "цена не указана"
+msgstr "no price set"
 
 #: src/console/pages/Chat.tsx
 msgid "В этот чат входят другие, поэтому он сам стоит отдельно."
@@ -719,6 +723,10 @@ msgstr "The link must start with https://, lead to a site, have no spaces and be
 msgid "Ищи по вузу, факультету или общежитию: {EXAMPLES}."
 msgstr "Search by university, faculty or dorm: {EXAMPLES}."
 
+#: src/components/OwnerStatusCard.tsx
+msgid "Пока её видишь только ты. Опубликовать — в «О себе и как работаю»."
+msgstr "Only you can see it for now. Publish it under “About me and how I work”."
+
 #: src/pages/Results.tsx
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Try other words — or post a request and let them find you."
@@ -830,8 +838,8 @@ msgstr "Post a request"
 msgid "отключён"
 msgstr "disabled"
 
+#: src/components/OwnerStatusCard.tsx
 #: src/console/pages/Chats.tsx
-#: src/pages/MyHelper.tsx
 msgid "На проверке"
 msgstr "Awaiting review"
 
@@ -965,7 +973,7 @@ msgstr "tutoring, written work, paperwork"
 #~ msgid "расскажи своими словами, анкету соберём сами"
 #~ msgstr "tell it in your own words, we'll build the profile"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
 msgstr "It is not visible in the catalog. Your changes are saved, and an administrator will look at the profile again."
 
@@ -1001,7 +1009,7 @@ msgstr "Nothing is waiting right now."
 msgid "Не получилось загрузить"
 msgstr "Couldn't load"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Анкета сохранится, но в каталоге её не будет."
 msgstr "Your profile is saved, but it will not be in the catalog."
 
@@ -1091,8 +1099,9 @@ msgstr "Partner"
 msgid "Написать нам"
 msgstr "Write to us"
 
+#: src/components/ServiceSheet.tsx
 #: src/console/pages/Chat.tsx
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Сохранить"
 msgstr "Save"
@@ -1119,7 +1128,7 @@ msgstr "Done"
 msgid "Отмена"
 msgstr "Cancel"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
 msgstr "Only you can see it for now. «In the catalog» is already chosen below: tap «Save» and your profile will show up in search."
 
@@ -1141,7 +1150,7 @@ msgstr "Requests are visible to people who can answer them."
 msgid "Сколько стоит"
 msgstr "How much it costs"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Скрыта тобой"
 msgstr "Hidden by you"
 
@@ -1149,13 +1158,15 @@ msgstr "Hidden by you"
 msgid "Открытых заявок нет"
 msgstr "No open requests"
 
+#: src/components/ServiceSheet.tsx
 #: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Не сохранилось — попробуй ещё раз."
 msgstr "It did not save — try again."
 
+#: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
-#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Price"
@@ -1226,7 +1237,7 @@ msgstr "The sign-in was not kept: open the console in the Telegram app."
 msgid "Все чаты"
 msgstr "All chats"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Анкета уже в каталоге, администратор её ещё не смотрел."
 msgstr "Your profile is already in the catalog; an administrator has not looked at it yet."
 
@@ -1307,7 +1318,7 @@ msgstr "System"
 msgid "после заявки"
 msgstr "after a request"
 
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "За что цена"
 msgstr "What the price is for"
@@ -1327,7 +1338,7 @@ msgid "{0, plural, one {ещё # день} few {ещё # дня} many {ещё # 
 msgstr "{0, plural, one {# day left} other {# days left}}"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за работу"
 msgstr "per assignment"
@@ -1365,7 +1376,8 @@ msgstr "first touches; ad conversations: {0}"
 msgid "Форматы"
 msgstr "Formats"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Тебя видят в поиске и могут написать."
 msgstr "People can find you in search and write to you."
 
@@ -1419,7 +1431,7 @@ msgid "Забанить и стереть все его сообщения"
 msgstr "Ban and delete all their messages"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за час"
 msgstr "per hour"
@@ -1444,7 +1456,7 @@ msgstr "Requests"
 msgid "На все открытые заявки кто-то откликнулся."
 msgstr "Every open request has an answer."
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 msgstr "Only you can see it for now. Choose «In the catalog» when it is ready."
 
@@ -1552,12 +1564,13 @@ msgid "Предметы"
 msgstr "Subjects"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за штуку"
 msgstr "per item"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "В каталоге"
 msgstr "In the catalog"
 
@@ -1568,6 +1581,10 @@ msgstr "Active"
 #: src/console/pages/Audience.tsx
 msgid "8 недель"
 msgstr "8 weeks"
+
+#: src/pages/MyHelper.tsx
+msgid "текст, формат, город, видимость"
+msgstr "text, format, city, visibility"
 
 #. placeholder {0}: chats.data.length
 #: src/console/pages/Summary.tsx
@@ -1621,7 +1638,7 @@ msgid "Новые люди по неделям, от старой к нынеш�
 msgstr "New people by week, oldest to current: {0}"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "договорная"
 msgstr "negotiable"
@@ -1656,7 +1673,7 @@ msgid "Разделы"
 msgstr "Sections"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за семестр"
 msgstr "per semester"
@@ -1677,7 +1694,7 @@ msgstr "This account is not one of the catalog's operators."
 msgid "Остальные"
 msgstr "Other chats"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Новые заявки будут только во «Входящих»."
 msgstr "New requests will only be in “Incoming”."
 
@@ -1691,7 +1708,7 @@ msgstr "{count, plural, one {member} other {members}}"
 msgid "с {0}, последний раз {1}"
 msgstr "since {0}, last {1}"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Черновик"
 msgstr "Draft"
 
@@ -1895,7 +1912,7 @@ msgstr "Loading the profile…"
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "What the detector caught. What has been reviewed leaves the queue."
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Строчка под именем"
 msgstr "The line under your name"
 
@@ -1975,7 +1992,7 @@ msgstr "Who can help"
 msgid "с темами"
 msgstr "with topics"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
 msgstr "This is the first thing people read. A couple of real sentences beat a list."
 
@@ -2180,7 +2197,7 @@ msgstr "Open time slots"
 msgid "Вход устарел: откройте приложение заново."
 msgstr "The sign-in has expired: reopen the app."
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "It is not visible in the catalog. You can still edit it and your changes will be saved, but only an administrator can put it back in the catalog."
 
@@ -2217,6 +2234,10 @@ msgstr "The list is empty."
 msgid "Что нужно"
 msgstr "What you need"
 
+#: src/pages/MyHelper.tsx
+msgid "{name}: в каталоге"
+msgstr "{name}: in the catalog"
+
 #: src/console/pages/Spam.tsx
 msgid "За 7 дней"
 msgstr "Last 7 days"
@@ -2226,7 +2247,7 @@ msgstr "Last 7 days"
 msgid "Чаты на проверке"
 msgstr "Chats awaiting review"
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Скрыта администратором"
 msgstr "Hidden by an administrator"
 
@@ -2370,6 +2391,10 @@ msgstr "Telegram didn't answer just now. Try again in a minute."
 msgid "Только наблюдать"
 msgstr "Only watch"
 
+#: src/components/OwnerStatusCard.tsx
+msgid "В каталоге её нет. Вернуть — в «О себе и как работаю»."
+msgstr "It isn’t in the catalog. Bring it back under “About me and how I work”."
+
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Ban only"
@@ -2385,7 +2410,7 @@ msgstr "A post in chats"
 #: src/components/RequestSheet.tsx
 #: src/console/pages/Chat.tsx
 #: src/pages/Chats.tsx
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Город"
 msgstr "City"
 
@@ -2441,6 +2466,7 @@ msgstr "Ads"
 #: src/components/ChatRow.tsx
 #: src/components/Incoming.tsx
 #: src/components/RequestSheet.tsx
+#: src/components/ServiceSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
@@ -2477,7 +2503,7 @@ msgid "название, фото и число участников"
 msgstr "name, photo and member count"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "в месяц"
 msgstr "per month"
@@ -2691,7 +2717,7 @@ msgstr "This is what it looks like"
 msgid "Каталог не принял карточку: проверьте ссылку и длину полей."
 msgstr "The catalog refused the card: check the link and the length of the fields."
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Анкета сохранена, но в каталоге её нет. Вернуть можно ниже."
 msgstr "Your profile is saved but not in the catalog. You can bring it back below."
 
@@ -2713,7 +2739,7 @@ msgstr "with no answer"
 msgid "Добавить карточку"
 msgstr "Add a card"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Район или где удобно встречаться"
 msgstr "District, or where it suits you to meet"
 
@@ -2770,7 +2796,7 @@ msgid "Сообщения за сутки по часам: {0}"
 msgstr "Messages in the last 24 hours by hour: {0}"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "за занятие"
 msgstr "per lesson"
@@ -2802,7 +2828,7 @@ msgstr "{0, plural, one {Prepared # person for this exam} other {Prepared # peop
 msgid "Такого чата нет."
 msgstr "No such chat."
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "ČVUT FEL, 3 курс"
 msgstr "ČVUT FEL, third year"
 
@@ -2849,7 +2875,7 @@ msgstr "Last 30 days"
 msgid "Нажми кнопку, чтобы подтвердить, что ты не бот. Заявка одобрится сразу."
 msgstr "Tap the button to confirm you are not a bot. The request is approved at once."
 
-#: src/pages/MyHelper.tsx
+#: src/components/OwnerStatusCard.tsx
 msgid "Причина: <0/>"
 msgstr "Reason: <0/>"
 
@@ -2894,7 +2920,7 @@ msgstr "Admission questions go to the #questions topic."
 msgid "На эту заявку ты уже отвечал"
 msgstr "You have already answered this request"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Вернуть в каталог может только администратор"
 msgstr "Only an administrator can put it back in the catalog"
 
@@ -3004,6 +3030,10 @@ msgstr "What is wrong, in your own words"
 msgid "скрыта — в каталоге её не видно"
 msgstr "hidden — not visible in the catalog"
 
+#: src/components/ServiceSheet.tsx
+msgid "Убрать услугу"
+msgstr "Remove service"
+
 #: src/lib/turnaround.tsx
 msgid "За день"
 msgstr "In a day"
@@ -3031,6 +3061,10 @@ msgstr "blocked"
 #: src/pages/Join.tsx
 msgid "Помощь с учёбой"
 msgstr "Help with studies"
+
+#: src/pages/MyHelper.tsx
+msgid "Изменить"
+msgstr "Edit"
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "не отписывались"
@@ -3111,7 +3145,6 @@ msgstr "No requests yet"
 
 #: src/components/RequestSheet.tsx
 #: src/pages/Ask.tsx
-#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Убрать"
 msgstr "Remove"
@@ -3355,13 +3388,12 @@ msgstr "profiles in 7 days"
 msgid "вчера"
 msgstr "yesterday"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Не присылать"
 msgstr "Don't send"
 
-#: src/pages/MyHelper.tsx
-msgid "Моя анкета"
-msgstr "My profile"
+#~ msgid "Моя анкета"
+#~ msgstr "My profile"
 
 #: src/console/ProfileSheet.tsx
 msgid "Как видят ученики"
@@ -3385,6 +3417,10 @@ msgstr "Ban…"
 
 #~ msgid "Откликов пока нет"
 #~ msgstr "No responses yet"
+
+#: src/components/OwnerStatusCard.tsx
+msgid "Тебя видят студенты. Выключатель скрывает одну услугу."
+msgstr "Students can see you. A switch hides one service."
 
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx
@@ -3493,7 +3529,7 @@ msgstr "Joining the chat"
 msgid "Решают админы"
 msgstr "Admins decide"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "What you teach, where you study, how lessons go. In your own words."
 
@@ -3532,7 +3568,7 @@ msgstr "Let them find you"
 msgid "общий чат"
 msgstr "general chat"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и не ночью."
 msgstr "The bot writes when a request for your service comes in. At most 5 a day, never at night."
 
@@ -3554,6 +3590,7 @@ msgid "заявок за 7 дней"
 msgstr "requests in 7 days"
 
 #: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 #: src/pages/Offer.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Не получилось загрузить анкету"
@@ -3607,7 +3644,7 @@ msgid "Наши чаты"
 msgstr "Our chats"
 
 #: src/components/Phrase.tsx
-#: src/pages/MyHelper.tsx
+#: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "в день"
 msgstr "per day"
@@ -3623,6 +3660,11 @@ msgstr "Refreshing…"
 #: src/console/pages/Summary.tsx
 msgid "бот для действий консоли: готов"
 msgstr "console action bot: ready"
+
+#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
+msgid "О себе и как работаю"
+msgstr "About me and how I work"
 
 #: src/console/pages/Partners.tsx
 msgid "Выключить карточку?"
@@ -3709,7 +3751,7 @@ msgstr "Fill in your profile first"
 msgid "{0, plural, one {занятие через нас} few {занятия через нас} many {занятий через нас} other {занятия через нас}}"
 msgstr "{0, plural, one {lesson through us} other {lessons through us}}"
 
-#: src/pages/MyHelper.tsx
+#: src/pages/MyHelperAbout.tsx
 msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."
 msgstr "Saved. Your profile is still hidden; an administrator will look at it again."
 

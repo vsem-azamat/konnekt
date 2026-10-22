@@ -1254,6 +1254,17 @@
   text-align: left;
 }
 
+/* A service in «Мои услуги»: its tile, its name and price, its switch. */
+.svcLine {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.svcLine .rowBody {
+  flex: 1;
+}
+
 .cardTop {
   display: flex;
   gap: 10px;
