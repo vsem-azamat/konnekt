@@ -336,6 +336,9 @@ async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
     by_shelf: dict[int, int] = {}
     by_service: dict[int, int] = {}
     by_city: dict[str, int] = {}
+    # Cities group case-insensitively, as the filter matches them; the chip
+    # shows the first spelling seen.
+    city_label: dict[str, str] = {}
     mine = online = offline = 0
     for row in rows:
         if row.subject_id in subject_ids or row.service_type_id in service_ids:
@@ -349,7 +352,9 @@ async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
         if row.work_format in (WorkFormat.OFFLINE, WorkFormat.BOTH):
             offline += 1
         if row.city:
-            by_city[row.city] = by_city.get(row.city, 0) + 1
+            key = row.city.lower()
+            city_label.setdefault(key, row.city)
+            by_city[key] = by_city.get(key, 0) + 1
 
     def ranked(counts: dict) -> list:
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
@@ -361,7 +366,7 @@ async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
         service_types=[Facet(id=id_, count=count) for id_, count in ranked(by_service)],
         online=online,
         offline=offline,
-        cities=ranked(by_city),
+        cities=[(city_label[key], count) for key, count in ranked(by_city)],
         budget_upto=[
             (
                 step,

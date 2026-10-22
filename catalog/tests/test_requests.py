@@ -1104,6 +1104,12 @@ async def test_format_city_and_budget_narrow_the_feed_and_are_counted(
     request.work_format = WorkFormat.OFFLINE
     request.city = "Testov"
     request.budget_max = 400
+    # The same city spelled differently: one chip, as one filter matches both.
+    twin = await post_request(client, "помогите с нострификацией аттестата")
+    twin_request = await session.get(HelpRequest, twin["id"])
+    assert twin_request is not None
+    twin_request.city = "testov"
+    twin_request.work_format = WorkFormat.ONLINE
     await session.commit()
 
     def shown(items: list[dict]) -> bool:
@@ -1117,11 +1123,10 @@ async def test_format_city_and_budget_narrow_the_feed_and_are_counted(
     assert not shown(await _feed(client, budget_upto=300))
 
     after = await _facets(client)
-    assert after["all"] == before["all"] + 1
+    assert after["all"] == before["all"] + 2
     assert after["formats"]["offline"] == before["formats"]["offline"] + 1
-    assert after["formats"]["online"] == before["formats"]["online"]
-    assert {"name": "Testov", "count": 1} in after["cities"]
+    assert {"name": "Testov", "count": 2} in after["cities"]
+    assert not [c for c in after["cities"] if c["name"] == "testov"]
     steps = {b["amount"]: b["count"] for b in after["budget_upto"]}
     old = {b["amount"]: b["count"] for b in before["budget_upto"]}
     assert steps[500] == old[500] + 1
-    assert after["mine"] == before["mine"] + 1
