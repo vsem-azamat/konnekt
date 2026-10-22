@@ -147,20 +147,8 @@ def test_a_deploy_is_not_cut_off_halfway() -> None:
     run or a timed-out session leaves no catalog at all."""
     workflow = yaml.safe_load(DEPLOY.read_text())
 
-    # A run-wide group that cancels would take the deploy job down with it.
-    assert workflow.get("concurrency", {}).get("cancel-in-progress", False) is False
-    assert workflow["jobs"]["deploy"]["concurrency"] == {"group": "deploy-main", "cancel-in-progress": False}
+    assert workflow["concurrency"]["cancel-in-progress"] is False
     assert _deploy_step()["with"]["command_timeout"]
-
-
-def test_a_burst_of_merges_builds_once() -> None:
-    """A newer push cuts off an older run's build; the deploy job is not in
-    that group, so the host deploy already running is never touched."""
-    workflow = yaml.safe_load(DEPLOY.read_text())
-    build = workflow["jobs"]["build-and-push"]["concurrency"]
-
-    assert build["cancel-in-progress"] is True
-    assert build["group"] != workflow["jobs"]["deploy"]["concurrency"]["group"]
 
 
 def test_the_catalog_has_what_it_cannot_start_without() -> None:

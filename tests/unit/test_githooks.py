@@ -229,11 +229,13 @@ def _lanes_steps() -> list[Any]:
     return steps
 
 
-def _ci_step(repo: Path, workdir: str, script: str, draft: str = "false") -> tuple[int, str]:
+def _ci_step(
+    repo: Path, workdir: str, script: str, draft: str = "false", event: str = "pull_request"
+) -> tuple[int, str]:
     (repo / workdir).mkdir(exist_ok=True)
     output = repo / "github_output"
     output.write_text("")
-    env = {**_env(), "GITHUB_EVENT_NAME": "pull_request", "GITHUB_OUTPUT": str(output), "DRAFT": draft}
+    env = {**_env(), "GITHUB_EVENT_NAME": event, "GITHUB_OUTPUT": str(output), "DRAFT": draft}
     result = _run("bash", "-e", "-c", script, cwd=repo / workdir, env=env)
     return result.returncode, output.read_text()
 
@@ -275,6 +277,15 @@ def test_a_draft_runs_no_lane_and_still_reports(repo: Path, workdir: str, script
 
     assert code == 0
     assert sorted(output.split()) == ["catalog=false", "python=false", "web=false"]
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_main_runs_every_lane(repo: Path, workdir: str, script: str) -> None:
+    """A push or the deploy's workflow_call has no pull request, so no draft flag."""
+    code, output = _ci_step(repo, workdir, script, draft="", event="push")
+
+    assert code == 0
+    assert sorted(output.split()) == ["catalog=true", "python=true", "web=true"]
 
 
 def test_ci_reruns_when_a_draft_is_marked_ready() -> None:
