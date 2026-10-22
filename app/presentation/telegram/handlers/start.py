@@ -16,6 +16,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import intro
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.text import plural
@@ -55,7 +56,7 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
 
 # The whole greeting, so a change of copy is a change of this line alone.
 GREETING = "<b>Konnekt</b>\n\nСтуденческие чаты Чехии и помощь с учёбой — в одном приложении."
-OPEN_BUTTON = "Открыть Konnekt 📱"
+OPEN_BUTTON = intro.OPEN_BUTTON
 CONSOLE_BUTTON = "⚙️ Открыть консоль"
 
 

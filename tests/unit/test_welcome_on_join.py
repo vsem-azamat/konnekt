@@ -1,17 +1,21 @@
-"""Welcome messages, which the repository has advertised without sending.
+"""The greeting a chat gives new members: one message per burst of joiners.
 
-`Chat.welcome_message`, `is_welcome_enabled` and `time_delete` have been stored,
-exposed in the admin UI and named in the docs since the aiogram 2 to 3 move,
-while nothing read them at join time. These tests are what makes the toggle
-mean something.
+`Chat.welcome_message`, `is_welcome_enabled` and `time_delete` were stored and
+ignored for a long time; these tests are what makes the toggle mean something.
+A greeting per person turned a burst of joins into a wall of greetings, so
+whoever joins while the last one is still up is added to it by an edit.
 """
 
+import asyncio
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.enums import ChatMemberStatus
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, ChatMemberLeft, ChatMemberMember, ChatMemberUpdated, User
+from app.chats import welcome
+from app.core.config import settings
 from app.db.models import Chat as DbChat
 from app.presentation.telegram.handlers.events import user_joined
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,24 +23,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 pytestmark = pytest.mark.unit
 
 CHAT_ID = -1001234
-USER_ID = 4242
+BOT_USERNAME = "konnekt_test_bot"
+KONNEKT_LINE = (
+    "📱 <b>Konnekt</b> — всё для студентов в Чехии: чаты вузов, репетиторы, страховка и помощь с жизнью здесь."
+)
 
 
-def _join() -> ChatMemberUpdated:
+def _join(user_id: int = 4242, name: str = "Marek") -> ChatMemberUpdated:
     """A join. Which transitions reach the handler is aiogram's filter, not ours."""
-    user = User(id=USER_ID, is_bot=False, first_name="Newcomer")
-    new_member = ChatMemberMember(user=user, status=ChatMemberStatus.MEMBER)
+    user = User(id=user_id, is_bot=False, first_name=name, last_name="Novák")
     return ChatMemberUpdated(
-        chat=Chat(id=CHAT_ID, type="supergroup", title="Managed"),
+        chat=Chat(id=CHAT_ID, type="supergroup", title="VUT FIT"),
         from_user=user,
         date=datetime.now(UTC),
         old_chat_member=ChatMemberLeft(user=user, status=ChatMemberStatus.LEFT),
-        new_chat_member=new_member,
+        new_chat_member=ChatMemberMember(user=user, status=ChatMemberStatus.MEMBER),
     )
 
 
 async def _seed(session: AsyncSession, **kwargs) -> DbChat:
-    chat = DbChat(id=CHAT_ID, title="Managed", resource_status=DbChat.STATUS_APPROVED, **kwargs)
+    chat = DbChat(id=CHAT_ID, title="VUT FIT", resource_status=DbChat.STATUS_APPROVED, **kwargs)
     session.add(chat)
     await session.commit()
     return chat
@@ -45,75 +51,261 @@ async def _seed(session: AsyncSession, **kwargs) -> DbChat:
 @pytest.fixture
 def bot() -> MagicMock:
     tg_bot = MagicMock()
+    tg_bot.me = AsyncMock(return_value=User(id=1, is_bot=True, first_name="Konnekt", username=BOT_USERNAME))
     tg_bot.send_message = AsyncMock(return_value=MagicMock(message_id=9))
+    tg_bot.send_video = AsyncMock(return_value=MagicMock(message_id=10))
+    tg_bot.edit_message_text = AsyncMock()
+    tg_bot.edit_message_caption = AsyncMock()
+    tg_bot.delete_message = AsyncMock()
     return tg_bot
 
 
-async def test_enabled_welcome_is_sent(session: AsyncSession, bot) -> None:
-    await _seed(session, welcome_message="Добро пожаловать!", is_welcome_enabled=True)
+@pytest.fixture
+def timers(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """The lifetimes the greetings were given; none of them runs out unless a test says so."""
+    asked: list[float] = []
+
+    async def wait(seconds: float) -> None:
+        asked.append(seconds)
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(welcome, "_sleep", wait)
+    return asked
+
+
+@pytest.fixture(autouse=True)
+def _no_video(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "")
+
+
+def _sent_text(bot) -> str:
+    return bot.send_message.await_args.kwargs["text"]
+
+
+# --- whether there is a greeting at all ----------------------------------------
+
+
+async def test_an_enabled_chat_greets_the_newcomer(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
 
     await user_joined(_join(), bot, session)
 
     bot.send_message.assert_awaited_once()
-    assert bot.send_message.await_args.kwargs["chat_id"] == CHAT_ID
-    assert "Добро пожаловать!" in bot.send_message.await_args.kwargs["text"]
+    kwargs = bot.send_message.await_args.kwargs
+    assert kwargs["chat_id"] == CHAT_ID
+    assert kwargs["text"] == '👋 <a href="tg://user?id=4242">Marek</a>, <b>добро пожаловать!</b>\n\n' + KONNEKT_LINE
 
 
-async def test_disabled_welcome_stays_silent(session: AsyncSession, bot) -> None:
+async def test_the_chats_own_text_is_the_third_line(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, welcome_message="Правила: без рекламы")
+
+    await user_joined(_join(), bot, session)
+
+    assert _sent_text(bot).endswith(KONNEKT_LINE + "\n\nПравила: без рекламы")
+
+
+async def test_disabled_welcome_stays_silent(session: AsyncSession, bot, timers) -> None:
     await _seed(session, welcome_message="Добро пожаловать!", is_welcome_enabled=False)
 
     await user_joined(_join(), bot, session)
 
     bot.send_message.assert_not_awaited()
+    bot.send_video.assert_not_awaited()
 
 
-async def test_enabled_but_empty_welcome_stays_silent(session: AsyncSession, bot) -> None:
-    """An enabled toggle with nothing to say must not post an empty message."""
+async def test_unknown_chat_stays_silent(session: AsyncSession, bot, timers) -> None:
+    await user_joined(_join(), bot, session)
+
+    bot.send_message.assert_not_awaited()
+
+
+async def test_the_button_opens_konnekt_through_the_bot_link(session: AsyncSession, bot, timers) -> None:
+    """A Mini App button is refused in a group; the link opens it and records the source."""
     await _seed(session, is_welcome_enabled=True)
 
     await user_joined(_join(), bot, session)
 
-    bot.send_message.assert_not_awaited()
+    [[button]] = bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard
+    assert button.text == "Открыть Konnekt 📱"
+    assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=welcome"
 
 
-async def test_unknown_chat_stays_silent(session: AsyncSession, bot) -> None:
-    await user_joined(_join(), bot, session)
-
-    bot.send_message.assert_not_awaited()
+# --- one message per burst -------------------------------------------------------
 
 
-async def test_configured_lifetime_schedules_the_deletion(session: AsyncSession, bot, monkeypatch) -> None:
-    """time_delete has been stored and ignored; it now governs the cleanup."""
-    scheduled: list[int] = []
-    monkeypatch.setattr(
-        "app.presentation.telegram.handlers.events.sleep_and_delete",
-        lambda _message, seconds: scheduled.append(seconds),
+async def test_a_second_joiner_is_added_to_the_greeting_by_an_edit(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+
+    await user_joined(_join(1, "Marek"), bot, session)
+    await user_joined(_join(2, "Tereza"), bot, session)
+
+    bot.send_message.assert_awaited_once()
+    edit = bot.edit_message_text.await_args.kwargs
+    assert edit["chat_id"] == CHAT_ID
+    assert edit["message_id"] == 9
+    assert edit["text"].startswith(
+        '👋 <a href="tg://user?id=1">Marek</a>, <a href="tg://user?id=2">Tereza</a>, <b>добро пожаловать!</b>'
     )
-    await _seed(session, welcome_message="Привет", is_welcome_enabled=True, time_delete=45)
+    assert edit["reply_markup"].inline_keyboard[0][0].text == "Открыть Konnekt 📱"
 
-    await user_joined(_join(), bot, session)
 
-    assert scheduled == [45]
+async def test_past_three_names_the_rest_are_counted(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+
+    for user_id, name in enumerate(["Marek", "Tereza", "Jakub", "Petr", "Eva"], start=1):
+        await user_joined(_join(user_id, name), bot, session)
+
+    text = bot.edit_message_text.await_args.kwargs["text"]
+    assert "Jakub</a> и ещё 2, <b>добро пожаловать!</b>" in text
+    assert "Petr" not in text
+
+
+async def test_the_greeting_lives_its_time_from_the_last_joiner(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=45)
+
+    await user_joined(_join(1), bot, session)
+    await user_joined(_join(2), bot, session)
+    await asyncio.sleep(0)
+
+    assert timers == [45, 45]
+
+
+async def test_once_the_greeting_is_gone_the_next_joiner_gets_a_new_one(
+    session: AsyncSession, bot, monkeypatch
+) -> None:
+    ran_out = asyncio.Event()
+
+    async def wait(seconds: float) -> None:
+        await ran_out.wait()
+
+    monkeypatch.setattr(welcome, "_sleep", wait)
+    await _seed(session, is_welcome_enabled=True, time_delete=45)
+    await user_joined(_join(1), bot, session)
+
+    ran_out.set()
+    for _ in range(5):
+        await asyncio.sleep(0)
+    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=9)
+
+    ran_out.clear()
+    await user_joined(_join(2), bot, session)
+    assert bot.send_message.await_count == 2
+    bot.edit_message_text.assert_not_awaited()
 
 
 async def test_zero_lifetime_keeps_the_message(session: AsyncSession, bot, monkeypatch) -> None:
-    scheduled: list[int] = []
-    monkeypatch.setattr(
-        "app.presentation.telegram.handlers.events.sleep_and_delete",
-        lambda _message, seconds: scheduled.append(seconds),
-    )
-    await _seed(session, welcome_message="Привет", is_welcome_enabled=True, time_delete=0)
+    """Kept, but a joiner long after is not added to a greeting nobody scrolls back to."""
+    ran_out = asyncio.Event()
+    asked: list[float] = []
+
+    async def wait(seconds: float) -> None:
+        asked.append(seconds)
+        await ran_out.wait()
+
+    monkeypatch.setattr(welcome, "_sleep", wait)
+    await _seed(session, is_welcome_enabled=True, time_delete=0)
+    await user_joined(_join(1), bot, session)
+    await asyncio.sleep(0)
+
+    ran_out.set()
+    for _ in range(5):
+        await asyncio.sleep(0)
+
+    assert asked == [welcome.BURST_SECONDS]
+    bot.delete_message.assert_not_awaited()
+    await user_joined(_join(2), bot, session)
+    assert bot.send_message.await_count == 2
+
+
+async def test_a_greeting_deleted_by_hand_is_replaced_not_lost(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+    await user_joined(_join(1), bot, session)
+    bot.edit_message_text.side_effect = TelegramBadRequest(method=MagicMock(), message="message to edit not found")
+
+    await user_joined(_join(2, "Tereza"), bot, session)
+
+    assert bot.send_message.await_count == 2
+    assert 'tg://user?id=2">Tereza' in _sent_text(bot)
+    assert "tg://user?id=1" not in _sent_text(bot)
+
+
+async def test_chats_do_not_share_a_burst(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+    other = DbChat(id=CHAT_ID - 1, title="VUT FEKT", resource_status=DbChat.STATUS_APPROVED, is_welcome_enabled=True)
+    session.add(other)
+    await session.commit()
+
+    await user_joined(_join(1), bot, session)
+    elsewhere = _join(2).model_copy(update={"chat": Chat(id=CHAT_ID - 1, type="supergroup", title="VUT FEKT")})
+    await user_joined(elsewhere, bot, session)
+
+    assert bot.send_message.await_count == 2
+    bot.edit_message_text.assert_not_awaited()
+
+
+async def test_joiners_arriving_together_get_one_greeting(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+
+    await asyncio.gather(*(welcome.greet(bot, chat, _join(i).new_chat_member.user) for i in range(1, 4)))
+
+    bot.send_message.assert_awaited_once()
+    assert bot.edit_message_text.await_count == 2
+
+
+# --- the video ---------------------------------------------------------------------
+
+
+async def test_with_a_video_configured_the_greeting_is_its_caption(
+    session: AsyncSession, bot, timers, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
+    await _seed(session, is_welcome_enabled=True)
+
+    await user_joined(_join(1), bot, session)
+    await user_joined(_join(2), bot, session)
+
+    bot.send_message.assert_not_awaited()
+    sent = bot.send_video.await_args.kwargs
+    assert sent["video"] == "video-file-id"
+    assert sent["caption"].startswith("👋 ")
+    edit = bot.edit_message_caption.await_args.kwargs
+    assert edit["message_id"] == 10
+    assert "tg://user?id=2" in edit["caption"]
+    bot.edit_message_text.assert_not_awaited()
+
+
+async def test_a_refused_video_falls_back_to_text(session: AsyncSession, bot, timers, monkeypatch) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "file-of-another-bot")
+    bot.send_video.side_effect = TelegramBadRequest(method=MagicMock(), message="wrong file identifier")
+    await _seed(session, is_welcome_enabled=True)
+
+    await user_joined(_join(1), bot, session)
+    await user_joined(_join(2), bot, session)
+
+    bot.send_message.assert_awaited_once()
+    bot.edit_message_text.assert_awaited_once()
+
+
+async def test_a_text_too_long_for_a_caption_goes_without_the_video(
+    session: AsyncSession, bot, timers, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
+    await _seed(session, is_welcome_enabled=True, welcome_message="Правила. " * 150)
 
     await user_joined(_join(), bot, session)
 
-    assert scheduled == []
+    bot.send_video.assert_not_awaited()
+    bot.send_message.assert_awaited_once()
 
 
-async def test_a_greeting_telegram_refuses_does_not_break_the_join(session: AsyncSession, bot) -> None:
+async def test_a_greeting_telegram_refuses_does_not_break_the_join(session: AsyncSession, bot, timers) -> None:
     """One bad stored value used to fail every join in the chat."""
-    from aiogram.exceptions import TelegramBadRequest
-
     await _seed(session, welcome_message="Привет <b>", is_welcome_enabled=True)
     bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="can't parse entities")
 
     await user_joined(_join(), bot, session)
+    await user_joined(_join(2), bot, session)
+
+    assert bot.send_message.await_count == 2

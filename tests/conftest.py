@@ -136,3 +136,11 @@ def _fresh_throttles() -> None:
 
     forget_reports()
     forget_refusals()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_welcomes() -> None:
+    """A greeting still up in one test's chat must not be edited by the next test's joiner."""
+    from app.chats.welcome import forget
+
+    forget()

@@ -89,3 +89,16 @@ async def test_a_greeting_on_the_next_line_keeps_its_first_word(
     await production_dispatcher.feed_update(bot, _welcome("!welcome\nДобро пожаловать"))
 
     assert (await _stored(db_session_maker)).welcome_message == "Добро пожаловать"
+
+
+async def test_the_preview_is_the_whole_greeting_with_the_chats_text_last(
+    production_dispatcher: Dispatcher, bot: Bot, fake_tg: FakeTelegramServer
+) -> None:
+    """The chat's text is the last paragraph of what newcomers see, not all of it."""
+    await production_dispatcher.feed_update(bot, _welcome("!welcome Правила — в закрепе"))
+
+    texts = [str(c.params.get("text")) for c in fake_tg.get_calls("sendMessage")]
+    preview = next(t for t in texts if t.startswith("👋 "))
+    assert "<b>добро пожаловать!</b>" in preview
+    assert "<b>Konnekt</b>" in preview
+    assert preview.endswith("\n\nПравила — в закрепе")
