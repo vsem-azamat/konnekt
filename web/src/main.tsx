@@ -43,7 +43,7 @@ import {
 import { followKeyboard } from '@/lib/keyboard';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
-import { browserRouter, router } from '@/router';
+import { router } from '@/router';
 
 import './index.css';
 
@@ -221,6 +221,7 @@ async function renderBrowserConsole(): Promise<void> {
   browserMode = true;
   // No initData here: the catalog's screens are asked of webapi (#293).
   routeCatalogCalls(catalogThroughConsole);
+  const { browserRouter } = await import('@/console/browserRouter');
   const locale = resolveLocale(navigator.language);
   await activateLocale(locale);
   document.documentElement.lang = locale;
