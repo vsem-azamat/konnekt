@@ -167,11 +167,14 @@ export function directory(chats: PublicChat[], mine: string | null = null): Dire
     );
   }
   if (mine !== null) {
-    const own = (entry: Entry) =>
-      (entry.kind === 'chat' ? entry.chat : entry.chats[0])?.institution === mine;
-    entries.sort((a, b) => Number(own(b)) - Number(own(a)));
+    entries.sort((a, b) => Number(isMine(b, mine)) - Number(isMine(a, mine)));
   }
   return { entries, rest };
+}
+
+/** Whether an entry is the student's own university's. */
+function isMine(entry: Entry, mine: string): boolean {
+  return (entry.kind === 'chat' ? entry.chat : entry.chats[0])?.institution === mine;
 }
 
 /** One heading of the catalogue and what stands under it. */
@@ -199,10 +202,19 @@ export function blocks(
   { mine, city }: { mine: string | null; city: string | null },
 ): Block[] {
   const { entries, rest } = directory(chats, mine);
+  // Loose chats take their place in supervisor's order (ours, then the larger
+  // first) rather than all going after the groups; the student's own
+  // university still comes before that order.
+  const position = new Map(chats.map((chat, index) => [chat, index]));
+  const at = (entry: Entry) => {
+    const first = entry.kind === 'chat' ? entry.chat : entry.chats[0];
+    return first ? (position.get(first) ?? 0) : 0;
+  };
+  const raise = (entry: Entry) => (mine !== null && isMine(entry, mine) ? 0 : 1);
   const all: Entry[] = [
     ...entries,
     ...rest.map((chat) => ({ kind: 'chat' as const, chat })),
-  ];
+  ].sort((a, b) => raise(a) - raise(b) || at(a) - at(b));
   const shown = all.filter((entry) => {
     const where = lead(entry)?.city ?? null;
     return city === null || where === null || where === city;
