@@ -237,6 +237,8 @@ export interface SearchParams {
   sort?: SearchSort;
   limit?: number;
   offset?: number;
+  /** Leave out the caller's own profile: who else could help with my request. */
+  exclude_self?: boolean;
 }
 
 // ── home ────────────────────────────────────────────────────────────────
@@ -307,6 +309,8 @@ export interface HelpRequest {
   closed_at: string | null;
   /** Helpers whose listed, unpaused services match it, the author not counted. */
   helpers_seeing: number;
+  subject_id: number | null;
+  service_type_id: number | null;
 }
 
 /**

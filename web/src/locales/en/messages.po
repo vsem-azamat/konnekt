@@ -595,6 +595,10 @@ msgstr "Sign-in failed. Try again."
 msgid "Вузы, по вузу"
 msgstr "Universities, by its university"
 
+#: src/pages/Request.tsx
+msgid "Пока тихо"
+msgstr "Quiet so far"
+
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
 msgstr "{failed, plural, one {Telegram refused in # chat: check the bot's rights there.} other {Telegram refused in # chats: check the bot's rights there.}}"
@@ -744,6 +748,7 @@ msgid "Пришли по ссылке"
 msgstr "Came by link"
 
 #: src/pages/Mine.tsx
+#: src/pages/Request.tsx
 msgid "Без откликов"
 msgstr "No responses"
 
@@ -1117,8 +1122,8 @@ msgid "И так, и так"
 msgstr "Either way"
 
 #: src/pages/Request.tsx
-msgid "Заявку видят все, кто предлагает помощь. Отклики приходят сюда."
-msgstr "Everyone who offers help sees your request. Answers arrive here."
+#~ msgid "Заявку видят все, кто предлагает помощь. Отклики приходят сюда."
+#~ msgstr "Everyone who offers help sees your request. Answers arrive here."
 
 #. placeholder {0}: figures.coverage.of
 #. placeholder {1}: figures.coverage.measured
@@ -1724,6 +1729,10 @@ msgstr "Open the console in the Telegram app on a phone or computer."
 msgid "Этот чат уже есть в списке: режим меняется на его странице."
 msgstr "This chat is already in the list: change its mode on its own page."
 
+#: src/pages/Request.tsx
+msgid "Можно написать помощнику напрямую, заявка при этом остаётся открытой."
+msgstr "You can write to a helper directly; the request stays open."
+
 #: src/console/pages/Summary.tsx
 msgid "Обновлено {minutes} мин назад"
 msgstr "Updated {minutes} min ago"
@@ -1819,6 +1828,11 @@ msgstr "What the detector caught. What has been reviewed leaves the queue."
 msgid "Строчка под именем"
 msgstr "The line under your name"
 
+#. placeholder {0}: request.helpers_seeing
+#: src/pages/Request.tsx
+msgid "{0, plural, one {Заявку уже видит # помощник. Обычно первый отклик приходит за день.} few {Заявку уже видят # помощника. Обычно первый отклик приходит за день.} many {Заявку уже видят # помощников. Обычно первый отклик приходит за день.} other {Заявку уже видят # помощника. Обычно первый отклик приходит за день.}}"
+msgstr "{0, plural, one {# helper already sees the request. The first response usually comes within a day.} other {# helpers already see the request. The first response usually comes within a day.}}"
+
 #: src/console/pages/Chat.tsx
 #: src/console/pages/PartnerNew.tsx
 msgid "Ссылка"
@@ -1862,6 +1876,7 @@ msgid "Публичная ссылка"
 msgstr "Public link"
 
 #: src/pages/Mine.tsx
+#: src/pages/Request.tsx
 msgid "без срока"
 msgstr "no deadline"
 
@@ -1869,6 +1884,10 @@ msgstr "no deadline"
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# message} other {# messages}}"
+
+#: src/pages/Request.tsx
+msgid "Подходящих помощников пока нет. Заявку увидят, как только они появятся."
+msgstr "No matching helpers yet. They will see the request as soon as they appear."
 
 #: src/console/ProfileSheet.tsx
 msgid "Анкету уже изменили: вот какая она сейчас."
@@ -2834,6 +2853,10 @@ msgstr "The link will be erased: {0}"
 msgid "Очередь пуста: всё разобрано."
 msgstr "The queue is empty: everything is reviewed."
 
+#: src/pages/Request.tsx
+msgid "Не ждать"
+msgstr "Don’t wait"
+
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "бот в них есть, но они не одобрены"
@@ -3256,8 +3279,8 @@ msgstr "Ban…"
 #~ msgstr "Price per hour, Kč — optional"
 
 #: src/pages/Request.tsx
-msgid "Откликов пока нет"
-msgstr "No responses yet"
+#~ msgid "Откликов пока нет"
+#~ msgstr "No responses yet"
 
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx

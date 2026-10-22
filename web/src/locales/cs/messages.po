@@ -595,6 +595,10 @@ msgstr "Přihlášení se nezdařilo. Zkuste to znovu."
 msgid "Вузы, по вузу"
 msgstr "Vysoké školy, podle školy"
 
+#: src/pages/Request.tsx
+msgid "Пока тихо"
+msgstr "Zatím ticho"
+
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
 msgstr "{failed, plural, one {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} few {Ve # chatech Telegram odmítl: zkontrolujte tam práva bota.} many {V # chatu Telegram odmítl: zkontrolujte tam práva bota.} other {V # chatech Telegram odmítl: zkontrolujte tam práva bota.}}"
@@ -744,6 +748,7 @@ msgid "Пришли по ссылке"
 msgstr "Přišli přes odkaz"
 
 #: src/pages/Mine.tsx
+#: src/pages/Request.tsx
 msgid "Без откликов"
 msgstr "Bez odpovědí"
 
@@ -1117,8 +1122,8 @@ msgid "И так, и так"
 msgstr "Obojí"
 
 #: src/pages/Request.tsx
-msgid "Заявку видят все, кто предлагает помощь. Отклики приходят сюда."
-msgstr "Poptávku vidí všichni, kdo nabízejí pomoc. Odpovědi chodí sem."
+#~ msgid "Заявку видят все, кто предлагает помощь. Отклики приходят сюда."
+#~ msgstr "Poptávku vidí všichni, kdo nabízejí pomoc. Odpovědi chodí sem."
 
 #. placeholder {0}: figures.coverage.of
 #. placeholder {1}: figures.coverage.measured
@@ -1724,6 +1729,10 @@ msgstr "Otevřete konzoli v aplikaci Telegram v telefonu nebo počítači."
 msgid "Этот чат уже есть в списке: режим меняется на его странице."
 msgstr "Tento chat už v seznamu je: režim se mění na jeho stránce."
 
+#: src/pages/Request.tsx
+msgid "Можно написать помощнику напрямую, заявка при этом остаётся открытой."
+msgstr "Pomocníkovi můžeš napsat přímo, poptávka přitom zůstane otevřená."
+
 #: src/console/pages/Summary.tsx
 msgid "Обновлено {minutes} мин назад"
 msgstr "Aktualizováno před {minutes} min"
@@ -1819,6 +1828,11 @@ msgstr "Co zachytil detektor. Vyřízené z fronty odchází."
 msgid "Строчка под именем"
 msgstr "Řádek pod jménem"
 
+#. placeholder {0}: request.helpers_seeing
+#: src/pages/Request.tsx
+msgid "{0, plural, one {Заявку уже видит # помощник. Обычно первый отклик приходит за день.} few {Заявку уже видят # помощника. Обычно первый отклик приходит за день.} many {Заявку уже видят # помощников. Обычно первый отклик приходит за день.} other {Заявку уже видят # помощника. Обычно первый отклик приходит за день.}}"
+msgstr "{0, plural, one {Poptávku už vidí # pomocník. První odpověď obvykle přijde do dne.} few {Poptávku už vidí # pomocníci. První odpověď obvykle přijde do dne.} many {Poptávku už vidí # pomocníka. První odpověď obvykle přijde do dne.} other {Poptávku už vidí # pomocníků. První odpověď obvykle přijde do dne.}}"
+
 #: src/console/pages/Chat.tsx
 #: src/console/pages/PartnerNew.tsx
 msgid "Ссылка"
@@ -1862,6 +1876,7 @@ msgid "Публичная ссылка"
 msgstr "Veřejný odkaz"
 
 #: src/pages/Mine.tsx
+#: src/pages/Request.tsx
 msgid "без срока"
 msgstr "bez termínu"
 
@@ -1869,6 +1884,10 @@ msgstr "bez termínu"
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
 msgstr "{0, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}}"
+
+#: src/pages/Request.tsx
+msgid "Подходящих помощников пока нет. Заявку увидят, как только они появятся."
+msgstr "Vhodní pomocníci zatím nejsou. Poptávku uvidí, jakmile se objeví."
 
 #: src/console/ProfileSheet.tsx
 msgid "Анкету уже изменили: вот какая она сейчас."
@@ -2834,6 +2853,10 @@ msgstr "Odkaz se smaže: {0}"
 msgid "Очередь пуста: всё разобрано."
 msgstr "Fronta je prázdná: vše vyřízeno."
 
+#: src/pages/Request.tsx
+msgid "Не ждать"
+msgstr "Nečekat"
+
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 msgid "бот в них есть, но они не одобрены"
@@ -3256,8 +3279,8 @@ msgstr "Zabanovat…"
 #~ msgstr "Cena za hodinu, Kč — nepovinné"
 
 #: src/pages/Request.tsx
-msgid "Откликов пока нет"
-msgstr "Zatím žádné odpovědi"
+#~ msgid "Откликов пока нет"
+#~ msgstr "Zatím žádné odpovědi"
 
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx
