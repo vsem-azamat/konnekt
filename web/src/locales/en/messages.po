@@ -935,7 +935,7 @@ msgstr "A university's chat needs none: its university puts it under “Universi
 
 #: src/components/RequestSheet.tsx
 msgid "Как удобно"
-msgstr "How you’d prefer"
+msgstr "How you’d like help"
 
 #: src/components/InstitutionPicker.tsx
 msgid "Загружаем список вузов…"

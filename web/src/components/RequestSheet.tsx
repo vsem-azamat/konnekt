@@ -6,9 +6,9 @@ import { useNavigate } from 'react-router';
 import { hapticSelection, hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { chipKey, chipLabel } from '@/lib/chips';
-import { REQUEST_CITIES, requestPlace } from '@/lib/requestPlace';
+import { REQUEST_CITIES, requestPlace, spelledCity } from '@/lib/requestPlace';
 import type { Chip, RequestCreate, WorkFormat } from '@/lib/types';
-import { CityName } from './Place';
+import { CityName, useCityNames } from './Place';
 import { Sheet } from './Sheet';
 import { Action, Chips, ChipView, Hint, Label, Segmented, ui } from './Ui';
 
@@ -75,7 +75,10 @@ export function RequestSheet({
   // What «Входящие» narrows by, so asked outright: the words never set it.
   const [format, setFormat] = useState<WorkFormat>('both');
   const [city, setCity] = useState<string>(REQUEST_CITIES[0]);
+  // Kept apart from the chips, so a look at «Прага» does not lose what was typed.
   const [otherCity, setOtherCity] = useState(false);
+  const [typedCity, setTypedCity] = useState('');
+  const cityNames = useCityNames();
 
   const hasBudget = chips.some((chip) => chip.kind === 'budget');
 
@@ -121,10 +124,14 @@ export function RequestSheet({
       body[axis] = dropped.has(chipKey(chip)) ? null : Number(chip.value);
     }
     if (budget) body.budget_max = Number(budget);
-    return { ...body, ...requestPlace(format, city) };
+    const place = otherCity ? spelledCity(typedCity, cityNames) : city;
+    return { ...body, ...requestPlace(format, place) };
   }
 
-  const enough = words.trim().length >= 3;
+  // «Другой…» left empty would post a request in no city, which every city
+  // chip in «Входящие» then leaves out: in person is exactly where it counts.
+  const placed = format === 'online' || !otherCity || typedCity.trim().length > 0;
+  const enough = words.trim().length >= 3 && placed;
 
   return (
     <Sheet title={<Trans>Что нужно</Trans>} onClose={onClose} closeLabel={t`Закрыть`}>
@@ -210,6 +217,7 @@ export function RequestSheet({
       </Label>
       <Segmented
         value={format}
+        label={t`Как удобно`}
         onChange={(value) => {
           hapticSelection();
           setFormat(value);
@@ -251,7 +259,6 @@ export function RequestSheet({
                 if (otherCity) return;
                 hapticSelection();
                 setOtherCity(true);
-                setCity('');
               }}
             >
               <Trans>Другой…</Trans>
@@ -260,8 +267,8 @@ export function RequestSheet({
           {otherCity ? (
             <div className={ui.field} style={{ marginTop: 8 }}>
               <input
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
+                value={typedCity}
+                onChange={(event) => setTypedCity(event.target.value)}
                 placeholder={t`Город`}
                 aria-label={t`Город`}
                 maxLength={96}

@@ -6,39 +6,38 @@
  * shown as it came, which is still its real name.
  */
 
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import type { ReactElement } from 'react';
 
 import type { Topic } from '@/lib/chats';
 
+/**
+ * The cities with a name in the reader's language, keyed by the Czech one.
+ *
+ * Also what a city typed into the request sheet is matched against, so the
+ * feed gets «Ostrava» whichever spelling was typed.
+ */
+export function useCityNames(): Record<string, string> {
+  const { t } = useLingui();
+  return {
+    Praha: t`Прага`,
+    Brno: t`Брно`,
+    Ostrava: t`Острава`,
+    Plzeň: t`Пльзень`,
+    Olomouc: t`Оломоуц`,
+    Liberec: t`Либерец`,
+    'České Budějovice': t`Ческе-Будеёвице`,
+    Pardubice: t`Пардубице`,
+    'Hradec Králové': t`Градец-Кралове`,
+    Zlín: t`Злин`,
+  };
+}
+
 /** A city's name, or «вся Чехия» for a chat that is for every city. */
 export function CityName({ city }: { city: string | null }): ReactElement {
-  switch (city) {
-    case null:
-      return <Trans>вся Чехия</Trans>;
-    case 'Praha':
-      return <Trans>Прага</Trans>;
-    case 'Brno':
-      return <Trans>Брно</Trans>;
-    case 'Ostrava':
-      return <Trans>Острава</Trans>;
-    case 'Plzeň':
-      return <Trans>Пльзень</Trans>;
-    case 'Olomouc':
-      return <Trans>Оломоуц</Trans>;
-    case 'Liberec':
-      return <Trans>Либерец</Trans>;
-    case 'České Budějovice':
-      return <Trans>Ческе-Будеёвице</Trans>;
-    case 'Pardubice':
-      return <Trans>Пардубице</Trans>;
-    case 'Hradec Králové':
-      return <Trans>Градец-Кралове</Trans>;
-    case 'Zlín':
-      return <Trans>Злин</Trans>;
-    default:
-      return <>{city}</>;
-  }
+  const names = useCityNames();
+  if (city === null) return <Trans>вся Чехия</Trans>;
+  return <>{names[city] ?? city}</>;
 }
 
 /** A heading of the catalogue. */
