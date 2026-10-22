@@ -282,11 +282,11 @@ string concatenation, because Russian and Czech have more than two and a
 hand-rolled "5 минуты" is the tell.
 
 **A sentence about a person does not guess their gender.** Russian, Ukrainian
-and Czech inflect past tenses and short adjectives for it, and we do not know
-it: «Свободен», «Готовил», «забанен» read wrong for every woman in the catalog,
-in all three languages at once. Word it without the inflected form («Есть
-время», «Опыт с этим экзаменом: 3 студента»); if that ever reads too badly, the
-API has to send a gender and the message uses ICU `select`.
+and Czech inflect past tenses, short adjectives and pronouns for it, and we do
+not know it: «Свободен», «Готовил», «его сообщения» read wrong for every woman
+they describe, in all three languages at once. Word it without the inflected
+form («Есть время», «Опыт с этим экзаменом: 3 человека»); if that ever reads
+too badly, the API has to send a gender and the message uses ICU `select`.
 
 **One question, one screen.** Two screens that list the same rows from the same
 endpoint differ only in which columns they pick, and the second copy is the one
