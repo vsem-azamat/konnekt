@@ -59,7 +59,7 @@ async def test_a_wave_nobody_decided_waits_with_the_requests_it_holds(client, db
         session.add(Chat(id=-100, title="Matfyz"))
         session.add(ChatMemberSnapshot(chat_id=-100, member_count=461, captured_at=now))
         waiting = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(minutes=20))
-        waiting.last_surge_at = now - datetime.timedelta(minutes=6)
+        waiting.last_surge_at = waiting_surge = now - datetime.timedelta(minutes=6)
         decided = JoinWave(chat_id=-100, started_at=now - datetime.timedelta(days=1))
         decided.decision = JoinWave.DECISION_DECLINE
         session.add_all([waiting, decided])
@@ -84,6 +84,8 @@ async def test_a_wave_nobody_decided_waits_with_the_requests_it_holds(client, db
     assert wave["held"] == 3
     # Six minutes since the last burst is within the quiet spell: still paused.
     assert wave["paused"] is True
+    assert datetime.datetime.fromisoformat(wave["quiet_until"]) == waiting_surge + datetime.timedelta(minutes=15)
+    assert body["wave_per_minute"] == 20
 
 
 async def test_a_wave_stops_waiting_once_settled_or_a_day_old(client, db_session_maker) -> None:

@@ -511,6 +511,8 @@ class WaveSignal(BaseModel):
     held: int
     # The captcha stays off until a quiet spell after the last burst.
     paused: bool
+    # When that spell ends if no burst comes first.
+    quiet_until: datetime.datetime
 
 
 class PendingActionSignal(BaseModel):
@@ -540,5 +542,7 @@ class Signals(BaseModel):
     """What waits for an admin: decisions the report chat asks for, and the queues."""
 
     waves: list[WaveSignal]
+    # People asking to join one chat within a minute that make a wave.
+    wave_per_minute: int
     pending_actions: list[PendingActionSignal]
     queues: SignalQueues

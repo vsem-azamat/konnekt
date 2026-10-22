@@ -50,9 +50,11 @@ async def read_signals(session: Annotated[AsyncSession, Depends(get_session)]) -
                 last_surge_at=wave.last_surge_at,
                 held=held,
                 paused=waves.paused_at(wave, now),
+                quiet_until=waves.quiet_until(wave),
             )
             for wave, held in held_waves
         ],
+        wave_per_minute=waves.PER_MINUTE,
         pending_actions=[_proposal(p, titles, targets.get(p.target_user_id)) for p in proposals],
         queues=SignalQueues(ads_unreviewed=await count_unreviewed(session), chats_in_review=in_review or 0),
     )
