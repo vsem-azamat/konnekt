@@ -959,9 +959,11 @@
       var(--keyboard)
     )
   );
-  /* Below the notch and, in fullscreen, Telegram's header. */
+  /* Below the notch and, in fullscreen, Telegram's header, wherever the top
+     of what can be seen is: iOS pans the view down to a field. */
   --sheet-ceiling: calc(
     8px +
+    var(--keyboard-pan) +
     var(--tg-viewport-safe-area-inset-top, 0px) +
     var(--top-clearance)
   );
@@ -1010,15 +1012,16 @@
   letter-spacing: -0.02em;
 }
 
-/* Everything under the title. Its padding reaches the sheet's edges, so a
-   focus ring on a row is not cut off where the scroll area ends. */
+/* Everything under the title. Its padding reaches the sheet's edges and a
+   little above, so a focus ring on a row is not cut off where the scroll area
+   ends. */
 .sheetBody {
   display: flex;
   flex-direction: column;
   gap: 9px;
   min-height: 0;
-  margin: 0 -14px -14px;
-  padding: 0 14px 14px;
+  margin: -4px -14px -14px;
+  padding: 4px 14px 14px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
 }
@@ -1984,13 +1987,17 @@
 
 /* A sheet's choices when there may be dozens: they scroll on their own and
    give up their height first, so what is above them stays put. Two rows at
-   least; with less room than that the whole body scrolls. */
+   least, when there are two; with less room than that the whole body
+   scrolls. */
 .sheetList {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  min-height: 104px;
   overflow-y: auto;
+}
+
+.sheetList:has(> :nth-child(2)) {
+  min-height: 104px;
 }
 
 /* Blocks one under another with the rows' own gap. Not .stack, which is the

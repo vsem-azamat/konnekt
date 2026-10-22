@@ -7,11 +7,11 @@ import { followKeyboard } from '../src/lib/keyboard.ts';
 function setup(layout = 844) {
   const view = Object.assign(new EventTarget(), { height: layout, offsetTop: 0 });
   const window = { innerHeight: layout };
-  const published: number[] = [];
+  const published: [number, number][] = [];
   const stop = followKeyboard(
     view,
     () => window.innerHeight,
-    (px) => published.push(px),
+    (cover) => published.push([cover.covered, cover.panned]),
   );
   const move = (height: number, offsetTop = 0) => {
     view.height = height;
@@ -24,20 +24,23 @@ function setup(layout = 844) {
 test('the iOS keyboard covers what the visual viewport lost', () => {
   const { published, move } = setup(844);
   move(508);
-  assert.deepEqual(published, [336]);
+  assert.deepEqual(published, [[336, 0]]);
 });
 
-test('a visual viewport panned up to the field covers less of the layout', () => {
+test('panned down to the field, the view has left the top of the layout behind', () => {
   const { published, move } = setup(844);
   move(508, 100);
-  assert.deepEqual(published, [236]);
+  assert.deepEqual(published, [[236, 100]]);
 });
 
 test('the keyboard going down uncovers the bottom again', () => {
   const { published, move } = setup(844);
   move(508);
   move(844);
-  assert.deepEqual(published, [336, 0]);
+  assert.deepEqual(published, [
+    [336, 0],
+    [0, 0],
+  ]);
 });
 
 test('Android resizes the whole webview, which covers nothing', () => {
@@ -51,7 +54,7 @@ test('the same cover is not published twice', () => {
   const { view, published, move } = setup(844);
   move(508);
   view.dispatchEvent(new Event('scroll'));
-  assert.deepEqual(published, [336]);
+  assert.deepEqual(published, [[336, 0]]);
 });
 
 test('stopped, it publishes nothing more', () => {

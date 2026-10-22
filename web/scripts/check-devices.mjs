@@ -104,6 +104,7 @@ const PROFILES = [
     height: 568,
     tg: 568,
     keyboard: 253,
+    pan: 152,
   },
 ];
 
@@ -177,11 +178,11 @@ const NOBODY = {
     subject_id: 1,
     institution_id: 2,
     service_type_id: 3,
-    max_price: 500,
+    max_price: null,
     langs: [],
     work_format: null,
   },
-  // Every kind of chip, so the sheet is as tall as it gets.
+  // Every kind of chip but the budget, which the sheet then offers to add.
   chips: [
     { kind: 'subject', label: 'Matematická analýza 1', value: 1, confidence: 1 },
     {
@@ -196,7 +197,6 @@ const NOBODY = {
       value: 3,
       confidence: 1,
     },
-    { kind: 'budget', label: 'do 500 Kč za hodinu', value: 500, confidence: 1 },
   ],
   results: [],
 };
@@ -270,16 +270,18 @@ function telegramBridge(profile) {
   };
 
   // The iOS keyboard: the layout keeps its height and the visual viewport
-  // loses the keyboard's, for as long as a field has focus.
+  // loses the keyboard's, for as long as a field has focus. With `pan`, iOS
+  // has also moved the view that far down the window to show the field.
   if (!profile.keyboard) return;
   let covered = 0;
+  let panned = 0;
   const visual = new EventTarget();
   for (const [key, get] of Object.entries({
     width: () => window.innerWidth,
     height: () => window.innerHeight - covered,
-    offsetTop: () => 0,
+    offsetTop: () => panned,
     offsetLeft: () => 0,
-    pageTop: () => 0,
+    pageTop: () => panned,
     pageLeft: () => 0,
     scale: () => 1,
   })) {
@@ -287,12 +289,13 @@ function telegramBridge(profile) {
   }
   Object.defineProperty(window, 'visualViewport', { get: () => visual });
   const typing = (el) => el instanceof HTMLElement && el.matches('input, textarea');
-  const show = (px) => {
-    covered = px;
+  const show = (up) => {
+    covered = up ? profile.keyboard : 0;
+    panned = up ? (profile.pan ?? 0) : 0;
     visual.dispatchEvent(new Event('resize'));
   };
-  document.addEventListener('focusin', (e) => typing(e.target) && show(profile.keyboard));
-  document.addEventListener('focusout', (e) => typing(e.target) && show(0));
+  document.addEventListener('focusin', (e) => typing(e.target) && show(true));
+  document.addEventListener('focusout', (e) => typing(e.target) && show(false));
 }
 
 function launchHash(profile) {
@@ -717,42 +720,53 @@ async function checkBottomButton(browser, base, profile) {
 
 /**
  * The request sheet with the keyboard up, on iOS: what is typed into, and the
- * button that sends it, can both be seen above the keyboard.
+ * button that sends it, can be seen above the keyboard. Twice: in the field at
+ * the top of the sheet, and in the budget at its end, which the shrinking
+ * sheet would otherwise leave below its scroll. With `pan`, iOS has moved the
+ * view down the window to the field, and the top of the window is out of
+ * sight too.
  */
-async function checkKeyboard(browser, base, profile) {
+async function checkKeyboard(browser, base, profile, pan = 0) {
   const { page, context } = await open(
     browser,
     base,
-    profile,
-    `/results?q=${encodeURIComponent('matan na FIT')}&subject_id=1&institution_id=2&service_type_id=3&max_price=500&ask=1`,
+    { ...profile, pan },
+    `/results?q=${encodeURIComponent('matan na FIT')}&subject_id=1&institution_id=2&service_type_id=3&ask=1`,
   );
+  const as = pan ? `keyboard, view panned ${pan}px` : 'keyboard';
+  const top = pan + (profile.safe?.top ?? 0) + (profile.content?.top ?? 0);
+  const bottom = pan + visibleBottom(profile) - profile.keyboard;
+  const dialog = page.getByRole('dialog');
+  const seen = async (locator, what) => {
+    const where = outside(await locator.boundingBox(), top, bottom);
+    if (where) fail(profile, `${as}: ${what} ${where}`);
+    else ok(`${as}: ${what} can be seen`);
+  };
   try {
-    const dialog = page.getByRole('dialog');
     const field = dialog.locator('textarea');
     await field.waitFor({ timeout: 10_000 });
     await page.waitForTimeout(400);
     await field.click();
     await page.waitForTimeout(300);
-    const bottom = visibleBottom(profile) - profile.keyboard;
-    const clearance = (profile.safe?.top ?? 0) + (profile.content?.top ?? 0);
-
-    const sheet = outside(await dialog.boundingBox(), clearance, bottom);
-    if (sheet) fail(profile, `keyboard: the sheet ${sheet}`);
-    else ok('keyboard: the sheet is above it');
-
-    const typed = outside(await field.boundingBox(), clearance, bottom);
-    if (typed) fail(profile, `keyboard: the field ${typed}`);
-    else ok('keyboard: the field is above it');
+    await seen(dialog.locator('span').first(), 'the top of the sheet');
+    await seen(field, 'the field');
 
     // Scrolled to inside the sheet, without the click that would do it.
     const send = dialog.getByRole('button').last();
     await send.evaluate((el) => el.scrollIntoView({ block: 'nearest' }));
     await page.waitForTimeout(100);
-    const last = outside(await send.boundingBox(), clearance, bottom);
-    if (last) fail(profile, `keyboard: the sheet's last button ${last}`);
-    else ok("keyboard: the sheet's last button can be reached");
+    await seen(send, "the sheet's last button");
+
+    // Keyboard down, the budget added, and the keyboard up again for it.
+    await field.blur();
+    await page.waitForTimeout(200);
+    await dialog.getByRole('button', { name: '+ бюджет' }).click();
+    const budget = dialog.locator('input');
+    await budget.click();
+    await page.waitForTimeout(300);
+    await seen(budget, 'the budget field');
   } catch (error) {
-    fail(profile, `keyboard: ${error.message.split('\n')[0]}`);
+    fail(profile, `${as}: ${error.message.split('\n')[0]}`);
   }
   await context.close();
 }
@@ -773,6 +787,7 @@ try {
     } else {
       await checkBottomButton(browser, base, profile);
       if (profile.keyboard) await checkKeyboard(browser, base, profile);
+      if (profile.pan) await checkKeyboard(browser, base, profile, profile.pan);
     }
   }
 } finally {

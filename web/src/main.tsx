@@ -340,16 +340,29 @@ function bindAppHeight(): void {
 }
 
 /**
- * Publish what the on-screen keyboard covers, as `--keyboard`: the rules are
- * in `lib/keyboard.ts`. Inside Telegram only, where the sheets it lifts are.
+ * Publish what the on-screen keyboard covers, as `--keyboard` and
+ * `--keyboard-pan`: the rules are in `lib/keyboard.ts`. Inside Telegram only,
+ * where the sheets it lifts are.
+ *
+ * A sheet the keyboard shrinks keeps its scroll, so the field that was in view
+ * in the taller sheet can be below the shorter one. It is brought back once
+ * the sheet has its new size.
  */
 function bindKeyboard(): void {
   if (!window.visualViewport) return;
+  const root = document.documentElement.style;
   followKeyboard(
     window.visualViewport,
     () => window.innerHeight,
-    (covered) => {
-      document.documentElement.style.setProperty('--keyboard', `${covered}px`);
+    ({ covered, panned }) => {
+      root.setProperty('--keyboard', `${covered}px`);
+      root.setProperty('--keyboard-pan', `${panned}px`);
+      requestAnimationFrame(() => {
+        const typing = document.activeElement;
+        if (typing?.closest('[role="dialog"]')) {
+          typing.scrollIntoView({ block: 'nearest' });
+        }
+      });
     },
   );
 }
