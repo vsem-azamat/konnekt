@@ -10,9 +10,11 @@ It ships two Compose projects of this host: `supervisor-telegram` (label
 `project="konnekt"`) and `gov-cz-bot` (`project="gov-cz"`, the Czech Status
 bot); the `project` label matches the one on their metrics. This stack's
 compose file states its project name; gov-cz-bot's comes from its directory,
-`~/deploy/gov-cz-bot`, so moving that directory renames the project and stops
-its logs. gov-cz-bot writes `level` in upper case (`INFO`, `ERROR`) and only
-its `backend` and `backup` write JSON.
+`~/deploy/gov-cz-bot`, so renaming that directory renames the project and
+stops its logs. gov-cz-bot writes `level` in upper case (`INFO`, `ERROR`); its
+Caddy access log is console text, so those lines carry no `level`. That access
+log holds every request header, the Mini App's `X-Telegram-Init-Data` login
+among them; Alloy replaces its value with `<redacted>` before shipping.
 Alloy runs as root and a read-only mount of the Docker socket does not limit
 the API, so it never sees the socket: a `docker-socket-proxy` on an internal
 network does, and answers only GETs for containers and networks. Loki keeps
