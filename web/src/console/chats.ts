@@ -103,3 +103,21 @@ export function isListed(chat: ConsoleChat): boolean {
     Boolean(chat.public_link)
   );
 }
+
+/** A `t.me/+hash` or `joinchat` link, as opposed to a username: webapi's rule. */
+function isInviteLink(link: string): boolean {
+  const tail = link.replace(/\/+$/, '').split('/').pop();
+  return Boolean(tail?.startsWith('+')) || link.includes('joinchat');
+}
+
+/**
+ * Whether people walk straight into the chat, whatever its mode says: a public
+ * chat that does not approve new members sends the bot no request to answer.
+ * Unknown until the bot has asked Telegram, and then the mode stands.
+ */
+export function joinsDirectly(
+  chat: Pick<ConsoleChat, 'public_link' | 'join_by_request'>,
+): boolean {
+  const isPublic = chat.public_link !== null && !isInviteLink(chat.public_link);
+  return isPublic && chat.join_by_request === false;
+}

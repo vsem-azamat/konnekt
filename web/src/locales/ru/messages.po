@@ -56,6 +56,10 @@ msgstr "Заведи в Telegram публичный @username — иначе т�
 msgid "приветствие"
 msgstr "приветствие"
 
+#: src/console/JoinMode.tsx
+msgid "Входят сразу"
+msgstr "Входят сразу"
+
 #: src/console/AudienceLabels.tsx
 msgid "Старые боты"
 msgstr "Старые боты"
@@ -231,6 +235,10 @@ msgstr "{days, plural, one {# дн} few {# дн} many {# дн} other {# дн}}"
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Добавь предмет — по одному сроку искать нечего."
 
+#: src/console/JoinMode.tsx
+msgid "Пускать всех"
+msgstr "Пускать всех"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
 msgstr "например: подходит для продления визы"
@@ -264,6 +272,10 @@ msgstr "Забанить и стереть"
 msgid "Главные администраторы"
 msgstr "Главные администраторы"
 
+#: src/console/JoinMode.tsx
+msgid "Вступление"
+msgstr "Вступление"
+
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "математический анализ ČVUT"
@@ -277,8 +289,8 @@ msgid "Ответ не дошёл. Прежде чем пробовать сно
 msgstr "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 
 #: src/console/pages/Chat.tsx
-msgid "Капча при входе"
-msgstr "Капча при входе"
+#~ msgid "Капча при входе"
+#~ msgstr "Капча при входе"
 
 #: src/components/Place.tsx
 msgid "вуз"
@@ -551,6 +563,10 @@ msgstr "помощь на экзамене по математическому �
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
 msgstr "За неделю бот не видел здесь сообщений."
+
+#: src/console/JoinMode.tsx
+msgid "Входят без проверки: заявки бот одобряет сразу, а его ссылка в чат — без заявки."
+msgstr "Входят без проверки: заявки бот одобряет сразу, а его ссылка в чат — без заявки."
 
 #: src/console/pages/Summary.tsx
 msgid "{activePlacements, plural, one {# карточка} few {# карточки} many {# карточек} other {# карточки}} · показы и клики"
@@ -1087,6 +1103,10 @@ msgstr "без защиты"
 #: src/console/pages/Chat.tsx
 msgid "задаётся у родителя"
 msgstr "задаётся у родителя"
+
+#: src/console/JoinMode.tsx
+msgid "Капча и «Решают админы» работают только с заявками: включите «Одобрение новых участников» в настройках чата в Telegram."
+msgstr "Капча и «Решают админы» работают только с заявками: включите «Одобрение новых участников» в настройках чата в Telegram."
 
 #. placeholder {0}: i18n.number(trend.first)
 #. placeholder {1}: i18n.number(trend.last)
@@ -2185,6 +2205,10 @@ msgstr "Оставить скрытой"
 msgid "Вт"
 msgstr "Вт"
 
+#: src/console/JoinMode.tsx
+msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние 90 дней прошёл капчу в другом нашем чате, входит без вопроса."
+msgstr ""
+
 #. placeholder {0}: system.data.session_ttl_days
 #: src/console/pages/System.tsx
 msgid "{0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
@@ -2348,6 +2372,10 @@ msgstr "на сайте"
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Не получилось связаться. Попробуй ещё раз."
 
+#: src/console/JoinMode.tsx
+msgid "Бот заявки не трогает: их одобряют админы в Telegram."
+msgstr "Бот заявки не трогает: их одобряют админы в Telegram."
+
 #: src/console/pages/Audience.tsx
 msgid "Новые за неделю"
 msgstr "Новые за неделю"
@@ -2405,6 +2433,10 @@ msgstr "появится после одобрения"
 #: src/console/pages/Spam.tsx
 msgid "Автор забанен"
 msgstr "Автор забанен"
+
+#: src/console/JoinMode.tsx
+msgid "Капча"
+msgstr "Капча"
 
 #: src/console/BrowserShell.tsx
 #~ msgid "консоль"
@@ -3088,6 +3120,10 @@ msgstr "Вступление в чат"
 #: src/console/ProfileSheet.tsx
 #~ msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
 #~ msgstr "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
+
+#: src/console/JoinMode.tsx
+msgid "Решают админы"
+msgstr "Решают админы"
 
 #: src/pages/MyHelper.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."

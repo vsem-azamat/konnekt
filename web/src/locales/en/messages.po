@@ -56,6 +56,10 @@ msgstr "Set a public @username in Telegram — otherwise nobody can write back"
 msgid "приветствие"
 msgstr "welcome"
 
+#: src/console/JoinMode.tsx
+msgid "Входят сразу"
+msgstr "Straight in"
+
 #: src/console/AudienceLabels.tsx
 msgid "Старые боты"
 msgstr "Old bots"
@@ -231,6 +235,10 @@ msgstr "{days, plural, one {# d} other {# d}}"
 msgid "Добавь предмет — по одному сроку искать нечего."
 msgstr "Name a subject — a date on its own is nothing to search for."
 
+#: src/console/JoinMode.tsx
+msgid "Пускать всех"
+msgstr "Let everyone in"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: подходит для продления визы"
 msgstr "e.g. suits a visa extension"
@@ -264,6 +272,10 @@ msgstr "Ban and erase"
 msgid "Главные администраторы"
 msgstr "Main administrators"
 
+#: src/console/JoinMode.tsx
+msgid "Вступление"
+msgstr "Joining"
+
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "calculus ČVUT"
@@ -277,8 +289,8 @@ msgid "Ответ не дошёл. Прежде чем пробовать сно
 msgstr "The answer did not arrive. Before trying again, check the list: the card may have been saved."
 
 #: src/console/pages/Chat.tsx
-msgid "Капча при входе"
-msgstr "Captcha on joining"
+#~ msgid "Капча при входе"
+#~ msgstr "Captcha on joining"
 
 #: src/components/Place.tsx
 msgid "вуз"
@@ -551,6 +563,10 @@ msgstr "calculus tutor"
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
 msgstr "The bot saw no messages here this week."
+
+#: src/console/JoinMode.tsx
+msgid "Входят без проверки: заявки бот одобряет сразу, а его ссылка в чат — без заявки."
+msgstr "They join unchecked: the bot approves requests at once, and its link to the chat needs no request."
 
 #: src/console/pages/Summary.tsx
 msgid "{activePlacements, plural, one {# карточка} few {# карточки} many {# карточек} other {# карточки}} · показы и клики"
@@ -1087,6 +1103,10 @@ msgstr "unprotected"
 #: src/console/pages/Chat.tsx
 msgid "задаётся у родителя"
 msgstr "set on the parent"
+
+#: src/console/JoinMode.tsx
+msgid "Капча и «Решают админы» работают только с заявками: включите «Одобрение новых участников» в настройках чата в Telegram."
+msgstr "Captcha and «Admins decide» work only with join requests: turn on «Approve new members» in the chat's settings in Telegram."
 
 #. placeholder {0}: i18n.number(trend.first)
 #. placeholder {1}: i18n.number(trend.last)
@@ -2185,6 +2205,10 @@ msgstr "Keep hidden"
 msgid "Вт"
 msgstr "Tue"
 
+#: src/console/JoinMode.tsx
+msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние 90 дней прошёл капчу в другом нашем чате, входит без вопроса."
+msgstr "The bot asks a question in a private message and approves the request for the right answer. Whoever passed the captcha in another of our chats in the last 90 days joins without a question."
+
 #. placeholder {0}: system.data.session_ttl_days
 #: src/console/pages/System.tsx
 msgid "{0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
@@ -2348,6 +2372,10 @@ msgstr "listed"
 msgid "Не получилось связаться. Попробуй ещё раз."
 msgstr "Could not get through. Try again."
 
+#: src/console/JoinMode.tsx
+msgid "Бот заявки не трогает: их одобряют админы в Telegram."
+msgstr "The bot leaves requests alone: the admins approve them in Telegram."
+
 #: src/console/pages/Audience.tsx
 msgid "Новые за неделю"
 msgstr "New this week"
@@ -2405,6 +2433,10 @@ msgstr "appears once approved"
 #: src/console/pages/Spam.tsx
 msgid "Автор забанен"
 msgstr "Author banned"
+
+#: src/console/JoinMode.tsx
+msgid "Капча"
+msgstr "Captcha"
 
 #: src/console/BrowserShell.tsx
 #~ msgid "консоль"
@@ -3088,6 +3120,10 @@ msgstr "Joining the chat"
 #: src/console/ProfileSheet.tsx
 #~ msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы ничего не пишем."
 #~ msgstr "It leaves the catalog and search, and the author cannot publish it again. It can be returned here, under «Hidden». We tell the author nothing."
+
+#: src/console/JoinMode.tsx
+msgid "Решают админы"
+msgstr "Admins decide"
 
 #: src/pages/MyHelper.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."

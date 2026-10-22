@@ -73,7 +73,8 @@ function chat(id: number, title: string, parent: number | null = null): ConsoleC
     institution_code: null,
     city: null,
     topic: null,
-    is_captcha_enabled: false,
+    join_mode: 'admins',
+    join_by_request: null,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
   };

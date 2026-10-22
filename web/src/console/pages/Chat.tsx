@@ -27,6 +27,7 @@ import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
 import { FailureText } from '@/console/FailureText';
+import { JoinModeRow } from '@/console/JoinMode';
 import { PingRows, PingSheet } from '@/console/Pings';
 import {
   blockedQuery,
@@ -411,16 +412,10 @@ function ChatScreen({ chatId }: { chatId: number }) {
         </div>
       ) : null}
       <Rows>
-        <Row
-          title={<Trans>Капча при входе</Trans>}
-          trailing={
-            <Switch
-              checked={chat.is_captcha_enabled}
-              busy={busy}
-              label={t`Капча при входе`}
-              onChange={(on) => save({ is_captcha_enabled: on })}
-            />
-          }
+        <JoinModeRow
+          chat={chat}
+          busy={busy}
+          onChange={(mode) => save({ join_mode: mode })}
         />
         <Row
           title={<Trans>Приветствие</Trans>}

@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { consoleSections, isListed, statusCounts } from '../src/console/chats.ts';
+import {
+  consoleSections,
+  isListed,
+  joinsDirectly,
+  statusCounts,
+} from '../src/console/chats.ts';
 import type { ConsoleChat } from '../src/console/session.ts';
 
 function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): ConsoleChat {
@@ -15,7 +20,8 @@ function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): Conso
     institution_code: null,
     city: null,
     topic: null,
-    is_captcha_enabled: false,
+    join_mode: 'admins',
+    join_by_request: null,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
     ...over,
@@ -140,4 +146,18 @@ test('listed is what the public tab shows: decided, titled and linked', () => {
   );
   assert.equal(isListed(chat(1, 'A', { public_link: null })), false);
   assert.equal(isListed(chat(1, '', { public_link: link })), false);
+});
+
+test('only a public chat that does not approve new members lets people straight in', () => {
+  const direct = (public_link: string | null, join_by_request: boolean | null) =>
+    joinsDirectly({ public_link, join_by_request });
+  assert.equal(direct('https://t.me/karlov_chat', false), true);
+  assert.equal(direct('https://t.me/karlov_chat', true), false);
+  // Not asked yet: the mode stands.
+  assert.equal(direct('https://t.me/karlov_chat', null), false);
+  // The bot's invite link makes the chat private: requests come from the link.
+  assert.equal(direct('https://t.me/+AbCdEf123', false), false);
+  assert.equal(direct('https://t.me/joinchat/AbCdEf123', false), false);
+  assert.equal(direct('https://t.me/+AbCdEf123/', false), false);
+  assert.equal(direct(null, false), false);
 });

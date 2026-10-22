@@ -1,0 +1,33 @@
+/* «Вступление» in a chat's «Защита»: a row that holds a choice and its hint. */
+
+.row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.row [role='tablist'] {
+  background: var(--surface-pressed);
+}
+
+.row [role='tab'] {
+  padding: 6px 4px;
+  line-height: 1.25;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.value {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.row p {
+  margin: 0;
+}

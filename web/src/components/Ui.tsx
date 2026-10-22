@@ -484,13 +484,19 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  label,
+  disabled = false,
 }: {
   value: T;
   options: { value: T; label: ReactNode }[];
   onChange: (value: T) => void;
+  /** What is chosen, for a screen reader when no heading says it. */
+  label?: string;
+  /** While a choice is being saved: another would race it. */
+  disabled?: boolean;
 }) {
   return (
-    <div className={css.seg} role="tablist">
+    <div className={css.seg} role="tablist" aria-label={label}>
       {options.map((option) => (
         <button
           key={option.value}
@@ -498,6 +504,7 @@ export function Segmented<T extends string>({
           role="tab"
           className={css.segItem}
           aria-selected={option.value === value}
+          disabled={disabled}
           onClick={() => onChange(option.value)}
         >
           {option.label}

@@ -26,6 +26,7 @@ import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   consoleSections,
   isListed,
+  joinsDirectly,
   type StatusFilter,
   statusCounts,
 } from '@/console/chats';
@@ -190,7 +191,8 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
   const { t, i18n } = useLingui();
   const title = chat.title ?? String(chat.id);
   const guards = [
-    chat.is_captcha_enabled ? t`капча` : null,
+    // Where people walk straight in, a stored captcha asks nobody.
+    chat.join_mode === 'captcha' && !joinsDirectly(chat) ? t`капча` : null,
     chat.is_welcome_enabled ? t`приветствие` : null,
   ].filter(Boolean);
   // Protection runs only where the bot is approved; elsewhere the status is
