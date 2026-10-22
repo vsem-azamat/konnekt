@@ -2758,8 +2758,10 @@ msgstr "Допомога в день іспиту"
 msgid "Профиль недоступен"
 msgstr "Профіль недоступний"
 
+#: src/components/RouteError.tsx
 #: src/pages/ChatSection.tsx
 #: src/pages/Home.tsx
+#: src/pages/Profile.tsx
 msgid "Нажми, чтобы попробовать ещё раз"
 msgstr "Натисни, щоб спробувати ще раз"
 
@@ -3232,7 +3234,9 @@ msgstr "Не вдалося завантажити чати"
 msgid "Репетиторы"
 msgstr "Репетитори"
 
+#: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx
+#: src/pages/Profile.tsx
 msgid "Не удалось загрузить"
 msgstr "Не вдалося завантажити"
 

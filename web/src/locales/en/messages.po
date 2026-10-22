@@ -2758,8 +2758,10 @@ msgstr "Help on exam day"
 msgid "Профиль недоступен"
 msgstr "Profile unavailable"
 
+#: src/components/RouteError.tsx
 #: src/pages/ChatSection.tsx
 #: src/pages/Home.tsx
+#: src/pages/Profile.tsx
 msgid "Нажми, чтобы попробовать ещё раз"
 msgstr "Tap to try again"
 
@@ -3232,7 +3234,9 @@ msgstr "Couldn't load the chats"
 msgid "Репетиторы"
 msgstr "Tutors"
 
+#: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx
+#: src/pages/Profile.tsx
 msgid "Не удалось загрузить"
 msgstr "Could not load"
 
