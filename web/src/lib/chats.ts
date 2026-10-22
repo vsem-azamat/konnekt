@@ -132,7 +132,7 @@ export type Entry =
 
 export interface Directory {
   entries: Entry[];
-  /** Chats without a group, shown last under their own heading. */
+  /** Chats without a group, in the order given; blocks() puts them among the groups. */
   rest: PublicChat[];
 }
 
@@ -191,8 +191,9 @@ function lead(entry: Entry): PublicChat | undefined {
 /**
  * The catalogue under its headings, for one city or for all (`city` null).
  *
- * Built on {@link directory}, so sections and the student's own university
- * first work as they did. An entry is filed by its lead chat's topic, and an
+ * Built on {@link directory}, so sections work as they did. Entries keep
+ * supervisor's order, loose chats among the groups, with the student's own
+ * university first. An entry is filed by its lead chat's topic, and an
  * unfiled one under «Общее». A city keeps the entries for it and those for
  * all of Czechia; a section goes by its own chat's city, so a university's
  * faculties are never split between two cities. Empty headings are left out.

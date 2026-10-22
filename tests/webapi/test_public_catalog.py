@@ -490,16 +490,17 @@ class TestOrder:
             _chat(vse, "VŠE", public_link="https://t.me/vse_chat"),
             _chat(small, "Strahov", public_link="https://t.me/strahov"),
         )
-        # The external ČZU is the largest, and ČVUT's faculty outnumbers VŠE: neither moves its group.
+        # The external ČZU is the largest, and Strahov sits between ČVUT's own
+        # chat and its bigger faculty: a group goes by its own chat, not its largest or its sum.
         await self._counts(
             db_session_maker,
-            **{str(czu): 2400, str(FIT): 1600, str(CVUT): 1500, str(FS): 2000, str(vse): 900, str(small): 1000},
+            **{str(czu): 2400, str(FIT): 1600, str(CVUT): 1500, str(FS): 2000, str(vse): 900, str(small): 1700},
         )
 
         async with client_factory() as client:
             rows = (await client.get("/api/public/catalog")).json()
 
-        assert [row["title"] for row in rows] == ["ČVUT FS", "ČVUT", "Strahov", "VŠE", "ČZU PEF", "ČZU"]
+        assert [row["title"] for row in rows] == ["Strahov", "ČVUT FS", "ČVUT", "VŠE", "ČZU PEF", "ČZU"]
 
     async def test_inside_a_group_ours_come_first_then_the_larger(self, client_factory, db_session_maker) -> None:
         await _seed(
