@@ -3,7 +3,8 @@
 Telegram lets a bot write to someone who asked to join for five minutes, so the
 captcha goes out the moment the request arrives. The answer window, in
 `settings.captcha`, may run longer: a request can be settled at any time. The
-right emoji approves the request; two wrong ones, or silence, decline it. A declined applicant is not banned and may ask again.
+right emoji approves the request; two wrong ones, or silence, decline it. A
+declined applicant is not banned and may ask again.
 
 Every decision locks its row, so a tap and the expiry sweep cannot both act on
 one request: whichever comes second finds it settled.
@@ -326,6 +327,8 @@ async def remind(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = 
 
     The first message comes with the request and is easy to miss; editing it
     later notifies nobody, so the reminder is a new message, sent at most once.
+    The row stays locked until it is sent, so a tap waits for the reminder
+    rather than being followed by it.
     """
     now = now or utc_now()
     due = (
@@ -344,22 +347,27 @@ async def remind(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = 
             await db.rollback()
             continue
         row.reminded_at = now
-        await db.commit()
         chat = await db.get(Chat, row.chat_id)
-        title = _title(chat) if chat else str(row.chat_id)
-        minutes_left = math.ceil((row.expires_at - now) / datetime.timedelta(minutes=1))
+        # Taken off captcha meanwhile: the request is the admins' and a tap would decide nothing.
+        if not _still_checks(chat):
+            await db.commit()
+            continue
+        assert chat is not None
         assert row.message_id is not None
+        minutes_left = math.ceil((row.expires_at - now) / datetime.timedelta(minutes=1))
         try:
             await bot.send_message(
                 chat_id=row.user_chat_id,
-                text=challenge.reminder_text(title, minutes_left),
+                text=challenge.reminder_text(_title(chat), minutes_left),
                 reply_parameters=ReplyParameters(message_id=row.message_id, allow_sending_without_reply=True),
             )
         except TelegramAPIError as err:
+            await db.commit()
             logger.warning(
                 "captcha_reminder_not_delivered", captcha_id=row.id, error=str(err), error_type=type(err).__name__
             )
             continue
+        await db.commit()
         CAPTCHA_EVENTS.labels(event="reminded").inc()
         logger.info("captcha_reminded", captcha_id=row.id)
 

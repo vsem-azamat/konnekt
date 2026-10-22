@@ -76,7 +76,8 @@ def ask_text(chat_title: str, answer: str, minutes: int) -> str:
 def reminder_text(chat_title: str, minutes_left: int) -> str:
     return (
         f"Заявка в чат <b>{html.escape(chat_title)}</b> ждёт ответа: нажми на нужный эмодзи в сообщении выше. "
-        f"Осталось {minutes_left} {plural(minutes_left, 'минута', 'минуты', 'минут')}."
+        f"{plural(minutes_left, 'Осталась', 'Осталось', 'Осталось')} {minutes_left} "
+        f"{plural(minutes_left, 'минута', 'минуты', 'минут')}."
     )
 
 

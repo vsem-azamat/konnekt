@@ -366,6 +366,12 @@ class CaptchaSettings(Settings):
         description="When an applicant who has not answered gets one reminder",
     )
 
+    @model_validator(mode="after")
+    def _reminder_inside_window(self) -> CaptchaSettings:
+        if self.remind_after_minutes >= self.answer_minutes:
+            raise ValueError("CAPTCHA_REMIND_AFTER_MINUTES must be shorter than CAPTCHA_ANSWER_MINUTES")
+        return self
+
     model_config = SettingsConfigDict(
         env_prefix="CAPTCHA_",
         case_sensitive=False,

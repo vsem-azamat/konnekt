@@ -147,15 +147,38 @@ async def test_two_presses_of_decline_share_the_work(pg_session_maker, bot, chat
 
 
 async def test_two_sweeps_at_once_remind_once(pg_session_maker, bot, chat) -> None:
-    """Two bot processes overlap during a deploy, and both run the sweep."""
+    """Two bot processes overlap during a deploy, and both run the sweep.
+
+    The first holds its send until the second has looked at the row, so the
+    second meets it locked, mid-send, every time rather than by timing luck.
+    """
     row = await _pending(pg_session_maker, bot)
-    bot.send_message.reset_mock()
     due = row.created_at + datetime.timedelta(minutes=settings.captcha.remind_after_minutes, seconds=10)
+    second_done = asyncio.Event()
+    sends = 0
+
+    async def send(**_: object) -> MagicMock:
+        nonlocal sends
+        sends += 1
+        await asyncio.wait_for(second_done.wait(), timeout=5)
+        return MagicMock(message_id=2)
+
+    bot.send_message = AsyncMock(side_effect=send)
 
     async def sweep() -> None:
         async with pg_session_maker() as session:
             await service.remind(bot, session, now=due)
 
-    await asyncio.gather(sweep(), sweep())
+    async def second() -> None:
+        while sends == 0:
+            await asyncio.sleep(0.01)
+        await sweep()
+        second_done.set()
 
-    bot.send_message.assert_awaited_once()
+    await asyncio.gather(sweep(), second())
+
+    assert sends == 1
+    async with pg_session_maker() as session:
+        settled = await session.get(JoinCaptcha, row.id)
+        assert settled is not None
+        assert settled.reminded_at == due

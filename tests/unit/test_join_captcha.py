@@ -528,6 +528,11 @@ def test_the_reminder_comes_while_telegram_still_lets_the_bot_write() -> None:
         CaptchaSettings(remind_after_minutes=5)
 
 
+def test_the_answer_window_outlasts_the_reminder() -> None:
+    with pytest.raises(ValidationError):
+        CaptchaSettings(answer_minutes=4, remind_after_minutes=4)
+
+
 async def test_an_unanswered_captcha_is_reminded_once_with_the_time_left(session: AsyncSession, bot) -> None:
     await _seed_chat(session)
     await join_requested(_request(), bot, session)
@@ -558,7 +563,25 @@ async def test_the_time_left_is_rounded_up_and_spelled_right(session: AsyncSessi
 
     await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER)
 
-    assert "Осталось 1 минута" in bot.send_message.await_args.kwargs["text"]
+    assert "Осталась 1 минута" in bot.send_message.await_args.kwargs["text"]
+
+
+@pytest.mark.parametrize("change", ["unapproved", "captcha_off"])
+async def test_no_reminder_once_the_chat_stopped_using_captcha(session: AsyncSession, bot, change: str) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    if change == "unapproved":
+        chat.resource_status = DbChat.STATUS_OBSERVED
+    else:
+        chat.is_captcha_enabled = False
+    await session.commit()
+
+    await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER + datetime.timedelta(seconds=10))
+
+    assert bot.send_message.await_count == 1
 
 
 async def test_an_answered_captcha_is_not_reminded(session: AsyncSession, bot) -> None:
