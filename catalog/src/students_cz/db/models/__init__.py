@@ -23,7 +23,12 @@ from students_cz.db.models.people import (
     UserEducation,
     WeeklyAvailability,
 )
-from students_cz.db.models.requests import Contact, HelpRequest, RequestResponse
+from students_cz.db.models.requests import (
+    Contact,
+    HelpRequest,
+    RequestAlert,
+    RequestResponse,
+)
 from students_cz.db.models.taxonomy import (
     Institution,
     InstitutionI18n,
@@ -62,6 +67,7 @@ __all__ = [
     "PartnerOfferI18n",
     "Placement",
     "PlacementEvent",
+    "RequestAlert",
     "RequestResponse",
     "SearchQuery",
     "ServiceOption",

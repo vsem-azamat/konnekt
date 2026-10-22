@@ -88,6 +88,8 @@ async def save_profile(
         session.add(helper)
 
     _apply_text(helper, spec, lang)
+    if "new_request_alerts" in spec.model_fields_set:
+        helper.new_request_alerts = spec.new_request_alerts
     # Changed, whatever changed: an operator's «Оставить» or «Вернуть» checks
     # it against what they read, and offers live in their own table, where
     # the row's own `onupdate` never sees them. The clock and not now(), which

@@ -601,6 +601,10 @@ export type HelperUpsert = {
      * Publish
      */
     publish?: boolean;
+    /**
+     * New Request Alerts
+     */
+    new_request_alerts?: boolean;
 };
 
 /**
@@ -823,6 +827,10 @@ export type MyHelperOut = {
      * Hidden Note
      */
     hidden_note?: string | null;
+    /**
+     * New Request Alerts
+     */
+    new_request_alerts?: boolean;
 };
 
 /**

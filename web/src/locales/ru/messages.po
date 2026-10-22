@@ -300,6 +300,10 @@ msgstr "математический анализ ČVUT"
 msgid "Вернись к списку чатов."
 msgstr "Вернись к списку чатов."
 
+#: src/pages/MyHelper.tsx
+msgid "Новые заявки в Telegram"
+msgstr "Новые заявки в Telegram"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
@@ -436,6 +440,10 @@ msgstr "Вход в консоль"
 #: src/console/pages/Signals.tsx
 #~ msgid "Решают кнопками в сообщении бота в чате отчётов."
 #~ msgstr "Решают кнопками в сообщении бота в чате отчётов."
+
+#: src/pages/MyHelper.tsx
+msgid "Присылать"
+msgstr "Присылать"
 
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
@@ -1556,6 +1564,10 @@ msgstr "Этого аккаунта нет среди операторов ка�
 #: src/console/pages/Chats.tsx
 msgid "Остальные"
 msgstr "Остальные"
+
+#: src/pages/MyHelper.tsx
+msgid "Новые заявки будут только во «Входящих»."
+msgstr "Новые заявки будут только во «Входящих»."
 
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
@@ -3135,6 +3147,10 @@ msgid "вчера"
 msgstr "вчера"
 
 #: src/pages/MyHelper.tsx
+msgid "Не присылать"
+msgstr "Не присылать"
+
+#: src/pages/MyHelper.tsx
 msgid "Моя анкета"
 msgstr "Моя анкета"
 
@@ -3306,6 +3322,10 @@ msgstr "Пусть найдут тебя"
 #: src/components/Place.tsx
 msgid "общий чат"
 msgstr "общий чат"
+
+#: src/pages/MyHelper.tsx
+msgid "Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и не ночью."
+msgstr "Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и не ночью."
 
 #. placeholder {0}: data.hidden_note
 #: src/console/ProfileSheet.tsx

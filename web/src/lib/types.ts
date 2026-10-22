@@ -326,6 +326,8 @@ export interface FeedRequest extends Omit<HelpRequest, 'responders'> {
   budget: Price | null;
   langs: string[];
   reason: Phrase | null;
+  /** Already answered by this helper; absent from servers that drop those. */
+  responded?: boolean;
 }
 
 export type ResponseStatus = 'sent' | 'read' | 'accepted' | 'declined';
@@ -376,6 +378,8 @@ export interface HelperUpsert {
   place_note?: string | null;
   offers?: OfferInput[];
   publish?: boolean;
+  /** Whether the bot writes about new requests the profile could answer. */
+  new_request_alerts?: boolean;
 }
 
 /**
@@ -416,6 +420,8 @@ export interface MyHelper {
   /** Only while an operator keeps it hidden. */
   hidden_reason?: HideReason | null;
   hidden_note?: string | null;
+  /** The bot writes about new requests the profile could answer. */
+  new_request_alerts?: boolean;
 }
 
 export interface ContactStart {

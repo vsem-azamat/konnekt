@@ -95,6 +95,53 @@ WAIT_FOR_MESSAGE: dict[UiLang, str] = {
 }
 
 
+# Somebody posted a request this helper's services cover. The only message
+# here that answers nothing the recipient did, so it says how to stop it; the
+# switch is in «Мои услуги», and services/request_alerts.py keeps it rare.
+NEW_REQUEST_FOR_HELPER: dict[UiLang, str] = {
+    UiLang.RU: (
+        "<b>Новая заявка по твоей услуге</b>\n"
+        "{topic}\n"
+        "«{text}»{budget}\n\n"
+        "Выключить такие сообщения можно в «Мои услуги»."
+    ),
+    UiLang.CS: (
+        "<b>Nová poptávka k tvé službě</b>\n"
+        "{topic}\n"
+        "„{text}“{budget}\n\n"
+        "Tyto zprávy vypneš v „Moje služby“."
+    ),
+    UiLang.EN: (
+        "<b>A new request for your service</b>\n"
+        "{topic}\n"
+        "“{text}”{budget}\n\n"
+        "You can turn these messages off in “My services”."
+    ),
+    UiLang.UK: (
+        "<b>Нова заявка на твою послугу</b>\n"
+        "{topic}\n"
+        "«{text}»{budget}\n\n"
+        "Вимкнути такі повідомлення можна в «Мої послуги»."
+    ),
+}
+
+# The budget line, on its own line under the request. Absent when the author
+# named no budget.
+BUDGET_UP_TO: dict[UiLang, str] = {
+    UiLang.RU: "\nБюджет до {amount}",
+    UiLang.CS: "\nRozpočet do {amount}",
+    UiLang.EN: "\nBudget up to {amount}",
+    UiLang.UK: "\nБюджет до {amount}",
+}
+
+# Its button, which opens the request in the helper's incoming list.
+VIEW_REQUEST: dict[UiLang, str] = {
+    UiLang.RU: "Посмотреть заявку",
+    UiLang.CS: "Zobrazit poptávku",
+    UiLang.EN: "View request",
+    UiLang.UK: "Переглянути заявку",
+}
+
 # What the owner is told, the ping's button and the two pings with their
 # fillers, and the only strings here with no table behind them. Nobody reading
 # these chose a language: they go to one address, `OWNER_TG_ID`, and they

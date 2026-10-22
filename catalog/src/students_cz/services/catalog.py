@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Literal
 
-from sqlalchemy import func, literal, select
+from sqlalchemy import Select, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -264,14 +264,15 @@ def _has_free_slot():
     )
 
 
-async def count_helpers(
+async def helpers_listed(
     session: AsyncSession,
     *,
     subject_id: int | None,
     service_type_id: int | None,
     exclude_helper_id: int,
-) -> int:
-    """How many people `search` would list for these two filters, but one."""
+) -> Select[tuple[int]]:
+    """The people `search` would list for these two filters, but one, as a
+    query of their ids: counted under a request, and told about it."""
     base = _offer_query(
         subject_ids=await held_by(session, subject_id) if subject_id else None,
         institution_id=None,
@@ -280,10 +281,25 @@ async def count_helpers(
         langs=[],
         exclude_helper_id=exclude_helper_id,
     )
+    return base.with_only_columns(Offer.helper_id).distinct()
+
+
+async def count_helpers(
+    session: AsyncSession,
+    *,
+    subject_id: int | None,
+    service_type_id: int | None,
+    exclude_helper_id: int,
+) -> int:
+    """How many people `search` would list for these two filters, but one."""
+    listed = await helpers_listed(
+        session,
+        subject_id=subject_id,
+        service_type_id=service_type_id,
+        exclude_helper_id=exclude_helper_id,
+    )
     return (
-        await session.scalar(
-            base.with_only_columns(func.count(func.distinct(Offer.helper_id)))
-        )
+        await session.scalar(select(func.count()).select_from(listed.subquery()))
     ) or 0
 
 

@@ -5,6 +5,10 @@ request, or they answered one — so this is not the announcement channel and
 deliberately does not consult `unsubscribed_at`: that opts out of us writing
 unprompted, not out of being told that the thing you asked for happened.
 
+The one exception is `tell_of_request`: a request somebody else posted is
+news the helper did not ask for, so whoever sends it honours that opt-out and
+the helper's own switch. See services/request_alerts.py.
+
 Nothing in here may raise. A notification is a side effect of an action that has
 already been committed; if Telegram is down, the response was still recorded and
 the person will see it in the app.
@@ -24,7 +28,7 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from students_cz.bot.texts import OPEN_APP, OWNER_OPEN_CONSOLE, pick
+from students_cz.bot.texts import OPEN_APP, OWNER_OPEN_CONSOLE, VIEW_REQUEST, pick
 from students_cz.core.metrics import NOTIFICATIONS
 from students_cz.db.models import User
 from students_cz.db.models.enums import UiLang
@@ -62,6 +66,18 @@ def _console_keyboard(app_url: str | None) -> InlineKeyboardMarkup | None:
     return _web_app_button(OWNER_OPEN_CONSOLE, url)
 
 
+def _incoming_keyboard(
+    lang: UiLang, app_url: str | None, request_id: int
+) -> InlineKeyboardMarkup | None:
+    """The helper's incoming requests, with this one open to answer."""
+    url = (
+        f"{app_url.rstrip('/')}/mine?tab=incoming&request={request_id}"
+        if app_url
+        else None
+    )
+    return _web_app_button(pick(VIEW_REQUEST, lang), url)
+
+
 @dataclass(frozen=True)
 class Recipient:
     """Everything a notification needs to know about a person.
@@ -94,8 +110,9 @@ class Recipient:
         *and* the person is recorded as having blocked a bot they never met.
 
         `unsubscribed_at` is deliberately not consulted. It opts out of us
-        writing unprompted; every message that goes through here is the answer
-        to something the recipient set in motion.
+        writing unprompted, and nearly every message that goes through here is
+        the answer to something the recipient set in motion; the one that is
+        not, `tell_of_request`, has its sender check it first.
         """
         return cls(
             tg_id=user.tg_id,
@@ -144,6 +161,25 @@ class Notifier:
             text=text,
             lang=recipient.lang,
             app_url=self._app_url,
+        )
+
+    async def tell_of_request(
+        self, recipient: Recipient, text: str, request_id: int
+    ) -> bool:
+        """Tell a helper about somebody else's request, with a button to it.
+
+        Unlike the two around it this answers nothing the helper did, which is
+        why the caller weighs more than `reachable` before getting here: see
+        services/request_alerts.py.
+        """
+        if not recipient.reachable:
+            return False
+        return await tell(
+            self._bot,
+            tg_id=recipient.tg_id,
+            text=text,
+            lang=recipient.lang,
+            keyboard=_incoming_keyboard(recipient.lang, self._app_url, request_id),
         )
 
     async def tell_owner(self, text: str) -> bool:

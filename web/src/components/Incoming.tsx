@@ -1,6 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { useSearchParams } from 'react-router';
 
 import { formatDay, PhraseView } from '@/components/Phrase';
 import { Sheet } from '@/components/Sheet';
@@ -63,6 +64,28 @@ export function Incoming() {
     queryKey: ['request-feed'],
     queryFn: ({ signal }) => api.getRequestFeed(signal),
   });
+
+  // `?request=<id>` is where the bot's message about a new request lands: that
+  // request open to answer, once. Dropped from the URL after, so a reload or
+  // a way back does not open it again. One already answered, or no longer in
+  // the feed — closed, out of the list — leaves just the list.
+  const [params, setParams] = useSearchParams();
+  const linked = Number(params.get('request'));
+  useEffect(() => {
+    if (!linked || !data) return;
+    const found = data.find((request) => request.id === linked);
+    if (found && !found.responded) {
+      setDraft((kept) =>
+        kept.requestId === found.id
+          ? kept
+          : { requestId: found.id, message: '', price: '' },
+      );
+      setAnswering(found);
+    }
+    const updated = new URLSearchParams(params);
+    updated.delete('request');
+    setParams(updated, { replace: true });
+  }, [linked, data, params, setParams]);
 
   // 403 is not a failure here: it is the answer for someone who has no helper
   // profile, and the useful response is the invitation to make one.
