@@ -31,7 +31,10 @@
  *   - a screen opened from a scrolled list starts at its top, and Back
  *     returns to the list where it was left, even when the list has to be
  *     loaded again;
- *   - after a minimise and restore, the app is as tall as what is visible.
+ *   - after a minimise and restore, the app is as tall as what is visible;
+ *   - a screen whose data failed says so and offers to ask again, and one
+ *     that throws while rendering shows the app's own error screen and is
+ *     reported, not React Router's page for developers.
  *
  * The keyboard is the stand-in's too. A headless browser opens none, and on
  * iOS the keyboard shrinks only the visual viewport, so the stand-in replaces
@@ -440,7 +443,7 @@ async function open(
   base,
   profile,
   path,
-  { slowCatalog = false, clock = false } = {},
+  { slowCatalog = false, clock = false, fixtures = {} } = {},
 ) {
   const context = await browser.newContext({
     viewport: { width: profile.width, height: profile.height },
@@ -450,6 +453,7 @@ async function open(
   });
   await context.addInitScript(telegramBridge, { button: BOTTOM_BUTTON, ...profile });
   const unknown = new Set();
+  const reports = [];
   let catalogCalls = 0;
   await context.route('**/api/**', async (route) => {
     const request = route.request();
@@ -458,8 +462,12 @@ async function open(
     if (key === 'GET /api/public/catalog' && slowCatalog && catalogCalls++ > 0) {
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
-    if (key in FIXTURES) {
-      const body = FIXTURES[key];
+    if (key === 'POST /api/public/client-errors') {
+      reports.push(...request.postDataJSON().events);
+    }
+    const stubs = { ...FIXTURES, ...fixtures };
+    if (key in stubs) {
+      const body = stubs[key];
       return body === null
         ? route.fulfill({ status: 204 })
         : route.fulfill({ json: body });
@@ -470,7 +478,7 @@ async function open(
   const page = await context.newPage();
   if (clock) await page.clock.install();
   await page.goto(`${base}${path}#${launchHash(profile)}`);
-  return { page, context, unknown };
+  return { page, context, unknown, reports };
 }
 
 /** The visible bottom: the smaller of what Telegram reports and what the webview has. */
@@ -771,6 +779,47 @@ async function checkKeyboard(browser, base, profile, pan = 0) {
   await context.close();
 }
 
+const RETRY = 'Нажми, чтобы попробовать ещё раз';
+
+/** A screen that cannot show what it is for says so, inside the visible area. */
+async function checkFailed(browser, base, profile) {
+  // `/api/v1/me` has no fixture and answers 404, which is not asked again.
+  const failed = await open(browser, base, profile, '/profile');
+  if (await shown(failed.page, profile, RETRY))
+    ok('/profile: a failed load offers a retry');
+  else fail(profile, '/profile: a failed load is a skeleton for ever');
+  await failed.context.close();
+
+  // A helper without the fields the page reads, as an API out of step with
+  // the bundle would send: the page throws while rendering.
+  const broken = await open(browser, base, profile, '/helper/8', {
+    fixtures: { 'GET /api/v1/helpers/8': {} },
+  });
+  if (await shown(broken.page, profile, RETRY))
+    ok('a screen that throws shows the error screen');
+  else fail(profile, "a screen that throws shows React Router's page for developers");
+  // Reports wait a few seconds for company before they go (FLUSH_MS).
+  const rendered = () => broken.reports.some((event) => event.kind === 'render');
+  for (let waited = 0; !rendered() && waited < 6000; waited += 250) {
+    await broken.page.waitForTimeout(250);
+  }
+  if (rendered()) ok('the render error is reported');
+  else fail(profile, 'the render error is not reported');
+  await broken.context.close();
+}
+
+/** Whether `text` appears inside what the person can see. */
+async function shown(page, profile, text) {
+  const target = page.getByText(text);
+  try {
+    await target.waitFor({ timeout: 5000 });
+  } catch {
+    return false;
+  }
+  const box = await target.boundingBox();
+  return box !== null && box.y >= 0 && box.y + box.height <= visibleBottom(profile);
+}
+
 const { base, stop } = await serve();
 let browser;
 try {
@@ -782,6 +831,7 @@ try {
     for (const list of LISTS) await checkList(browser, base, profile, list);
     await checkNavigation(browser, base, profile);
     await checkReturn(browser, base, profile);
+    await checkFailed(browser, base, profile);
     if (profile.platform === 'android') {
       await checkRestore(browser, base, profile);
     } else {
