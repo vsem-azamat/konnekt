@@ -96,10 +96,11 @@ async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _G
             sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
         except TelegramBadRequest as err:
             # `!welcome` stores HTML, the console stores what the admin typed:
-            # a raw `&` or `<` there is not markup, and the greeting goes out
-            # as HTML. Shown as typed rather than losing the whole greeting.
-            if not chat_text or "can't parse entities" not in str(err):
+            # a raw `<` there is not markup, and the greeting goes out as HTML.
+            # Shown as typed rather than losing the whole greeting.
+            if not chat_text or intro.PARSE_ERROR not in str(err):
                 raise
+            logger.warning("welcome_text_escaped", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
             chat_text = html.escape(chat_text, quote=False)
             sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
     except TelegramAPIError as err:

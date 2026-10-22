@@ -407,11 +407,11 @@ async def test_a_greeting_telegram_refuses_does_not_break_the_join(session: Asyn
 
 
 async def test_a_raw_text_telegram_cannot_parse_is_shown_as_typed(session: AsyncSession, bot, timers) -> None:
-    """The console stores what the admin typed, `&` and `<` included; the greeting goes out as HTML."""
+    """The console stores what the admin typed, `<` included; the greeting goes out as HTML."""
     await _seed(session, welcome_message="Q&A <3", is_welcome_enabled=True)
 
     def parse(**kwargs):
-        if "Q&A" in kwargs["text"]:
+        if "<3" in kwargs["text"]:
             raise TelegramBadRequest(method=MagicMock(), message="can't parse entities")
         return MagicMock(message_id=9)
 
@@ -431,3 +431,24 @@ async def test_a_refusal_for_another_reason_is_not_retried(session: AsyncSession
     await user_joined(_join(), bot, session)
 
     bot.send_message.assert_awaited_once()
+
+
+async def test_a_text_that_breaks_the_caption_is_not_blamed_on_the_video(
+    session: AsyncSession, bot, timers, monkeypatch
+) -> None:
+    """The video stays: only the text is escaped, and the video is sent once more with it."""
+    monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
+    await _seed(session, welcome_message="a < b", is_welcome_enabled=True)
+
+    def parse(**kwargs):
+        if "a < b" in kwargs["caption"]:
+            raise TelegramBadRequest(method=MagicMock(), message="Bad Request: can't parse entities")
+        return MagicMock(message_id=10)
+
+    bot.send_video.side_effect = parse
+
+    await user_joined(_join(), bot, session)
+
+    assert bot.send_video.await_count == 2
+    bot.send_message.assert_not_awaited()
+    assert bot.send_video.await_args.kwargs["caption"].endswith("\n\na &lt; b")

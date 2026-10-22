@@ -22,6 +22,8 @@ OPEN_BUTTON = "Открыть Konnekt 📱"
 
 # Telegram's limit for a caption, counted after the markup is parsed.
 CAPTION_LIMIT = 1024
+# How Telegram refuses a text with broken HTML.
+PARSE_ERROR = "can't parse entities"
 
 
 def private_markup() -> InlineKeyboardMarkup | None:
@@ -55,6 +57,9 @@ async def send(bot: Bot, chat_id: int, text: str, markup: InlineKeyboardMarkup |
         try:
             return await bot.send_video(chat_id=chat_id, video=video, caption=text, reply_markup=markup), True
         except TelegramBadRequest as err:
+            # The text is at fault, not the video: it fails as a message too.
+            if PARSE_ERROR in str(err):
+                raise
             logger.error("intro_video_refused", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
     sent = await bot.send_message(chat_id=chat_id, text=text, reply_markup=markup, disable_web_page_preview=True)
     return sent, False
