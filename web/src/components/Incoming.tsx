@@ -63,6 +63,13 @@ export function Incoming() {
       api.respondToRequest(requestId, body),
     onSuccess: (_, { requestId }) => {
       hapticSuccess();
+      // Marked at once, so the card cannot offer to answer again while the
+      // lists come back.
+      queryClient.setQueriesData<FeedRequest[]>(
+        { queryKey: ['request-feed', 'list'] },
+        (rows) =>
+          rows?.map((row) => (row.id === requestId ? { ...row, responded: true } : row)),
+      );
       // The request stays, now marked as answered and further down, and the
       // counts on the chips and in «Профиль» move: all of it is stale.
       void queryClient.invalidateQueries({ queryKey: ['request-feed'] });
@@ -80,16 +87,30 @@ export function Incoming() {
   const [params, setParams] = useSearchParams();
   const linked = Number(params.get('request'));
 
+  // The numbers on the chips, answered requests included as the lists are.
   const facets = useQuery({
     queryKey: ['request-feed', 'facets', true],
     queryFn: ({ signal }) => api.getFeedFacets(true, signal),
   });
-  // Until a chip is pressed, the default, which needs the counts; without
-  // them, everything. A linked request opens on «Все», since under «Мои
-  // услуги» it may not be there to open.
+  // Without them: what still waits, which picks the chip to open on. The
+  // same query as «Профиль», so its number and this choice agree.
+  const waiting = useQuery({
+    queryKey: ['request-feed', 'facets', false],
+    queryFn: ({ signal }) => api.getFeedFacets(false, signal),
+  });
+  // A linked request opens on «Все», since under «Мои услуги» it may not be
+  // there to open. Otherwise the default, chosen once: worked out again on
+  // every refetch, it would switch the list under someone who just answered.
   const [chosen, setChosen] = useState<FeedChip | null>(() => (linked ? ALL : null));
-  const chip =
-    chosen ?? (facets.data ? defaultChip(facets.data) : facets.isError ? ALL : null);
+  const opening = waiting.data
+    ? defaultChip(waiting.data.mine)
+    : waiting.isError
+      ? ALL
+      : null;
+  useEffect(() => {
+    if (opening) setChosen((current) => current ?? opening);
+  }, [opening]);
+  const chip = chosen ?? opening;
 
   const query = chip ? feedQuery(chip) : null;
   const { data, isPending, isError, error } = useQuery({
@@ -115,7 +136,7 @@ export function Incoming() {
   // profile, and the useful response is the invitation to make one.
   const forbidden = (failure: unknown) =>
     failure instanceof ApiError && failure.status === 403;
-  if (forbidden(error) || forbidden(facets.error)) {
+  if (forbidden(error) || forbidden(facets.error) || forbidden(waiting.error)) {
     return (
       <Empty
         title={<Trans>Сначала заполни профиль</Trans>}
@@ -124,7 +145,7 @@ export function Incoming() {
     );
   }
 
-  const chips = facets.data ? feedChips(facets.data) : [];
+  const chips = facets.data ? feedChips(facets.data, chip) : [];
 
   return (
     <>
@@ -214,6 +235,7 @@ export function Incoming() {
   );
 }
 
+// The count is the row's to show; a chip held in state only names a filter.
 const ALL: FeedChip = { kind: 'all', count: 0 };
 
 function ChipLabel({ chip }: { chip: FeedChip }) {

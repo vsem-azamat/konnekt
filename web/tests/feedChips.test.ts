@@ -34,7 +34,7 @@ function chip(key: string): FeedChip {
   return found;
 }
 
-function row(id: number, onMyServices: boolean): FeedRequest {
+function row(id: number, onMyServices: boolean, responded = false): FeedRequest {
   return {
     id,
     text: 'нужна помощь',
@@ -54,6 +54,7 @@ function row(id: number, onMyServices: boolean): FeedRequest {
     langs: [],
     reason: null,
     on_my_services: onMyServices,
+    responded,
   };
 }
 
@@ -89,8 +90,25 @@ test('a chip that would leave nothing is not offered, but «Все» always is',
 });
 
 test('the feed opens on the helper’s own services, or on everything when none wait', () => {
-  assert.equal(chipKey(defaultChip(facets())), 'mine');
-  assert.equal(chipKey(defaultChip(facets({ mine: 0 }))), 'all');
+  assert.equal(chipKey(defaultChip(3)), 'mine');
+  assert.equal(chipKey(defaultChip(0)), 'all');
+});
+
+test('the chosen chip stays on the row after its requests are gone, so it can be seen and left', () => {
+  const praha: FeedChip = { kind: 'city', name: 'Praha', count: 1 };
+  const keys = feedChips(facets({ cities: [] }), praha).map(
+    (option) => [chipKey(option), option.count] as const,
+  );
+  assert.deepEqual(keys.at(-1), ['city:Praha', 0]);
+  const shelf = chip('shelf:7');
+  const kept = feedChips(
+    facets({ subjects: [{ id: 7, name: 'Математика', count: 0 }] }),
+    shelf,
+  );
+  assert.deepEqual(
+    kept.filter((option) => chipKey(option) === 'shelf:7').map((option) => option.count),
+    [0],
+  );
 });
 
 test('each chip asks the server for its narrowing, answered requests included', () => {
@@ -144,4 +162,18 @@ test('a heading over the only section there is says nothing, so there is none', 
     [null],
   );
   assert.deepEqual(feedSections([], all), []);
+});
+
+test('within each section the answered come after the unanswered, as the server ranks them', () => {
+  const sections = feedSections(
+    [row(1, true), row(2, false), row(3, true, true), row(4, false, true), row(5, false)],
+    chip('all'),
+  );
+  assert.deepEqual(
+    sections.map((section) => section.rows.map((r) => r.id)),
+    [
+      [1, 3],
+      [2, 5, 4],
+    ],
+  );
 });

@@ -29,8 +29,12 @@ export function chipKey(chip: FeedChip): string {
   }
 }
 
-/** In the mockup's order. One that would leave the list empty is not offered. */
-export function feedChips(facets: FeedFacetsOut): FeedChip[] {
+/**
+ * In the mockup's order. One that would leave the list empty is not offered,
+ * except the one already chosen: its requests can go while it is on, and a
+ * row without it would hide the filter in force and the way out of it.
+ */
+export function feedChips(facets: FeedFacetsOut, chosen?: FeedChip | null): FeedChip[] {
   const chips: FeedChip[] = [
     { kind: 'mine', count: facets.mine },
     { kind: 'all', count: facets.all },
@@ -50,14 +54,24 @@ export function feedChips(facets: FeedFacetsOut): FeedChip[] {
       (step): FeedChip => ({ kind: 'budget', amount: step.amount, count: step.count }),
     ),
   ];
-  return chips.filter((chip) => chip.kind === 'all' || chip.count > 0);
+  const kept = chosen ? chipKey(chosen) : null;
+  const offered = chips.filter(
+    (chip) => chip.kind === 'all' || chip.count > 0 || chipKey(chip) === kept,
+  );
+  if (chosen && !offered.some((chip) => chipKey(chip) === kept)) {
+    offered.push({ ...chosen, count: 0 });
+  }
+  return offered;
 }
 
-/** What the helper came for first; everything, when nothing of theirs waits. */
-export function defaultChip(facets: FeedFacetsOut): FeedChip {
-  return facets.mine > 0
-    ? { kind: 'mine', count: facets.mine }
-    : { kind: 'all', count: facets.all };
+/**
+ * What the helper came for first; everything, when nothing of theirs waits.
+ *
+ * `waiting` leaves out what they answered: «Мои услуги» with every card
+ * already answered is nothing to open on.
+ */
+export function defaultChip(waiting: number): FeedChip {
+  return waiting > 0 ? { kind: 'mine', count: waiting } : { kind: 'all', count: 0 };
 }
 
 export type FeedQuery = {
@@ -96,17 +110,23 @@ export interface FeedSection {
 }
 
 /**
- * «По твоим услугам», then «Остальные», in the server's order within each.
+ * «По твоим услугам», then «Остальные», each with the answered last.
  *
- * Under «Мои услуги» every row is the helper's own, and with only one kind on
- * the list a heading over it repeats the chip.
+ * The server ranks every unanswered request above every answered one; split
+ * by services alone, an answered card would sit over new requests in
+ * «Остальные». Under «Мои услуги» every row is the helper's own, and with
+ * only one kind on the list a heading over it repeats the chip.
  */
 export function feedSections(rows: FeedRequest[], chip: FeedChip): FeedSection[] {
   if (rows.length === 0) return [];
-  const mine = rows.filter((row) => row.on_my_services);
-  const others = rows.filter((row) => !row.on_my_services);
+  const ordered = [
+    ...rows.filter((row) => !row.responded),
+    ...rows.filter((row) => row.responded),
+  ];
+  const mine = ordered.filter((row) => row.on_my_services);
+  const others = ordered.filter((row) => !row.on_my_services);
   if (chip.kind === 'mine' || mine.length === 0 || others.length === 0) {
-    return [{ heading: null, rows }];
+    return [{ heading: null, rows: ordered }];
   }
   return [
     { heading: 'mine', rows: mine },
