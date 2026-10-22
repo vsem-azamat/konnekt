@@ -2157,6 +2157,7 @@
   color: var(--ink);
 }
 
+/* The right-hand side of the top line: what was caught, and when. */
 .pingCardWhen {
   display: inline-flex;
   align-items: center;
