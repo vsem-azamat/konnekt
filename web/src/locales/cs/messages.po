@@ -285,8 +285,8 @@ msgid "вуз"
 msgstr "vysoká škola"
 
 #: src/console/pages/Chat.tsx
-#~ msgid "как у родителя: <0/>"
-#~ msgstr "jako u nadřazeného: <0/>"
+msgid "как у родителя: <0/>"
+msgstr "jako u nadřazeného: <0/>"
 
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
@@ -416,8 +416,8 @@ msgid "Ср"
 msgstr "St"
 
 #: src/console/pages/Chat.tsx
-#~ msgid "не указан: стоит в «Общее»"
-#~ msgstr "neuvedeno: stojí v „Obecné“"
+msgid "не указан: стоит в «Общее»"
+msgstr "neuvedeno: stojí v „Obecné“"
 
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
@@ -513,8 +513,8 @@ msgid "Войти не получилось. Попробуйте ещё раз.
 msgstr "Přihlášení se nezdařilo. Zkuste to znovu."
 
 #: src/console/pages/Chat.tsx
-#~ msgid "Вузы, по вузу"
-#~ msgstr "Vysoké školy, podle školy"
+msgid "Вузы, по вузу"
+msgstr "Vysoké školy, podle školy"
 
 #: src/console/BanSheet.tsx
 msgid "{failed, plural, one {В # чате Telegram отказал: проверьте там права бота.} few {В # чатах Telegram отказал: проверьте там права бота.} many {В # чатах Telegram отказал: проверьте там права бота.} other {В # чата Telegram отказал: проверьте там права бота.}}"
@@ -774,8 +774,8 @@ msgid "Показан в «Чатах»"
 msgstr "Zobrazen v «Chatech»"
 
 #: src/console/pages/Chat.tsx
-#~ msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
-#~ msgstr "U chatu vysoké školy to není potřeba: do „Vysoké školy“ ho zařadí jeho škola."
+msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
+msgstr "U chatu vysoké školy to není potřeba: do „Vysoké školy“ ho zařadí jeho škola."
 
 #: src/components/InstitutionPicker.tsx
 msgid "Загружаем список вузов…"
@@ -1249,8 +1249,8 @@ msgid "Бан {who} в {chat}"
 msgstr "Ban {who} v {chat}"
 
 #: src/console/pages/Chat.tsx
-#~ msgid "Раздел каталога"
-#~ msgstr "Oddíl katalogu"
+msgid "Раздел каталога"
+msgstr "Oddíl katalogu"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
@@ -2118,6 +2118,7 @@ msgstr "Příspěvek v chatech"
 msgid "Бот пишет его новичку: «@имя, ваш текст»."
 msgstr "Bot ho pošle nováčkovi: «@jméno, váš text»."
 
+#: src/console/pages/Chat.tsx
 #: src/pages/Chats.tsx
 #: src/pages/MyHelper.tsx
 msgid "Город"
@@ -3073,8 +3074,8 @@ msgid "Заблокированы"
 msgstr "Zabanovaní"
 
 #: src/console/pages/Chat.tsx
-#~ msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
-#~ msgstr "Prázdné znamená celé Česko: chat je v katalogu vidět u každého města."
+msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
+msgstr "Prázdné znamená celé Česko: chat je v katalogu vidět u každého města."
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
