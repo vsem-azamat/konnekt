@@ -237,6 +237,28 @@ async def _held_count(db: AsyncSession, wave: JoinWave) -> int:
     return count or 0
 
 
+async def undecided(db: AsyncSession) -> list[tuple[JoinWave, int]]:
+    """Waves nobody pressed a button on that still hold requests, newest first, with how many.
+
+    A wave whose held requests have all expired or been settled in Telegram
+    waits for nothing, so it is not here even though nobody decided it.
+    """
+    held = func.count(JoinCaptcha.id).label("held")
+    rows = await db.execute(
+        select(JoinWave, held)
+        .join(JoinCaptcha, JoinCaptcha.wave_id == JoinWave.id)
+        .where(JoinWave.decision.is_(None), JoinCaptcha.status == JoinCaptcha.STATUS_HELD)
+        .group_by(JoinWave.id)
+        .order_by(JoinWave.last_surge_at.desc(), JoinWave.id.desc())
+    )
+    return [(wave, count) for wave, count in rows.tuples()]
+
+
+def paused_at(wave: JoinWave, now: datetime.datetime) -> bool:
+    """Whether the quiet spell after the wave's last burst is still running."""
+    return pauses(wave) and wave.last_surge_at > now - datetime.timedelta(minutes=QUIET_MINUTES)
+
+
 async def _decline_held(bot: Bot, db: AsyncSession, wave: JoinWave, now: datetime.datetime) -> tuple[int, int]:
     """Decline the wave's held requests in batches, including any held meanwhile; (declined, failed)."""
     declined = 0
