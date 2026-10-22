@@ -145,7 +145,12 @@ export default function BrowserShell() {
           <Link
             to="/console/signals"
             className={css.bell}
-            aria-label={t`Сигналы: ждут решения ${counts.signals}`}
+            aria-label={
+              counts.signals > 0
+                ? t`Сигналы, ждут решения: ${counts.signals}`
+                : t`Сигналы`
+            }
+            title={t`Сигналы`}
           >
             <BellIcon size={17} />
             {counts.signals > 0 ? (

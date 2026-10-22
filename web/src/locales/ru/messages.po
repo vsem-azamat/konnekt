@@ -679,6 +679,10 @@ msgstr "{0, plural, one {участник} few {участника} many {уча
 msgid "факультеты, общежития, общие"
 msgstr "факультеты, общежития, общие"
 
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
+msgstr "начался {started} · последний всплеск {hoursAgo} ч назад"
+
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
 msgstr "Пост выходит, вы получаете ссылки на него."
@@ -719,11 +723,6 @@ msgstr "репетиторство, работы, документы"
 #: src/pages/Profile.tsx
 msgid "расскажи своими словами, анкету соберём сами"
 msgstr "расскажи своими словами, анкету соберём сами"
-
-#. placeholder {0}: counts.signals
-#: src/console/BrowserShell.tsx
-msgid "Сигналы: ждут решения {0}"
-msgstr "Сигналы: ждут решения {0}"
 
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
@@ -1033,6 +1032,11 @@ msgstr "За что цена"
 msgid "Уже в чёрном списке."
 msgstr "Уже в чёрном списке."
 
+#. placeholder {0}: counts.signals
+#: src/console/BrowserShell.tsx
+msgid "Сигналы, ждут решения: {0}"
+msgstr "Сигналы, ждут решения: {0}"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1256,6 +1260,10 @@ msgstr "Сообщения по дням недели и часам; больш�
 #: src/lib/workFormat.tsx
 msgid "Очно"
 msgstr "Очно"
+
+#: src/console/pages/Signals.tsx
+msgid "Капча вернётся через"
+msgstr "Капча вернётся через"
 
 #: src/components/TabBar.tsx
 msgid "репетиторство, работы, помощь"
@@ -1669,6 +1677,10 @@ msgid "изменить"
 msgstr "изменить"
 
 #: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {ago} мин назад"
+msgstr "начался {started} · последний всплеск {ago} мин назад"
+
+#: src/console/pages/Signals.tsx
 msgid "Что ждёт решения админа, из чата отчётов и очередей."
 msgstr "Что ждёт решения админа, из чата отчётов и очередей."
 
@@ -1735,6 +1747,10 @@ msgstr "Не удалось загрузить каталог"
 #: src/pages/Results.tsx
 msgid "Также"
 msgstr "Также"
+
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск только что"
+msgstr "начался {started} · последний всплеск только что"
 
 #: src/components/SubjectSearch.tsx
 msgid "Добавить предмет — математика, čeština, физика"
@@ -2477,10 +2493,6 @@ msgstr "выбран"
 msgid "Работает именно с этим вузом"
 msgstr "Работает именно с этим вузом"
 
-#: src/console/pages/Signals.tsx
-msgid "началась {started} · последний всплеск {ago} мин назад"
-msgstr "началась {started} · последний всплеск {ago} мин назад"
-
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
 msgstr "заблокировали"
@@ -2815,10 +2827,6 @@ msgstr "Чат: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Это главный администратор."
-
-#: src/console/pages/Signals.tsx
-msgid "Тишина до конца"
-msgstr "Тишина до конца"
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

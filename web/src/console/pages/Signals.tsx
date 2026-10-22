@@ -1,6 +1,6 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   BlockIcon,
@@ -53,6 +53,9 @@ export default function ConsoleSignalsPage() {
 
 function SignalsBody() {
   const navigate = useNavigate();
+  // The minutes on the cards move on their own; an answer that came back the
+  // same would not render them again.
+  const now = useNow(30_000);
   // The shell reads both every minute; this screen shares its answers.
   const signals = useQuery(consoleSignalsQuery);
   const catalog = useQuery(adminCatalogQuery);
@@ -149,10 +152,15 @@ function SignalsBody() {
       {decisions ? (
         <div className={css.stack}>
           {waves.map((wave) => (
-            <WaveCard key={`wave-${wave.id}`} wave={wave} perMinute={wave_per_minute} />
+            <WaveCard
+              key={`wave-${wave.id}`}
+              wave={wave}
+              perMinute={wave_per_minute}
+              now={now}
+            />
           ))}
           {proposals.map((proposal) => (
-            <ProposalCard key={`action-${proposal.id}`} proposal={proposal} />
+            <ProposalCard key={`action-${proposal.id}`} proposal={proposal} now={now} />
           ))}
         </div>
       ) : (
@@ -169,7 +177,9 @@ function SignalsBody() {
       ) : null}
       {queueRows.length ? (
         <Rows>{queueRows.map((item) => item.row(item.count))}</Rows>
-      ) : (
+      ) : catalog.isPending ? (
+        <SkeletonRows count={2} />
+      ) : catalog.error ? null : (
         <Hint>
           <Trans>Очереди пусты.</Trans>
         </Hint>
@@ -178,15 +188,29 @@ function SignalsBody() {
   );
 }
 
-function WaveCard({ wave, perMinute }: { wave: WaveSignal; perMinute: number }) {
+function WaveCard({
+  wave,
+  perMinute,
+  now,
+}: {
+  wave: WaveSignal;
+  perMinute: number;
+  now: Date;
+}) {
   const { i18n } = useLingui();
   const title = wave.chat_title ?? String(wave.chat_id);
-  const started = i18n.date(new Date(utc(wave.started_at)), {
+  const startedAt = new Date(utc(wave.started_at));
+  // A wave stays here for a day: yesterday's start says which day it was.
+  const started = i18n.date(startedAt, {
+    ...(startedAt.toDateString() === now.toDateString()
+      ? {}
+      : { day: 'numeric', month: 'short' }),
     hour: '2-digit',
     minute: '2-digit',
   });
-  const ago = minutesSince(wave.last_surge_at);
-  const quiet = minutesUntil(wave.quiet_until);
+  const ago = minutesSince(wave.last_surge_at, now);
+  const hoursAgo = Math.floor(ago / 60);
+  const quiet = minutesUntil(wave.quiet_until, now);
   return (
     <section className={`${css.card} ${css.alert}`}>
       <div className={css.head}>
@@ -198,9 +222,17 @@ function WaveCard({ wave, perMinute }: { wave: WaveSignal; perMinute: number }) 
             <Trans>Набег на {title}</Trans>
           </b>
           <span>
-            <Trans>
-              началась {started} · последний всплеск {ago} мин назад
-            </Trans>
+            {ago === 0 ? (
+              <Trans>начался {started} · последний всплеск только что</Trans>
+            ) : ago < 60 ? (
+              <Trans>
+                начался {started} · последний всплеск {ago} мин назад
+              </Trans>
+            ) : (
+              <Trans>
+                начался {started} · последний всплеск {hoursAgo} ч назад
+              </Trans>
+            )}
           </span>
         </div>
       </div>
@@ -250,7 +282,7 @@ function WaveCard({ wave, perMinute }: { wave: WaveSignal; perMinute: number }) 
         {wave.paused ? (
           <>
             <dt>
-              <Trans>Тишина до конца</Trans>
+              <Trans>Капча вернётся через</Trans>
             </dt>
             <dd>
               <Trans>{quiet} мин</Trans>
@@ -265,15 +297,16 @@ function WaveCard({ wave, perMinute }: { wave: WaveSignal; perMinute: number }) 
   );
 }
 
-function ProposalCard({ proposal }: { proposal: PendingActionSignal }) {
+function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: Date }) {
   const who =
     proposal.target_name ??
     (proposal.target_username
       ? `@${proposal.target_username}`
       : String(proposal.target_user_id));
   const chat = proposal.chat_title ?? String(proposal.chat_id);
-  const left = minutesUntil(proposal.expires_at);
-  const reason = proposal.reason;
+  const left = minutesUntil(proposal.expires_at, now);
+  // The sentence ends with its own full stop.
+  const reason = proposal.reason?.trim().replace(/[.!?…]+$/, '');
   return (
     <section className={css.card}>
       <div className={css.head}>
@@ -315,4 +348,14 @@ function ProposalCard({ proposal }: { proposal: PendingActionSignal }) {
       </Hint>
     </section>
   );
+}
+
+/** The time now, read again every `ms` while the screen is open. */
+function useNow(ms: number): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), ms);
+    return () => clearInterval(timer);
+  }, [ms]);
+  return now;
 }

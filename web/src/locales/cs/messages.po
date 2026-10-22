@@ -679,6 +679,10 @@ msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
 msgid "факультеты, общежития, общие"
 msgstr "fakulty, koleje, obecné"
 
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
+msgstr "začal {started} · poslední nával před {hoursAgo} h"
+
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
 msgstr "Příspěvek vyjde a vy dostanete odkazy na něj."
@@ -719,11 +723,6 @@ msgstr "doučování, práce, dokumenty"
 #: src/pages/Profile.tsx
 msgid "расскажи своими словами, анкету соберём сами"
 msgstr "napiš to vlastními slovy, anketu sestavíme sami"
-
-#. placeholder {0}: counts.signals
-#: src/console/BrowserShell.tsx
-msgid "Сигналы: ждут решения {0}"
-msgstr "Signály: {0} čeká na rozhodnutí"
 
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
@@ -1033,6 +1032,11 @@ msgstr "Za co je cena"
 msgid "Уже в чёрном списке."
 msgstr "Už je na černé listině."
 
+#. placeholder {0}: counts.signals
+#: src/console/BrowserShell.tsx
+msgid "Сигналы, ждут решения: {0}"
+msgstr "Signály, čeká na rozhodnutí: {0}"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1256,6 +1260,10 @@ msgstr "Zprávy podle dne v týdnu a hodiny; nejvíc: {busiest}"
 #: src/lib/workFormat.tsx
 msgid "Очно"
 msgstr "Osobně"
+
+#: src/console/pages/Signals.tsx
+msgid "Капча вернётся через"
+msgstr "Captcha se vrátí za"
 
 #: src/components/TabBar.tsx
 msgid "репетиторство, работы, помощь"
@@ -1669,6 +1677,10 @@ msgid "изменить"
 msgstr "změnit"
 
 #: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {ago} мин назад"
+msgstr "začal {started} · poslední nával před {ago} min"
+
+#: src/console/pages/Signals.tsx
 msgid "Что ждёт решения админа, из чата отчётов и очередей."
 msgstr "Co čeká na rozhodnutí admina, z chatu hlášení a z front."
 
@@ -1735,6 +1747,10 @@ msgstr "Nepodařilo se načíst katalog"
 #: src/pages/Results.tsx
 msgid "Также"
 msgstr "Také"
+
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск только что"
+msgstr "začal {started} · poslední nával právě teď"
 
 #: src/components/SubjectSearch.tsx
 msgid "Добавить предмет — математика, čeština, физика"
@@ -2477,10 +2493,6 @@ msgstr "vybrán"
 msgid "Работает именно с этим вузом"
 msgstr "Pracuje přímo s touhle školou"
 
-#: src/console/pages/Signals.tsx
-msgid "началась {started} · последний всплеск {ago} мин назад"
-msgstr "začal {started} · poslední nával před {ago} min"
-
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
 msgstr "zablokovali"
@@ -2815,10 +2827,6 @@ msgstr "Chat: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Toto je hlavní administrátor."
-
-#: src/console/pages/Signals.tsx
-msgid "Тишина до конца"
-msgstr "Klid ještě potřeba"
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

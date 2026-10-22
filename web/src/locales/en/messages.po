@@ -679,6 +679,10 @@ msgstr "{0, plural, one {member} other {members}}"
 msgid "факультеты, общежития, общие"
 msgstr "faculties, dorms, general"
 
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
+msgstr "started {started} · last burst {hoursAgo} h ago"
+
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
 msgstr "The post goes out, and you get links to it."
@@ -719,11 +723,6 @@ msgstr "tutoring, written work, paperwork"
 #: src/pages/Profile.tsx
 msgid "расскажи своими словами, анкету соберём сами"
 msgstr "tell it in your own words, we'll build the profile"
-
-#. placeholder {0}: counts.signals
-#: src/console/BrowserShell.tsx
-msgid "Сигналы: ждут решения {0}"
-msgstr "Signals: {0} awaiting a decision"
 
 #: src/pages/MyHelper.tsx
 msgid "В каталоге её не видно. Правки сохранены, администратор посмотрит анкету ещё раз."
@@ -1033,6 +1032,11 @@ msgstr "What the price is for"
 msgid "Уже в чёрном списке."
 msgstr "Already on the blacklist."
 
+#. placeholder {0}: counts.signals
+#: src/console/BrowserShell.tsx
+msgid "Сигналы, ждут решения: {0}"
+msgstr "Signals, awaiting a decision: {0}"
+
 #: src/components/Phrase.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
@@ -1256,6 +1260,10 @@ msgstr "Messages by weekday and hour; busiest: {busiest}"
 #: src/lib/workFormat.tsx
 msgid "Очно"
 msgstr "In person"
+
+#: src/console/pages/Signals.tsx
+msgid "Капча вернётся через"
+msgstr "Captcha is back in"
 
 #: src/components/TabBar.tsx
 msgid "репетиторство, работы, помощь"
@@ -1669,6 +1677,10 @@ msgid "изменить"
 msgstr "change"
 
 #: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск {ago} мин назад"
+msgstr "started {started} · last burst {ago} min ago"
+
+#: src/console/pages/Signals.tsx
 msgid "Что ждёт решения админа, из чата отчётов и очередей."
 msgstr "What waits for an admin to decide, from the report chat and the queues."
 
@@ -1735,6 +1747,10 @@ msgstr "Couldn't load the catalog"
 #: src/pages/Results.tsx
 msgid "Также"
 msgstr "Also"
+
+#: src/console/pages/Signals.tsx
+msgid "начался {started} · последний всплеск только что"
+msgstr "started {started} · last burst just now"
 
 #: src/components/SubjectSearch.tsx
 msgid "Добавить предмет — математика, čeština, физика"
@@ -2477,10 +2493,6 @@ msgstr "chosen"
 msgid "Работает именно с этим вузом"
 msgstr "Works specifically with this university"
 
-#: src/console/pages/Signals.tsx
-msgid "началась {started} · последний всплеск {ago} мин назад"
-msgstr "started {started} · last burst {ago} min ago"
-
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
 msgstr "blocked"
@@ -2815,10 +2827,6 @@ msgstr "Chat: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "This is a super admin."
-
-#: src/console/pages/Signals.tsx
-msgid "Тишина до конца"
-msgstr "Quiet still needed"
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

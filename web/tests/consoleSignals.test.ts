@@ -59,10 +59,14 @@ test('a count that has not arrived is no badge, not a guess', () => {
 });
 
 test('webapi times are UTC, whatever zone the reader is in', () => {
+  // In UTC itself a time read as local would pass too.
+  const zone = process.env.TZ;
+  process.env.TZ = 'America/New_York';
   const now = new Date('2026-10-22T08:30:00Z');
   assert.equal(minutesSince('2026-10-22T08:24:10', now), 5);
   assert.equal(minutesSince('2026-10-22T08:31:00', now), 0);
   // A started minute is a minute left: «0 мин» while the pause still holds is wrong.
   assert.equal(minutesUntil('2026-10-22T08:39:10', now), 10);
   assert.equal(minutesUntil('2026-10-22T08:29:00', now), 0);
+  process.env.TZ = zone;
 });
