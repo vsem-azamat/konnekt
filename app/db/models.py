@@ -541,6 +541,8 @@ class JoinCaptcha(Base):
     expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime)
     resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # Set before the reminder goes out, so it goes out once even if Telegram refuses it.
+    reminded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __init__(
         self,
