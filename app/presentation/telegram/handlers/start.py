@@ -109,7 +109,7 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
             # A file_id of another bot, or a URL Telegram could not fetch, must
             # not leave /start silent. Network errors are not caught: the video
             # may have arrived, and a second greeting would follow it.
-            logger.error("start_video_refused", error=str(err))
+            logger.error("start_video_refused", error=str(err), error_type=type(err).__name__)
     await message.answer(text, disable_web_page_preview=True, reply_markup=markup)
 
 
