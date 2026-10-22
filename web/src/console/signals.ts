@@ -87,7 +87,13 @@ export function elapsed(
 }
 
 /** Why a press on the Сигналы screen did not go through. */
-export type DecisionProblem = 'gone' | 'decided' | 'protected' | 'unmanaged' | 'failed';
+export type DecisionProblem =
+  | 'gone'
+  | 'decided'
+  | 'protected'
+  | 'unmanaged'
+  | 'refused'
+  | 'failed';
 
 /** webapi's refusal of a decision, as the card should explain it. */
 export function decisionProblem(error: unknown): DecisionProblem {
@@ -96,5 +102,7 @@ export function decisionProblem(error: unknown): DecisionProblem {
   if (error.detail === 'decided otherwise') return 'decided';
   if (error.detail === 'protected') return 'protected';
   if (error.detail === 'unmanaged') return 'unmanaged';
+  // Telegram said no, and the proposal was closed as failed: another press finds it gone.
+  if (error.status === 502 && error.detail === 'failed') return 'refused';
   return 'failed';
 }

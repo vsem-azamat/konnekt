@@ -106,6 +106,33 @@ async def test_declining_a_wave_from_the_console_declines_its_held_requests(clie
     assert "консоль" in edited["text"]
 
 
+async def test_declining_says_so_on_the_alert_before_the_work(client, db_session_maker, bot, monkeypatch) -> None:
+    from app.webapi.routes import signals
+
+    wave_id = await _wave(db_session_maker, held=2)
+    # The work after the answer, cut short as a restart would.
+    monkeypatch.setattr(signals, "_decide_wave", AsyncMock())
+
+    async with client:
+        response = await client.post(f"/api/signals/waves/{wave_id}/decision", json={"action": "decline"})
+
+    assert response.status_code == 202
+    edited = bot.edit_message_text.await_args.kwargs
+    assert "отклоняю" in edited["text"]
+    # One button left, which finishes the job.
+    assert len(edited["reply_markup"].inline_keyboard) == 1
+
+
+async def test_the_same_decision_again_carries_on(client, db_session_maker, bot) -> None:
+    wave_id = await _wave(db_session_maker, held=2, decision=JoinWave.DECISION_DECLINE)
+
+    async with client:
+        response = await client.post(f"/api/signals/waves/{wave_id}/decision", json={"action": "decline"})
+
+    assert response.status_code == 202
+    assert bot.decline_chat_join_request.await_count == 2
+
+
 async def test_a_wave_decided_otherwise_is_not_decided_again(client, db_session_maker, bot) -> None:
     wave_id = await _wave(db_session_maker, held=2, decision=JoinWave.DECISION_RESUME)
 
@@ -183,6 +210,24 @@ async def test_rejecting_a_proposal_executes_nothing(client, db_session_maker, b
 
     assert response.json() == {"outcome": "rejected"}
     bot.ban_chat_member.assert_not_awaited()
+    assert "Отклонено в консоли" in bot.edit_message_text.await_args.kwargs["text"]
+
+
+async def test_a_chat_no_longer_moderated_is_not_reached_into(client, db_session_maker, bot) -> None:
+    proposal_id = await _proposal(db_session_maker)
+    async with db_session_maker() as session:
+        chat = await session.get(Chat, -100)
+        assert chat is not None
+        chat.resource_status = Chat.STATUS_OBSERVED
+        await session.commit()
+
+    async with client:
+        response = await client.post(f"/api/signals/actions/{proposal_id}", json={"confirm": True})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "unmanaged"
+    bot.ban_chat_member.assert_not_awaited()
+    assert "больше не модерирует" in bot.edit_message_text.await_args.kwargs["text"]
 
 
 async def test_a_proposal_already_answered_says_so(client, db_session_maker, bot) -> None:
@@ -194,6 +239,9 @@ async def test_a_proposal_already_answered_says_so(client, db_session_maker, bot
     assert response.status_code == 409
     assert response.json()["detail"] == "gone"
     bot.ban_chat_member.assert_not_awaited()
+    # Nobody else closed it, so this press says so on the bot's message.
+    edited = bot.edit_message_text.await_args.kwargs
+    assert ("Срок вышел" in edited["text"], edited["reply_markup"]) == (True, None)
 
 
 async def test_a_super_admin_is_never_banned_from_the_console(client, db_session_maker, bot) -> None:

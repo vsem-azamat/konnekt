@@ -302,6 +302,7 @@ msgstr "Вимкнути"
 msgid "сутки"
 msgstr "доба"
 
+#: src/console/pages/Signals.tsx
 #: src/console/ProfileSheet.tsx
 #: src/pages/MyHelper.tsx
 msgid "Скрыть"
@@ -490,6 +491,10 @@ msgstr "Усі люди"
 #: src/console/pages/Summary.tsx
 msgid "где выполнен вход, настройки"
 msgstr "де виконано вхід, налаштування"
+
+#: src/console/pages/Signals.tsx
+msgid "Не получилось связаться с сервером. Попробуйте ещё раз."
+msgstr "Не вдалося зв'язатися із сервером. Спробуйте ще раз."
 
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
@@ -986,10 +991,6 @@ msgstr "Анкета вже в каталозі, адміністратор її
 #: src/console/pages/AudiencePeople.tsx
 msgid "@username, имя или id"
 msgstr "@username, ім’я або id"
-
-#: src/console/pages/Signals.tsx
-msgid "Не получилось: Telegram отказал или нет связи. Попробуйте ещё раз."
-msgstr "Не вийшло: Telegram відмовив або немає зв’язку. Спробуйте ще раз."
 
 #: src/console/ProfileSheet.tsx
 msgid "Вернуть в каталог"
@@ -1887,6 +1888,10 @@ msgstr "Не вдалося обрати — спробуй ще раз."
 #: src/console/Charts.tsx
 msgid "Вс"
 msgstr "Нд"
+
+#: src/console/pages/Signals.tsx
+msgid "Не выполнено: Telegram отказал. Запрос закрыт."
+msgstr "Не виконано: Telegram відмовив. Запит закрито."
 
 #: src/console/Charts.tsx
 msgid "Чт"

@@ -237,6 +237,31 @@ async def decide(
     return note
 
 
+async def announce_declining(bot: Bot, db: AsyncSession, wave: JoinWave, admin_name: str) -> None:
+    """Say on the alert that declining has begun, before the minutes it takes.
+
+    For a press made outside the alert: until the outcome replaces it, the alert
+    would still offer all three buttons, and after a restart halfway it would go
+    on looking undecided. Its one button finishes the job.
+    """
+    if wave.alert_message_id is None:
+        return
+    chat = await db.get(Chat, wave.chat_id)
+    title = html.escape(chat.title if chat and chat.title else str(wave.chat_id))
+    try:
+        await bot.edit_message_text(
+            chat_id=settings.admin.default_report_chat_id,
+            message_id=wave.alert_message_id,
+            text=(
+                f"<b>Набег на {title}: отклоняю заявки</b> ({html.escape(admin_name)}).\n\n"
+                f"Если это сообщение не сменится итогом, нажмите кнопку: бот продолжит с того места, где остановился."
+            ),
+            reply_markup=_decline_again(wave.id),
+        )
+    except TelegramAPIError as err:
+        logger.warning("join_wave_alert_not_edited", wave_id=wave.id, error=str(err), error_type=type(err).__name__)
+
+
 def _decline_again(wave_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

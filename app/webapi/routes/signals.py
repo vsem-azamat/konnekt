@@ -109,9 +109,15 @@ async def decide_wave(
         raise HTTPException(status_code=404, detail="no such wave")
     # Written down before the answer, so the next reading of the signals no
     # longer lists it; the work then finds the same decision and carries on.
-    if await waves.record(session, wave_id=wave_id, action=payload.action, admin_id=admin_id, now=utc_now()) is None:
+    wave = await waves.record(session, wave_id=wave_id, action=payload.action, admin_id=admin_id, now=utc_now())
+    if wave is None:
         raise HTTPException(status_code=409, detail="decided otherwise")
-    background.add_task(_decide_wave, bot, wave_id, payload.action, admin_id, await _admin_name(session, admin_id))
+    admin_name = await _admin_name(session, admin_id)
+    if payload.action == waves.DECLINE:
+        # Declining takes minutes; the alert says it began, so a restart
+        # halfway leaves it half-done rather than looking undecided.
+        await waves.announce_declining(bot, session, wave, admin_name)
+    background.add_task(_decide_wave, bot, wave_id, payload.action, admin_id, admin_name)
     return {"accepted": payload.action}
 
 
@@ -141,6 +147,7 @@ _DROPPED = "Отклонено в консоли. Ничего не выполн
 _PROTECTED = "Не выполнено: главного администратора забанить нельзя."
 _UNMANAGED = "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
 _FAILED = "Не выполнено: Telegram отказал. Запрос закрыт, ничего не изменилось."
+_EXPIRED = "Срок вышел. Ничего не выполнено."
 
 
 @router.post("/actions/{pending_id}")
@@ -170,7 +177,9 @@ async def decide_proposal(
         await _close(service, session, pending_id, PendingActionStatus.FAILED, _FAILED)
         raise HTTPException(status_code=502, detail="failed") from err
     if resolved is None:
-        # Already pressed, already gone, or its deadline passed; whoever closed it said so.
+        # Already pressed elsewhere, and that press said so on the message. A
+        # deadline this press found passed is closed here, with nobody else to say it.
+        await _close(service, session, pending_id, PendingActionStatus.EXPIRED, _EXPIRED)
         raise HTTPException(status_code=409, detail="gone")
     await service.close_message(resolved, _DONE if payload.confirm else _DROPPED)
     return {"outcome": "confirmed" if payload.confirm else "rejected"}

@@ -61,6 +61,7 @@ export default function ConsoleSignalsPage() {
 }
 
 function SignalsBody() {
+  const { t } = useLingui();
   const navigate = useNavigate();
   // The minutes on the cards move on their own; an answer that came back the
   // same would not render them again.
@@ -68,6 +69,11 @@ function SignalsBody() {
   // The shell reads both every minute; this screen shares its answers.
   const signals = useQuery(consoleSignalsQuery);
   const catalog = useQuery(adminCatalogQuery);
+  // A refused press closes its card like a decision does; why stays here,
+  // after the card has gone, until it is put away.
+  const [refusals, setRefusals] = useState<Refusal[]>([]);
+  const refused = (refusal: Refusal) =>
+    setRefusals((list) => [...list.filter((item) => item.key !== refusal.key), refusal]);
 
   if (signals.isPending) return <SkeletonRows count={3} />;
   if (signals.error) {
@@ -158,6 +164,25 @@ function SignalsBody() {
       <Label aside={decisions || null}>
         <Trans>Ждут решения</Trans>
       </Label>
+      {refusals.map((refusal) => (
+        <div key={refusal.key} className={css.refusal} role="status">
+          <p>
+            <b>{refusal.label}</b>
+            <span>
+              <ProblemText problem={refusal.problem} />
+            </span>
+          </p>
+          <button
+            type="button"
+            aria-label={t`Скрыть`}
+            onClick={() =>
+              setRefusals((list) => list.filter((item) => item.key !== refusal.key))
+            }
+          >
+            ×
+          </button>
+        </div>
+      ))}
       {decisions ? (
         <div className={css.stack}>
           {waves.map((wave) => (
@@ -166,10 +191,16 @@ function SignalsBody() {
               wave={wave}
               perMinute={wave_per_minute}
               now={now}
+              onRefused={refused}
             />
           ))}
           {proposals.map((proposal) => (
-            <ProposalCard key={`action-${proposal.id}`} proposal={proposal} now={now} />
+            <ProposalCard
+              key={`action-${proposal.id}`}
+              proposal={proposal}
+              now={now}
+              onRefused={refused}
+            />
           ))}
         </div>
       ) : (
@@ -201,10 +232,12 @@ function WaveCard({
   wave,
   perMinute,
   now,
+  onRefused,
 }: {
   wave: WaveSignal;
   perMinute: number;
   now: Date;
+  onRefused: (refusal: Refusal) => void;
 }) {
   const { i18n } = useLingui();
   const title = wave.chat_title ?? String(wave.chat_id);
@@ -300,12 +333,20 @@ function WaveCard({
           </>
         ) : null}
       </dl>
-      <WaveActions wave={wave} />
+      <WaveActions wave={wave} label={title} onRefused={onRefused} />
     </section>
   );
 }
 
-function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: Date }) {
+function ProposalCard({
+  proposal,
+  now,
+  onRefused,
+}: {
+  proposal: PendingActionSignal;
+  now: Date;
+  onRefused: (refusal: Refusal) => void;
+}) {
   const who =
     proposal.target_name ??
     (proposal.target_username
@@ -351,7 +392,7 @@ function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: D
           </Trans>
         )}
       </p>
-      <ProposalActions proposal={proposal} />
+      <ProposalActions proposal={proposal} label={who} onRefused={onRefused} />
     </section>
   );
 }
@@ -362,14 +403,26 @@ function ProposalCard({ proposal, now }: { proposal: PendingActionSignal; now: D
  * alert says the outcome when it is done. The card leaves at once; the next
  * reading of the signals agrees.
  */
-function WaveActions({ wave }: { wave: WaveSignal }) {
+function WaveActions({
+  wave,
+  label,
+  onRefused,
+}: {
+  wave: WaveSignal;
+  label: string;
+  onRefused: (refusal: Refusal) => void;
+}) {
   const queryClient = useQueryClient();
   const decide = useMutation({
     mutationFn: (action: 'decline' | 'resume' | 'leave') =>
       consoleChanges.decideWave(wave.id, action),
     onSuccess: () => forget(queryClient, { wave: wave.id }),
     onError: (error) => {
-      if (decisionProblem(error) !== 'failed') forget(queryClient, { wave: wave.id });
+      const problem = decisionProblem(error);
+      // Nothing was written; the card stays, with the reason under its buttons.
+      if (problem === 'failed') return;
+      onRefused({ key: `wave-${wave.id}`, label, problem });
+      forget(queryClient, { wave: wave.id });
     },
   });
   return (
@@ -404,14 +457,27 @@ function WaveActions({ wave }: { wave: WaveSignal }) {
   );
 }
 
-function ProposalActions({ proposal }: { proposal: PendingActionSignal }) {
+function ProposalActions({
+  proposal,
+  label,
+  onRefused,
+}: {
+  proposal: PendingActionSignal;
+  label: string;
+  onRefused: (refusal: Refusal) => void;
+}) {
   const queryClient = useQueryClient();
   const decide = useMutation({
     mutationFn: (confirm: boolean) => consoleChanges.decideProposal(proposal.id, confirm),
     onSuccess: () => forget(queryClient, { proposal: proposal.id }),
-    // Refused for a reason that will not change: the proposal is closed either way.
-    onError: () =>
-      void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey }),
+    onError: (error) => {
+      const problem = decisionProblem(error);
+      // No answer came back: the press may not have arrived, so the card stays.
+      if (problem === 'failed') return;
+      // Refused for a reason that will not change: the proposal is closed either way.
+      onRefused({ key: `action-${proposal.id}`, label, problem });
+      forget(queryClient, { proposal: proposal.id });
+    },
   });
   return (
     <div className={css.decide}>
@@ -440,6 +506,13 @@ function ProposalActions({ proposal }: { proposal: PendingActionSignal }) {
   );
 }
 
+/** A press the server refused, kept on screen after its card has gone. */
+interface Refusal {
+  key: string;
+  label: string;
+  problem: DecisionProblem;
+}
+
 function ProblemText({ problem }: { problem: DecisionProblem }) {
   switch (problem) {
     case 'gone':
@@ -452,10 +525,10 @@ function ProblemText({ problem }: { problem: DecisionProblem }) {
       return (
         <Trans>Не выполнено: бот больше не модерирует этот чат. Запрос закрыт.</Trans>
       );
+    case 'refused':
+      return <Trans>Не выполнено: Telegram отказал. Запрос закрыт.</Trans>;
     default:
-      return (
-        <Trans>Не получилось: Telegram отказал или нет связи. Попробуйте ещё раз.</Trans>
-      );
+      return <Trans>Не получилось связаться с сервером. Попробуйте ещё раз.</Trans>;
   }
 }
 

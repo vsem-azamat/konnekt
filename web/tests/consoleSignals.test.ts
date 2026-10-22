@@ -102,6 +102,9 @@ test('a refused decision says why, in the words webapi gives', () => {
     'unmanaged',
   );
   // Telegram refused, or the network did: nothing more specific to say.
-  assert.equal(decisionProblem(new ConsoleError(502, 'failed', 'failed')), 'failed');
+  assert.equal(decisionProblem(new ConsoleError(502, 'failed', 'failed')), 'refused');
+  // A gateway's 502 says nothing of the proposal; another try is the honest advice.
+  assert.equal(decisionProblem(new ConsoleError(502)), 'failed');
+  assert.equal(decisionProblem(new ConsoleError(500)), 'failed');
   assert.equal(decisionProblem(new TypeError('fetch failed')), 'failed');
 });
