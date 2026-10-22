@@ -1745,7 +1745,7 @@ msgstr "Subtitle"
 
 #: src/pages/Request.tsx
 msgid "Не получилось выбрать — попробуй ещё раз."
-msgstr "Couldn't choose them. Try again."
+msgstr "Couldn't choose this helper. Try again."
 
 #: src/console/Charts.tsx
 msgid "Вс"
