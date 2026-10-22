@@ -341,6 +341,18 @@ test("the university's own chat opens its section even when somebody else runs i
   );
 });
 
+test("the university's own chat leads wherever it came in the list", () => {
+  const { lead, ours } = byOwner(
+    [chat('ČVUT FIT', CVUT), chat('ČVUT | ЧВУТ', CVUT), chat('ČVUT FEL', CVUT)],
+    CVUT,
+  );
+  assert.equal(lead?.title, 'ČVUT | ЧВУТ');
+  assert.deepEqual(
+    ours.map((c) => c.title),
+    ['ČVUT FIT', 'ČVUT FEL'],
+  );
+});
+
 test('a section without its own chat has no lead', () => {
   const { lead, ours } = byOwner([chat('ČVUT FIT', CVUT)], CVUT);
   assert.equal(lead, undefined);

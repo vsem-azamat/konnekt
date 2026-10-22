@@ -38,6 +38,7 @@ export default function ChatSectionPage() {
   // Somebody else's chats go below ours, under a heading that says so, rather
   // than marked one by one among them; the university's own chat opens both.
   const { lead, ours, others } = byOwner(chats, group);
+  const oursLabelled = others.length > 0 && ours.length > 0;
   // The name came from the address, so this is often an old link, but it is
   // also what a directory gone empty under the reader looks like.
   useReportEmpty(data !== undefined && chats.length === 0, 'chat section');
@@ -74,17 +75,20 @@ export default function ChatSectionPage() {
               />
             </Sub>
           </div>
-          {lead ? (
+          {/* The lead stands on its own only above a heading: two lists back
+              to back would touch, the gap being the rows' own. */}
+          {lead && oursLabelled ? (
             <Rows>
               <ChatRow chat={lead} tone={0} />
             </Rows>
           ) : null}
-          {others.length > 0 && ours.length > 0 ? (
+          {oursLabelled ? (
             <Label aside={ours.length}>
               <Trans>Наши чаты</Trans>
             </Label>
           ) : null}
           <Rows>
+            {lead && !oursLabelled ? <ChatRow chat={lead} tone={0} /> : null}
             {ours.map((chat, index) => (
               <ChatRow key={chat.link} chat={chat} tone={(lead ? 1 : 0) + index} />
             ))}
