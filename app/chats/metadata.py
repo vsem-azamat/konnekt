@@ -120,8 +120,9 @@ async def fetch_metadata(*, bot: Bot, chat_id: int, username: str | None = None)
             )
             return None
         # A name can be dropped and taken by somebody else; what it resolves to
-        # now is only this chat if it is the same id and still a group.
-        if chat.id != chat_id or chat.type not in ("group", "supergroup"):
+        # now is only this chat if it is the same id and still a group, or a
+        # channel listed as one (never a person).
+        if chat.id != chat_id or chat.type not in ("group", "supergroup", "channel"):
             logger.warning("get_chat_by_username_other_chat", chat_id=chat_id, found_type=chat.type)
             return None
 

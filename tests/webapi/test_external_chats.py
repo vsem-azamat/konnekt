@@ -137,15 +137,42 @@ async def test_a_username_telegram_does_not_know_is_refused(client_factory, db_s
         assert (await s.get(Chat, FJFI)) is None
 
 
-@pytest.mark.parametrize("kind", ["channel", "private"])
-async def test_only_a_group_is_a_chat(client_factory, kind) -> None:
+async def test_a_person_is_not_listed(client_factory) -> None:
     make, holder = client_factory
-    holder["bot"] = _bot(kind=kind)
+    holder["bot"] = _bot(kind="private")
 
     async with make() as client:
         resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/felexams"})
 
     assert (resp.status_code, resp.json()["detail"]) == (422, "not_a_group")
+
+
+async def test_a_channel_is_listed_and_the_catalogue_says_it_is_one(client_factory, db_session_maker) -> None:
+    make, holder = client_factory
+    holder["bot"] = _bot(title="FEL exams", kind="channel")
+
+    async with make() as client:
+        resp = await client.post("/api/chats/external", json={"public_link": "https://t.me/felexams"})
+        rows = (await client.get("/api/public/catalog")).json()
+
+    assert (resp.status_code, resp.json()["kind"]) == (201, "channel")
+    async with db_session_maker() as s:
+        chat = await s.get(Chat, FJFI)
+    assert chat is not None
+    assert chat.kind == Chat.KIND_CHANNEL
+    assert [(row["title"], row["kind"]) for row in rows] == [("FEL exams", "channel")]
+
+
+@pytest.mark.parametrize("kind", ["group", "supergroup"])
+async def test_either_kind_of_group_is_a_group(client_factory, db_session_maker, kind) -> None:
+    make, holder = client_factory
+    holder["bot"] = _bot(kind=kind)
+
+    async with make() as client:
+        await client.post("/api/chats/external", json={"public_link": "https://t.me/cvut_fjfi"})
+        rows = (await client.get("/api/public/catalog")).json()
+
+    assert [row["kind"] for row in rows] == ["group"]
 
 
 @pytest.mark.parametrize(

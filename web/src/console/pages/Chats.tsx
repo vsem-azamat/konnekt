@@ -308,7 +308,7 @@ function AddFailure({ error }: { error: unknown }) {
     case 'not_found':
       return <Trans>Telegram не знает публичного чата с таким именем.</Trans>;
     case 'not_a_group':
-      return <Trans>Это канал или человек, а не чат.</Trans>;
+      return <Trans>Это аккаунт человека, а не чат или канал.</Trans>;
     case 'already_known':
       return <Trans>Этот чат уже есть в списке: режим меняется на его странице.</Trans>;
     case 'telegram_unavailable':

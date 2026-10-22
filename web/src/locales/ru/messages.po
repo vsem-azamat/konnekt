@@ -2972,6 +2972,10 @@ msgstr "Выйти"
 msgid "на проверке"
 msgstr "на проверке"
 
+#: src/console/pages/Chats.tsx
+msgid "Это аккаунт человека, а не чат или канал."
+msgstr "Это аккаунт человека, а не чат или канал."
+
 #: src/console/BanSheet.tsx
 msgid "Забанить {name}?"
 msgstr "Забанить {name}?"
@@ -2999,10 +3003,6 @@ msgstr "Не указан"
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "анкет за 7 дней"
-
-#: src/console/pages/Chats.tsx
-msgid "Это канал или человек, а не чат."
-msgstr "Это канал или человек, а не чат."
 
 #: src/console/ProfileSheet.tsx
 msgid "вчера"

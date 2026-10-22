@@ -2972,6 +2972,10 @@ msgstr "Odhlásit se"
 msgid "на проверке"
 msgstr "ke schválení"
 
+#: src/console/pages/Chats.tsx
+msgid "Это аккаунт человека, а не чат или канал."
+msgstr "Je to účet člověka, ne chat ani kanál."
+
 #: src/console/BanSheet.tsx
 msgid "Забанить {name}?"
 msgstr "Zabanovat {name}?"
@@ -2999,10 +3003,6 @@ msgstr "Neuvedena"
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "profilů za 7 dní"
-
-#: src/console/pages/Chats.tsx
-msgid "Это канал или человек, а не чат."
-msgstr "Je to kanál nebo člověk, ne chat."
 
 #: src/console/ProfileSheet.tsx
 msgid "вчера"
