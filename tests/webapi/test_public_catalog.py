@@ -2,7 +2,7 @@
 
 Two things are being pinned here. What gets in — approved, and carrying a link,
 with neither condition sufficient alone. And what comes back for each row, which
-is nine fields: a page cannot leak a Telegram id or who is in a room when the
+is eleven fields: a page cannot leak a Telegram id or who is in a room when the
 response never contained them.
 """
 
@@ -138,7 +138,7 @@ class TestWhatGetsIn:
 
 
 class TestWhatComesBack:
-    async def test_the_row_carries_nine_fields_and_no_more(self, client_factory, db_session_maker) -> None:
+    async def test_the_row_carries_eleven_fields_and_no_more(self, client_factory, db_session_maker) -> None:
         """Whatever a page does with this, it cannot show what is not here."""
         await _seed(db_session_maker, _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit"))
 
@@ -155,6 +155,8 @@ class TestWhatComesBack:
             "is_forum",
             "external",
             "avatar",
+            "city",
+            "topic",
         }
 
     @pytest.mark.parametrize(
@@ -273,6 +275,81 @@ class TestWhatComesBack:
         by_title = {row["title"]: row["institution"] for row in rows}
         assert by_title["ČVUT FIT"] == "cvut"
         assert by_title["Kolej 7"] is None
+
+    async def test_a_chat_names_its_city_or_none_for_all_of_czechia(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(-1001, "Strahov", public_link="https://t.me/strahov", city="Praha"),
+            _chat(-1002, "Fyzika v ČR", public_link="https://t.me/fyzika"),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert {row["title"]: row["city"] for row in rows} == {"Strahov": "Praha", "Fyzika v ČR": None}
+
+    async def test_a_chat_under_a_parent_is_in_the_parent_s_city_unless_it_names_its_own(
+        self, client_factory, db_session_maker
+    ) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "ČVUT | ЧВУТ", public_link="https://t.me/cvut_chat", city="Praha"),
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit", parent_chat_id=CVUT),
+            _chat(FS, "ČVUT Děčín", public_link="https://t.me/cvut_decin", parent_chat_id=CVUT, city="Děčín"),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        by_title = {row["title"]: row["city"] for row in rows}
+        assert by_title == {"ČVUT | ЧВУТ": "Praha", "ČVUT FIT": "Praha", "ČVUT Děčín": "Děčín"}
+
+    async def test_a_university_s_chats_are_university_chats_without_being_told(
+        self, client_factory, db_session_maker
+    ) -> None:
+        """The institution says what the chat is; a topic set on it says otherwise.
+
+        Strahov carries ČVUT's code because its residents study there, but it is
+        a dormitory and is filed with the dormitories.
+        """
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "ČVUT | ЧВУТ", public_link="https://t.me/cvut_chat", institution_code="cvut"),
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit", parent_chat_id=CVUT),
+            _chat(FS, "PODOLI", public_link="https://t.me/podoli", parent_chat_id=CVUT, topic="dorms"),
+            _chat(-1001, "Strahov", public_link="https://t.me/strahov", institution_code="cvut", topic="dorms"),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert {row["title"]: row["topic"] for row in rows} == {
+            "ČVUT | ЧВУТ": "university",
+            "ČVUT FIT": "university",
+            "PODOLI": "dorms",
+            "Strahov": "dorms",
+        }
+
+    async def test_a_chat_under_a_parent_takes_its_topic(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(-1001, "IT Чехия", public_link="https://t.me/it", topic="work_it"),
+            _chat(-1002, "IT Чехия: вакансии", public_link="https://t.me/it_jobs", parent_chat_id=-1001),
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert {row["topic"] for row in rows} == {"work_it"}
+
+    async def test_a_chat_nobody_filed_has_no_topic(self, client_factory, db_session_maker) -> None:
+        """Not "general": the page decides where an unfiled chat goes, the API does not pretend it was filed."""
+        await _seed(db_session_maker, _chat(-1001, "Flood", public_link="https://t.me/flood"))
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert rows[0]["topic"] is None
 
     async def test_the_university_above_it_is_named(self, client_factory, db_session_maker) -> None:
         await _seed(

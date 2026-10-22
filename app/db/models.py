@@ -115,10 +115,19 @@ class Chat(Base):
     )
     LISTABLE_STATUSES = frozenset({STATUS_APPROVED, STATUS_OBSERVED, STATUS_EXTERNAL})
 
+    # What the chat is about, for the catalogue's headings. A university's own
+    # chats need none: their institution says it. "university" is for one the
+    # catalog's taxonomy does not know yet, which has no code to say it.
+    TOPICS = ("university", "subjects", "dorms", "work_it", "general")
+
     __table_args__ = (
         sa.CheckConstraint(
             "resource_status IN ('discovered', 'approved', 'observed', 'external', 'disabled')",
             name="ck_chats_resource_status",
+        ),
+        sa.CheckConstraint(
+            "topic IN ('university', 'subjects', 'dorms', 'work_it', 'general')",
+            name="ck_chats_topic",
         ),
     )
 
@@ -157,6 +166,13 @@ class Chat(Base):
     # the app can put a student's own university first. Set on the chat at the
     # top; the chats under it carry it through their parent.
     institution_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # The city the chat is for, named as the catalog's taxonomy names it
+    # ("Praha"), so a student's university matches it. None is all of Czechia,
+    # not "unknown": such a chat shows under every city. The chats under one
+    # are in its city unless they name their own.
+    city: Mapped[str | None] = mapped_column(String(96), nullable=True)
+    # One of TOPICS, or None: a university's chat, or one nobody filed yet.
+    topic: Mapped[str | None] = mapped_column(String(16), nullable=True)
     photo_file_id: Mapped[str | None] = mapped_column(String, nullable=True)
     last_synced_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
@@ -193,6 +209,8 @@ class Chat(Base):
         relation_notes: str | None = None,
         public_link: str | None = None,
         institution_code: str | None = None,
+        city: str | None = None,
+        topic: str | None = None,
     ) -> None:
         self.id = id
         self.title = title
@@ -207,6 +225,8 @@ class Chat(Base):
         self.relation_notes = relation_notes
         self.public_link = public_link
         self.institution_code = institution_code
+        self.city = city
+        self.topic = topic
 
     def enable_welcome(self, message: str | None = None) -> None:
         """Enable welcome message for new members"""
