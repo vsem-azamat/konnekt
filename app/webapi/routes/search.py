@@ -49,37 +49,36 @@ async def search(
     number = int(text) if _NUMBER.fullmatch(text) else None
 
     chat_matches = [Chat.title.ilike(like, escape="\\"), Chat.public_link.ilike(like, escape="\\")]
+    chat_order = [Chat.title.asc(), Chat.id]
     if number is not None:
-        chat_matches.append(Chat.id.in_(_chat_ids(number)))
-    chats = await session.scalars(
-        select(Chat).where(or_(*chat_matches)).order_by(Chat.title.asc(), Chat.id).limit(_LIMIT)
-    )
+        ids = _chat_ids(number)
+        chat_matches.append(Chat.id.in_(ids))
+        # The chat with the very id typed comes first, before any it names.
+        chat_order.insert(0, Chat.id.in_(ids).desc())
+    chats = await session.scalars(select(Chat).where(or_(*chat_matches)).order_by(*chat_order).limit(_LIMIT))
 
     person = number if number is not None and 0 < number <= _MAX_ID else None
-
-    def person_matches(key, username, first_name, last_name) -> list:
-        matches = [column.ilike(like, escape="\\") for column in (username, first_name, last_name)]
-        if person is not None:
-            matches.append(key == person)
-        return matches
-
-    by_member = person_matches(
-        AudienceMember.user_id, AudienceMember.username, AudienceMember.first_name, AudienceMember.last_name
-    )
-    by_user = person_matches(User.id, User.username, User.first_name, User.last_name)
+    member_matches = [
+        AudienceMember.username.ilike(like, escape="\\"),
+        AudienceMember.first_name.ilike(like, escape="\\"),
+        AudienceMember.last_name.ilike(like, escape="\\"),
+    ]
+    member_order = [AudienceMember.last_seen_at.desc(), AudienceMember.user_id]
+    user_matches = [
+        User.username.ilike(like, escape="\\"),
+        User.first_name.ilike(like, escape="\\"),
+        User.last_name.ilike(like, escape="\\"),
+    ]
+    user_order = [User.modified_at.desc(), User.id]
+    if person is not None:
+        member_matches.append(AudienceMember.user_id == person)
+        member_order.insert(0, (AudienceMember.user_id == person).desc())
+        user_matches.append(User.id == person)
+        user_order.insert(0, (User.id == person).desc())
     members = list(
-        await session.scalars(
-            select(AudienceMember)
-            .where(or_(*by_member))
-            .order_by(AudienceMember.last_seen_at.desc(), AudienceMember.user_id)
-            .limit(_LIMIT)
-        )
+        await session.scalars(select(AudienceMember).where(or_(*member_matches)).order_by(*member_order).limit(_LIMIT))
     )
-    users = list(
-        await session.scalars(
-            select(User).where(or_(*by_user)).order_by(User.modified_at.desc(), User.id).limit(_LIMIT)
-        )
-    )
+    users = list(await session.scalars(select(User).where(or_(*user_matches)).order_by(*user_order).limit(_LIMIT)))
     # One entry a person, with the audience's profile where there is one: it
     # is what the card the entry opens shows. The blacklist is the users'.
     blocked = {user.id for user in users if user.blocked}
@@ -90,8 +89,14 @@ async def search(
             )
         )
     # Someone the audience knows under another name still has a card.
-    carded = set(
-        await session.scalars(select(AudienceMember.user_id).where(AudienceMember.user_id.in_([u.id for u in users])))
+    carded = (
+        set(
+            await session.scalars(
+                select(AudienceMember.user_id).where(AudienceMember.user_id.in_([u.id for u in users]))
+            )
+        )
+        if users
+        else set()
     )
     people: dict[int, SearchPerson] = {}
     for member in members:
@@ -121,5 +126,6 @@ async def search(
             SearchChat(id=chat.id, title=chat.title, resource_status=chat.resource_status, public_link=chat.public_link)
             for chat in chats
         ],
-        people=list(people.values())[:_LIMIT],
+        # The person with the very id typed first, whichever list found them.
+        people=sorted(people.values(), key=lambda found: found.user_id != person)[:_LIMIT],
     )

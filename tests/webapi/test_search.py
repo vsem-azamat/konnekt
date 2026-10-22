@@ -75,6 +75,33 @@ async def test_a_percent_sign_is_a_letter_not_a_wildcard(client, world) -> None:
     assert [chat["title"] for chat in found["chats"]] == ["100% flood"]
 
 
+async def test_underscores_and_backslashes_are_letters_too(client, world) -> None:
+    assert [p["user_id"] for p in (await _search(client, "a_n"))["people"]] == [11]
+    assert (await _search(client, "\\")) == {"chats": [], "people": []}
+
+
+async def test_a_number_past_any_id_finds_nothing_and_does_not_fail(client, world) -> None:
+    assert await _search(client, "9223372036854775808") == {"chats": [], "people": []}
+
+
+async def test_the_very_id_typed_comes_first_and_is_never_cut(client, db_session_maker) -> None:
+    async with db_session_maker() as db:
+        # Six whose names hold the number, seen more recently than the one it is.
+        for i in range(6):
+            await record.seen(db, Person(id=100 + i, first_name=f"Fan 77 {i}"), Touchpoint.MAIN_BOT, at=utc_now())
+        db.add(UserFactory.create(id=77, username="seventyseven", first_name="S", last_name="S"))
+        for i in range(7):
+            db.add(ChatFactory.create(id=-(200 + i), title=f"77 club {i}"))
+        db.add(ChatFactory.create(id=-77, title="Zzz"))
+        await db.commit()
+
+    found = await _search(client, "77")
+    assert len(found["people"]) == 6
+    assert found["people"][0]["user_id"] == 77
+    assert len(found["chats"]) == 6
+    assert found["chats"][0]["id"] == -77
+
+
 async def test_a_person_is_one_entry_with_their_card_and_blacklist(client, world) -> None:
     found = await _search(client, "@anna")
     assert found["people"] == [

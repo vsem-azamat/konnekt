@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 
 import { SearchIcon } from '@/components/icons';
@@ -26,6 +26,11 @@ export default function TopSearch() {
   const [typed, setTyped] = useState('');
   const [asked, setAsked] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  // Enter pressed before the answer to what is typed came: open its first.
+  const [wantFirst, setWantFirst] = useState(false);
+  // Focus handed back to the field by Escape, which must not reopen the list.
+  const quiet = useRef(false);
+  const panelId = useId();
 
   useEffect(() => {
     const id = setTimeout(() => setAsked(searchText(typed)), PAUSE);
@@ -52,6 +57,16 @@ export default function TopSearch() {
   });
   const list = asked !== null && results.data ? foundList(results.data) : [];
   const showing = open && searchText(typed) !== null;
+  // Still the answer to something typed before: shown, but not opened by Enter.
+  const stale = asked !== searchText(typed) || results.isPlaceholderData;
+
+  const openFirst = () => box.current?.querySelector<HTMLElement>('a[href]')?.click();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the answer to what is typed arrives
+  useEffect(() => {
+    if (!wantFirst || stale || results.isFetching) return;
+    setWantFirst(false);
+    openFirst();
+  }, [wantFirst, stale, results.isFetching]);
   const chats = list.filter((found) => found.kind === 'chat');
   const people = list.filter((found) => found.kind === 'person');
 
@@ -62,9 +77,14 @@ export default function TopSearch() {
   ];
   const onKey = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
+      // Not the browser's own clearing of a search field: the first Escape
+      // closes the list, the second clears the text.
+      event.preventDefault();
       if (showing) setOpen(false);
       else setTyped('');
+      quiet.current = true;
       field.current?.focus();
+      quiet.current = false;
       return;
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -83,7 +103,10 @@ export default function TopSearch() {
       className={css.box}
       onKeyDown={onKey}
       onBlur={(event) => {
-        if (!box.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+        // Only when the focus went somewhere: a click inside on what takes
+        // none blurs with nowhere, and an outside click is the pointer's.
+        const to = event.relatedTarget as Node | null;
+        if (to && !box.current?.contains(to)) setOpen(false);
       }}
     >
       <label className={css.field}>
@@ -91,6 +114,7 @@ export default function TopSearch() {
         <input
           ref={field}
           type="search"
+          aria-controls={panelId}
           aria-label={t`Поиск по чатам и людям`}
           placeholder={t`Чат, человек, @username или id`}
           value={typed}
@@ -99,20 +123,37 @@ export default function TopSearch() {
             setTyped(event.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (!quiet.current) setOpen(true);
+          }}
           onKeyDown={(event) => {
-            // Enter opens the first thing found, as a click on it would.
+            // Enter opens the first thing found, as a click on it would; for
+            // what was just typed, once its answer comes.
             if (event.key !== 'Enter') return;
-            box.current?.querySelector<HTMLElement>('a[href]')?.click();
+            if (!stale) return void openFirst();
+            setAsked(searchText(typed));
+            setWantFirst(true);
           }}
         />
       </label>
       {showing ? (
-        <div className={css.panel}>
-          {chats.length > 0 ? <Group title={t`Чаты`} found={chats} /> : null}
-          {people.length > 0 ? <Group title={t`Люди`} found={people} /> : null}
+        // The focus stays in the field through a click in the list: the
+        // screen behind would take it, blur the field and close the list
+        // before the click lands (Safari never focuses a clicked link).
+        // biome-ignore lint/a11y/noStaticElementInteractions: it only keeps the focus where it was
+        <div
+          id={panelId}
+          className={css.panel}
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          {chats.length > 0 ? (
+            <Group title={t`Чаты`} found={chats} onOpen={() => setOpen(false)} />
+          ) : null}
+          {people.length > 0 ? (
+            <Group title={t`Люди`} found={people} onOpen={() => setOpen(false)} />
+          ) : null}
           <p className={css.note} aria-live="polite">
-            {asked === null || results.isPending ? (
+            {asked === null || results.isPending || stale ? (
               <Trans>Ищем…</Trans>
             ) : results.isError ? (
               <Trans>Не удалось найти. Попробуйте ещё раз.</Trans>
@@ -126,22 +167,34 @@ export default function TopSearch() {
   );
 }
 
-function Group({ title, found }: { title: string; found: Found[] }) {
+function Group({
+  title,
+  found,
+  onOpen,
+}: {
+  title: string;
+  found: Found[];
+  onOpen: () => void;
+}) {
+  const id = useId();
+  // A label, not a heading: the top bar's list is no part of the page's outline.
   return (
-    <section>
-      <h2 className={css.group}>{title}</h2>
-      <ul>
+    <>
+      <p id={id} className={css.group}>
+        {title}
+      </p>
+      <ul aria-labelledby={id}>
         {found.map((one) => (
           <li key={one.kind === 'chat' ? `c${one.chat.id}` : `p${one.person.user_id}`}>
-            <Entry found={one} />
+            <Entry found={one} onOpen={onOpen} />
           </li>
         ))}
       </ul>
-    </section>
+    </>
   );
 }
 
-function Entry({ found }: { found: Found }) {
+function Entry({ found, onOpen }: { found: Found; onOpen: () => void }) {
   const { t } = useLingui();
   const status: Record<string, string> = {
     approved: t`одобрен`,
@@ -172,7 +225,8 @@ function Entry({ found }: { found: Found }) {
     </>
   );
   return found.to ? (
-    <Link to={found.to} className={css.entry}>
+    // Closed here too: the screen already open does not change the path.
+    <Link to={found.to} className={css.entry} onClick={onOpen}>
       {body}
     </Link>
   ) : (
