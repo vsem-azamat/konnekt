@@ -152,27 +152,6 @@ _SYNONYM_HIT = f"""EXISTS (
      ) > 0
 )"""
 
-# A subject name of two words or more, declined: «с линейной алгеброй» is
-# «Линейная алгебра», «s lineární algebrou» is «Lineární algebra». A word of
-# five letters or more is found by its beginning — all of it but the last two
-# letters, never fewer than four — at the start of a query word; a shorter word
-# — «b1», «pro», «и» — only whole. Names and not synonyms: the synonyms are
-# curated forms already, matched by their beginning, and English ones cut short
-# — «cell», «scio» — would start too many words of other languages.
-_DECLINED_NAME = """(
-    SELECT count(*) >= 2 AND bool_and(strpos(
-        q.tokens,
-        ' ' || CASE WHEN length(w) >= 5
-                    THEN left(w, greatest(4, length(w) - 2))
-                    ELSE w || ' ' END
-    ) > 0)
-      FROM regexp_split_to_table(
-               btrim(regexp_replace(immutable_unaccent(lower(i.name)),
-                                    '[^[:alnum:]]+', ' ', 'g')), ' '
-           ) w
-     WHERE w <> ''
-)"""
-
 # A level or a number in a synonym — «b1», «2» — is the part that tells it from
 # its siblings, and too short for the trigram score to notice missing: «экзамен
 # b1» resembled «экзамен через две недели» at 0.67 by «экзамен» alone and
@@ -208,10 +187,6 @@ _SUBJECT_SQL = text(
                         WHERE length(btrim(syn)) >= 5
                           AND {_SYNONYM_LEVEL_SAID}
                    ), 0.0),
-                   -- Below a synonym hit and an exact name, which are curated
-                   -- and certain; above every trigram score, which a name in
-                   -- another case only resembled.
-                   CASE WHEN bool_or({_DECLINED_NAME}) THEN 0.97 ELSE 0.0 END,
                    CASE WHEN s.external_code IS NOT NULL
                          AND strpos(
                              q.tokens,

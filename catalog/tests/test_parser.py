@@ -891,8 +891,9 @@ async def test_the_floor_is_what_stops_a_distant_nearest_neighbour(
 )
 async def test_a_subject_named_in_any_case_is_named(session, text, lang, expected):
     """Russian, Ukrainian and Czech decline every word of a subject's name:
-    «линейной алгеброй» names «Линейная алгебра» as surely as the nominative,
-    and was missed for it."""
+    «линейной алгеброй» names «Линейная алгебра» as surely as the nominative.
+    It scores only about 0.6 by trigrams, so any stray synonym above that —
+    «экзамен b1» at 0.67 — took the title from it."""
     parsed = await parse(session, text, lang, today=TODAY)
     assert parsed.subject is not None
     assert parsed.subject.label == expected
