@@ -467,6 +467,59 @@ class TestWhatComesBack:
         assert [row["title"] for row in rows] == ["ČVUT | ЧВУТ", "ČVUT FIT", "Kolej Hvězda"]
 
 
+class TestOrder:
+    """Ours before somebody else's, then the larger first, at every level (Azamat, 2026-10-22).
+
+    Before, groups were alphabetical, and somebody else's ČZU opened the list.
+    """
+
+    async def _counts(self, session_maker, **by_id: int) -> None:
+        async with session_maker() as session:
+            for chat_id, count in by_id.items():
+                session.add(ChatMemberSnapshot(chat_id=int(chat_id), member_count=count, captured_at=utc_now()))
+            await session.commit()
+
+    async def test_our_groups_come_first_then_the_larger(self, client_factory, db_session_maker) -> None:
+        czu, vse, small = -1001141940639, -1001292637469, -1001198485843
+        await _seed(
+            db_session_maker,
+            _chat(czu, "ČZU", public_link="https://t.me/czu_chat", status=Chat.STATUS_EXTERNAL),
+            _chat(FIT, "ČZU PEF", public_link="https://t.me/czu_pef", parent_chat_id=czu),
+            _chat(CVUT, "ČVUT", public_link="https://t.me/cvut_chat"),
+            _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs", parent_chat_id=CVUT),
+            _chat(vse, "VŠE", public_link="https://t.me/vse_chat"),
+            _chat(small, "Strahov", public_link="https://t.me/strahov"),
+        )
+        # The external ČZU is the largest, and Strahov sits between ČVUT's own
+        # chat and its bigger faculty: a group goes by its own chat, not its largest or its sum.
+        await self._counts(
+            db_session_maker,
+            **{str(czu): 2400, str(FIT): 1600, str(CVUT): 1500, str(FS): 2000, str(vse): 900, str(small): 1700},
+        )
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert [row["title"] for row in rows] == ["Strahov", "ČVUT FS", "ČVUT", "VŠE", "ČZU PEF", "ČZU"]
+
+    async def test_inside_a_group_ours_come_first_then_the_larger(self, client_factory, db_session_maker) -> None:
+        await _seed(
+            db_session_maker,
+            _chat(CVUT, "ČVUT", public_link="https://t.me/cvut_chat"),
+            _chat(FIT, "ČVUT FIT", public_link="https://t.me/cvut_fit", parent_chat_id=CVUT),
+            _chat(FS, "ČVUT FS", public_link="https://t.me/cvut_fs", parent_chat_id=CVUT),
+            _chat(
+                PRIVATE, "FEL OI", public_link="https://t.me/fel_oi", parent_chat_id=CVUT, status=Chat.STATUS_EXTERNAL
+            ),
+        )
+        await self._counts(db_session_maker, **{str(CVUT): 1500, str(FIT): 300, str(FS): 900, str(PRIVATE): 5000})
+
+        async with client_factory() as client:
+            rows = (await client.get("/api/public/catalog")).json()
+
+        assert [row["title"] for row in rows] == ["ČVUT", "ČVUT FS", "ČVUT FIT", "FEL OI"]
+
+
 class TestActivityIsWithheldUntilItMeansSomething:
     async def test_a_fresh_database_claims_nothing(self, client_factory, db_session_maker) -> None:
         """The failure this rule exists for.

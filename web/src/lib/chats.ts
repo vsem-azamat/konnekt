@@ -145,7 +145,7 @@ export type Entry =
 
 export interface Directory {
   entries: Entry[];
-  /** Chats without a group, shown last under their own heading. */
+  /** Chats without a group, in the order given; blocks() puts them among the groups. */
   rest: PublicChat[];
 }
 
@@ -180,11 +180,14 @@ export function directory(chats: PublicChat[], mine: string | null = null): Dire
     );
   }
   if (mine !== null) {
-    const own = (entry: Entry) =>
-      (entry.kind === 'chat' ? entry.chat : entry.chats[0])?.institution === mine;
-    entries.sort((a, b) => Number(own(b)) - Number(own(a)));
+    entries.sort((a, b) => Number(isMine(b, mine)) - Number(isMine(a, mine)));
   }
   return { entries, rest };
+}
+
+/** Whether an entry is the student's own university's. */
+function isMine(entry: Entry, mine: string): boolean {
+  return (entry.kind === 'chat' ? entry.chat : entry.chats[0])?.institution === mine;
 }
 
 /** One heading of the catalogue and what stands under it. */
@@ -201,8 +204,9 @@ function lead(entry: Entry): PublicChat | undefined {
 /**
  * The catalogue under its headings, for one city or for all (`city` null).
  *
- * Built on {@link directory}, so sections and the student's own university
- * first work as they did. An entry is filed by its lead chat's topic, and an
+ * Built on {@link directory}, so sections work as they did. Entries keep
+ * supervisor's order, loose chats among the groups, with the student's own
+ * university first. An entry is filed by its lead chat's topic, and an
  * unfiled one under «Общее». A city keeps the entries for it and those for
  * all of Czechia; a section goes by its own chat's city, so a university's
  * faculties are never split between two cities. Empty headings are left out.
@@ -212,10 +216,19 @@ export function blocks(
   { mine, city }: { mine: string | null; city: string | null },
 ): Block[] {
   const { entries, rest } = directory(chats, mine);
+  // Loose chats take their place in supervisor's order (ours, then the larger
+  // first) rather than all going after the groups; the student's own
+  // university still comes before that order.
+  const position = new Map(chats.map((chat, index) => [chat, index]));
+  const at = (entry: Entry) => {
+    const first = entry.kind === 'chat' ? entry.chat : entry.chats[0];
+    return first ? (position.get(first) ?? 0) : 0;
+  };
+  const raise = (entry: Entry) => (mine !== null && isMine(entry, mine) ? 0 : 1);
   const all: Entry[] = [
     ...entries,
     ...rest.map((chat) => ({ kind: 'chat' as const, chat })),
-  ];
+  ].sort((a, b) => raise(a) - raise(b) || at(a) - at(b));
   const shown = all.filter((entry) => {
     const where = lead(entry)?.city ?? null;
     return city === null || where === null || where === city;

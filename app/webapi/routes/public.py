@@ -58,10 +58,6 @@ AVATAR_CACHE_CONTROL = "public, max-age=31536000, immutable"
 # What Telegram's `file_unique_id` is made of; anything else cannot be one.
 _UNIQUE_ID = r"^[A-Za-z0-9_-]{1,64}$"
 
-# Sorts after every real title, so ungrouped chats land at the end rather than
-# at the top where an empty string would put them.
-_UNGROUPED = "￿"
-
 # What a chat with no university above it is called on the reach table. The
 # catalogue page picks the same word for the same rows.
 UNGROUPED_LABEL = "Остальные"
@@ -192,20 +188,47 @@ async def get_public_catalog(
         for row in rows
         if row.title and row.public_link
     ]
-    # Grouped and alphabetical, so the page renders what the server already
-    # decided instead of sorting forty-five rows again in the browser.
-    answer = sorted(
-        items,
-        key=lambda item: (
-            (item.group or _UNGROUPED).lower(),
-            # A section opens with its own chat: the university's general room
-            # above its faculties, rather than alphabetised in among them.
-            item.title != item.group,
-            item.title.lower(),
-        ),
-    )
+    answer = _ordered(items)
     public_answers.remember("catalog", answer)
     return answer
+
+
+def _ordered(items: list[PublicCatalogItem]) -> list[PublicCatalogItem]:
+    """Ours before somebody else's, then the larger first, at every level.
+
+    The page renders what the server decided instead of sorting again in the
+    browser. A group goes by its lead, the chat named like it (the university's
+    own room), or its largest when there is none: ours or not, then the count
+    its row shows, which is that chat's rather than the faculties' sum, since a
+    sum would count one student many times. Inside a group the same rule orders
+    the chats. A chat in no group stands as a group of its own.
+
+    Ties, mostly chats never measured, keep the older order: a group's own chat
+    opens it, groups come before loose chats, and names decide the rest.
+    """
+
+    def rank(item: PublicCatalogItem) -> tuple[bool, int]:
+        # An unmeasured chat is not known to be larger than any other.
+        return item.external, -(item.member_count or 0)
+
+    groups: dict[str, list[PublicCatalogItem]] = {}
+    loose: list[PublicCatalogItem] = []
+    for item in items:
+        if item.group is None:
+            loose.append(item)
+        else:
+            groups.setdefault(item.group, []).append(item)
+    for name, chats in groups.items():
+        chats.sort(key=lambda chat: (*rank(chat), chat.title != name, chat.title.lower()))
+
+    def lead(name: str) -> PublicCatalogItem:
+        chats = groups[name]
+        return next((chat for chat in chats if chat.title == name), chats[0])
+
+    runs = [(rank(lead(name)), False, name.lower(), chats) for name, chats in groups.items()]
+    runs += [(rank(chat), True, chat.title.lower(), [chat]) for chat in loose]
+    runs.sort(key=lambda run: run[:3])
+    return [chat for *_, chats in runs for chat in chats]
 
 
 @router.get("/avatars/{unique_id}")

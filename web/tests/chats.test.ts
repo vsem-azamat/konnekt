@@ -456,6 +456,23 @@ test("within a block a student's own university still comes first", () => {
   );
 });
 
+test('a loose chat keeps its place in the order given, not after the groups', () => {
+  // supervisor puts ours first, then the larger: a big loose chat of ours
+  // stands above somebody else's university section.
+  const order = [
+    chat('VŠB-TUO', null, { topic: 'university' }),
+    chat('ČZU', 'ČZU', { topic: 'university', external: true }),
+    chat('ČZU PEF', 'ČZU', { topic: 'university', external: true }),
+  ];
+  const [universities] = blocks(order, { mine: null, city: null });
+  assert.deepEqual(
+    universities?.entries.map((entry) =>
+      entry.kind === 'section' ? entry.name : entry.chat.title,
+    ),
+    ['VŠB-TUO', 'ČZU'],
+  );
+});
+
 test('the city chips are the cities that have chats, the busiest first', () => {
   assert.deepEqual(cityChoices(PRAGUE_AND_BRNO), ['Praha', 'Brno', 'Ostrava']);
 });
