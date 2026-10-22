@@ -159,7 +159,8 @@ sent to.
 **One bot answers a chat's join requests.** Telegram lets a bot write to an
 applicant only until somebody else has, so with a second captcha bot in the
 chat (@simplecaptcha_bot, today) whoever writes first wins and the other's
-captcha is never delivered. Turn captcha on for a chat in the same step as
+captcha is never delivered. Turn captcha on, or «Пускать всех» in a public
+chat (the bot then approves before the other bot asks), in the same step as
 taking the other bot out of it.
 
 ## Approval

@@ -30,10 +30,10 @@ CHAT_ID = -1001234
 USER_ID = 4242
 
 
-def _request(query_id: str | None = None) -> ChatJoinRequest:
+def _request(query_id: str | None = None, *, username: str | None = None) -> ChatJoinRequest:
     user = User(id=USER_ID, is_bot=False, first_name="Applicant")
     return ChatJoinRequest(
-        chat=Chat(id=CHAT_ID, type="supergroup", title="Managed"),
+        chat=Chat(id=CHAT_ID, type="supergroup", title="Managed", username=username),
         from_user=user,
         user_chat_id=USER_ID,
         date=datetime.now(UTC),
@@ -185,10 +185,10 @@ async def _seed_open_chat(session: AsyncSession) -> None:
     await session.commit()
 
 
-async def test_an_open_chat_approves_the_request_at_once(session: AsyncSession, bot) -> None:
+async def test_a_public_open_chat_approves_the_request_at_once(session: AsyncSession, bot) -> None:
     await _seed_open_chat(session)
 
-    await join_requested(_request(), bot, session)
+    await join_requested(_request(username="open_room"), bot, session)
 
     bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
     bot.send_message.assert_not_called()
@@ -198,19 +198,37 @@ async def test_an_open_chat_still_turns_the_blacklisted_away(session: AsyncSessi
     await _seed_open_chat(session)
     await _blacklist(session)
 
-    await join_requested(_request(), bot, session)
+    await join_requested(_request(username="open_room"), bot, session)
 
     bot.decline_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
     bot.approve_chat_join_request.assert_not_awaited()
 
 
-async def test_an_open_chat_approves_through_the_query_as_guard_bot(session: AsyncSession, bot) -> None:
+async def test_a_public_open_chat_approves_through_the_query_as_guard_bot(session: AsyncSession, bot) -> None:
     await _seed_open_chat(session)
 
-    await join_requested(_request(query_id="q-7"), bot, session)
+    await join_requested(_request(query_id="q-7", username="open_room"), bot, session)
 
     bot.answer_chat_join_request_query.assert_awaited_once_with(chat_join_request_query_id="q-7", result="approve")
     bot.approve_chat_join_request.assert_not_awaited()
+
+
+async def test_a_request_in_a_private_open_chat_is_left_to_the_admins(session: AsyncSession, bot) -> None:
+    """The bot's link there asks for none: a request came by an admin's own link, and is theirs."""
+    await _seed_open_chat(session)
+
+    await join_requested(_request(), bot, session)
+
+    bot.approve_chat_join_request.assert_not_awaited()
+    bot.decline_chat_join_request.assert_not_awaited()
+
+
+async def test_a_private_open_chat_queues_for_the_admins_as_guard_bot(session: AsyncSession, bot) -> None:
+    await _seed_open_chat(session)
+
+    await join_requested(_request(query_id="q-8"), bot, session)
+
+    bot.answer_chat_join_request_query.assert_awaited_once_with(chat_join_request_query_id="q-8", result="queue")
 
 
 async def test_an_approval_telegram_refuses_leaves_the_request_to_the_admins(session: AsyncSession, bot) -> None:
@@ -219,6 +237,6 @@ async def test_an_approval_telegram_refuses_leaves_the_request_to_the_admins(ses
         method=ApproveChatJoinRequest(chat_id=CHAT_ID, user_id=USER_ID), message="Bad Request: CHAT_ADMIN_REQUIRED"
     )
 
-    await join_requested(_request(), bot, session)
+    await join_requested(_request(username="open_room"), bot, session)
 
     bot.decline_chat_join_request.assert_not_awaited()

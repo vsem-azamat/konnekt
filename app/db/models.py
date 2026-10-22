@@ -14,7 +14,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
@@ -125,7 +125,8 @@ class Chat(Base):
     # Telegram, or a private one through the bot's own link, which asks for a
     # request in every mode but OPEN.
     #
-    # OPEN approves every request at once, CAPTCHA asks the applicant first,
+    # OPEN approves every request to a public chat at once (a private one
+    # admits through the bot's link without any), CAPTCHA asks the applicant first,
     # ADMINS leaves requests to the chat's admins. Anyone blacklisted is
     # declined whatever the mode.
     JOIN_OPEN = "open"
@@ -162,6 +163,13 @@ class Chat(Base):
     _legacy_captcha: Mapped[bool] = mapped_column(
         "is_captcha_enabled", Boolean, default=False, server_default=sa.false()
     )
+
+    @validates("join_mode")
+    def _keep_legacy_captcha(self, _key: str, mode: str) -> str:
+        # Kept true to the mode, so a release rolled back to reads what was set.
+        self._legacy_captcha = mode == self.JOIN_CAPTCHA
+        return mode
+
     # On by default: a quiet chat otherwise reads as a membership log, dozens of
     # "joined"/"left" notices with the occasional real message lost among them.
     is_service_cleanup_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true())

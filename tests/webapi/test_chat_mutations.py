@@ -368,19 +368,26 @@ async def test_an_unknown_join_mode_is_refused(client_factory, db_session_maker)
 
 
 @pytest.mark.parametrize(
-    ("link", "left"),
+    ("link", "by_request", "left"),
     [
         # The bot's own link asked for no request without the captcha: people walked in.
-        ("https://t.me/+private_invite", "open"),
+        ("https://t.me/+private_invite", False, "open"),
         # Telegram's own requests went to the admins.
-        ("https://t.me/public_room", "admins"),
+        ("https://t.me/public_room", None, "admins"),
+        ("https://t.me/public_room", False, "admins"),
+        (None, True, "admins"),
+        # Not asked yet: could be public with requests on, so nobody is let in unseen.
+        (None, None, "admins"),
+        (None, False, "open"),
     ],
 )
 async def test_the_old_captcha_switch_turned_off_changes_nothing_else(
-    client_factory, db_session_maker, link: str, left: str
+    client_factory, db_session_maker, link: str | None, by_request: bool | None, left: str
 ) -> None:
     async with db_session_maker() as s:
-        s.add(Chat(id=-2103, title="x", public_link=link, join_mode=Chat.JOIN_CAPTCHA))
+        chat = Chat(id=-2103, title="x", public_link=link, join_mode=Chat.JOIN_CAPTCHA)
+        chat.join_by_request = by_request
+        s.add(chat)
         await s.commit()
 
     async with client_factory() as client:

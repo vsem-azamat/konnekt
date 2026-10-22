@@ -15,7 +15,7 @@ _BEFORE = "d8a3c5e17b42"
 _INSERT = (
     "INSERT INTO chats (id, resource_status, is_forum, time_delete, is_welcome_enabled, is_captcha_enabled,"
     " created_at, modified_at, public_link)"
-    " VALUES (:id, 'approved', false, 60, false, :captcha, now(), now(), :link)"
+    " VALUES (:id, :status, false, 60, false, :captcha, now(), now(), :link)"
 )
 
 
@@ -30,19 +30,21 @@ def test_each_chat_keeps_what_the_bot_did_there(database) -> None:  # noqa: F811
             (-5, False, "https://t.me/joinchat/old_style"),
             (-6, False, None),
         ):
-            conn.execute(sa.text(_INSERT), {"id": id_, "captcha": captcha, "link": link})
+            conn.execute(sa.text(_INSERT), {"id": id_, "status": "approved", "captcha": captcha, "link": link})
+        # Not ours to act in yet, and perhaps public: nobody let in unseen once it is.
+        conn.execute(sa.text(_INSERT), {"id": -10, "status": "discovered", "captcha": False, "link": None})
 
     command.upgrade(_alembic(), "head")
 
     with database.connect() as conn:
         rows = dict(conn.execute(sa.text("SELECT id, join_mode FROM chats")).tuples().all())
-    assert rows == {-1: "captcha", -2: "captcha", -3: "admins", -4: "open", -5: "open", -6: "open"}
+    assert rows == {-1: "captcha", -2: "captcha", -3: "admins", -4: "open", -5: "open", -6: "open", -10: "admins"}
 
 
 def test_a_mode_outside_the_list_is_refused(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), "head")
     with database.begin() as conn:
-        conn.execute(sa.text(_INSERT), {"id": -7, "captcha": False, "link": None})
+        conn.execute(sa.text(_INSERT), {"id": -7, "status": "approved", "captcha": False, "link": None})
     with pytest.raises(IntegrityError), database.begin() as conn:
         conn.execute(sa.text("UPDATE chats SET join_mode = 'everyone' WHERE id = -7"))
 
@@ -63,7 +65,7 @@ def test_a_new_chat_is_left_to_the_admins_and_the_old_column_needs_no_value(data
 def test_it_downgrades_with_the_captcha_where_it_was(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), "head")
     with database.begin() as conn:
-        conn.execute(sa.text(_INSERT), {"id": -9, "captcha": False, "link": None})
+        conn.execute(sa.text(_INSERT), {"id": -9, "status": "approved", "captcha": False, "link": None})
         conn.execute(sa.text("UPDATE chats SET join_mode = 'captcha' WHERE id = -9"))
     command.downgrade(_alembic(), _BEFORE)
     with database.connect() as conn:

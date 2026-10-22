@@ -84,9 +84,11 @@ def _mode_without_captcha(chat: Chat) -> str:
 
     A public chat's requests come from its own setting and went to the admins;
     a private one has the bot's link, which without a captcha asked for none.
+    A chat not yet asked about its setting is taken to have it, the side that
+    lets nobody in unseen.
     """
     public = chat.public_link is not None and username_of(chat.public_link) is not None
-    return Chat.JOIN_ADMINS if public or chat.join_by_request else Chat.JOIN_OPEN
+    return Chat.JOIN_ADMINS if public or chat.join_by_request is not False else Chat.JOIN_OPEN
 
 
 def _build_heatmap(timestamps: list[datetime.datetime]) -> list[HeatmapCell]:

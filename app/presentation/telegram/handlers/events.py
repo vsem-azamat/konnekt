@@ -144,8 +144,8 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
     middleware watches, so without this a blacklisted person is only stopped
     once an operator has already let them in.
 
-    The chat's join mode decides the rest. A chat that lets everyone in has
-    the request approved at once. With captcha, the applicant approves
+    The chat's join mode decides the rest. A public chat that lets everyone in
+    has the request approved at once. With captcha, the applicant approves
     themselves by passing it: a Mini App when this bot guards the chat, a
     private message otherwise, unless a captcha they passed in another chat
     lately vouches for them. Otherwise the decision stays with the humans.
@@ -168,7 +168,10 @@ async def join_requested(event: ChatJoinRequest, bot: Bot, db: AsyncSession) -> 
             await bot.decline_chat_join_request(chat_id=event.chat.id, user_id=applicant.id)
         return
 
-    if chat.join_mode == Chat.JOIN_OPEN:
+    # A private chat lets everyone in through the bot's link, which asks for
+    # no request. A request there came by a link an admin made to ask for one,
+    # and is theirs to decide.
+    if chat.join_mode == Chat.JOIN_OPEN and event.chat.username:
         await _let_in(event, bot)
         return
 

@@ -6,10 +6,16 @@ for anyone on the day:
 - captcha on: captcha;
 - a public chat (its link is a username) without it: admins, since Telegram's
   own requests, where it has them on, were left to the admins;
-- any other chat without it: open. A listed private chat's bot link asked for
-  no request and people walked in; an unlisted one has no bot link yet, and
-  ADMINS would give it one asking for requests nobody answers once listed.
-  (Every approved chat without a link was private when this was written.)
+- a listed private chat without it: open, since its bot link asked for no
+  request and people walked in;
+- an approved chat without a link: open too, ADMINS would give it a link
+  asking for requests nobody answers once listed (every one was private when
+  this was written);
+- any other chat without a link: admins, the bot acting in none of them yet
+  and some of them perhaps public.
+
+OPEN approves requests only in a public chat, so in a private one requests
+that come by an admin's own link still wait for the admins, as before.
 
 is_captcha_enabled stays in the table, given a default, so the previous release
 keeps running beside this one; a later migration drops it.
@@ -40,6 +46,7 @@ def upgrade() -> None:
             WHEN is_captcha_enabled THEN 'captcha'
             WHEN public_link IS NOT NULL AND public_link NOT LIKE '%/+%'
                 AND public_link NOT LIKE '%joinchat%' THEN 'admins'
+            WHEN public_link IS NULL AND resource_status <> 'approved' THEN 'admins'
             ELSE 'open'
         END
         """
