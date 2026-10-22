@@ -86,7 +86,7 @@
   /* What Telegram covers at the bottom of the window: its bottom button on
      iOS, which it leaves out of the height it reports. Whatever is fixed to
      the bottom and must stay readable rises by this much. */
-  --hidden-bottom: 0px;
+  --hidden-bottom: max(0px, 100vh - var(--app-height, 100vh));
 
   /* Telegram's header overlaps the page in fullscreen, so a screen's first
      element has to clear it. The device notch is handled once on #root. */
