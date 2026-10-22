@@ -19,9 +19,7 @@ _INSERT = (
 
 def _row(conn, chat_id: int) -> tuple:
     return tuple(
-        conn.execute(
-            sa.text("SELECT city, topic, institution_code FROM chats WHERE id = :id"), {"id": chat_id}
-        ).one()
+        conn.execute(sa.text("SELECT city, topic, institution_code FROM chats WHERE id = :id"), {"id": chat_id}).one()
     )
 
 
