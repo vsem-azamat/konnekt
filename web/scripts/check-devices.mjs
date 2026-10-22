@@ -129,6 +129,8 @@ const LAST_CHAT = 'Zz last fixture chat';
 const SECTION = 'Fixture section';
 const LAST_IN_SECTION = 'Zz last in section';
 const CHATS = [
+  // A channel's badge overhangs its avatar; it has to stay on the screen too.
+  { title: 'Fixture channel', kind: 'channel', external: true },
   { title: 'ČVUT', group: 'ČVUT', institution: 'cvut' },
   { title: 'ČVUT FIT', group: 'ČVUT', institution: 'cvut' },
   { title: 'ČVUT FEL', group: 'ČVUT', institution: 'cvut' },

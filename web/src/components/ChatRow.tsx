@@ -58,11 +58,11 @@ function ActivityWord({ activity }: { activity: Activity }) {
 export function Members({
   count,
   activity,
-  channel = false,
+  channel,
 }: {
   count: number | null;
   activity: Activity;
-  channel?: boolean;
+  channel: boolean;
 }) {
   const { i18n } = useLingui();
   const dot = channel ? null : rowDotFor(activity);
@@ -119,11 +119,11 @@ export function Members({
 export function ChatTitle({
   title,
   external,
-  channel = false,
+  channel,
 }: {
   title: string;
   external: boolean;
-  channel?: boolean;
+  channel: boolean;
 }) {
   if (!external) return <>{title}</>;
   return (

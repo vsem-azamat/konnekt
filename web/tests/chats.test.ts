@@ -501,8 +501,16 @@ test('a chat is a channel only when supervisor says so', () => {
     ['channel', 'group', 'supergroup', 'CHANNEL', undefined].map((kind, n) => ({
       title: `Chat ${n}`,
       link: `https://t.me/c${n}`,
+      external: true,
       kind,
     })),
   ).map((c) => c.kind);
   assert.deepEqual(kinds, ['channel', 'group', 'group', 'group', 'group']);
+});
+
+test('a channel said to be ours is drawn as a group', () => {
+  const [chat] = sanitize([
+    { title: 'Ours', link: 'https://t.me/ours', kind: 'channel' },
+  ]);
+  assert.equal(chat?.kind, 'group');
 });

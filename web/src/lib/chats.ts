@@ -40,7 +40,10 @@ export interface PublicChat {
   member_count: number | null;
   /** Whether the chat is split into Telegram topics. */
   is_forum: boolean;
-  /** A kind this app does not know, or none, is a group: it draws as before. */
+  /**
+   * A kind this app does not know, or none, is a group: it draws as before. So
+   * is a channel said to be ours, which cannot be.
+   */
   kind: ChatKind;
   /**
    * Somebody else's chat, listed so it can be found: Konnekt does not run it,
@@ -125,7 +128,7 @@ export function sanitize(payload: unknown[]): PublicChat[] {
           ? (member_count as number)
           : null,
       is_forum: is_forum === true,
-      kind: kind === 'channel' ? 'channel' : 'group',
+      kind: kind === 'channel' && external === true ? 'channel' : 'group',
       external: external === true,
       avatar: typeof avatar === 'string' && AVATAR_PATH.test(avatar) ? avatar : null,
       city: typeof city === 'string' && city.trim() ? city : null,
