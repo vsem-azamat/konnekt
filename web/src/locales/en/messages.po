@@ -126,11 +126,6 @@ msgstr "On the public tab"
 msgid "оценка"
 msgstr "rating"
 
-#. placeholder {0}: feed.length
-#: src/pages/Profile.tsx
-msgid "{0, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
-msgstr "{0, plural, one {# request for your services} other {# requests for your services}}"
-
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
 msgstr "What you do"
@@ -2116,10 +2111,6 @@ msgstr "Tick everything you can do. Prices come on the next screen."
 msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
 msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
 
-#: src/pages/Profile.tsx
-msgid "новых заявок нет"
-msgstr "no new requests"
-
 #: src/components/ChatRow.tsx
 msgid "тихий"
 msgstr "quiet"
@@ -2292,6 +2283,10 @@ msgstr "Close"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "Sat"
+
+#: src/pages/Profile.tsx
+msgid "открытых нет"
+msgstr "none open"
 
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"

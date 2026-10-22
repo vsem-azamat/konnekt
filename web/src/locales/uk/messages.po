@@ -126,11 +126,6 @@ msgstr "На публічній вкладці"
 msgid "оценка"
 msgstr "оцінка"
 
-#. placeholder {0}: feed.length
-#: src/pages/Profile.tsx
-msgid "{0, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
-msgstr "{0, plural, one {# заявка за твоїми послугами} few {# заявки за твоїми послугами} many {# заявок за твоїми послугами} other {# заявки за твоїми послугами}}"
-
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
 msgstr "Те, чим ти займаєшся"
@@ -2116,10 +2111,6 @@ msgstr "Познач усе, що вмієш. Ціни спитаємо на н�
 msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
 msgstr "Не зрозумів запит. Спробуй назвати предмет — «математичний аналіз», «čeština B2», «фізика»."
 
-#: src/pages/Profile.tsx
-msgid "новых заявок нет"
-msgstr "нових заявок немає"
-
 #: src/components/ChatRow.tsx
 msgid "тихий"
 msgstr "тихий"
@@ -2292,6 +2283,10 @@ msgstr "Закрити"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "Сб"
+
+#: src/pages/Profile.tsx
+msgid "открытых нет"
+msgstr "відкритих немає"
 
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"

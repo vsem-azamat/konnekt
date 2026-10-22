@@ -126,11 +126,6 @@ msgstr "Na veřejné záložce"
 msgid "оценка"
 msgstr "hodnocení"
 
-#. placeholder {0}: feed.length
-#: src/pages/Profile.tsx
-msgid "{0, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
-msgstr "{0, plural, one {# poptávka k tvým službám} few {# poptávky k tvým službám} many {# poptávky k tvým službám} other {# poptávek k tvým službám}}"
-
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
 msgstr "To, co děláš"
@@ -2116,10 +2111,6 @@ msgstr "Označ všechno, co umíš. Na ceny se zeptáme na dalším kroku."
 msgid "Не понял запрос. Попробуй назвать предмет — «математический анализ», «čeština B2», «физика»."
 msgstr "Nerozuměl jsem dotazu. Zkus napsat předmět — „matematická analýza“, „čeština B2“, „fyzika“."
 
-#: src/pages/Profile.tsx
-msgid "новых заявок нет"
-msgstr "žádné nové poptávky"
-
 #: src/components/ChatRow.tsx
 msgid "тихий"
 msgstr "tichý"
@@ -2292,6 +2283,10 @@ msgstr "Zavřít"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "So"
+
+#: src/pages/Profile.tsx
+msgid "открытых нет"
+msgstr "žádné otevřené"
 
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"

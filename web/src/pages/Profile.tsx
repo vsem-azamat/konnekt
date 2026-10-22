@@ -7,6 +7,7 @@ import {
   BookmarkIcon,
   ChatIcon,
   DocumentIcon,
+  InboxIcon,
   LanguageIcon,
   PersonIcon,
   SealIcon,
@@ -37,7 +38,7 @@ import { openRequests } from '@/lib/openRequests';
  * A person's own things first, then the one setting, then the rest.
  *
  * «Моё» is what a student and a helper come back for: their requests, and for
- * a helper their services and the requests that match them. Someone who is
+ * a helper their services and the requests to answer. Someone who is
  * not a helper yet gets one card that says what offering help means, rather
  * than a row that only names it.
  *
@@ -83,12 +84,6 @@ export default function ProfilePage() {
   const { data: helper } = useQuery({
     queryKey: ['my-helper'],
     queryFn: ({ signal }) => api.getMyHelper(signal),
-    enabled: isHelper,
-  });
-  // The feed answers helpers only, and 403s for everyone else.
-  const { data: feed } = useQuery({
-    queryKey: ['request-feed'],
-    queryFn: ({ signal }) => api.getRequestFeed(signal),
     enabled: isHelper,
   });
 
@@ -161,8 +156,10 @@ export default function ProfilePage() {
               }
               title={<Trans>Мои заявки</Trans>}
               hint={
-                !requests ? null : waiting.requests === 0 ? (
+                !requests ? null : requests.length === 0 ? (
                   <Trans>своих заявок нет</Trans>
+                ) : waiting.requests === 0 ? (
+                  <Trans>открытых нет</Trans>
                 ) : (
                   <>
                     <Plural
@@ -221,29 +218,20 @@ export default function ProfilePage() {
                     </>
                   }
                 />
-                <Row
-                  onClick={() => navigate('/mine?tab=incoming')}
-                  leading={
-                    <Tile tone={3}>
-                      <DocumentIcon size={19} />
-                    </Tile>
-                  }
-                  title={<Trans>Входящие</Trans>}
-                  hint={
-                    !feed ? null : feed.length === 0 ? (
-                      <Trans>новых заявок нет</Trans>
-                    ) : (
-                      <Plural
-                        value={feed.length}
-                        one="# заявка по твоим услугам"
-                        few="# заявки по твоим услугам"
-                        many="# заявок по твоим услугам"
-                        other="# заявки по твоим услугам"
-                      />
-                    )
-                  }
-                  trailing={feed?.length ? <Count>{feed.length}</Count> : null}
-                />
+                {/* Without a number until the feed can say which requests
+                    match the helper's services: today it returns every live
+                    request in the catalog. A banned helper's feed is closed. */}
+                {me.helper_status === 'banned' ? null : (
+                  <Row
+                    onClick={() => navigate('/mine?tab=incoming')}
+                    leading={
+                      <Tile tone={3}>
+                        <InboxIcon size={19} />
+                      </Tile>
+                    }
+                    title={<Trans>Входящие</Trans>}
+                  />
+                )}
               </>
             ) : null}
           </Rows>
