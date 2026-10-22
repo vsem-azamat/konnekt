@@ -140,15 +140,47 @@ async def test_a_retired_bot_says_it_moved_and_drops_the_mini_app_and_the_comman
     await moved.retire_profile(bot, konnekt_username="konnekt_cz_bot")
 
     assert isinstance(bot.set_chat_menu_button.await_args.kwargs["menu_button"], MenuButtonCommands)
-    scopes = {type(call.kwargs["scope"]).__name__ for call in bot.delete_my_commands.await_args_list}
+    scopes = {
+        type(call.kwargs["scope"]).__name__
+        for call in bot.delete_my_commands.await_args_list
+        if call.kwargs.get("language_code") is None
+    }
     assert scopes == ALL_SCOPES
-    description = bot.set_my_description.await_args.kwargs["description"]
-    short = bot.set_my_short_description.await_args.kwargs["short_description"]
+    description = bot.set_my_description.await_args_list[0].kwargs["description"]
+    short = bot.set_my_short_description.await_args_list[0].kwargs["short_description"]
     assert "@konnekt_cz_bot" in description
     assert "@konnekt_cz_bot" in short
     # Telegram's limits.
     assert len(description) <= 512
     assert len(short) <= 120
+
+
+async def test_a_retired_bot_is_retired_in_every_language() -> None:
+    """Telegram shows a language's own text before the default one.
+
+    The live bot writes ru/uk/cs/en; left alone on a retired bot, they would
+    keep its old description and menu in front of almost everybody.
+    """
+    from app.presentation.telegram import profile
+
+    bot = AsyncMock()
+
+    await moved.retire_profile(bot, konnekt_username="konnekt_cz_bot")
+
+    for language in profile.LANGUAGES:
+        scopes = {
+            type(call.kwargs["scope"]).__name__
+            for call in bot.delete_my_commands.await_args_list
+            if call.kwargs.get("language_code") == language
+        }
+        assert scopes == ALL_SCOPES, language
+        assert call_for(bot.set_my_description, language).kwargs["description"] == ""
+        assert call_for(bot.set_my_short_description, language).kwargs["short_description"] == ""
+
+
+def call_for(method: AsyncMock, language: str):
+    (call,) = [c for c in method.await_args_list if c.kwargs.get("language_code") == language]
+    return call
 
 
 async def test_one_failed_reset_step_leaves_the_others_done() -> None:
@@ -177,7 +209,7 @@ async def test_a_retired_bot_starts_with_the_new_address_to_hand(monkeypatch) ->
 
     await dp.emit_startup(bot=bot, konnekt_username="konnekt_cz_bot")
 
-    assert "@konnekt_cz_bot" in bot.set_my_description.await_args.kwargs["description"]
+    assert "@konnekt_cz_bot" in bot.set_my_description.await_args_list[0].kwargs["description"]
 
 
 async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch) -> None:
