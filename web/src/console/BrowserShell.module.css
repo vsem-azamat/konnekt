@@ -7,7 +7,7 @@
 .frame {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   background: var(--bg);
   color: var(--ink);
 }
@@ -49,12 +49,31 @@
 }
 
 .link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 9px;
   padding: 8px 10px;
   border-radius: var(--r-chip);
   color: var(--ink-soft);
   text-decoration: none;
   font-weight: 500;
+}
+
+.link svg {
+  flex: none;
+}
+
+.badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .link:hover {

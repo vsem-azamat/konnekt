@@ -30,7 +30,8 @@
  * What it cannot do: the mock in `src/mockEnv.ts` reports `tdesktop`, where the
  * SDK synthesises the viewport from `window.innerHeight`, so `--app-height`
  * here is always the same number as the `100dvh` fallback. The iOS and Android
- * path that variable exists for is not exercised by anything on this machine.
+ * path that variable exists for is not exercised here; check-clearance.mjs
+ * imposes the heights those clients report instead.
  *
  * Needs the dev server (`pnpm dev`) and the API behind it, with a signed
  * `VITE_MOCK_INIT_DATA` in `web/.env.local` — the API answers 401 to the
