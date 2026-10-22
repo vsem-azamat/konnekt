@@ -1,0 +1,36 @@
+/*
+ * The audience in a browser (#288, layout A): the statuses in one line under
+ * the total, where people came from beside the weeks. A window as narrow as
+ * a phone stacks the two.
+ */
+
+.page .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  align-items: start;
+}
+
+.card {
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.card > :first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
