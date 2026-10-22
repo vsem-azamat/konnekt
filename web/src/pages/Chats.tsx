@@ -1,13 +1,14 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { ChatRow, Members } from '@/components/ChatRow';
-import { SearchIcon } from '@/components/icons';
+import { CloseIcon, SearchIcon } from '@/components/icons';
 import { TabBar } from '@/components/TabBar';
 import {
+  Action,
   Chevron,
   Empty,
   Label,
@@ -35,6 +36,9 @@ import {
   sectionMembers,
 } from '@/lib/chats';
 
+/** What people search by, said in the field and again when nothing matched. */
+const EXAMPLES = 'ČVUT, FIT, Strahov';
+
 /**
  * The chat directory: supervisor-telegram's chats, read as places to go.
  *
@@ -45,8 +49,12 @@ export default function ChatsPage() {
   const { t } = useLingui();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const field = useRef<HTMLInputElement>(null);
 
-  const { data, isPending, isError, refetch } = useQuery(chatsQuery);
+  // The error as soon as it happens, with its own button to ask again. The
+  // default two silent retries kept the skeleton up for seconds, and a person
+  // who sees the error can retry when they like.
+  const { data, isPending, isError, refetch } = useQuery({ ...chatsQuery, retry: false });
 
   // A student's own university first. Outside Telegram there is no one to
   // ask, and the directory keeps supervisor's order.
@@ -84,11 +92,25 @@ export default function ChatsPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t`ČVUT, FIT, Strahov…`}
+            ref={field}
+            placeholder={`${EXAMPLES}…`}
             aria-label={t`Поиск чата`}
             maxLength={100}
             style={{ all: 'unset', flex: 1, minWidth: 0 }}
           />
+          {query !== '' ? (
+            <button
+              type="button"
+              className={ui.fieldClear}
+              aria-label={t`Очистить поиск`}
+              onClick={() => {
+                setQuery('');
+                field.current?.focus();
+              }}
+            >
+              <CloseIcon size={14} />
+            </button>
+          ) : null}
         </div>
 
         {isPending ? (
@@ -99,16 +121,31 @@ export default function ChatsPage() {
             <SkeletonRows count={6} />
           </>
         ) : isError ? (
-          <Rows>
-            <Row
+          // Not the cause: the screen cannot tell the network from the server.
+          <div className={ui.stateBlock}>
+            <Empty
               title={<Trans>Не удалось загрузить чаты</Trans>}
-              hint={<Trans>Нажми, чтобы попробовать ещё раз</Trans>}
-              onClick={() => void refetch()}
+              body={<Trans>Список не пришёл. Попробуй ещё раз через минуту.</Trans>}
+              action={
+                <Action onClick={() => void refetch()}>
+                  <Trans>Попробовать ещё раз</Trans>
+                </Action>
+              }
             />
-          </Rows>
+          </div>
         ) : searching ? (
           found.length === 0 ? (
-            <Empty title={<Trans>Такого чата нет</Trans>} />
+            <div className={ui.stateBlock}>
+              <Empty
+                title={<Trans>Такого чата нет</Trans>}
+                body={<Trans>Ищи по вузу, факультету или общежитию: {EXAMPLES}.</Trans>}
+                action={
+                  <Action quiet onClick={() => setQuery('')}>
+                    <Trans>Очистить поиск</Trans>
+                  </Action>
+                }
+              />
+            </div>
           ) : (
             <>
               <Label>

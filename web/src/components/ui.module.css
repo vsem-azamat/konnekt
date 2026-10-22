@@ -216,6 +216,27 @@
   color: var(--muted);
 }
 
+/* Empties the field it sits in: a 28 px disc, pressable across 44 px. */
+.fieldClear {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-pressed);
+  color: var(--muted);
+}
+
+.fieldClear::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
 .fieldGhost {
   color: var(--muted);
 }
@@ -625,8 +646,9 @@
   display: grid;
   place-items: center;
   /* Off: an empty ring, so the tile reads as choosable before anything is
-     chosen. On: filled, and the tick inherits this colour. */
-  box-shadow: inset 0 0 0 1.5px var(--hairline);
+     chosen — darker than a hairline, which vanished on the grey tile. On:
+     filled, and the tick inherits this colour. */
+  box-shadow: inset 0 0 0 1.5px var(--muted-soft);
   color: transparent;
   transition:
     background-color 120ms ease,
@@ -1082,6 +1104,18 @@
   opacity: 1;
 }
 
+/* A cross at the end of a row: the drawing stays small, the place to press is
+   44 px, as a finger needs. */
+.rowRemove {
+  position: relative;
+}
+
+.rowRemove::after {
+  content: '';
+  position: absolute;
+  inset: calc((44px - 100%) / -2);
+}
+
 /* ── cards ──────────────────────────────────────────────────────────── */
 
 .cards {
@@ -1368,6 +1402,12 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* An error or an empty search under a field: set off from it rather than
+   reading as the field's own caption. */
+.stateBlock {
+  padding-top: 6px;
 }
 
 /* ── actions ────────────────────────────────────────────────────────── */

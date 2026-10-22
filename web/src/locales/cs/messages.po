@@ -505,6 +505,10 @@ msgstr "Vzhled: podle systému. Klepnutím změníš"
 msgid "Ссылка должна начинаться с https://, вести на сайт и быть без пробелов, не длиннее 1024 знаков."
 msgstr "Odkaz musí začínat https://, vést na web, být bez mezer a mít nejvýše 1024 znaků."
 
+#: src/pages/Chats.tsx
+msgid "Ищи по вузу, факультету или общежитию: {EXAMPLES}."
+msgstr "Hledej podle školy, fakulty nebo koleje: {EXAMPLES}."
+
 #: src/pages/Results.tsx
 msgid "Напиши иначе — или оставь заявку, и найдут тебя."
 msgstr "Zkus to jinak — nebo zadej poptávku a najdou tebe."
@@ -798,6 +802,10 @@ msgstr "Hotovo"
 #: src/console/ProfileSheet.tsx
 msgid "Отмена"
 msgstr "Zrušit"
+
+#: src/pages/MyHelper.tsx
+msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
+msgstr "Zatím ho vidíš jen ty. Níže už je vybráno «V katalogu»: stiskni «Uložit» a profil se objeví ve vyhledávání."
 
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
@@ -1386,8 +1394,8 @@ msgid "Куда попадёт"
 msgstr "Kam se dostane"
 
 #: src/pages/Chats.tsx
-msgid "ČVUT, FIT, Strahov…"
-msgstr "ČVUT, FIT, Strahov…"
+#~ msgid "ČVUT, FIT, Strahov…"
+#~ msgstr "ČVUT, FIT, Strahov…"
 
 #: src/console/AudienceLabels.tsx
 msgid "Бот связи"
@@ -1982,6 +1990,10 @@ msgstr "Zabanovaní ve všech chatech. Banuje se příkazem /banall nebo z obraz
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram odmítl ve všech chatech: zkontrolujte práva bota a zabanujte znovu."
 
+#: src/pages/Chats.tsx
+msgid "Попробовать ещё раз"
+msgstr "Zkusit znovu"
+
 #: src/components/HideReasonText.tsx
 msgid "Нарушает правила"
 msgstr "Porušuje pravidla"
@@ -2382,7 +2394,6 @@ msgstr "Pomoc v den zkoušky"
 msgid "Профиль недоступен"
 msgstr "Profil není dostupný"
 
-#: src/pages/Chats.tsx
 #: src/pages/ChatSection.tsx
 #: src/pages/Home.tsx
 msgid "Нажми, чтобы попробовать ещё раз"
@@ -2462,6 +2473,10 @@ msgstr "Jak to děláš"
 msgid "Пояснение над карточкой"
 msgstr "Poznámka nad kartou"
 
+#: src/pages/Chats.tsx
+msgid "Список не пришёл. Попробуй ещё раз через минуту."
+msgstr "Seznam nedorazil. Zkus to znovu za minutu."
+
 #: src/pages/Life.tsx
 msgid "Не про учёбу"
 msgstr "Není o škole"
@@ -2508,6 +2523,10 @@ msgstr "Odkud přicházejí"
 #: src/pages/Request.tsx
 msgid "Ты отказался"
 msgstr "Odmítl jsi"
+
+#: src/pages/Chats.tsx
+msgid "Очистить поиск"
+msgstr "Vymazat hledání"
 
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."

@@ -22,7 +22,7 @@ import {
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { afterHelperSaved } from '@/lib/helperSaved';
-import { type OwnerStatus, ownerStatus } from '@/lib/ownerStatus';
+import { type OwnerStatus, ownerStatus, startsListed } from '@/lib/ownerStatus';
 import type { MyHelper, MyOffer, OfferInput, PriceUnit, WorkFormat } from '@/lib/types';
 import { askedFormat, formatOptions, formatQuestion } from '@/lib/workFormat';
 
@@ -105,10 +105,7 @@ export default function MyHelperPage() {
     setCity(data.city ?? '');
     setPlaceNote(data.place_note ?? '');
     setWorkFormat(data.work_format);
-    // On while an operator keeps it hidden too: the server ignores it then,
-    // and if they list it again while this screen is open, the next save must
-    // not take it down.
-    setListed(data.status !== 'hidden' && data.status !== 'draft');
+    setListed(startsListed(data));
     setRows(data.offers.map(toDraft));
     setLoaded(true);
   }, [data, loaded]);
@@ -168,7 +165,9 @@ export default function MyHelperPage() {
       <Title>
         <Trans>Моя анкета</Trans>
       </Title>
-      {seen && status ? <StatusCard status={status} helper={seen} /> : null}
+      {seen && status ? (
+        <StatusCard status={status} helper={seen} listed={listed} />
+      ) : null}
 
       {!loaded ? (
         <div style={{ marginTop: 16 }}>
@@ -357,7 +356,16 @@ export default function MyHelperPage() {
  * «на проверке» (listed already, only not looked at yet), and an operator's
  * hide with its reason.
  */
-function StatusCard({ status, helper }: { status: OwnerStatus; helper: MyHelper }) {
+function StatusCard({
+  status,
+  helper,
+  listed,
+}: {
+  status: OwnerStatus;
+  helper: MyHelper;
+  /** «Видимость» below as it is now, which the draft's hint talks about. */
+  listed: boolean;
+}) {
   return (
     <div className={ui.ownerStatus} data-status={status}>
       <span className={ui.ownerStatusTitle}>
@@ -386,7 +394,18 @@ function StatusCard({ status, helper }: { status: OwnerStatus; helper: MyHelper 
       ) : null}
       <span>
         {status === 'draft' ? (
-          <Trans>Пока её видишь только ты. Выбери «В каталоге», когда всё готово.</Trans>
+          // A new profile starts on «В каталоге» (startsListed), so the hint
+          // says what saving does rather than ask for a choice already made.
+          listed ? (
+            <Trans>
+              Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и
+              анкета появится в поиске.
+            </Trans>
+          ) : (
+            <Trans>
+              Пока её видишь только ты. Выбери «В каталоге», когда всё готово.
+            </Trans>
+          )
         ) : status === 'review' ? (
           <Trans>Анкета уже в каталоге, администратор её ещё не смотрел.</Trans>
         ) : status === 'listed' ? (
@@ -484,6 +503,11 @@ function SubjectRow({
           fontVariantNumeric: 'tabular-nums',
         }}
       />
+      {/* The currency stays once a price is typed: the placeholder alone
+          left a bare «600 за час». */}
+      {row.price !== '' ? (
+        <span style={{ marginLeft: -6, fontSize: 15, color: 'var(--ink)' }}>Kč</span>
+      ) : null}
       <select
         value={row.unit}
         onChange={(event) => onUnit(event.target.value as PriceUnit)}
@@ -504,7 +528,7 @@ function SubjectRow({
       </select>
       <button
         type="button"
-        className={ui.chipRemove}
+        className={`${ui.chipRemove} ${ui.rowRemove}`}
         aria-label={t`Убрать`}
         onClick={onRemove}
       >
