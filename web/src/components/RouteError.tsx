@@ -8,7 +8,8 @@ import { Row, Rows, Screen } from '@/components/Ui';
  *
  * Without it React Router shows its own page, meant for developers, in English.
  * The error is already reported: React tells `createRoot`'s `onCaughtError` of
- * every error a boundary catches, this one's included.
+ * every error a boundary catches, this one's included, and a screen that
+ * failed to download reports itself (`lazyScreen`).
  *
  * Asking again reloads the app rather than the screen. A render error is
  * rarely a fluke, and the likeliest one that is — a bundle older than the API

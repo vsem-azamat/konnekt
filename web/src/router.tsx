@@ -1,7 +1,7 @@
-import type { ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { RouteError } from '@/components/RouteError';
 import { TabsLayout } from '@/components/TabsLayout';
+import { lazyScreen as screen } from '@/lib/lazyScreen';
 import AdsPage from '@/pages/Ads';
 import AdsAppPage from '@/pages/AdsApp';
 import AdsChatsPage from '@/pages/AdsChats';
@@ -22,14 +22,6 @@ import ProfilePage from '@/pages/Profile';
 import RequestPage from '@/pages/Request';
 import ResultsPage from '@/pages/Results';
 import Root from '@/Root';
-
-/**
- * A screen fetched the first time it is opened. The screen before stays on
- * show until it arrives; one that fails to arrive is the `errorElement`'s.
- */
-function screen(load: () => Promise<{ default: ComponentType }>) {
-  return async () => ({ Component: (await load()).default });
-}
 
 /**
  * A browser router, not a hash router.
