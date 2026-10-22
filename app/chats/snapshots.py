@@ -23,8 +23,10 @@ import asyncio
 import datetime
 from typing import TYPE_CHECKING
 
+import aiohttp
 from sqlalchemy import select, update
 
+from app.chats import previews
 from app.chats.avatars import sync_photo
 from app.chats.metadata import BotNotInChatError, fetch_member_count, fetch_metadata, username_of
 from app.core.logging import get_logger
@@ -119,7 +121,15 @@ async def snapshot_once(
     absent_cutoff = now - datetime.timedelta(hours=BOT_ABSENT_RECHECK_HOURS)
 
     async with session_maker() as session:
-        chats = (await session.execute(select(Chat))).scalars().all()
+        everything = (await session.execute(select(Chat))).scalars().all()
+        # A chat known only by its invite link is not Telegram's to answer
+        # about to this bot: its page is read instead, once a day.
+        chats = [chat for chat in everything if not chat.is_preview_only]
+        previewed = [
+            chat
+            for chat in everything
+            if chat.is_preview_only and (chat.last_synced_at is None or chat.last_synced_at < cutoff)
+        ]
         pictured = set((await session.execute(select(ChatAvatar.chat_id))).scalars())
         asked = 0
         for chat in chats:
@@ -171,6 +181,13 @@ async def snapshot_once(
             if outcome != "failed":
                 # A picture that could not be fetched leaves the chat due, so the next tick tries again.
                 chat.last_synced_at = now
+
+        if previewed:
+            async with aiohttp.ClientSession() as http:
+                for chat in previewed:
+                    read = await previews.sync(session, http, chat)
+                    if read is not None and read.member_count is not None:
+                        written += 1
 
         await session.commit()
 

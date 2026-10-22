@@ -36,7 +36,7 @@ logger = get_logger("chats.avatars")
 # Small chat photos are 160 px and a few kilobytes. The ceiling is a guard on
 # what lands in the database, not a target: anything near it is not what we asked for.
 MAX_AVATAR_BYTES = 256 * 1024
-_JPEG = b"\xff\xd8\xff"
+JPEG_MAGIC = b"\xff\xd8\xff"
 
 Outcome = Literal["fetched", "unchanged", "removed", "failed", "skipped"]
 
@@ -62,7 +62,7 @@ async def _download(bot: Bot, file_id: str) -> bytes | None:
     data = buffer.read()
     # Served to strangers under our own address with a content type we choose, so
     # only what really is a JPEG of the expected size gets that far.
-    if not data.startswith(_JPEG) or len(data) >= MAX_AVATAR_BYTES:
+    if not data.startswith(JPEG_MAGIC) or len(data) >= MAX_AVATAR_BYTES:
         logger.warning("avatar_rejected", size=len(data))
         return None
     return data
@@ -101,12 +101,20 @@ async def _sync(*, session: AsyncSession, bot: Bot, chat: Chat, metadata: ChatMe
     data = await _download(bot, metadata.avatar_file_id)
     if data is None:
         return "failed"
+    await store(session, chat_id=chat.id, unique_id=metadata.avatar_unique_id, content=data)
+    if stored is not None:
+        session.expire(stored)
+    return "fetched"
+
+
+async def store(session: AsyncSession, *, chat_id: int, unique_id: str, content: bytes) -> None:
+    """Put a chat's picture in, replacing any it had. Caller commits."""
     # An upsert, because the hourly tick, the console's refresh and the photo
     # handler can each be putting a chat's first picture in at once.
     insert = insert_for(session, ChatAvatar.__table__).values(
-        chat_id=chat.id,
-        unique_id=metadata.avatar_unique_id,
-        content=data,
+        chat_id=chat_id,
+        unique_id=unique_id,
+        content=content,
         content_type="image/jpeg",
         fetched_at=utc_now(),
     )
@@ -116,6 +124,3 @@ async def _sync(*, session: AsyncSession, bot: Bot, chat: Chat, metadata: ChatMe
             set_={name: insert.excluded[name] for name in ("unique_id", "content", "content_type", "fetched_at")},
         )
     )
-    if stored is not None:
-        session.expire(stored)
-    return "fetched"

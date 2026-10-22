@@ -257,6 +257,8 @@ async def audit_chats(
         logger.warning("own_words_not_approved", chat_ids=stray)
     if chat_ids is not None:
         chats = [chat for chat in chats if chat.id in chat_ids]
+    # Known only by an invite link: there is no id Telegram would answer about.
+    chats = [chat for chat in chats if not chat.is_preview_only]
 
     states: list[ChatState] = []
     for index, chat in enumerate(chats):

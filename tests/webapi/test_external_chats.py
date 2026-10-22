@@ -108,14 +108,12 @@ async def test_a_username_is_taken_in_any_of_its_usual_spellings(client_factory,
 @pytest.mark.parametrize(
     "link",
     [
-        "https://t.me/+AbCdEfGhIjKl",
-        "https://t.me/joinchat/AbCdEfGhIjKl",
         "javascript:alert(1)",
         "https://example.com/x",
     ],
 )
 async def test_a_link_that_is_not_a_public_username_is_refused(client_factory, link) -> None:
-    """Telegram resolves a username for anybody; an invite only for whoever joins through it."""
+    """Neither a username nor an invite link (those are tests/webapi/test_invite_chats.py)."""
     make, holder = client_factory
 
     async with make() as client:
