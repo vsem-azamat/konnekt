@@ -217,7 +217,9 @@ function RequestCard({
                 ) : (
                   <Trans>без срока</Trans>
                 )}
-                {request.expires_at ? (
+                {/* A deadline already says how long; the days left are for a
+                    request without one, which ends when its time runs out. */}
+                {!request.deadline_on && request.expires_at ? (
                   <>
                     {' · '}
                     <Plural
