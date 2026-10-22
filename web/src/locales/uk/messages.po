@@ -333,6 +333,10 @@ msgstr "Моє"
 msgid "как у родителя: <0/>"
 msgstr "як у батьківського: <0/>"
 
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>из анкеты, можно изменить</1>"
+msgstr "Ціна <0/>, Kč <1>з анкети, можна змінити</1>"
+
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
 #: src/console/pages/Summary.tsx
@@ -718,6 +722,10 @@ msgstr "не наш канал"
 #: src/console/pages/Spam.tsx
 msgid "Чат: все ▾"
 msgstr "Чат: усі ▾"
+
+#: src/components/Incoming.tsx
+msgid "Онлайн или лично"
+msgstr "Онлайн або особисто"
 
 #: src/console/pages/Chats.tsx
 msgid "7 дней"
@@ -2090,6 +2098,10 @@ msgstr "Відповідаємо, в яких чатах це доречно і 
 msgid "можно написать"
 msgstr "можна написати"
 
+#: src/components/Incoming.tsx
+msgid "Первые 20 минут бесплатно"
+msgstr "Перші 20 хвилин безкоштовно"
+
 #: src/pages/Profile.tsx
 msgid "черновик — не видна в каталоге"
 msgstr "чернетка — не видно в каталозі"
@@ -2153,8 +2165,8 @@ msgid "Набег на {title}"
 msgstr "Набіг на {title}"
 
 #: src/components/Incoming.tsx
-msgid "Цена за час, Kč <0>необязательно</0>"
-msgstr "Ціна за годину, Kč <0>необов'язково</0>"
+#~ msgid "Цена за час, Kč <0>необязательно</0>"
+#~ msgstr "Ціна за годину, Kč <0>необов'язково</0>"
 
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
@@ -2544,6 +2556,10 @@ msgstr "Такої групи більше немає"
 #: src/console/pages/Chats.tsx
 msgid "на сайте"
 msgstr "на сайті"
+
+#: src/components/Incoming.tsx
+msgid "Могу на этой неделе"
+msgstr "Можу цього тижня"
 
 #: src/components/RemoveRequest.tsx
 #: src/pages/Join.tsx
@@ -3327,6 +3343,10 @@ msgstr "Опублікувати заявку"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Заблоковані"
+
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>необязательно</1>"
+msgstr "Ціна <0/>, Kč <1>необов’язково</1>"
 
 #: src/console/pages/Chat.tsx
 msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."

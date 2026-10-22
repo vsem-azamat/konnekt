@@ -333,6 +333,8 @@ export interface FeedRequest extends Omit<HelpRequest, 'responders'> {
   reason: Phrase | null;
   /** Already answered by this helper; absent from servers that drop those. */
   responded?: boolean;
+  /** What the helper's own profile asks for this kind of work, if it says. */
+  suggested_price?: Price | null;
 }
 
 export type ResponseStatus = 'sent' | 'read' | 'accepted' | 'declined';

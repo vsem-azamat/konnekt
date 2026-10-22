@@ -333,6 +333,10 @@ msgstr "Mine"
 msgid "как у родителя: <0/>"
 msgstr "same as the parent: <0/>"
 
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>из анкеты, можно изменить</1>"
+msgstr "Price <0/>, Kč <1>from your profile, can be changed</1>"
+
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
 #: src/console/pages/Summary.tsx
@@ -718,6 +722,10 @@ msgstr "not our channel"
 #: src/console/pages/Spam.tsx
 msgid "Чат: все ▾"
 msgstr "Chat: all ▾"
+
+#: src/components/Incoming.tsx
+msgid "Онлайн или лично"
+msgstr "Online or in person"
 
 #: src/console/pages/Chats.tsx
 msgid "7 дней"
@@ -2090,6 +2098,10 @@ msgstr "We reply with which chats it fits and what it costs."
 msgid "можно написать"
 msgstr "can be written to"
 
+#: src/components/Incoming.tsx
+msgid "Первые 20 минут бесплатно"
+msgstr "First 20 minutes free"
+
 #: src/pages/Profile.tsx
 msgid "черновик — не видна в каталоге"
 msgstr "draft — not visible in the catalog"
@@ -2153,8 +2165,8 @@ msgid "Набег на {title}"
 msgstr "Raid on {title}"
 
 #: src/components/Incoming.tsx
-msgid "Цена за час, Kč <0>необязательно</0>"
-msgstr "Price per hour, Kč <0>optional</0>"
+#~ msgid "Цена за час, Kč <0>необязательно</0>"
+#~ msgstr "Price per hour, Kč <0>optional</0>"
 
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
@@ -2544,6 +2556,10 @@ msgstr "This group is gone"
 #: src/console/pages/Chats.tsx
 msgid "на сайте"
 msgstr "listed"
+
+#: src/components/Incoming.tsx
+msgid "Могу на этой неделе"
+msgstr "I can this week"
 
 #: src/components/RemoveRequest.tsx
 #: src/pages/Join.tsx
@@ -3327,6 +3343,10 @@ msgstr "Post the request"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Banned"
+
+#: src/components/Incoming.tsx
+msgid "Цена <0/>, Kč <1>необязательно</1>"
+msgstr "Price <0/>, Kč <1>optional</1>"
 
 #: src/console/pages/Chat.tsx
 msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
