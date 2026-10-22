@@ -206,6 +206,7 @@ msgstr "Zkontroluj připojení a zkus to znovu."
 
 #: src/components/Incoming.tsx
 #: src/components/Phrase.tsx
+#: src/components/RequestSheet.tsx
 #: src/lib/workFormat.tsx
 msgid "Онлайн"
 msgstr "Online"
@@ -888,6 +889,10 @@ msgstr "zabanovaní ve všech chatech"
 msgid "{0, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{0, plural, one {člen} few {členové} many {členu} other {členů}}"
 
+#: src/components/RequestSheet.tsx
+msgid "Другой…"
+msgstr "Jiné…"
+
 #: src/console/TopSearch.tsx
 msgid "Чат, человек, @username или id"
 msgstr "Chat, člověk, @username nebo id"
@@ -928,6 +933,10 @@ msgstr "přesunutí odběratelé"
 #: src/console/pages/Chat.tsx
 msgid "Чат вуза можно не указывать: он стоит в «Вузы» по своему вузу."
 msgstr "U chatu vysoké školy to není potřeba: do „Vysoké školy“ ho zařadí jeho škola."
+
+#: src/components/RequestSheet.tsx
+msgid "Как удобно"
+msgstr "Jak ti to vyhovuje"
 
 #: src/components/InstitutionPicker.tsx
 msgid "Загружаем список вузов…"
@@ -1414,6 +1423,10 @@ msgstr "Zabanovat a smazat všechny jeho zprávy"
 #: src/pages/OfferPrices.tsx
 msgid "за час"
 msgstr "za hodinu"
+
+#: src/components/RequestSheet.tsx
+msgid "Неважно"
+msgstr "Nezáleží"
 
 #: src/console/pages/Partners.tsx
 msgid "рядом с языками"
@@ -2369,6 +2382,7 @@ msgstr "Příspěvek v chatech"
 #~ msgid "Бот пишет его новичку: «@имя, ваш текст»."
 #~ msgstr "Bot ho pošle nováčkovi: «@jméno, váš text»."
 
+#: src/components/RequestSheet.tsx
 #: src/console/pages/Chat.tsx
 #: src/pages/Chats.tsx
 #: src/pages/MyHelper.tsx
@@ -3273,6 +3287,7 @@ msgstr "Dokumenty a život"
 msgid "Поняли так — поправь, если не то"
 msgstr "Pochopili jsme to takhle — oprav to, pokud to není ono"
 
+#: src/components/RequestSheet.tsx
 #: src/lib/workFormat.tsx
 msgid "Лично"
 msgstr "Osobně"
