@@ -91,6 +91,11 @@ class TelegramSettings(Settings):
         validation_alias="MODERATOR_BOT_RETIRED_TOKEN",
         description="Tokens of retired bots, comma-separated; each answers private messages with the new address",
     )
+    # A placeholder until the final video is approved, so a setting and off by
+    # default. A file_id or an https URL: Telegram fetches either itself.
+    intro_video: str = Field(
+        default="", description="Video sent with the /start greeting (file_id or https URL); unset sends text only"
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="MODERATOR_BOT_",

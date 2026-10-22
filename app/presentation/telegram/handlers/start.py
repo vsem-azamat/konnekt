@@ -53,12 +53,8 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
 
 
 # The whole greeting, so a change of copy is a change of this line alone.
-GREETING = (
-    "<b>Konnekt</b> — студенческие чаты Чехии и помощь с учёбой.\n\n"
-    "Чаты по университетам, факультетам и общежитиям, спам, скам и фишинг оттуда мы вычищаем. "
-    "Там же репетиторы, подготовка к вступительным экзаменам, нострификация."
-)
-OPEN_BUTTON = "Открыть Konnekt"
+GREETING = "<b>Konnekt</b>\n\nСтуденческие чаты Чехии и помощь с учёбой — в одном приложении."
+OPEN_BUTTON = "Открыть Konnekt 📱"
 CONSOLE_BUTTON = "⚙️ Открыть консоль"
 
 
@@ -101,8 +97,15 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
 
     # Deliberately not scheduled for deletion. This is the message somebody
     # comes back to; the справочник below is the one that may go.
-    markup = builder.as_markup()
-    await message.answer(text, disable_web_page_preview=True, reply_markup=markup if markup.inline_keyboard else None)
+    markup = builder.as_markup() if any(builder.buttons) else None
+    if video := settings.telegram.intro_video:
+        try:
+            await message.answer_video(video=video, caption=text, reply_markup=markup)
+            return
+        except Exception as err:
+            # A stale file_id must not leave /start silent.
+            logger.warning("start_video_failed", error=str(err), exc_info=True)
+    await message.answer(text, disable_web_page_preview=True, reply_markup=markup)
 
 
 @router.message(Command("help", prefix="/!"))
