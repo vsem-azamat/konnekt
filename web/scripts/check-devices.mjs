@@ -18,9 +18,9 @@
  * What it asserts is geometric, against what the person can see — the smaller
  * of Telegram's height and the webview's:
  *
- *   - the tab bar sits flush on the visible bottom, inside it;
+ *   - the tab bar sits on the window's bottom edge;
  *   - scrolled to the end, the last thing in the list ends above the tab bar
- *     (or above the bottom inset where there is no bar);
+ *     and inside the visible area, in the directory and in a section;
  *   - the first thing on the screen clears the notch and Telegram's header;
  *   - nothing is wider than the screen;
  *   - an open sheet lies inside the visible area;
@@ -36,29 +36,29 @@
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
+import { VIEWPORTS } from './lib/stack.mjs';
+
 /**
  * A webview of `width × height` CSS px, inside which Telegram reports `tg` as
  * the app's height. `safe` is the device's inset, `content` Telegram's own
  * chrome over the page (fullscreen only).
+ *
+ * Android is measured on the short phones the other checks use, with
+ * Telegram's height equal to the window, taller than it (Android reports its
+ * swipe container, header included) and shorter than it (iOS with its bottom
+ * button up), so a fix for one direction cannot break another.
  */
 const PROFILES = [
-  { name: 'android 360, equal', platform: 'android', width: 360, height: 640, tg: 640 },
-  {
-    name: 'android 412, Telegram shorter',
-    platform: 'android',
-    width: 412,
-    height: 915,
-    tg: 867,
-    safe: { bottom: 24 },
-  },
-  {
-    name: 'android 412, Telegram taller',
-    platform: 'android',
-    width: 412,
-    height: 867,
-    tg: 915,
-    safe: { bottom: 24 },
-  },
+  ...VIEWPORTS.flatMap(({ width, height }) =>
+    [0, 100, -60].map((delta) => ({
+      name: `android ${width}×${height}, Telegram ${delta > 0 ? '+' : ''}${delta}px`,
+      platform: 'android',
+      width,
+      height,
+      tg: height + delta,
+      safe: { bottom: 24 },
+    })),
+  ),
   {
     name: 'ios 390, notch',
     platform: 'ios',
@@ -85,16 +85,24 @@ const TOLERANCE = 1.5;
 // ── fixtures ────────────────────────────────────────────────────────────
 
 /**
- * A directory long enough to scroll at every size: one section with its own
- * chat and three more, then loose chats. The last one is named, so the check
- * can tell that the end of the list is what it is looking at.
+ * A directory long enough to scroll at every size, and a section of it that
+ * is too: a short section, a long one, then loose chats. The last chat of each
+ * list is named, so the check can tell that the end of the list is what it is
+ * looking at.
  */
 const LAST_CHAT = 'Zz last fixture chat';
+const SECTION = 'Fixture section';
+const LAST_IN_SECTION = 'Zz last in section';
 const CHATS = [
   { title: 'ČVUT', group: 'ČVUT', institution: 'cvut' },
   { title: 'ČVUT FIT', group: 'ČVUT', institution: 'cvut' },
   { title: 'ČVUT FEL', group: 'ČVUT', institution: 'cvut' },
   { title: 'ČVUT FS', group: 'ČVUT', institution: 'cvut' },
+  ...Array.from({ length: 14 }, (_, i) => ({
+    title: `Section chat ${i + 1}`,
+    group: SECTION,
+  })),
+  { title: LAST_IN_SECTION, group: SECTION },
   ...Array.from({ length: 18 }, (_, i) => ({ title: `Fixture chat ${i + 1}` })),
   { title: LAST_CHAT },
 ].map((chat, i) => ({
@@ -316,14 +324,20 @@ async function open(browser, base, profile, path) {
 const visibleBottom = (profile, height = profile.tg, inner = profile.height) =>
   Math.min(height, inner);
 
-async function checkList(browser, base, profile) {
-  const { page, context, unknown } = await open(browser, base, profile, '/chats');
+/** The directory and a section of it, both under the tab bar. */
+const LISTS = [
+  { path: '/chats', last: LAST_CHAT },
+  { path: `/chats/${encodeURIComponent(SECTION)}`, last: LAST_IN_SECTION },
+];
+
+async function checkList(browser, base, profile, { path, last }) {
+  const { page, context, unknown } = await open(browser, base, profile, path);
   try {
-    await page.getByText(LAST_CHAT).waitFor({ timeout: 10_000 });
+    await page.getByText(last).waitFor({ timeout: 10_000 });
   } catch {
     fail(
       profile,
-      `/chats never showed its list (no fixture for: ${[...unknown].join(', ') || 'none'})`,
+      `${path} never showed its list (no fixture for: ${[...unknown].join(', ') || 'none'})`,
     );
     await context.close();
     return;
@@ -335,9 +349,9 @@ async function checkList(browser, base, profile) {
   if (top && top.top < clearance - TOLERANCE) {
     fail(
       profile,
-      `/chats: «${top.text}» starts at ${Math.round(top.top)}px, under the ${clearance}px inset`,
+      `${path}: «${top.text}» starts at ${Math.round(top.top)}px, under the ${clearance}px inset`,
     );
-  } else ok(`/chats: top clears ${clearance}px`);
+  } else ok(`${path}: top clears ${clearance}px`);
 
   const seen = await page.evaluate(measureScreen);
   const bottom = visibleBottom(profile);
@@ -345,31 +359,42 @@ async function checkList(browser, base, profile) {
   if (seen.docWidth > seen.innerWidth || seen.scrollerWidth > 1) {
     fail(
       profile,
-      `/chats: wider than the screen (${seen.docWidth}px in ${seen.innerWidth}px)`,
+      `${path}: wider than the screen (${seen.docWidth}px in ${seen.innerWidth}px)`,
     );
-  } else ok('/chats: no sideways scroll');
+  } else ok(`${path}: no sideways scroll`);
 
+  // On the window's bottom edge, which is the visible bottom wherever a screen
+  // has tabs. Where Telegram reports less (iOS, its bottom button up) the
+  // button covers the bar's place; no screen shows both.
   if (!seen.bar) {
-    fail(profile, '/chats: no tab bar');
-  } else if (Math.abs(seen.bar.bottom - bottom) > TOLERANCE) {
+    fail(profile, `${path}: no tab bar`);
+  } else if (Math.abs(seen.bar.bottom - seen.innerHeight) > TOLERANCE) {
     fail(
       profile,
-      `/chats: tab bar ends at ${Math.round(seen.bar.bottom)}px, the visible bottom is ${bottom}px`,
+      `${path}: tab bar ends at ${Math.round(seen.bar.bottom)}px, the window at ${seen.innerHeight}px`,
     );
-  } else ok(`/chats: tab bar flush on the visible bottom (${bottom}px)`);
+  } else ok(`${path}: tab bar on the bottom edge (${seen.innerHeight}px)`);
 
-  if (seen.bar && seen.lowest) {
-    const under = seen.lowest.bottom - Math.min(seen.bar.top, bottom);
+  if (!seen.lowest) {
+    fail(profile, `${path}: nothing in the list to measure`);
+  } else {
+    const limit = Math.min(seen.bar?.top ?? bottom, bottom);
+    const under = seen.lowest.bottom - limit;
     if (under > TOLERANCE) {
       fail(
         profile,
-        `/chats: scrolled to the end, «${seen.lowest.text}» is ${Math.round(under)}px under the tab bar`,
+        `${path}: scrolled to the end, «${seen.lowest.text}» is ${Math.round(under)}px under the tab bar or the visible bottom`,
       );
-    } else ok('/chats: last row clears the tab bar');
+    } else ok(`${path}: the end of the list is visible`);
+  }
+
+  if (path !== '/chats') {
+    await context.close();
+    return;
   }
 
   // A chat's preview: the sheet has to be on the screen.
-  await page.getByText(LAST_CHAT).click();
+  await page.getByText(last).click();
   const dialog = page.getByRole('dialog');
   try {
     await dialog.waitFor({ timeout: 3000 });
@@ -456,7 +481,7 @@ try {
     console.log(
       `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
     );
-    await checkList(browser, base, profile);
+    for (const list of LISTS) await checkList(browser, base, profile, list);
     if (profile.platform === 'android') {
       await checkRestore(browser, base, profile);
       await checkKeyboard(browser, base, profile);

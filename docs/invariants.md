@@ -74,8 +74,8 @@ the bottom of the window on a Pixel, and the last rows of «Чаты» could not
 scrolled to (October 2026; the cause is read from Telegram's source and
 reproduced by imposing its height, not measured on the device). So the app box
 ends at the smaller of Telegram's height and the window's (`--visible-height`,
-`web/src/styles/tokens.css`), and `pnpm check:clearance` measures the end of a
-long list with the two disagreeing both ways.
+`web/src/styles/tokens.css`), and `pnpm check:devices` measures the end of a
+long list with the two disagreeing both ways, in CI.
 
 **A chat's photo is served from our address, and an address names one picture
 forever.** The catalog shows `/api/public/avatars/<file_unique_id>` with a
