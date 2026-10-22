@@ -67,3 +67,8 @@ export function withPaused(helper: MyHelper, id: number, paused: boolean): MyHel
 export function allPaused(helper: MyHelper): boolean {
   return helper.offers.length > 0 && helper.offers.every((offer) => offer.paused);
 }
+
+/** The services students can find: the switched-off ones are kept, not shown. */
+export function liveCount(helper: MyHelper): number {
+  return helper.offers.filter((offer) => !offer.paused).length;
+}

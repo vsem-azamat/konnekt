@@ -3277,7 +3277,7 @@ msgstr "Тут з'являться заявки з усього каталогу
 msgid "Ты отказался"
 msgstr "Ти відмовив"
 
-#. placeholder {0}: helper.offers.length
+#. placeholder {0}: liveCount(helper)
 #: src/pages/Profile.tsx
 msgid "{0, plural, one {# услуга} few {# услуги} many {# услуг} other {# услуги}}"
 msgstr "{0, plural, one {# послуга} few {# послуги} many {# послуг} other {# послуги}}"
@@ -3784,6 +3784,10 @@ msgstr "Чорний список"
 #: src/console/pages/Summary.tsx
 msgid "Что считаем"
 msgstr "Що рахуємо"
+
+#: src/pages/Profile.tsx
+msgid "все услуги выключены"
+msgstr "усі послуги вимкнені"
 
 #: src/console/BanSheet.tsx
 msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."

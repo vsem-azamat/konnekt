@@ -5,6 +5,7 @@ import {
   allPaused,
   asInput,
   keepsListed,
+  liveCount,
   offersWith,
   withPaused,
 } from '../src/lib/myServices.ts';
@@ -117,4 +118,12 @@ test('every service switched off means nobody finds the profile', () => {
   );
   // No services is its own hint, not this one.
   assert.equal(allPaused(helper('published')), false);
+});
+
+test('the count on «Профиль» leaves out switched-off services', () => {
+  assert.equal(
+    liveCount(helper('published', [offer(1, { paused: true }), offer(2), offer(3)])),
+    2,
+  );
+  assert.equal(liveCount(helper('published', [offer(1, { paused: true })])), 0);
 });
