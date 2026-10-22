@@ -5,13 +5,13 @@ is kept rare and easy to stop:
 
 * To exactly the people the request's «Заявку видят N помощников» counts (see
   `catalog.helpers_listed`), less those who cannot or would rather not be
-  written to: never started the bot, blocked it, opted out of us writing
-  unprompted (`unsubscribed_at`), or switched these off in «Мои услуги».
+  written to: everyone `people.reachable` leaves out, and whoever switched
+  these off in «Мои услуги».
 * Five minutes after posting, so a request deleted or closed straight away is
   never announced, and only while it can still be answered.
 * Not at night in Prague. What falls due then waits until morning.
-* At most `DAILY_LIMIT` a Prague day per helper, and once per request: a
-  request past the limit is still in their incoming list.
+* At most `DAILY_LIMIT` a Prague day per helper, one a minute, and once per
+  request: a request past the limit is still in their incoming list.
 
 A loop inside the API process rather than a send from the endpoint, because
 every one of those rules is about time. One row per message in
@@ -41,7 +41,7 @@ from students_cz.db.models import (
 )
 from students_cz.db.models.enums import UiLang
 from students_cz.db.session import get_sessionmaker
-from students_cz.services import catalog
+from students_cz.services import catalog, people
 from students_cz.services.naming import names_by_id
 from students_cz.services.notify import Notifier, Recipient, quote
 from students_cz.services.requests import live
@@ -54,9 +54,11 @@ DELAY = timedelta(minutes=5)
 DAILY_LIMIT = 5
 QUIET_FROM = time(22)
 QUIET_UNTIL = time(8)
-# Wide enough for a request posted just before the quiet hours to go out in
-# the morning; older ones are not news, and a helper finds them in the list.
-LOOKBACK = timedelta(days=1)
+# Wide enough for a request posted as the quiet hours begin to go out in the
+# morning, and no wider: this is also how far back a helper who has just become
+# reachable, or the first tick after a deploy, reaches. Older ones are not
+# news, and a helper finds them in the list.
+LOOKBACK = timedelta(hours=12)
 EVERY_SECONDS = 60
 # pg_try_advisory_xact_lock's key: one tick at a time, should two processes
 # ever overlap during a deploy.
@@ -88,7 +90,9 @@ async def due(session: AsyncSession, now: datetime) -> list[Alert]:
     """Every message that should go out at `now`, oldest request first.
 
     Oldest first so that a helper at their limit has heard about the requests
-    that have waited longest.
+    that have waited longest. One per helper: what is left goes on the next
+    tick, so the morning after a busy night is a message a minute rather than
+    a burst that runs into Telegram's flood limit.
     """
     if quiet(now):
         return []
@@ -122,6 +126,7 @@ async def due(session: AsyncSession, now: datetime) -> list[Alert]:
     }
 
     alerts: list[Alert] = []
+    this_tick: set[int] = set()
     for request in requests:
         listed = await catalog.helpers_listed(
             session,
@@ -135,14 +140,13 @@ async def due(session: AsyncSession, now: datetime) -> list[Alert]:
         )
         helpers = (
             await session.scalars(
-                select(User)
+                people.reachable()
                 .join(HelperProfile, HelperProfile.user_id == User.id)
                 .where(
                     User.id.in_(listed),
                     User.id.not_in(told),
                     User.id.not_in(answered),
                     HelperProfile.new_request_alerts.is_(True),
-                    User.unsubscribed_at.is_(None),
                 )
                 .order_by(User.id)
             )
@@ -150,12 +154,11 @@ async def due(session: AsyncSession, now: datetime) -> list[Alert]:
 
         texts: dict[UiLang, str] = {}
         for helper in helpers:
-            recipient = Recipient.of(helper)
-            if not recipient.reachable:
+            if helper.id in this_tick or told_today.get(helper.id, 0) >= DAILY_LIMIT:
                 continue
-            if told_today.get(helper.id, 0) >= DAILY_LIMIT:
-                continue
+            this_tick.add(helper.id)
             told_today[helper.id] = told_today.get(helper.id, 0) + 1
+            recipient = Recipient.of(helper)
             if recipient.lang not in texts:
                 texts[recipient.lang] = await _text(session, request, recipient.lang)
             alerts.append(

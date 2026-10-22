@@ -110,8 +110,9 @@ class Recipient:
         *and* the person is recorded as having blocked a bot they never met.
 
         `unsubscribed_at` is deliberately not consulted. It opts out of us
-        writing unprompted; every message that goes through here is the answer
-        to something the recipient set in motion.
+        writing unprompted, and nearly every message that goes through here is
+        the answer to something the recipient set in motion; the one that is
+        not, `tell_of_request`, has its sender check it first.
         """
         return cls(
             tg_id=user.tg_id,

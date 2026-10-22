@@ -593,7 +593,7 @@ finds, and a rule with silent exceptions is worse than no rule.
   status, authorship, expiry and whether you already answered, and uses the
   subject only for *ranking* — which the screens now say, rather than promising
   the subject narrows it. The push is narrower: `services/request_alerts.py`
-  writes only to the helpers a request's «Заявку видят N» counts, at most five
+  writes only to the helpers a request's «Заявку видят N» counts, a few a day
   a day each and not at night, so the feed and the messages disagree on
   purpose. `Notifier.tell_owner`, described under "What belongs where", still
   reports every request to the owner.

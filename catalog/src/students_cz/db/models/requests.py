@@ -184,8 +184,10 @@ class RequestAlert(IdMixin, CreatedAtMixin, Base):
 
     __tablename__ = "request_alerts"
 
-    request_id: Mapped[int] = mapped_column(
-        ForeignKey("help_requests.id", ondelete="CASCADE"), nullable=False
+    # Kept, without its request, when the request is deleted: the message was
+    # still sent that day and still counts against the allowance.
+    request_id: Mapped[int | None] = mapped_column(
+        ForeignKey("help_requests.id", ondelete="SET NULL")
     )
     helper_id: Mapped[int] = mapped_column(
         ForeignKey("helper_profiles.user_id", ondelete="CASCADE"), nullable=False

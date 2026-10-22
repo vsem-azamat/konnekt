@@ -1,7 +1,7 @@
 """Tell helpers about new requests: request_alerts, helper_profiles.new_request_alerts
 
 One row per request a helper was told about, which is also what the daily
-allowance counts. The switch defaults to on, and both are additions the
+allowance counts, so a deleted request leaves its row behind. The switch defaults to on, and both are additions the
 previous release never reads, so it runs unchanged beside them.
 
 Revision ID: 87d097b5a797
@@ -24,7 +24,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "request_alerts",
-        sa.Column("request_id", sa.BigInteger(), nullable=False),
+        sa.Column("request_id", sa.BigInteger(), nullable=True),
         sa.Column("helper_id", sa.BigInteger(), nullable=False),
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column(
@@ -43,7 +43,7 @@ def upgrade() -> None:
             ["request_id"],
             ["help_requests.id"],
             name=op.f("fk_request_alerts_request_id_help_requests"),
-            ondelete="CASCADE",
+            ondelete="SET NULL",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_request_alerts")),
         sa.UniqueConstraint("request_id", "helper_id", name="uq_request_alerts_pair"),

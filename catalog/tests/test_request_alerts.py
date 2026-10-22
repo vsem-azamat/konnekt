@@ -166,6 +166,8 @@ async def test_who_is_not_told(
     answered = await reachable_helper(95036)
     other_subject = await reachable_helper(95037, subject_slug="linearni-algebra")
     told = await reachable_helper(95038)
+    blocked = await reachable_helper(95039)
+    blocked.is_blocked = True
 
     (await session.get(HelperProfile, switched_off.id)).new_request_alerts = False  # ty: ignore[invalid-assignment]
     unsubscribed.unsubscribed_at = MORNING - timedelta(days=1)
@@ -188,6 +190,7 @@ async def test_who_is_not_told(
         paused,
         answered,
         other_subject,
+        blocked,
     ):
         assert watcher.to(nobody) == [], nobody.tg_id
     assert watcher.to(told) == [request.id]
@@ -207,7 +210,7 @@ async def test_a_closed_request_is_not_announced(
     assert watcher.to(helper) == []
 
 
-async def test_five_a_day_and_the_rest_tomorrow(
+async def test_one_a_minute_five_a_day_and_more_tomorrow(
     session: AsyncSession, reachable_helper, post
 ) -> None:
     helper = await reachable_helper(95051)
@@ -219,12 +222,38 @@ async def test_five_a_day_and_the_rest_tomorrow(
     watcher = Watching()
 
     await tick(session, watcher, MORNING)
-    await tick(session, watcher, MORNING + timedelta(hours=11))
+    # One a tick, so the morning after a busy night is not a burst.
+    assert watcher.to(helper) == [requests[0].id]
+
+    for minute in range(1, 20):
+        await tick(session, watcher, MORNING + timedelta(minutes=minute))
     # The oldest first: they have waited longest.
     assert watcher.to(helper) == [r.id for r in requests[: request_alerts.DAILY_LIMIT]]
 
-    await tick(session, watcher, MORNING + timedelta(hours=22))
-    assert watcher.to(helper)[-1] == requests[-1].id
+    tomorrow = MORNING + timedelta(days=1)
+    fresh = await post(student, at=tomorrow - timedelta(minutes=10))
+    await tick(session, watcher, tomorrow)
+    assert watcher.to(helper)[-1] == fresh.id
+
+
+async def test_a_deleted_request_still_counts_for_the_day(
+    session: AsyncSession, reachable_helper, post
+) -> None:
+    helper = await reachable_helper(95061)
+    student = await _student(session, 95062)
+    requests = [
+        await post(student, at=MORNING - timedelta(minutes=30 - minute))
+        for minute in range(request_alerts.DAILY_LIMIT + 1)
+    ]
+    watcher = Watching()
+    for minute in range(request_alerts.DAILY_LIMIT):
+        await tick(session, watcher, MORNING + timedelta(minutes=minute))
+
+    await session.delete(requests[0])
+    await session.flush()
+    await tick(session, watcher, MORNING + timedelta(minutes=10))
+
+    assert len(watcher.to(helper)) == request_alerts.DAILY_LIMIT
 
 
 async def test_the_switch_is_saved_with_the_profile(client, helper_factory) -> None:
