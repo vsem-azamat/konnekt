@@ -11,7 +11,13 @@ function resolve(from: string, spec: string): string | null {
   if (spec.startsWith('@/')) base = join(src, spec.slice(2));
   else if (spec.startsWith('.')) base = join(dirname(from), spec);
   else return null;
-  for (const candidate of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
+  for (const candidate of [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    join(base, 'index.ts'),
+    join(base, 'index.tsx'),
+  ]) {
     if (/\.tsx?$/.test(candidate) && existsSync(candidate)) return candidate;
   }
   return null;
@@ -26,7 +32,7 @@ function staticGraph(entry: string): Set<string> {
     seen.add(file);
     const code = readFileSync(file, 'utf8');
     for (const [, spec] of code.matchAll(
-      /^(?:import|export)\s+(?!type\b)[^;]*?from\s+'([^']+)'/gm,
+      /^(?:import|export)\s+(?!type\b)(?:[^;]*?from\s+)?'([^']+)'/gm,
     )) {
       const target = spec && resolve(file, spec);
       if (target) queue.push(target);
