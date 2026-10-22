@@ -14,6 +14,7 @@ import pytest
 from aiogram.types import InlineKeyboardMarkup
 from app.core.config import TelegramSettings
 from app.presentation.telegram import moved
+from structlog.testing import capture_logs
 
 pytestmark = pytest.mark.unit
 
@@ -192,6 +193,18 @@ async def test_one_failed_reset_step_leaves_the_others_done() -> None:
     assert {type(call.kwargs["scope"]).__name__ for call in bot.delete_my_commands.await_args_list} == ALL_SCOPES
     bot.set_my_description.assert_awaited()
     bot.set_my_short_description.assert_awaited()
+
+
+async def test_a_failed_step_is_named_as_telegram_names_the_scope() -> None:
+    bot = AsyncMock()
+    bot.delete_my_commands.side_effect = RuntimeError("flood control")
+
+    with capture_logs() as logs:
+        await moved.retire_profile(bot, konnekt_username="konnekt_cz_bot")
+
+    steps = {log["step"] for log in logs if log["event"] == "retired_profile_step_failed"}
+    assert "commands:all_group_chats" in steps
+    assert "commands:default:uk" in steps
 
 
 async def test_the_profile_is_reset_when_a_retired_bot_starts(monkeypatch) -> None:

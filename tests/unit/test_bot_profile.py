@@ -24,6 +24,7 @@ from aiogram.types import (
 )
 from app.presentation.telegram import profile
 from app.presentation.telegram.handlers import router as handlers_router
+from structlog.testing import capture_logs
 
 from tests.plain_language import slang
 
@@ -203,6 +204,16 @@ class TestCommands:
         assert ("all_private_chats", None) not in bot.commands
         assert ("all_chat_administrators", "uk") not in bot.commands
         assert ("all_group_chats", "cs") not in bot.commands
+
+    async def test_the_log_names_the_scope_as_telegram_does(self, site) -> None:
+        bot = FakeBot()
+
+        with capture_logs() as logs:
+            await _publish(bot)
+
+        items = {log["item"] for log in logs if log["event"] == "bot_profile_changed"}
+        assert "commands:default" in items
+        assert "commands:all_group_chats" in items
 
 
 class TestText:

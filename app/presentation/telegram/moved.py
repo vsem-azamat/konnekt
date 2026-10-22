@@ -76,7 +76,7 @@ async def retire_profile(bot: Bot, konnekt_username: str) -> None:
     )
     steps: list[tuple[str, Awaitable[object]]] = [
         ("menu_button", bot.set_chat_menu_button(menu_button=MenuButtonCommands())),
-        *((f"commands:{scope.type}", bot.delete_my_commands(scope=scope)) for scope in scopes),
+        *((f"commands:{scope.type.value}", bot.delete_my_commands(scope=scope)) for scope in scopes),
         ("description", bot.set_my_description(description=MOVED_TEXT.format(username=username))),
         (
             "short_description",
@@ -88,7 +88,7 @@ async def retire_profile(bot: Bot, konnekt_username: str) -> None:
     for language in LANGUAGES:
         steps += [
             *(
-                (f"commands:{scope.type}:{language}", bot.delete_my_commands(scope=scope, language_code=language))
+                (f"commands:{scope.type.value}:{language}", bot.delete_my_commands(scope=scope, language_code=language))
                 for scope in scopes
             ),
             (f"description:{language}", bot.set_my_description(description="", language_code=language)),
