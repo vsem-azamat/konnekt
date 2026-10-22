@@ -30,12 +30,14 @@ from students_cz.db.models import (
 )
 from students_cz.db.models.enums import (
     ContentLang,
+    NodeKind,
     PriceUnit,
     PublishStatus,
     RequestStatus,
     ResponseStatus,
     UiLang,
     UserEventKind,
+    WorkFormat,
 )
 from students_cz.services import catalog, parser
 from students_cz.services.errors import (
@@ -44,7 +46,7 @@ from students_cz.services.errors import (
     Forbidden,
     NotFound,
 )
-from students_cz.services.lookup import shelves_of
+from students_cz.services.lookup import held_by, shelves_of
 from students_cz.services.people import log_event
 from students_cz.services.refs import require_row
 
@@ -63,6 +65,49 @@ class FeedRow:
     on_subject: bool
     on_institution: bool
     on_service: bool
+    responded: bool = False
+
+    @property
+    def on_my_services(self) -> bool:
+        """«По твоим услугам»: the subject or the kind of help, not the school."""
+        return self.on_subject or self.on_service
+
+
+@dataclass(frozen=True, slots=True)
+class FeedFilters:
+    """The chips over the feed, every one of them narrowing it further."""
+
+    mine: bool = False
+    service_type_id: int | None = None
+    # A shelf takes in what it holds, as in the catalog's search.
+    subject_id: int | None = None
+    work_format: WorkFormat | None = None
+    city: str | None = None
+    budget_upto: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Facet:
+    id: int
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class FeedFacets:
+    """What each chip over the feed would leave, counted over the whole feed."""
+
+    all: int
+    mine: int
+    subjects: list[Facet]
+    service_types: list[Facet]
+    online: int
+    offline: int
+    cities: list[tuple[str, int]]
+    budget_upto: list[tuple[int, int]]
+
+
+# The budget chips: «До 500 Kč», «До 1000 Kč».
+BUDGET_STEPS = (500, 1000)
 
 
 def live(now: datetime) -> ColumnElement[bool]:
@@ -77,13 +122,12 @@ def live(now: datetime) -> ColumnElement[bool]:
     )
 
 
-async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[FeedRow]:
-    """Open requests, for someone who could answer them.
+async def _may_read_feed(session: AsyncSession, user: User) -> None:
+    """Any helper profile including a draft one, and no banned one.
 
-    Visible to any helper profile including a draft one: seeing that four
-    people want help with the thing you teach is the argument for finishing
-    the profile, and withholding it until published gets that backwards. What
-    a draft cannot do is answer.
+    Seeing that four people want help with the thing you teach is the argument
+    for finishing the profile, and withholding it until published gets that
+    backwards. What a draft cannot do is answer.
     """
     helper = await session.get(HelperProfile, user.id)
     if helper is None:
@@ -94,6 +138,21 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
     # were banned is that they contact people outside it.
     if helper.status is PublishStatus.BANNED:
         raise Forbidden("this profile is banned")
+
+
+async def feed_for(
+    session: AsyncSession,
+    *,
+    user: User,
+    limit: int,
+    filters: FeedFilters | None = None,
+) -> list[FeedRow]:
+    """Open requests, for someone who could answer them, best fit first.
+
+    Those already answered stay, marked: «Отклик отправлен» is what the
+    helper looks for after answering.
+    """
+    await _may_read_feed(session, user)
 
     subject_ids, institution_ids, service_ids = await _axes_of(session, user)
 
@@ -119,6 +178,16 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
         .exists()
     )
 
+    filters = filters or FeedFilters()
+    narrowing = await _narrowing(session, filters)
+    if filters.mine:
+        narrowing.append(
+            or_(
+                subject_match if subject_match is not None else false(),
+                service_match if service_match is not None else false(),
+            )
+        )
+
     rows = (
         await session.execute(
             select(
@@ -127,13 +196,14 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
                 subject_match if subject_match is not None else false(),
                 institution_match if institution_match is not None else false(),
                 service_match if service_match is not None else false(),
+                answered,
             )
             .join(User, User.id == HelpRequest.author_id)
             .where(
                 live(now),
                 # Answering your own request is not a thing.
                 HelpRequest.author_id != user.id,
-                ~answered,
+                *narrowing,
             )
             .order_by(
                 *ranking,
@@ -153,8 +223,9 @@ async def feed_for(session: AsyncSession, *, user: User, limit: int) -> list[Fee
             on_subject=bool(on_subject),
             on_institution=bool(on_institution),
             on_service=bool(on_service),
+            responded=bool(responded),
         )
-        for request, author, on_subject, on_institution, on_service in rows
+        for request, author, on_subject, on_institution, on_service, responded in rows
     ]
 
 
@@ -209,6 +280,100 @@ async def suggested_offers(
         if fitting and len({offer.price_unit for offer in fitting}) == 1:
             suggested[request.id] = min(fitting, key=lambda o: (o.price_amount, o.id))
     return suggested
+
+
+async def _narrowing(session: AsyncSession, filters: FeedFilters) -> list:
+    where: list = []
+    if filters.service_type_id is not None:
+        where.append(HelpRequest.service_type_id == filters.service_type_id)
+    if filters.subject_id is not None:
+        where.append(
+            HelpRequest.subject_id.in_(await held_by(session, filters.subject_id))
+        )
+    if filters.work_format is not None and filters.work_format is not WorkFormat.BOTH:
+        where.append(HelpRequest.work_format.in_((filters.work_format, WorkFormat.BOTH)))
+    if filters.city is not None:
+        where.append(func.lower(HelpRequest.city) == filters.city.lower())
+    if filters.budget_upto is not None:
+        where.append(HelpRequest.budget_max <= filters.budget_upto)
+    return where
+
+
+async def feed_facets(session: AsyncSession, *, user: User) -> FeedFacets:
+    """Counts for the chips, each over the whole feed and not the chosen one.
+
+    The feed is every open request of others, a few hundred at most, so it is
+    read once and counted here rather than once per chip in SQL.
+    """
+    await _may_read_feed(session, user)
+    subject_ids, _, service_ids = await _axes_of(session, user)
+    rows = (
+        await session.execute(
+            select(
+                HelpRequest.subject_id,
+                HelpRequest.service_type_id,
+                HelpRequest.work_format,
+                HelpRequest.city,
+                HelpRequest.budget_max,
+            ).where(live(datetime.now(UTC)), HelpRequest.author_id != user.id)
+        )
+    ).all()
+
+    # Chips name shelves: «Математика» over calculus and linear algebra both,
+    # and a request on a leaf two shelves hold counts under each.
+    shelves: dict[int, set[int]] = {}
+    for subject_id in {row.subject_id for row in rows if row.subject_id is not None}:
+        shelves[subject_id] = await shelves_of(session, {subject_id})
+    groups = set(
+        await session.scalars(
+            select(Subject.id).where(
+                Subject.id.in_(set().union(*shelves.values()) or {0}),
+                Subject.kind == NodeKind.GROUP,
+            )
+        )
+    )
+
+    by_shelf: dict[int, int] = {}
+    by_service: dict[int, int] = {}
+    by_city: dict[str, int] = {}
+    mine = online = offline = 0
+    for row in rows:
+        if row.subject_id in subject_ids or row.service_type_id in service_ids:
+            mine += 1
+        for shelf in shelves.get(row.subject_id, set()) & groups:
+            by_shelf[shelf] = by_shelf.get(shelf, 0) + 1
+        if row.service_type_id is not None:
+            by_service[row.service_type_id] = by_service.get(row.service_type_id, 0) + 1
+        if row.work_format in (WorkFormat.ONLINE, WorkFormat.BOTH):
+            online += 1
+        if row.work_format in (WorkFormat.OFFLINE, WorkFormat.BOTH):
+            offline += 1
+        if row.city:
+            by_city[row.city] = by_city.get(row.city, 0) + 1
+
+    def ranked(counts: dict) -> list:
+        return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+
+    return FeedFacets(
+        all=len(rows),
+        mine=mine,
+        subjects=[Facet(id=id_, count=count) for id_, count in ranked(by_shelf)],
+        service_types=[Facet(id=id_, count=count) for id_, count in ranked(by_service)],
+        online=online,
+        offline=offline,
+        cities=ranked(by_city),
+        budget_upto=[
+            (
+                step,
+                sum(
+                    1
+                    for row in rows
+                    if row.budget_max is not None and row.budget_max <= step
+                ),
+            )
+            for step in BUDGET_STEPS
+        ],
+    )
 
 
 async def _axes_of(

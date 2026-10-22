@@ -503,6 +503,54 @@ class FeedRequestOut(RequestBase):
     # start an answer from. None when none fits, or those that do are priced
     # in different units.
     suggested_price: Price | None = None
+    # «По твоим услугам» rather than «Остальные»: on a subject or a kind of
+    # help the reader offers. Their school alone does not make it theirs.
+    on_my_services: bool = False
+    # Already answered by the reader: «Отклик отправлен».
+    responded: bool = False
+    work_format: WorkFormat = WorkFormat.BOTH
+    city: str | None = None
+
+
+class FacetOut(BaseModel):
+    id: int
+    name: str
+    count: int
+
+
+class FormatCounts(BaseModel):
+    """`both` counts under each."""
+
+    online: int
+    offline: int
+
+
+class CityCount(BaseModel):
+    name: str
+    count: int
+
+
+class BudgetCount(BaseModel):
+    """Requests whose budget is at most `amount`; none named is in no step."""
+
+    amount: int
+    count: int
+
+
+class FeedFacetsOut(BaseModel):
+    """The numbers on the chips over the feed, each over the whole feed.
+
+    `subjects` are shelves («Математика»), which `subject_id` on the feed
+    takes as everything they hold.
+    """
+
+    all: int
+    mine: int
+    subjects: list[FacetOut]
+    service_types: list[FacetOut]
+    formats: FormatCounts
+    cities: list[CityCount]
+    budget_upto: list[BudgetCount]
 
 
 class ResponseCreate(BaseModel):

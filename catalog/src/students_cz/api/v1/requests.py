@@ -5,11 +5,19 @@ accepted, closed — and every step of it notifies somebody.
 """
 
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Query, status
 from sqlalchemy import func, select
 
-from students_cz.api.deps import IdPath, LangDep, NotifierDep, SessionDep, UserDep
+from students_cz.api.deps import (
+    IdPath,
+    IdQuery,
+    LangDep,
+    NotifierDep,
+    SessionDep,
+    UserDep,
+)
 from students_cz.bot.texts import (
     FOR_PRICE,
     NEW_RESPONSE,
@@ -33,9 +41,15 @@ from students_cz.db.models import (
 from students_cz.db.models.enums import (
     PriceUnit,
     RequestStatus,
+    WorkFormat,
 )
 from students_cz.schemas import (
+    BudgetCount,
+    CityCount,
+    FacetOut,
+    FeedFacetsOut,
     FeedRequestOut,
+    FormatCounts,
     Phrase,
     Price,
     RequestCreate,
@@ -45,7 +59,7 @@ from students_cz.schemas import (
 )
 from students_cz.services import requests as requests_service
 from students_cz.services.catalog import avatar_for
-from students_cz.services.naming import rows_by_id, short_form, translated
+from students_cz.services.naming import names_by_id, rows_by_id, short_form, translated
 from students_cz.services.notify import Recipient, quote
 from students_cz.services.people import full_name
 
@@ -111,9 +125,29 @@ async def request_feed(
     lang: LangDep,
     user: UserDep,
     limit: int = Query(20, ge=1, le=50),
+    mine: bool = False,
+    service_type_id: IdQuery = None,
+    subject_id: IdQuery = None,
+    work_format: WorkFormat | None = None,
+    city: Annotated[str | None, Query(max_length=96)] = None,
+    budget_upto: Annotated[
+        float | None, Query(ge=0, le=1_000_000, allow_inf_nan=False)
+    ] = None,
 ) -> list[FeedRequestOut]:
-    """Open requests, for someone who could answer them."""
-    rows = await requests_service.feed_for(session, user=user, limit=limit)
+    """Open requests, for someone who could answer them, narrowed by the chips."""
+    rows = await requests_service.feed_for(
+        session,
+        user=user,
+        limit=limit,
+        filters=requests_service.FeedFilters(
+            mine=mine,
+            service_type_id=service_type_id,
+            subject_id=subject_id,
+            work_format=work_format,
+            city=city or None,
+            budget_upto=budget_upto,
+        ),
+    )
 
     rendered = await _requests_out(
         session, [row.request for row in rows], lang, count_seeing=False
@@ -147,6 +181,10 @@ async def request_feed(
                 subject=subjects_by_id.get(row.request.id),
             ),
             suggested_price=_offer_price(offers.get(row.request.id)),
+            on_my_services=row.on_my_services,
+            responded=row.responded,
+            work_format=row.request.work_format,
+            city=row.request.city,
         )
         for base, row in zip(rendered, rows, strict=True)
     ]
@@ -159,6 +197,38 @@ def _offer_price(offer: Offer | None) -> Price | None:
         amount=float(offer.price_amount),
         currency=offer.price_currency,
         unit=offer.price_unit,
+    )
+
+
+@router.get("/requests/feed/facets", response_model=FeedFacetsOut, tags=["requests"])
+async def request_feed_facets(
+    session: SessionDep, lang: LangDep, user: UserDep
+) -> FeedFacetsOut:
+    """The numbers on the chips over the feed, each over the whole feed."""
+    facets = await requests_service.feed_facets(session, user=user)
+    subject_names = await names_by_id(
+        session, Subject, [facet.id for facet in facets.subjects], lang
+    )
+    service_names = await names_by_id(
+        session, ServiceType, [facet.id for facet in facets.service_types], lang
+    )
+    return FeedFacetsOut(
+        all=facets.all,
+        mine=facets.mine,
+        subjects=[
+            FacetOut(id=f.id, name=subject_names.get(f.id, ""), count=f.count)
+            for f in facets.subjects
+        ],
+        service_types=[
+            FacetOut(id=f.id, name=service_names.get(f.id, ""), count=f.count)
+            for f in facets.service_types
+        ],
+        formats=FormatCounts(online=facets.online, offline=facets.offline),
+        cities=[CityCount(name=name, count=count) for name, count in facets.cities],
+        budget_upto=[
+            BudgetCount(amount=amount, count=count)
+            for amount, count in facets.budget_upto
+        ],
     )
 
 

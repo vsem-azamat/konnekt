@@ -335,6 +335,22 @@ export type Avatar = {
 };
 
 /**
+ * BudgetCount
+ *
+ * Requests whose budget is at most `amount`; none named is in no step.
+ */
+export type BudgetCount = {
+    /**
+     * Amount
+     */
+    amount: number;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * Chip
  *
  * One piece of what we understood, shown back for correction.
@@ -356,6 +372,20 @@ export type Chip = {
      * Confidence
      */
     confidence?: number;
+};
+
+/**
+ * CityCount
+ */
+export type CityCount = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -400,6 +430,60 @@ export type ContactOut = {
      * Telegram Url
      */
     telegram_url: string;
+};
+
+/**
+ * FacetOut
+ */
+export type FacetOut = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * FeedFacetsOut
+ *
+ * The numbers on the chips over the feed, each over the whole feed.
+ *
+ * `subjects` are shelves («Математика»), which `subject_id` on the feed
+ * takes as everything they hold.
+ */
+export type FeedFacetsOut = {
+    /**
+     * All
+     */
+    all: number;
+    /**
+     * Mine
+     */
+    mine: number;
+    /**
+     * Subjects
+     */
+    subjects: Array<FacetOut>;
+    /**
+     * Service Types
+     */
+    service_types: Array<FacetOut>;
+    formats: FormatCounts;
+    /**
+     * Cities
+     */
+    cities: Array<CityCount>;
+    /**
+     * Budget Upto
+     */
+    budget_upto: Array<BudgetCount>;
 };
 
 /**
@@ -458,6 +542,35 @@ export type FeedRequestOut = {
     langs?: Array<string>;
     reason?: Phrase | null;
     suggested_price?: Price | null;
+    /**
+     * On My Services
+     */
+    on_my_services?: boolean;
+    /**
+     * Responded
+     */
+    responded?: boolean;
+    work_format?: WorkFormat;
+    /**
+     * City
+     */
+    city?: string | null;
+};
+
+/**
+ * FormatCounts
+ *
+ * `both` counts under each.
+ */
+export type FormatCounts = {
+    /**
+     * Online
+     */
+    online: number;
+    /**
+     * Offline
+     */
+    offline: number;
 };
 
 /**
@@ -2130,6 +2243,30 @@ export type RequestFeedApiV1RequestsFeedGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Mine
+         */
+        mine?: boolean;
+        /**
+         * Service Type Id
+         */
+        service_type_id?: number | null;
+        /**
+         * Subject Id
+         */
+        subject_id?: number | null;
+        /**
+         * Work Format
+         */
+        work_format?: WorkFormat | null;
+        /**
+         * City
+         */
+        city?: string | null;
+        /**
+         * Budget Upto
+         */
+        budget_upto?: number | null;
     };
     url: '/api/v1/requests/feed';
 };
@@ -2153,6 +2290,37 @@ export type RequestFeedApiV1RequestsFeedGetResponses = {
 };
 
 export type RequestFeedApiV1RequestsFeedGetResponse = RequestFeedApiV1RequestsFeedGetResponses[keyof RequestFeedApiV1RequestsFeedGetResponses];
+
+export type RequestFeedFacetsApiV1RequestsFeedFacetsGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/requests/feed/facets';
+};
+
+export type RequestFeedFacetsApiV1RequestsFeedFacetsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RequestFeedFacetsApiV1RequestsFeedFacetsGetError = RequestFeedFacetsApiV1RequestsFeedFacetsGetErrors[keyof RequestFeedFacetsApiV1RequestsFeedFacetsGetErrors];
+
+export type RequestFeedFacetsApiV1RequestsFeedFacetsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: FeedFacetsOut;
+};
+
+export type RequestFeedFacetsApiV1RequestsFeedFacetsGetResponse = RequestFeedFacetsApiV1RequestsFeedFacetsGetResponses[keyof RequestFeedFacetsApiV1RequestsFeedFacetsGetResponses];
 
 export type RespondToRequestApiV1RequestsRequestIdRespondPostData = {
     body: ResponseCreate;

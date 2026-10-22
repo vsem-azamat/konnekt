@@ -99,7 +99,7 @@ async def test_feed_ranks_your_subject_first_and_says_why(
     assert "responders" not in feed[0] or feed[0]["responders"] == []
 
 
-async def test_feed_drops_a_request_you_already_answered(
+async def test_feed_keeps_a_request_you_already_answered_marked(
     client: AsyncClient, helper_factory
 ) -> None:
     await helper_factory(tg_id=HELPER)
@@ -113,7 +113,8 @@ async def test_feed_drops_a_request_you_already_answered(
     assert answered.status_code == 201, answered.text
 
     feed = (await client.get("/api/v1/requests/feed", headers=helper_header())).json()
-    assert created["id"] not in [item["id"] for item in feed]
+    [item] = [item for item in feed if item["id"] == created["id"]]
+    assert item["responded"] is True
 
 
 async def test_feed_hides_closed_requests(client: AsyncClient, helper_factory) -> None:
@@ -1034,3 +1035,93 @@ async def test_several_fitting_offers_give_the_lowest_or_nothing(
     await session.commit()
     anything = await _asking(client, session, subject_id=maths, service_type_id=None)
     assert await _suggested(client, anything) is None
+
+
+# ── the chips over the feed ─────────────────────────────────────────────
+
+
+async def _feed(client: AsyncClient, **params) -> list[dict]:
+    response = await client.get(
+        "/api/v1/requests/feed",
+        params={"limit": 50, **params},
+        headers=helper_header(),
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def _facets(client: AsyncClient) -> dict:
+    response = await client.get("/api/v1/requests/feed/facets", headers=helper_header())
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def test_the_feed_says_which_requests_are_on_the_helpers_services(
+    client: AsyncClient, helper_factory
+) -> None:
+    await helper_factory(tg_id=HELPER)
+    theirs = await post_request(client, "нужна помощь с матаном")
+    other = await post_request(client, "помогите с нострификацией аттестата")
+
+    by_id = {item["id"]: item for item in await _feed(client)}
+    assert by_id[theirs["id"]]["on_my_services"] is True
+    assert by_id[other["id"]]["on_my_services"] is False
+
+    mine = [item["id"] for item in await _feed(client, mine="true")]
+    assert theirs["id"] in mine
+    assert other["id"] not in mine
+
+
+async def test_a_shelf_chip_takes_in_what_the_shelf_holds(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    from students_cz.db.models import Subject
+
+    await helper_factory(tg_id=HELPER)
+    maths = await session.scalar(select(Subject.id).where(Subject.slug == "math"))
+    before = {f["id"]: f["count"] for f in (await _facets(client))["subjects"]}
+
+    calculus = await post_request(client, "нужна помощь с матаном")
+    other = await post_request(client, "помогите с нострификацией аттестата")
+
+    on_maths = [item["id"] for item in await _feed(client, subject_id=maths)]
+    assert calculus["id"] in on_maths
+    assert other["id"] not in on_maths
+    after = {f["id"]: f["count"] for f in (await _facets(client))["subjects"]}
+    assert after[maths] == before.get(maths, 0) + 1
+
+
+async def test_format_city_and_budget_narrow_the_feed_and_are_counted(
+    client: AsyncClient, session: AsyncSession, helper_factory
+) -> None:
+    from students_cz.db.models.enums import WorkFormat
+
+    await helper_factory(tg_id=HELPER)
+    before = await _facets(client)
+    created = await post_request(client, "нужна помощь с матаном")
+    request = await session.get(HelpRequest, created["id"])
+    assert request is not None
+    request.work_format = WorkFormat.OFFLINE
+    request.city = "Testov"
+    request.budget_max = 400
+    await session.commit()
+
+    def shown(items: list[dict]) -> bool:
+        return created["id"] in [item["id"] for item in items]
+
+    assert shown(await _feed(client, work_format="offline"))
+    assert not shown(await _feed(client, work_format="online"))
+    assert shown(await _feed(client, city="testov"))
+    assert not shown(await _feed(client, city="Brno"))
+    assert shown(await _feed(client, budget_upto=500))
+    assert not shown(await _feed(client, budget_upto=300))
+
+    after = await _facets(client)
+    assert after["all"] == before["all"] + 1
+    assert after["formats"]["offline"] == before["formats"]["offline"] + 1
+    assert after["formats"]["online"] == before["formats"]["online"]
+    assert {"name": "Testov", "count": 1} in after["cities"]
+    steps = {b["amount"]: b["count"] for b in after["budget_upto"]}
+    old = {b["amount"]: b["count"] for b in before["budget_upto"]}
+    assert steps[500] == old[500] + 1
+    assert after["mine"] == before["mine"] + 1
