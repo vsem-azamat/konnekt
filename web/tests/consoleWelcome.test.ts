@@ -40,3 +40,28 @@ test('an edit stores the typed text escaped, and clearing stores nothing', () =>
   assert.equal(welcomeChange('<b>Правила</b> тут', 'Правила там'), 'Правила там');
   assert.equal(welcomeChange('Правила', ''), '');
 });
+
+test('a raw «<…>» that is not a Telegram tag stays in the text', () => {
+  assert.equal(welcomePlain('Пишите <имя> в анкете'), 'Пишите <имя> в анкете');
+  assert.equal(welcomePlain('Q&A <3 и -> туда'), 'Q&A <3 и -> туда');
+  assert.equal(hasFormatting('Пишите <имя> в анкете'), false);
+  assert.equal(
+    welcomeChange('Пишите <имя> в анкете', 'Пишите <имя> в анкете'),
+    'Пишите &lt;имя&gt; в анкете',
+  );
+});
+
+test('quotes and numeric entities read as characters and are not resaved', () => {
+  const html = 'Читайте &quot;Правила&quot; &#33; &#x1F44B;';
+  assert.equal(welcomePlain(html), 'Читайте "Правила" ! 👋');
+  assert.equal(welcomeChange(html, welcomePlain(html)), null);
+  assert.equal(welcomePlain('&#99999999;'), '&#99999999;');
+});
+
+test('formatted text with a bare ampersand is repaired, losing its tags', () => {
+  assert.equal(welcomeChange('<b>Q&A</b>', 'Q&A'), 'Q&amp;A');
+});
+
+test('spaces around the stored text do not count as an edit', () => {
+  assert.equal(welcomeChange('  Правила тут\n', 'Правила тут'), null);
+});
