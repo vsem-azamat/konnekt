@@ -81,6 +81,7 @@ export function Pick({
   hint,
   selected = false,
   disabled = false,
+  danger = false,
   onClick,
 }: {
   leading?: ReactNode;
@@ -89,6 +90,8 @@ export function Pick({
   selected?: boolean;
   /** While the choice before it is on its way. */
   disabled?: boolean;
+  /** A choice that cannot be taken back: its name is red. */
+  danger?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -101,7 +104,9 @@ export function Pick({
     >
       {leading}
       <span className={css.pickBody}>
-        <span className={css.pickName}>{name}</span>
+        <span className={danger ? `${css.pickName} ${css.pickDanger}` : css.pickName}>
+          {name}
+        </span>
         {hint ? <span className={css.pickHint}>{hint}</span> : null}
       </span>
       {selected ? <CheckIcon size={17} className={css.pickCheck} /> : null}

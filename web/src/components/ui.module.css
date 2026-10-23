@@ -1124,6 +1124,10 @@
   letter-spacing: -0.015em;
 }
 
+.pickDanger {
+  color: var(--danger);
+}
+
 .pickHint {
   display: block;
   margin-top: 1px;
