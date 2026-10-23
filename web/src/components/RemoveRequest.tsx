@@ -100,6 +100,7 @@ export function RemoveRequest({
         name={<Trans>Удалить насовсем</Trans>}
         hint={<Trans>заявка и отклики пропадут, вернуть нельзя</Trans>}
         disabled={remove.isPending}
+        danger
         onClick={() => run('delete')}
       />
       {remove.isError ? (
