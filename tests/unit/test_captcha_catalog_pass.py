@@ -241,27 +241,28 @@ async def test_cross_chat_trust_does_not_spend_the_pass(session: AsyncSession, b
     assert await _passes(session) == 1
 
 
-async def test_a_pass_is_let_in_during_a_wave(session: AsyncSession, bot, chat) -> None:
+async def test_a_pass_does_not_carry_a_request_past_a_wave(session: AsyncSession, bot, chat) -> None:
+    """A pass is cheap to mint; the hold exists for exactly the raid that would mint them."""
     for user_id in range(1, waves.PER_MINUTE + 5):
         await service.admit(bot, session, _request(user_id), chat, now=NOW)
-    assert (await _latest(session, waves.PER_MINUTE + 4)).status == JoinCaptcha.STATUS_HELD
     await _pass(session)
 
     await service.admit(bot, session, _request(), chat, now=NOW)
 
-    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
-    assert (await _latest(session)).status == JoinCaptcha.STATUS_CATALOG
+    bot.approve_chat_join_request.assert_not_awaited()
+    assert (await _latest(session)).status == JoinCaptcha.STATUS_HELD
+    assert await _passes(session) == 1
 
 
-async def test_requests_on_a_pass_still_count_towards_a_wave(session: AsyncSession, bot, chat) -> None:
-    holders = range(1000, 1000 + waves.PER_MINUTE + 1)
+async def test_requests_on_a_pass_count_towards_a_wave(session: AsyncSession, bot, chat) -> None:
+    holders = range(1000, 1000 + waves.PER_MINUTE)
     for user_id in holders:
         await _pass(session, user_id=user_id)
         await service.admit(bot, session, _request(user_id), chat, now=NOW)
+    assert bot.approve_chat_join_request.await_count == len(holders)
 
     await service.admit(bot, session, _request(), chat, now=NOW)
 
-    assert bot.approve_chat_join_request.await_count == len(holders)
     assert (await _latest(session)).status == JoinCaptcha.STATUS_HELD
     report_chat = settings.admin.default_report_chat_id
     alerts = [call for call in bot.send_message.await_args_list if call.kwargs["chat_id"] == report_chat]

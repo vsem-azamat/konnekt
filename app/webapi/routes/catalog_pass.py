@@ -18,19 +18,23 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import CatalogPass, Chat
+from app.db.upsert import insert_for
 from app.webapi.auth.telegram_webapp import InitDataError, verify_init_data
 from app.webapi.deps import get_session
 
 logger = get_logger("webapi.catalog_pass")
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+# The tap can come long after the launch: the Mini App keeps one initData for
+# the whole visit, and the catalog accepts it for a day.
+_LAUNCH_MAX_AGE_SECONDS = 86_400
 
 _REFUSED = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="pass_refused")
 
@@ -51,7 +55,9 @@ async def note_catalog_tap(
 ) -> CatalogPassResult:
     """Let the caller's next join request to this chat in without a captcha."""
     try:
-        caller = verify_init_data(payload.init_data, bot_token=settings.telegram.token)
+        caller = verify_init_data(
+            payload.init_data, bot_token=settings.telegram.token, max_age_seconds=_LAUNCH_MAX_AGE_SECONDS
+        )
     except InitDataError:
         logger.info("catalog_pass_signature_refused")
         raise _REFUSED from None
@@ -69,12 +75,15 @@ async def note_catalog_tap(
         raise _REFUSED
 
     expires_at = utc_now() + datetime.timedelta(hours=hours)
-    # Tapping again renews the one pass rather than adding another. Two taps
-    # at once may both try to insert; the one that lost has nothing to add.
-    await session.merge(CatalogPass(user_id=caller.user_id, chat_id=chat_id, expires_at=expires_at))
-    try:
-        await session.commit()
-    except IntegrityError:
-        await session.rollback()
+    # Tapping again renews the one pass rather than adding another.
+    insert = insert_for(session, CatalogPass.__table__).values(
+        user_id=caller.user_id, chat_id=chat_id, expires_at=expires_at, created_at=utc_now()
+    )
+    await session.execute(
+        insert.on_conflict_do_update(
+            index_elements=["user_id", "chat_id"], set_={"expires_at": insert.excluded.expires_at}
+        )
+    )
+    await session.commit()
     logger.info("catalog_pass_noted", chat_id=chat_id, user_id=caller.user_id)
     return CatalogPassResult(status="noted")

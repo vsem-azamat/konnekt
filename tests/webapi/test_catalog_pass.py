@@ -150,3 +150,13 @@ async def test_it_can_be_turned_off(client, db_session_maker, bot_token, monkeyp
 
     assert response.status_code == 403
     assert await _passes(db_session_maker) == []
+
+
+async def test_a_launch_older_than_an_hour_still_gives_a_pass(client, db_session_maker, bot_token, monkeypatch) -> None:
+    """The Mini App keeps one initData for the visit; the tap may come hours in."""
+    await _chat(db_session_maker)
+    monkeypatch.setattr(f"{__name__}._epoch", lambda: int(datetime.datetime.now(datetime.UTC).timestamp()) - 7200)
+
+    response = await _post(client, _init_data(APPLICANT_ID, token=bot_token))
+
+    assert response.status_code == 200

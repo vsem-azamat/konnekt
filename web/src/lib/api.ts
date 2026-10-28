@@ -244,7 +244,7 @@ function detailOf(payload: unknown): string | undefined {
  */
 async function publicRequest<T>(
   path: string,
-  init: Pick<RequestInit, 'method' | 'body' | 'signal'> = {},
+  init: Pick<RequestInit, 'method' | 'body' | 'signal' | 'keepalive'> = {},
 ): Promise<T> {
   const response = await reported(`/api/public${path}`, {
     ...init,
@@ -308,6 +308,7 @@ export const api = {
     await publicRequest<unknown>('/catalog-pass', {
       method: 'POST',
       body: JSON.stringify({ init_data: initData, link }),
+      keepalive: true,
     });
   },
 

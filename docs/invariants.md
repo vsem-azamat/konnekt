@@ -165,8 +165,10 @@ signed user and the chat, found by its public link so that no chat id is
 published; the chat must be approved with the captcha on. The next join request
 spends it, once. Neither `trusted` nor `catalog` is itself a reason to trust:
 only a captcha actually answered renews trust. Both are checked after the
-blacklist and ban history, and both still count towards a join wave, they just
-do not wait in it.
+blacklist and ban history, and both count towards a join wave. Trust skips a
+hold; a pass does not, because a pass is cheap to mint and a held request keeps
+it. The pass works where the captcha arrives by private message, not where
+this bot guards with the join-check Mini App.
 
 **One bot answers a chat's join requests.** Telegram lets a bot write to an
 applicant only until somebody else has, so with a second captcha bot in the

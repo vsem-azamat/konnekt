@@ -97,15 +97,17 @@ async def admit(
         # the request waits for the admins, as an undelivered one does.
         row.status = JoinCaptcha.STATUS_TRUSTED
         row.resolved_at = now
-    elif await _spend_catalog_pass(db, chat.id, user_id, now):
-        # The pass is deleted in the commit that records the row: one tap
-        # opens the door once.
-        row.status = JoinCaptcha.STATUS_CATALOG
-        row.resolved_at = now
     elif waves.pauses(wave):
         assert wave is not None
         row.wave_id = wave.id
         row.status = JoinCaptcha.STATUS_HELD
+    elif await _spend_catalog_pass(db, chat.id, user_id, now):
+        # Not during a wave: a pass is cheap to mint, so it must not carry a
+        # raid past a hold or an admin's decline. A held request keeps its
+        # pass. The pass is deleted in the commit that records the row: one tap
+        # opens the door once.
+        row.status = JoinCaptcha.STATUS_CATALOG
+        row.resolved_at = now
     db.add(row)
     await db.commit()
 
