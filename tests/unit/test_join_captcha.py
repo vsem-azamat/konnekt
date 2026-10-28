@@ -272,6 +272,24 @@ async def test_a_request_closed_meanwhile_is_reported_not_approved_twice(session
 # --- the sweep ---------------------------------------------------------------
 
 
+async def test_a_chat_that_stopped_checking_hands_its_open_captchas_back_before_their_time(
+    session: AsyncSession, bot
+) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    chat.join_mode = DbChat.JOIN_ADMINS
+    await session.commit()
+
+    assert await service.expire_stale(bot, session, now=utc_now() + INSIDE_WINDOW) == 1
+
+    bot.decline_chat_join_request.assert_not_awaited()
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
+
+
 async def test_an_unanswered_captcha_is_declined_once_its_time_is_up(session: AsyncSession, bot) -> None:
     await _seed_chat(session)
     await join_requested(_request(), bot, session)
