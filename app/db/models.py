@@ -607,6 +607,28 @@ class JoinCheck(Base):
         self.expires_at = expires_at
 
 
+class CatalogPass(Base):
+    """A person who tapped to join one of our chats in the Mini App's catalog.
+
+    Telegram signed that tap, so the account is somebody's own client: the
+    proof the captcha asks for. It waits for the join request that follows and
+    is spent by it (`app/captcha/service.py`). One row per person and chat, so
+    tapping again renews it instead of piling up.
+    """
+
+    __tablename__ = "catalog_passes"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+
+    def __init__(self, user_id: int, chat_id: int, expires_at: datetime.datetime) -> None:
+        self.user_id = user_id
+        self.chat_id = chat_id
+        self.expires_at = expires_at
+
+
 class JoinCaptcha(Base):
     """One request to join and the emoji its applicant was asked to tap.
 
@@ -626,6 +648,9 @@ class JoinCaptcha(Base):
     # Approved without a captcha: passed one in another chat lately. Never
     # itself a reason to trust, or trust would renew without anybody tapping.
     STATUS_TRUSTED = "trusted"
+    # Approved without a captcha: tapped to join from the Mini App's catalog,
+    # where Telegram signed who they are. Like trusted, never a reason to trust.
+    STATUS_CATALOG = "catalog"
     # Out of tries.
     STATUS_FAILED = "failed"
     # Out of time.

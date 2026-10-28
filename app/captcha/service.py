@@ -10,6 +10,9 @@ Somebody who passed the captcha in another of our chats within
 `settings.captcha.trust_days` is approved without one, waves or not: the
 captcha proves there is a person behind the account, and they already have.
 
+Somebody who tapped to join one of our chats in the Mini App's catalog is
+approved without one too, once: Telegram signed that tap (`CatalogPass`).
+
 Every decision locks its row, so a tap and the expiry sweep cannot both act on
 one request: whichever comes second finds it settled.
 """
@@ -34,7 +37,7 @@ from app.core.config import settings
 from app.core.enums import ModerationEventAction
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, JoinCaptcha, JoinWave, ModerationEvent
+from app.db.models import CatalogPass, Chat, JoinCaptcha, JoinWave, ModerationEvent
 
 logger = get_logger("captcha")
 
@@ -87,11 +90,17 @@ async def admit(
         created_at=now,
         expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
     )
+    # Asked in this order so that a pass the person did not need is not spent.
     if await _trusted(db, chat.id, user_id, now):
         # Settled from the start, so the sweep never declines it. Should the
         # process stop before Telegram is asked, the row says trusted while
         # the request waits for the admins, as an undelivered one does.
         row.status = JoinCaptcha.STATUS_TRUSTED
+        row.resolved_at = now
+    elif await _spend_catalog_pass(db, chat.id, user_id, now):
+        # The pass is deleted in the commit that records the row: one tap
+        # opens the door once.
+        row.status = JoinCaptcha.STATUS_CATALOG
         row.resolved_at = now
     elif waves.pauses(wave):
         assert wave is not None
@@ -106,7 +115,7 @@ async def admit(
         assert wave is not None
         await waves.announce(bot, db, wave, chat)
 
-    if row.status == JoinCaptcha.STATUS_TRUSTED:
+    if row.status in (JoinCaptcha.STATUS_TRUSTED, JoinCaptcha.STATUS_CATALOG):
         await _let_in_on_trust(bot, db, row, chat)
         return
 
@@ -166,6 +175,10 @@ async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.d
     )
     if passed is None:
         return False
+    return not await _ever_banned(db, user_id)
+
+
+async def _ever_banned(db: AsyncSession, user_id: int) -> bool:
     banned = await db.scalar(
         select(ModerationEvent.id)
         .where(
@@ -174,7 +187,25 @@ async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.d
         )
         .limit(1)
     )
-    return banned is None
+    return banned is not None
+
+
+async def _spend_catalog_pass(db: AsyncSession, chat_id: int, user_id: int, now: datetime.datetime) -> bool:
+    """Whether this person tapped to join this chat in the catalog lately; if so, the pass is spent.
+
+    Spent in one statement, so two requests at once cannot both use it (the
+    chat is locked anyway). Not committed here: it goes with the captcha row.
+    Somebody banned anywhere gets no pass, as with `_trusted`; their pass stays
+    until it expires.
+    """
+    if await _ever_banned(db, user_id):
+        return False
+    spent = await db.execute(
+        delete(CatalogPass).where(
+            CatalogPass.user_id == user_id, CatalogPass.chat_id == chat_id, CatalogPass.expires_at > now
+        )
+    )
+    return spent.rowcount == 1  # ty: ignore[unresolved-attribute]
 
 
 async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Chat) -> None:
@@ -223,8 +254,8 @@ async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: C
                 f"{html.escape(err.message)}. {advice}",
             )
             return
-    CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_TRUSTED).inc()
-    logger.info("captcha_trusted", chat_id=row.chat_id, user_id=row.user_id, captcha_id=row.id)
+    CAPTCHA_EVENTS.labels(event=row.status).inc()
+    logger.info("captcha_trusted", chat_id=row.chat_id, user_id=row.user_id, captcha_id=row.id, source=row.status)
 
 
 async def _lock_chat(db: AsyncSession, chat_id: int) -> None:
@@ -532,6 +563,7 @@ async def forget_old(db: AsyncSession, *, now: datetime.datetime | None = None) 
     cutoff = (now or utc_now()) - datetime.timedelta(days=RETENTION_DAYS)
     await db.execute(delete(JoinCaptcha).where(JoinCaptcha.created_at < cutoff, JoinCaptcha.resolved_at.is_not(None)))
     await db.execute(delete(JoinWave).where(JoinWave.last_surge_at < cutoff))
+    await db.execute(delete(CatalogPass).where(CatalogPass.expires_at < (now or utc_now())))
     await db.commit()
 
 

@@ -300,6 +300,18 @@ export const api = {
   },
 
   /**
+   * Tell supervisor this person is about to join one of our chats from the
+   * catalog, so the captcha it would ask is skipped once. Nothing waits on it
+   * and nothing is shown if it fails: the link opens either way.
+   */
+  claimCatalogPass: async (initData: string, link: string): Promise<void> => {
+    await publicRequest<unknown>('/catalog-pass', {
+      method: 'POST',
+      body: JSON.stringify({ init_data: initData, link }),
+    });
+  },
+
+  /**
    * Tell supervisor this person opened the Mini App, for the console's
    * audience. Once per launch; nothing waits on it and nothing is shown if it
    * fails.
