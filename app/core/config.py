@@ -368,7 +368,9 @@ class CaptchaSettings(Settings):
     """The join captcha sent to applicants of chats that have it on."""
 
     answer_minutes: int = Field(
-        default=15,
+        # A day: most applicants who never answered had only seen Telegram's
+        # "an admin will approve" and come back hours later.
+        default=1440,
         ge=1,
         description="How long an applicant has to answer before the request is declined",
     )

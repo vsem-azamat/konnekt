@@ -100,7 +100,7 @@ async def test_applicant_gets_the_captcha_in_a_private_message(session: AsyncSes
     assert kwargs["text"] == (
         "🔐 Проверка для чата <b>ČVUT FIT</b>\n\n"
         f"Нажми на <b>{NAMES[challenge.answer].upper()}</b>, и заявку примут.\n\n"
-        f"⏱ {settings.captcha.answer_minutes} минут."
+        "⏱ На ответ 24 часа."
     )
     buttons = [b for row in kwargs["reply_markup"].inline_keyboard for b in row]
     assert [b.text for b in buttons] == challenge.options
@@ -112,8 +112,8 @@ async def test_applicant_gets_the_captcha_in_a_private_message(session: AsyncSes
     bot.decline_chat_join_request.assert_not_awaited()
 
 
-def test_the_answer_window_is_fifteen_minutes_unless_configured() -> None:
-    assert CaptchaSettings().answer_minutes == 15
+def test_the_answer_window_is_a_day_unless_configured() -> None:
+    assert CaptchaSettings().answer_minutes == 1440
 
 
 async def test_the_captcha_gives_as_long_as_configured_and_says_so(session: AsyncSession, bot, monkeypatch) -> None:
@@ -124,7 +124,7 @@ async def test_the_captcha_gives_as_long_as_configured_and_says_so(session: Asyn
 
     challenge = await _only_challenge(session)
     assert challenge.expires_at - challenge.created_at == datetime.timedelta(minutes=21)
-    assert "⏱ 21 минута." in bot.send_message.await_args.kwargs["text"]
+    assert "⏱ На ответ 21 минута." in bot.send_message.await_args.kwargs["text"]
 
 
 async def test_chat_without_captcha_leaves_the_request_to_the_admins(session: AsyncSession, bot) -> None:
@@ -270,6 +270,24 @@ async def test_a_request_closed_meanwhile_is_reported_not_approved_twice(session
 
 
 # --- the sweep ---------------------------------------------------------------
+
+
+async def test_a_chat_that_stopped_checking_hands_its_open_captchas_back_before_their_time(
+    session: AsyncSession, bot
+) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    chat = await session.get(DbChat, CHAT_ID)
+    assert chat is not None
+    chat.join_mode = DbChat.JOIN_ADMINS
+    await session.commit()
+
+    assert await service.expire_stale(bot, session, now=utc_now() + INSIDE_WINDOW) == 1
+
+    bot.decline_chat_join_request.assert_not_awaited()
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
 
 
 async def test_an_unanswered_captcha_is_declined_once_its_time_is_up(session: AsyncSession, bot) -> None:
@@ -610,11 +628,10 @@ async def test_an_unanswered_captcha_is_reminded_once_with_the_time_left(session
     assert bot.send_message.await_count == 2
     kwargs = bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == USER_ID
-    left = settings.captcha.answer_minutes - settings.captcha.remind_after_minutes
     answer = challenge_module.NOMINATIVE[challenge.answer].upper()
     assert (
         kwargs["text"]
-        == f"⏳ Ещё {left} минут — <b>{answer}</b> {challenge_module.waits(challenge.answer)} в сообщении выше."
+        == f"⏳ Ещё 23 часа 56 минут — <b>{answer}</b> {challenge_module.waits(challenge.answer)} в сообщении выше."
     )
     assert kwargs["reply_parameters"].message_id == 77
 
@@ -827,6 +844,14 @@ async def test_undelivered_and_expired_captchas_are_counted_too(session: AsyncSe
 
 def test_every_answer_can_be_named_as_the_subject_too() -> None:
     assert set(challenge_module.NOMINATIVE) == set(NAMES)
+
+
+def test_a_long_time_is_said_in_hours_and_a_short_one_in_minutes() -> None:
+    assert challenge_module.duration(60) == "1 час"
+    assert challenge_module.duration(1440) == "24 часа"
+    assert challenge_module.duration(5 * 60 + 1) == "5 часов 1 минута"
+    assert challenge_module.duration(21 * 60) == "21 час"
+    assert challenge_module.duration(59) == "59 минут"
 
 
 def test_the_reminder_agrees_with_an_answer_in_the_plural() -> None:

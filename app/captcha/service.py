@@ -23,7 +23,7 @@ import math
 from aiogram import Bot
 from aiogram.exceptions import AiogramError, TelegramAPIError
 from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup, ReplyParameters
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.captcha import challenge, waves
@@ -394,10 +394,17 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
     settled rather than rolled back to be declined a second time.
     """
     now = now or utc_now()
+    # A chat that stopped checking (captcha switched off, approval withdrawn)
+    # settles its open captchas at once: a day's window is too long to leave
+    # applicants answering a board nobody will act on.
+    stopped = select(Chat.id).where(
+        or_(Chat.resource_status != Chat.STATUS_APPROVED, Chat.join_mode != Chat.JOIN_CAPTCHA)
+    )
     due = (
         await db.scalars(
             select(JoinCaptcha.id).where(
-                JoinCaptcha.status == JoinCaptcha.STATUS_PENDING, JoinCaptcha.expires_at <= now
+                JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
+                or_(JoinCaptcha.expires_at <= now, JoinCaptcha.chat_id.in_(stopped)),
             )
         )
     ).all()
