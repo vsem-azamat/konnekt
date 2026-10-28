@@ -131,8 +131,8 @@ super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram
 signed rather than any id the payload volunteers elsewhere.
 
-**Three public endpoints write, and only about the caller.** The join check and
-`/api/public/seen` take a signed `initData` and act on the id Telegram signed,
+**Four public endpoints write, and only about the caller.** The join check,
+`/api/public/catalog-pass` and `/api/public/seen` take a signed `initData` and act on the id Telegram signed,
 never on one the body names. `/seen` is idempotent: the visit is dated by
 `auth_date`, which names one launch, so a payload sent again counts once; and
 it writes a person at most once per half minute. `/api/public/client-errors`
@@ -155,6 +155,20 @@ request also arrives in the bot process while the check is answered by the web
 API, so the two halves have nowhere else to meet. The captcha sent in a private
 message follows the same rule: a tap counts only from the applicant it was
 sent to.
+
+**Three things skip the captcha, and none of them is a claim the caller makes.**
+A captcha passed in another of our chats within `CAPTCHA_TRUST_DAYS`
+(status `trusted`); a tap on the chat's join button in the Mini App catalog
+(status `catalog`), which Telegram signed, within `CAPTCHA_CATALOG_PASS_HOURS`;
+and the chat's own «Пускать всех». A catalog tap leaves a pass keyed by the
+signed user and the chat, found by its public link so that no chat id is
+published; the chat must be approved with the captcha on. The next join request
+spends it, once. Neither `trusted` nor `catalog` is itself a reason to trust:
+only a captcha actually answered renews trust. Both are checked after the
+blacklist and ban history, and both count towards a join wave. Trust skips a
+hold; a pass does not, because a pass is cheap to mint and a held request keeps
+it. The pass works where the captcha arrives by private message, not where
+this bot guards with the join-check Mini App.
 
 **One bot answers a chat's join requests.** Telegram lets a bot write to an
 applicant only until somebody else has, so with a second captcha bot in the

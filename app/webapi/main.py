@@ -22,6 +22,7 @@ from app.webapi.routes import (
     auth,
     auth_telegram,
     catalog,
+    catalog_pass,
     chats,
     client_errors,
     health,
@@ -123,6 +124,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api")
     app.include_router(metrics.router, prefix="/api")
     app.include_router(public.router, prefix="/api")
+    app.include_router(catalog_pass.router, prefix="/api")
     app.include_router(join_check.router, prefix="/api")
     app.include_router(seen.router, prefix="/api")
     app.include_router(client_errors.router, prefix="/api")

@@ -390,6 +390,12 @@ class CaptchaSettings(Settings):
         le=180,
         description="How long a captcha passed in one chat lets the person into the others without one; 0 turns it off",
     )
+    catalog_pass_hours: int = Field(
+        default=24,
+        ge=0,
+        le=168,
+        description="How long a tap on a chat's join button in the Mini App's catalog lets that person in without a captcha; 0 turns it off",
+    )
 
     @model_validator(mode="after")
     def _reminder_inside_window(self) -> CaptchaSettings:

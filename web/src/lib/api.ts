@@ -244,7 +244,7 @@ function detailOf(payload: unknown): string | undefined {
  */
 async function publicRequest<T>(
   path: string,
-  init: Pick<RequestInit, 'method' | 'body' | 'signal'> = {},
+  init: Pick<RequestInit, 'method' | 'body' | 'signal' | 'keepalive'> = {},
 ): Promise<T> {
   const response = await reported(`/api/public${path}`, {
     ...init,
@@ -297,6 +297,19 @@ export const api = {
     // Only this counts as passing: a misrouted 200 must not say «Готово».
     if (!isApproval(answer))
       throw new ApiError(502, answer, 'join check gave no approval');
+  },
+
+  /**
+   * Tell supervisor this person is about to join one of our chats from the
+   * catalog, so the captcha it would ask is skipped once. Nothing waits on it
+   * and nothing is shown if it fails: the link opens either way.
+   */
+  claimCatalogPass: async (initData: string, link: string): Promise<void> => {
+    await publicRequest<unknown>('/catalog-pass', {
+      method: 'POST',
+      body: JSON.stringify({ init_data: initData, link }),
+      keepalive: true,
+    });
   },
 
   /**

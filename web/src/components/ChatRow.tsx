@@ -5,7 +5,8 @@ import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import { hapticSelection } from '@/hooks/useTelegram';
-import { institutionsQuery } from '@/lib/api';
+import { api, institutionsQuery, rawInitData } from '@/lib/api';
+import { joinFromCatalog } from '@/lib/catalogPass';
 import { chatPreview } from '@/lib/chatPreview';
 import {
   type Activity,
@@ -197,7 +198,12 @@ export function ChatRow({
 }) {
   const preview = chatPreview(chat.link, useLocation(), {
     navigate: useNavigate(),
-    openLink: openTelegramLink,
+    openLink: () =>
+      joinFromCatalog(chat, {
+        initData: rawInitData,
+        claim: api.claimCatalogPass,
+        openLink: openTelegramLink,
+      }),
     // react-router keeps a location's state under `usr` in the history entry,
     // and writes it there synchronously on navigate.
     stateNow: () => (window.history.state as { usr?: unknown } | null)?.usr,
