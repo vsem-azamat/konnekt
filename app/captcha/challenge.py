@@ -89,13 +89,24 @@ def keyboard(challenge_id: int, options: list[str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[buttons[:4], buttons[4:]])
 
 
+def duration(minutes: int) -> str:
+    """«15 минут», «24 часа», «23 часа 56 минут»: hours from an hour up, so a long window reads as a day, not as 1440."""
+    hours, rest = divmod(minutes, 60)
+    parts = []
+    if hours:
+        parts.append(f"{hours} {plural(hours, 'час', 'часа', 'часов')}")
+    if rest or not hours:
+        parts.append(f"{rest} {plural(rest, 'минута', 'минуты', 'минут')}")
+    return " ".join(parts)
+
+
 def ask_text(chat_title: str, answer: str, minutes: int) -> str:
     # The answer in capitals and bold, here and wherever it is named again:
     # it is the one word the applicant has to find on the board.
     return (
         f"🔐 Проверка для чата <b>{html.escape(chat_title)}</b>\n\n"
         f"Нажми на <b>{NAMES[answer].upper()}</b>, и заявку примут.\n\n"
-        f"⏱ {minutes} {plural(minutes, 'минута', 'минуты', 'минут')}."
+        f"⏱ На ответ {duration(minutes)}."
     )
 
 
@@ -104,10 +115,7 @@ def waits(answer: str) -> str:
 
 
 def reminder_text(answer: str, minutes_left: int) -> str:
-    return (
-        f"⏳ Ещё {minutes_left} {plural(minutes_left, 'минута', 'минуты', 'минут')} — "
-        f"<b>{NOMINATIVE[answer].upper()}</b> {waits(answer)} в сообщении выше."
-    )
+    return f"⏳ Ещё {duration(minutes_left)} — <b>{NOMINATIVE[answer].upper()}</b> {waits(answer)} в сообщении выше."
 
 
 def retry_hint(answer: str, attempts_left: int) -> str:
