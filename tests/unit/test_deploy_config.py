@@ -11,6 +11,7 @@ So the two are pinned against each other.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -288,11 +289,12 @@ def test_the_image_build_gets_every_pnpm_config_the_lockfile_was_written_with() 
     the file sitting there either way.
     """
     dockerfile = ROOT.joinpath("Dockerfile").read_text()
-    copied = re.search(r"^COPY (web/\S+ .*?)\./$", dockerfile, re.M)
+    stage = dockerfile.split(" AS web-dependencies", 1)[1].split("\nFROM ", 1)[0]
+    copied = " ".join(re.findall(r"^COPY (web/\S+ .*?)\./$", stage, re.M))
     assert copied, "the web dependency stage no longer copies files one by one"
 
     if (ROOT / "web" / "pnpm-workspace.yaml").exists():
-        assert "web/pnpm-workspace.yaml" in copied.group(1)
+        assert "web/pnpm-workspace.yaml" in copied
 
 
 def test_the_bots_database_is_dumped_daily_off_its_server() -> None:
@@ -858,3 +860,59 @@ def test_ci_tests_the_python_the_image_runs() -> None:
 
     assert image
     assert uv["with"]["python-version"] == image.group(1)
+
+
+TEST_WORKFLOW = ROOT / ".github" / "workflows" / "test.yml"
+DOCKERFILES = (ROOT / "Dockerfile", ROOT / "catalog" / "Dockerfile")
+
+
+def test_ci_and_every_image_use_one_uv() -> None:
+    # The catalog's image took a floating 0.11 and built with 0.11.33 while CI
+    # and the bot's pinned 0.11.11: one lockfile, two resolvers.
+    in_ci = {
+        step["with"]["version"]
+        for job in yaml.safe_load(TEST_WORKFLOW.read_text())["jobs"].values()
+        for step in job["steps"]
+        if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
+    }
+    in_images = {m for path in DOCKERFILES for m in re.findall(r"ghcr\.io/astral-sh/uv:(\S+)", path.read_text())}
+
+    assert len(in_ci | in_images) == 1, in_ci | in_images
+    assert re.fullmatch(r"\d+\.\d+\.\d+", next(iter(in_images)))
+
+
+def test_python_base_images_name_their_patch_release() -> None:
+    bases = {m for path in DOCKERFILES for m in re.findall(r"^FROM python:(\S+)", path.read_text(), re.M)}
+
+    assert bases
+    assert all(re.match(r"\d+\.\d+\.\d+-", base) for base in bases), bases
+
+
+def test_pnpm_is_named_once_in_the_web_package() -> None:
+    # Corepack reads packageManager; a second copy in the Dockerfile is a second
+    # thing to bump, and the image built with whichever was left behind.
+    assert "packageManager" in json.loads((ROOT / "web" / "package.json").read_text())
+    assert "pnpm@" not in ROOT.joinpath("Dockerfile").read_text()
+
+
+def test_every_postgres_is_the_same_image() -> None:
+    """Production's, CI's, the integration tests', the restore drill's and development's.
+
+    A different image is a different glibc and ICU, so a test of collation
+    proves another server's; the integration tests had a floating
+    postgres:18-trixie.
+    """
+    # An image's tag names a release ("18-trixie"); a bare number is a port.
+    postgres = re.compile(r"\b((?:pgvector/pgvector|postgres):[\w.-]*[A-Za-z][\w.-]*)")
+    sources = [
+        COMPOSE,
+        DEPLOY,
+        TEST_WORKFLOW,
+        ROOT / "catalog" / "compose.dev.yml",
+        ROOT / "tests" / "integration" / "conftest.py",
+        ROOT / "scripts" / "restore_drill.sh",
+    ]
+    images = {path.name: set(postgres.findall(path.read_text())) for path in sources}
+
+    assert all(images.values()), images
+    assert len(set().union(*images.values())) == 1, images

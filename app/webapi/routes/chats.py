@@ -25,7 +25,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
     TelegramServerError,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +43,7 @@ from app.chats.metadata import (
 from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, ChatMemberSnapshot, Message, User
+from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot, Message, User
 from app.webapi.deps import (
     get_publish_bot,
     get_session,
@@ -584,4 +584,26 @@ def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
         created_at=chat.created_at,
+    )
+
+
+@router.get("/{chat_id}/photo", response_class=Response)
+async def chat_photo(
+    chat_id: int,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _admin_id: Annotated[int, Depends(require_super_admin)],
+) -> Response:
+    """A chat's photo for the console, listed or not; 404 is its letters.
+
+    The public address serves only what the catalog lists. An admin sees every
+    chat the bot keeps a picture for, under the chat's id: the console knows the
+    id and not the photo's.
+    """
+    avatar = await session.get(ChatAvatar, chat_id)
+    if avatar is None:
+        return Response(status_code=404, headers={"Cache-Control": "private, max-age=3600"})
+    return Response(
+        content=avatar.content,
+        media_type=avatar.content_type,
+        headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"},
     )

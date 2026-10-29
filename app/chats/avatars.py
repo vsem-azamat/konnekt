@@ -41,7 +41,7 @@ JPEG_MAGIC = b"\xff\xd8\xff"
 Outcome = Literal["fetched", "unchanged", "removed", "failed", "skipped"]
 
 
-async def _download(bot: Bot, file_id: str) -> bytes | None:
+async def download_small_jpeg(bot: Bot, file_id: str) -> bytes | None:
     """The photo's bytes, or None when Telegram would not give a small JPEG."""
     try:
         buffer = await ask(lambda: bot.download(file_id))
@@ -98,7 +98,7 @@ async def _sync(*, session: AsyncSession, bot: Bot, chat: Chat, metadata: ChatMe
     if stored is not None and stored.unique_id == metadata.avatar_unique_id:
         return "unchanged"
 
-    data = await _download(bot, metadata.avatar_file_id)
+    data = await download_small_jpeg(bot, metadata.avatar_file_id)
     if data is None:
         return "failed"
     await store(session, chat_id=chat.id, unique_id=metadata.avatar_unique_id, content=data)

@@ -85,7 +85,7 @@ Unit and e2e tests use SQLite in-memory databases for speed. Integration tests r
 
 ### Testcontainers
 
-Integration tests in `tests/integration/conftest.py` use `testcontainers[postgres]` with the `pgvector/pgvector:0.8.2-pg18-trixie` image. Requires Docker access.
+Integration tests in `tests/integration/conftest.py` use `testcontainers[postgres]` with the `pgvector/pgvector:0.8.6-pg18-bookworm` image, the one CI and production run. Requires Docker access.
 
 ## Writing Tests
 

@@ -1,7 +1,9 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
+import { EmptyServiceSheet } from '@/components/EmptyServiceSheet';
 import { PlusIcon, SearchIcon } from '@/components/icons';
 import { ServiceGrid } from '@/components/ServiceGrid';
 import {
@@ -29,6 +31,7 @@ import { api, meQuery } from '@/lib/api';
 export default function HomePage() {
   const navigate = useNavigate();
   const { t } = useLingui();
+  const [empty, setEmpty] = useState<{ code: string; name: string } | null>(null);
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ['home'],
@@ -71,7 +74,13 @@ export default function HomePage() {
         // its row.
         <ServiceGrid
           items={data.people}
-          onPick={(section) => navigate(`/results?service=${section.code}`)}
+          // Nobody offers it yet: no list to open, so the tile says so and
+          // offers to be the first, rather than opening an empty one.
+          onPick={(section) =>
+            section.count === 0
+              ? setEmpty({ code: section.code, name: section.name })
+              : navigate(`/results?service=${section.code}`)
+          }
           renderTrailing={(section, wide) => {
             // Faces on every shelf that has any, not only where a wide cell
             // happened to fall. Which shelf got one was decided by whether
@@ -126,6 +135,10 @@ export default function HomePage() {
             />
           </Rows>
         </>
+      ) : null}
+
+      {empty ? (
+        <EmptyServiceSheet service={empty} onClose={() => setEmpty(null)} />
       ) : null}
     </Screen>
   );

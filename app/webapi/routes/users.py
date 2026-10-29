@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from aiogram import Bot
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,10 +19,16 @@ from app.core.exceptions import NotAPersonError, ProtectedUserError, UserNotFoun
 from app.db.models import User
 from app.moderation import audit
 from app.moderation.blacklist import add_to_blacklist, approved_chat_ids, remove_from_blacklist
+from app.people.photos import PhotoUnknownError, photo_of
 from app.webapi.deps import get_publish_bot, get_session, require_super_admin
 from app.webapi.schemas import BlockedUserRead, UserBlockRequest, UserBlockResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+# A face changes rarely and the console shows the same ones all day; an hour
+# for "none" lets a photo someone just set appear the same day.
+PHOTO_CACHE = "private, max-age=86400"
+NO_PHOTO_CACHE = "private, max-age=3600"
 
 
 @router.get("/blocked", response_model=list[BlockedUserRead])
@@ -102,3 +108,26 @@ async def unblock_user(
         target_user_id=user_id,
     )
     return UserBlockResponse(user_id=user_id, blocked=False, message="User unblocked.")
+
+
+@router.get("/{user_id}/photo", response_class=Response)
+async def user_photo(
+    user_id: int,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    bot: Annotated[Bot, Depends(get_publish_bot)],
+    _admin_id: Annotated[int, Depends(require_super_admin)],
+) -> Response:
+    """A person's photo for the console's faces; 404 is their letters."""
+    try:
+        content = await photo_of(session, bot, user_id)
+    except PhotoUnknownError:
+        # Letters for now, and asked again on the next look rather than in an hour.
+        return Response(status_code=404, headers={"Cache-Control": "no-store"})
+    await session.commit()
+    if content is None:
+        return Response(status_code=404, headers={"Cache-Control": NO_PHOTO_CACHE})
+    return Response(
+        content=content,
+        media_type="image/jpeg",
+        headers={"Cache-Control": PHOTO_CACHE, "X-Content-Type-Options": "nosniff"},
+    )
