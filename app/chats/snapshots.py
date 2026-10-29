@@ -12,8 +12,9 @@ not in: two more by its name, once a day), no concurrency, no deduplication.
 If the process dies we lose the in-flight tick and nothing is corrupted,
 because each snapshot is an independent row.
 
-Each tick also refreshes the title and photo of chats whose ``last_synced_at``
-is older than ``METADATA_STALENESS_HOURS``. That check uses ``last_synced_at``
+Each tick also asks `getChat` again, for whatever no update announces
+(app/chats/profile.py takes the answer), of chats whose ``last_synced_at`` is
+older than ``CHAT_STATE_RECHECK_AFTER_HOURS``. That check uses ``last_synced_at``
 and not ``modified_at``, so an admin's edit in the console does not suppress a
 Telegram sync and a Telegram sync does not masquerade as an admin's edit.
 """
@@ -28,8 +29,7 @@ import aiohttp
 from aiogram.exceptions import TelegramRetryAfter
 from sqlalchemy import select, update
 
-from app.chats import previews
-from app.chats.avatars import sync_photo
+from app.chats import previews, profile
 from app.chats.metadata import (
     BotNotInChatError,
     ChatMigratedError,
@@ -40,6 +40,7 @@ from app.chats.metadata import (
     username_of,
 )
 from app.chats.migration import follow_upgrade
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
@@ -55,24 +56,10 @@ SNAPSHOT_INTERVAL_SECONDS = 3600  # 1 hour
 # and lost a third of the counts. A second apart, a tick takes under a minute
 # of an hour.
 PAUSE_BETWEEN_CHATS_SECONDS = 1.0
-METADATA_STALENESS_HOURS = 24
 # A chat the bot is not in answers the same "chat not found" every hour. Asked
 # once a day it still comes back by itself once somebody adds the bot, which
 # the bot is not told about for a chat outside the approval gate.
 BOT_ABSENT_RECHECK_HOURS = 24
-
-
-def _apply_title(chat: Chat, title: str | None) -> bool:
-    """Take Telegram's title. True when it actually differed.
-
-    Only the title, because it is the one upstream-managed string the console
-    shows; welcome text, captcha, parent and notes are the admin's and must not
-    be overwritten by a sync.
-    """
-    if not title or title == chat.title:
-        return False
-    chat.title = title
-    return True
 
 
 async def _settle_guessed_mode(session_maker: async_sessionmaker[AsyncSession], chat_id: int, *, public: bool) -> None:
@@ -128,7 +115,7 @@ async def snapshot_once(
     refreshed = 0
     photo_refreshed = 0
     now = utc_now()
-    cutoff = now - datetime.timedelta(hours=METADATA_STALENESS_HOURS)
+    cutoff = now - datetime.timedelta(hours=settings.chat_state.recheck_after_hours)
     absent_cutoff = now - datetime.timedelta(hours=BOT_ABSENT_RECHECK_HOURS)
 
     async with session_maker() as session:
@@ -207,12 +194,12 @@ async def snapshot_once(
                 )
                 if metadata is None:
                     continue
-            if _apply_title(chat, metadata.title):
-                refreshed += 1
             if chat.join_mode_guessed:
                 await _settle_guessed_mode(session_maker, chat.id, public=metadata.username is not None)
-            chat.join_by_request = metadata.join_by_request
-            outcome = await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
+            title = chat.title
+            outcome = await profile.apply(session=session, bot=bot, chat=chat, metadata=metadata)
+            if chat.title != title:
+                refreshed += 1
             if outcome in {"fetched", "removed"}:
                 photo_refreshed += 1
             if outcome != "failed":

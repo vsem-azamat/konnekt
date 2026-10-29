@@ -235,6 +235,21 @@ class Chat(Base):
     # One of TOPICS, or None: a university's chat, or one nobody filed yet.
     topic: Mapped[str | None] = mapped_column(String(16), nullable=True)
     photo_file_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # What getChat last said about the chat, written only by app/chats/profile.py;
+    # None until asked. No update announces a change to any of these, so they
+    # are as fresh as last_synced_at.
+    username: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Telegram's own type: "group" and "supergroup" are both KIND_GROUP to a reader.
+    chat_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    slow_mode_delay: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # What members may do unless an admin says otherwise, under Telegram's names.
+    permissions: Mapped[dict[str, bool] | None] = mapped_column(JSON, nullable=True)
+    has_protected_content: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    has_hidden_members: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    has_aggressive_anti_spam_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    message_auto_delete_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    linked_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     last_synced_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     # When Telegram last told the bot it does not know this chat, or None while
     # it answers. The hourly loop asks such a chat once a day instead.

@@ -24,8 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
 from app.captcha.telegram import already_member, with_retry
-from app.chats import invite_links, welcome
-from app.chats.avatars import sync_photo
+from app.chats import invite_links, profile, welcome
 from app.chats.metadata import fetch_metadata, username_of
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -130,8 +129,8 @@ async def chat_photo_changed(message: Message, bot: Bot, db: AsyncSession) -> No
     """Take a changed chat photo on the notice instead of at the next daily sync.
 
     The notice carries the message's own photo sizes, which are not the chat's,
-    so Telegram is asked again. Nothing here is shown in the chat and nothing
-    is removed: only the stored picture follows.
+    so Telegram is asked again, and the rest of its answer is taken with it.
+    Nothing here is shown in the chat and nothing is removed.
     """
     chat = await db.scalar(select(Chat).where(Chat.id == message.chat.id))
     if chat is None:
@@ -141,7 +140,7 @@ async def chat_photo_changed(message: Message, bot: Bot, db: AsyncSession) -> No
     )
     if metadata is None:
         return
-    await sync_photo(session=db, bot=bot, chat=chat, metadata=metadata)
+    await profile.apply(session=db, bot=bot, chat=chat, metadata=metadata)
     await db.commit()
 
 

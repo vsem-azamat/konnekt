@@ -159,6 +159,7 @@ async def test_the_check_asks_only_chats_not_confirmed_lately(session_maker) -> 
         for chat_id in (fresh, stale, unknown, migrated, absent):
             session.add(Chat(id=chat_id))
         session.add(Chat(id=preview, resource_status=Chat.STATUS_EXTERNAL))
+        session.add(Chat(id=-1007, resource_status=Chat.STATUS_EXTERNAL, kind=Chat.KIND_CHANNEL))
         await session.flush()
         (await session.get(Chat, migrated)).migrated_to_chat_id = -1009
         (await session.get(Chat, absent)).bot_absent_at = utc_now()
