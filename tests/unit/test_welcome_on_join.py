@@ -609,12 +609,13 @@ async def test_past_48_hours_it_is_forgotten_without_asking(session: AsyncSessio
 async def test_stuck_greetings_do_not_crowd_out_one_that_is_due(
     session: AsyncSession, bot, timers, monkeypatch
 ) -> None:
-    """Oldest first: greetings flood control keeps refusing leave room for the rest over the runs."""
+    """Oldest first: a due greeting older than the ones Telegram keeps refusing is not crowded out of the batch."""
     from app.db.models import WelcomeGreeting
 
     t0 = datetime(2026, 10, 29, 12, 0)
     for i in range(welcome.SWEEP_BATCH):
-        session.add(WelcomeGreeting(-1000 - i, 1, t0 + timedelta(minutes=10)))
+        # Chat ids that sort before CHAT_ID, so only the order by age puts it in the batch.
+        session.add(WelcomeGreeting(-2_000_000_000_000 - i, 1, t0 + timedelta(minutes=10)))
     session.add(WelcomeGreeting(CHAT_ID, 9, t0))
     await session.commit()
 
