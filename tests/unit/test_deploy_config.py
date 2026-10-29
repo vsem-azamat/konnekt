@@ -820,3 +820,21 @@ def test_a_short_metrics_secret_stops_the_deploy_before_anything_is_touched() ->
     assert "OBSERVABILITY_METRICS_SECRET" in check["env"]
     assert '"${#OBSERVABILITY_METRICS_SECRET}" -lt 32' in check["run"]
     assert names.index("Check required configuration is present") < names.index("Deploy on VPS")
+
+
+def test_each_image_build_keeps_its_cache_in_a_scope_of_its_own() -> None:
+    # Two builds exporting to one scope replace each other's cache, so neither
+    # finds its layers: every deploy rebuilt every layer and the host pulled
+    # the whole virtualenv again.
+    steps = yaml.safe_load(DEPLOY.read_text())["jobs"]["build-and-push"]["steps"]
+    builds = [step["with"] for step in steps if str(step.get("uses", "")).startswith("docker/build-push-action@")]
+
+    scopes = []
+    for build in builds:
+        read = dict(part.split("=", 1) for part in build["cache-from"].split(",")[1:])
+        write = dict(part.split("=", 1) for part in build["cache-to"].split(",")[1:])
+        assert read.get("scope"), build["cache-from"]
+        assert read["scope"] == write.get("scope"), build["cache-to"]
+        scopes.append(read["scope"])
+    assert len(builds) == 3
+    assert len(set(scopes)) == len(scopes)

@@ -223,6 +223,21 @@ jobs:
     # The layout on Telegram's Android and iOS viewports, where the height
     # Telegram reports and the window's differ. The development mock is a
     # desktop client and cannot show that, so the other layout checks miss it.
+    # The browser is kept between runs, keyed by the Playwright that wants it;
+    # the install below then only adds the system libraries it needs.
+    - name: Find the Playwright version
+      if: steps.lanes.outputs.web == 'true'
+      id: playwright
+      working-directory: web
+      run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+    - name: Cache the browser for the layout check
+      if: steps.lanes.outputs.web == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
     - name: Install the browser for the layout check
       if: steps.lanes.outputs.web == 'true'
       working-directory: web
