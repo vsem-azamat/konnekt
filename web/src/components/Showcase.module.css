@@ -1,14 +1,13 @@
 /* The paid places under «Документы и жизнь»: one big card over a pair on a
-   phone, three equal tiles in a row from 720px. Beside a pair, a big card
-   ends ~100px short of it, and stretching it would crop the photo. An open
-   place is drawn lower than a taken one (E1), so the cards stay what the eye
-   lands on. */
+   phone, three equal tiles in a row from 720px, where a big card beside the
+   pair never lined up with the grid around it. An open place is drawn lower
+   than a taken one (E1), so the cards stay what the eye lands on. */
 
 .hero {
   display: grid;
   gap: 10px;
-  /* Each card its own height: a photo stretched to the row's would leave
-     16:9 and crop the partner's picture at the sides. */
+  /* Each place its own height: stretched to a card's, an open place would
+     be as tall as the card and no longer lower (E1). */
   align-items: start;
 }
 
@@ -29,6 +28,11 @@
   }
   .pair {
     display: contents;
+  }
+  /* A card alone, the other places shown as rows: two thirds, not a third
+     with empty space beside it. */
+  .hero > :only-child {
+    grid-column: span 2;
   }
 }
 
@@ -136,24 +140,19 @@
   white-space: nowrap;
 }
 
-.main .title {
-  font-size: 17px;
-}
-
-.main .line {
-  -webkit-line-clamp: 3;
-  font-size: 13.5px;
-}
-
-/* In a row of equal tiles the first is no bigger, so it is no louder. */
-@media (min-width: 720px) {
+/* Only on a phone, where the first place is bigger. In a row of equal tiles
+   it is no louder than the others. */
+@media (max-width: 719px) {
   .main .title {
-    font-size: 14.5px;
+    font-size: 17px;
   }
   .main .line {
-    -webkit-line-clamp: 2;
-    font-size: 12.5px;
+    -webkit-line-clamp: 3;
+    font-size: 13.5px;
   }
+}
+
+@media (min-width: 720px) {
   .main .meta {
     flex-direction: column;
     align-items: flex-start;
@@ -174,7 +173,7 @@
   width: 100%;
 }
 
-/* A third of the row at 32:9 would be a wide grey field round a small icon. */
+/* A third of the row at 32:9 would be a tall empty frame round a small icon. */
 @media (min-width: 720px) {
   .openCover {
     aspect-ratio: auto;
