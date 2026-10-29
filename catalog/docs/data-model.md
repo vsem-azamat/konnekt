@@ -495,6 +495,14 @@ holds*. Conditions are JSONB — `{"service_type": "nostrification"}`,
 not a migration. `placement_events` records impressions and clicks; worth
 partitioning by month once it hurts.
 
+The home showcase is placements too, in the `home_life` slot with
+`{"service_type": …}`, so its numbers are counted and listed as every card's.
+It adds `placements.published_at` (unset and inactive is a draft, set and
+inactive a card taken down), `partner_offers.price_from` (a number of Kč, where
+older cards keep the free-text `price_text`) and `partner_offers.photo`, a
+`partner_photos` row named by the SHA-256 of its bytes. Photos are never
+deleted, so the address a card handed out keeps meaning that picture.
+
 ## Counters are caches, not truth
 
 `deals_count`, `rating`, `reviews_count`, `response_minutes_avg` on

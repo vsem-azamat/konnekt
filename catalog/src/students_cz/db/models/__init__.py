@@ -13,6 +13,7 @@ from students_cz.db.models.partners import (
     Partner,
     PartnerOffer,
     PartnerOfferI18n,
+    PartnerPhoto,
     Placement,
     PlacementEvent,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "Partner",
     "PartnerOffer",
     "PartnerOfferI18n",
+    "PartnerPhoto",
     "Placement",
     "PlacementEvent",
     "RequestAlert",

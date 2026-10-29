@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     text,
@@ -73,6 +74,14 @@ class PartnerOffer(IdMixin, TimestampMixin, Base):
     valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # A card on the home showcase quotes a number, drawn «от … Kč», where the
+    # older cards' `price_text` is free text.
+    price_from: Mapped[int | None] = mapped_column(Integer)
+    # The showcase card's cover, by the hash of its bytes.
+    photo: Mapped[str | None] = mapped_column(
+        ForeignKey("partner_photos.sha256", ondelete="RESTRICT")
+    )
+
     partner: Mapped[Partner] = relationship(back_populates="offers")
     texts: Mapped[list["PartnerOfferI18n"]] = relationship(
         back_populates="offer", cascade="all, delete-orphan", lazy="selectin"
@@ -123,6 +132,9 @@ class Placement(IdMixin, TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
+    # When a showcase card first went live. Unset with `is_active` off is a
+    # draft; set with it off, a card taken down. The older slots never set it.
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     offer: Mapped[PartnerOffer] = relationship(back_populates="placements")
 
@@ -130,6 +142,21 @@ class Placement(IdMixin, TimestampMixin, Base):
         Index("ix_placements_slot_active", "slot", "is_active", "priority"),
         Index("ix_placements_conditions", "conditions", postgresql_using="gin"),
     )
+
+
+class PartnerPhoto(CreatedAtMixin, Base):
+    """A showcase card's photo, kept in the database by the hash of its bytes.
+
+    The hash is the address it is served at, so the address names one picture
+    for ever and can be cached as immutable; a new photo is a new row and a new
+    address. Never deleted: a card taken down keeps what it showed.
+    """
+
+    __tablename__ = "partner_photos"
+
+    sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mime: Mapped[str] = mapped_column(String(32), nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
 
 
 class PlacementEvent(IdMixin, CreatedAtMixin, Base):
@@ -160,6 +187,7 @@ __all__ = [
     "Partner",
     "PartnerOffer",
     "PartnerOfferI18n",
+    "PartnerPhoto",
     "Placement",
     "PlacementEvent",
 ]

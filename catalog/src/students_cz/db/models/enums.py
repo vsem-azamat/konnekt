@@ -201,6 +201,9 @@ class PlacementSlot(StrEnum):
     SCREEN_SEARCH_EMPTY = "screen_search_empty"
     AFTER_REQUEST_CREATED = "after_request_created"
     PROFILE_FOOTER = "profile_footer"
+    # A paid place on the home screen, under «Документы и жизнь», one per
+    # service in `services.showcase.SLOTS`. See docs/showcase-api.md.
+    HOME_LIFE = "home_life"
 
 
 class PlacementEventKind(StrEnum):
