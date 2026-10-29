@@ -77,25 +77,31 @@ Then the targets in Prometheus are up, and a line from each process appears in
 Loki within a minute. Without the secret the web API and the catalog answer
 404 (not 401); the bot starts no server, so the edge route to it answers 502.
 
-## Logs from before the last restart
+## Logs from before the last deploy
 
-`docker logs` on the host starts at the container's last start, so after a
-deploy the lines before it are only in Loki, which keeps seven days. Loki
+`docker logs` holds only the current container, which a deploy recreates, and
+its last 30 MB, so older lines are only in Loki, which keeps seven days. Loki
 answers on the monitoring server's loopback only; an agent on home reaches it
-over SSH by address (`poryadok` is not an alias there):
+over SSH by address (`poryadok` is not an alias there). The bot's errors of the
+last two days, oldest first:
 
 ```bash
 ssh poryadok@161.97.112.242 'curl -fsS -G http://127.0.0.1:3100/loki/api/v1/query_range \
   --data-urlencode "query={compose_project=\"supervisor-telegram\", service=\"bot\"} | json | level=\"error\"" \
-  --data-urlencode "start=$(date -u -d "2026-10-27 00:00" +%s)" \
-  --data-urlencode "end=$(date -u -d "2026-10-28 00:00" +%s)" \
-  --data-urlencode limit=200' | jq -r '.data.result[].values[][1]'
+  --data-urlencode "start=$(date -u -d "2 days ago" +%s)" \
+  --data-urlencode "end=$(date -u +%s)" \
+  --data-urlencode limit=200' | jq -r '[.data.result[].values[]] | sort_by(.[0]) | .[][1]'
 ```
 
-The labels are `compose_project`, `service` (`bot`, `webapi`, `catalog-api`,
-`webui`, `catalog-postgres`, `db-backup`, `catalog-backup`) and `level`;
-anything else, an `update_id`, `chat_id` or `request_id`, is a field of the
-JSON line, filtered after `| json` (`| json | request_id="…"`). `limit` caps the
-lines returned, newest first, so narrow the window rather than raise it. The
-lines are the same as `docker logs` and carry what those carry: keep what you
-quote from them to what the question needs.
+The times are UTC (`date -u -d "2026-10-27 00:00"` for a fixed one), and an
+empty answer for a window older than seven days means expired, not quiet.
+`limit` keeps the newest lines of the window, so narrow the window rather than
+raise it; the `sort_by` matters because after `| json` every field is a label
+and nearly every line comes back as a stream of its own. The labels to select
+on are `compose_project`, `service` and `level`, and the services are listed by
+`curl -fsS http://127.0.0.1:3100/loki/api/v1/label/service/values` there; an
+`update_id`, `chat_id` or `request_id` is a field of the JSON line, filtered
+after `| json` (`| json | request_id="…"`). With `-f` a query Loki cannot parse
+shows only `400 Bad Request`; drop it to see Loki's reason. The lines are the
+same as `docker logs` and carry what those carry: keep what you quote from them
+to what the question needs.
