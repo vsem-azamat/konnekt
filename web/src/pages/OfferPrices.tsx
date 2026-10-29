@@ -425,9 +425,7 @@ export default function OfferPricesPage() {
                                   ? typedPrice(
                                       other,
                                       price,
-                                      type.price_hint_unit ??
-                                        type.default_price_unit ??
-                                        'hour',
+                                      type.default_price_unit ?? 'hour',
                                     )
                                   : other,
                               ),
