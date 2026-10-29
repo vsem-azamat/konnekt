@@ -9,8 +9,16 @@ import datetime
 from urllib.parse import quote
 
 from aiogram import Bot, F, Router
+from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
-from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
+from aiogram.filters import (
+    ADMINISTRATOR,
+    JOIN_TRANSITION,
+    LEAVE_TRANSITION,
+    MEMBER,
+    RESTRICTED,
+    ChatMemberUpdatedFilter,
+)
 from aiogram.types import (
     ChatJoinRequest,
     ChatMemberAdministrator,
@@ -51,6 +59,9 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     """
     joined = event.new_chat_member.user
     logger.info("user_joined", chat_id=event.chat.id, user_id=joined.id)
+    # Let in muted by the captcha in the chat: greeted once they pass it.
+    if await captcha.waits_in_chat(db, event.chat.id, joined.id):
+        return
     # Let in by an admin while their captcha waited: it is settled now.
     await captcha.admitted(bot, db, event.chat.id, joined.id)
 
@@ -70,9 +81,33 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
             raise
 
 
-@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))
-async def user_left(event: ChatMemberUpdated) -> None:
+@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(LEAVE_TRANSITION))
+async def user_left(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """Left or removed: a captcha in the chat waiting on them has nobody to ask."""
     logger.info("user_left", chat_id=event.chat.id, user_id=event.new_chat_member.user.id)
+    banned = event.new_chat_member.status == ChatMemberStatus.KICKED
+    await captcha.let_go(
+        bot, db, event.chat.id, event.new_chat_member.user.id, unmute=not banned, since=_naive_utc(event.date)
+    )
+
+
+@router.chat_member(
+    ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(+RESTRICTED >> (MEMBER | ADMINISTRATOR))
+)
+async def user_unmuted(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """An admin let a muted newcomer write, by hand or through the bot: the captcha is theirs no more.
+
+    The captcha's own unmute, after a pass, holds the row while it acts, so
+    this finds it settled.
+    """
+    await captcha.let_go(
+        bot, db, event.chat.id, event.new_chat_member.user.id, unmute=False, since=_naive_utc(event.date)
+    )
+
+
+def _naive_utc(moment: datetime.datetime) -> datetime.datetime:
+    """Telegram's time of an update, as the naive UTC the database keeps."""
+    return moment.astimezone(datetime.UTC).replace(tzinfo=None)
 
 
 def _may_invite(member: ChatMemberUnion) -> bool:

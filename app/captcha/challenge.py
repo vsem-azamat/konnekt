@@ -156,3 +156,49 @@ def handed_back_text(chat_title: str) -> str:
 
 def superseded_text(chat_title: str) -> str:
     return f"Эта проверка для чата <b>{html.escape(chat_title)}</b> больше не действует: ты подал(а) новую заявку."
+
+
+# --- asked in the chat (app/captcha/in_chat.py) ------------------------------
+
+# What the card's button opens the bot with: `/start captcha`.
+START_PAYLOAD = "captcha"
+CARD_BUTTON = "Пройти капчу"
+
+
+def card_text(names: list[str], minutes: int) -> str:
+    """The message in the chat naming who may not write yet; `names` are HTML, mentions or plain."""
+    if len(names) == 1:
+        who, verb, whom = names[0], "нажми", ""
+    else:
+        who, verb, whom = ", ".join(names), "нажмите", " каждому"
+    return (
+        f"👋 {who}, чтобы писать в чат, {verb} «{CARD_BUTTON}»: бот задаст{whom} один вопрос в личке.\n\n"
+        f"⏱ На это {duration(minutes)}, потом бот уберёт из чата."
+    )
+
+
+def ask_in_chat_text(chat_title: str, answer: str, minutes_left: int) -> str:
+    return (
+        f"🔐 Проверка для чата <b>{html.escape(chat_title)}</b>\n\n"
+        f"Нажми на <b>{NAMES[answer].upper()}</b>, и сможешь писать в чате.\n\n"
+        f"⏱ Осталось {duration(minutes_left)}."
+    )
+
+
+def unmuted_text(chat_title: str, link: str | None) -> str:
+    title = html.escape(chat_title)
+    where = f'<a href="{html.escape(link)}">{title}</a>' if link else f"<b>{title}</b>"
+    return f"✅ Готово, теперь можно писать в {where}!"
+
+
+def removed_text(chat_title: str, *, expired: bool, removed: bool, may_return: bool) -> str:
+    """Out of tries or time; `removed` and `may_return` say how far the removal got."""
+    title = html.escape(chat_title)
+    why = f"Время на проверку в <b>{title}</b> вышло" if expired else f"Проверка для <b>{title}</b> не пройдена"
+    if not removed:
+        return f"{why}: писать в чате пока нельзя, дальше решат админы чата."
+    return f"{why}, бот убрал тебя из чата." + (" Можно вступить ещё раз." if may_return else "")
+
+
+def no_longer_needed_text(chat_title: str) -> str:
+    return f"Проверка для чата <b>{html.escape(chat_title)}</b> больше не нужна."

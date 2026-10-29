@@ -390,6 +390,21 @@ class CaptchaSettings(Settings):
         lt=5,
         description="When an applicant who has not answered gets one reminder",
     )
+    # Asked in the chat, the bot may write to the person any time after they
+    # open it, so their one reminder can wait longer than the five minutes above.
+    in_chat_remind_after_minutes: int = Field(
+        default=10,
+        ge=1,
+        description="With the captcha in the chat, when somebody who opened the bot and has not answered gets one reminder",
+    )
+    # A card in the chat names everyone let in since the last one, so a
+    # burst of joiners is one message, not one each. Joins seen 20-29.10: at
+    # most 4 to one chat within a minute.
+    card_batch_seconds: int = Field(
+        default=60,
+        ge=1,
+        description="With the captcha in the chat, the least time between two cards naming newcomers",
+    )
     # Passes are kept 180 days (RETENTION_DAYS in app/captcha/service.py), so
     # a longer window would quietly be 180.
     trust_days: int = Field(
