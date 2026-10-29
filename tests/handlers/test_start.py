@@ -7,8 +7,8 @@ the console could only be reached by knowing that a command called `/adminlink`
 existed.
 
 What is pinned here is who sees what. The wording will move; the rule that a
-stranger is not handed the moderator's toolbox, and that `/start` is one
-message, should not.
+stranger is not handed the moderator's toolbox, and that `/start` offers one
+way in, should not.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -226,7 +226,7 @@ def _album(message) -> list:
 
 @pytest.mark.handlers
 class TestTheAlbum:
-    """The photo and the video under one caption, and nothing else (W2-f)."""
+    """The photo and the video under one caption, then the button in its own message (W2-f)."""
 
     async def test_the_greeting_is_the_albums_caption_and_the_button_follows(
         self, telegram_factory, admin_repo, site, monkeypatch
