@@ -3,9 +3,9 @@
 # Build and runtime are separated so the image that ships carries no compilers,
 # no uv, and no lockfile — only the virtualenv and the source it needs.
 
-FROM python:3.14-slim-bookworm AS builder
+FROM python:3.14.10-slim-bookworm AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.33 /uv /usr/local/bin/uv
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # starts: the image is the unit of deploy and of rollback, and a model pulled at
 # startup would make one tag behave differently on different days. See
 # docs/architecture.md.
-FROM python:3.14-slim-bookworm AS model
+FROM python:3.14.10-slim-bookworm AS model
 
 # A commit, never a branch or a tag: those move, and a model that changes under
 # a fixed image tag is the whole failure this stage exists to prevent.
@@ -62,7 +62,7 @@ RUN mv /model/onnx/model_q4.onnx /model/onnx/model_q4.onnx_data /model/ \
     && rm /model.sha256
 
 
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.14.10-slim-bookworm AS runtime
 
 # Non-root from the start. The application writes nothing to disk — Postgres
 # holds the state and Telegram holds the files.
