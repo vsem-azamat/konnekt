@@ -6,7 +6,7 @@ is kept rare and easy to stop:
 * To exactly the people the request's «Заявку видят N помощников» counts (see
   `catalog.helpers_listed`), less those who cannot or would rather not be
   written to: everyone `people.reachable` leaves out, and whoever switched
-  these off in «Мои услуги».
+  these off in «О себе и как работаю».
 * Five minutes after posting, so a request deleted or closed straight away is
   never announced, and only while it can still be answered.
 * Not at night in Prague. What falls due then waits until morning.
