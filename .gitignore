@@ -183,6 +183,7 @@ scripts/*
 !scripts/admin_host.sh
 !scripts/env_to_github.sh
 !scripts/restore_drill.sh
+!scripts/tested_lanes.sh
 !scripts/adopt_existing_db.py
 !scripts/tg_accounts.py
 !scripts/tg_chats.py
