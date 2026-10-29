@@ -86,6 +86,10 @@ with `LookupError`; the Mini App and everything else run. The cards cannot be
 moved to an older slot, which would put them on that slot's screen, so roll
 back that far only with the partner list accepted as broken.
 
+A second, from the cleanup of 2026-10-29: nine empty columns left the models
+in #446 and the database a release later. A release before #446 still selects
+them, so it no longer runs at all; roll back no further than #446.
+
 The pre-move stack is gone: its containers were removed on 30 September 2026,
 once the catalog had been checked end to end from here. Undoing the move means
 reverting #141 here and teachers-catalog #61, which removed that repository's
