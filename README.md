@@ -59,9 +59,10 @@ process, so give each its own terminal.
 
 ```bash
 cp .env.example .env            # MODERATOR_BOT_TOKEN, DB_*, ADMIN_SUPER_ADMINS
-docker run -d --name konnekt-db -p 127.0.0.1:5432:5432 \
-  -e POSTGRES_PASSWORD=<DB_PASSWORD from .env> -e POSTGRES_DB=moderator_bot \
+docker run -d --name konnekt-db -p 127.0.0.1:5432:5432 -e POSTGRES_DB=moderator_bot \
+  -e POSTGRES_PASSWORD="$(sed -n 's/^DB_PASSWORD=//p' .env)" \
   pgvector/pgvector:0.8.6-pg18-bookworm
+until docker exec konnekt-db pg_isready -U postgres -d moderator_bot; do sleep 1; done
 uv sync --dev && uv run alembic upgrade head
 uv run -m app.presentation.telegram                          # the bot
 uv run uvicorn app.webapi.main:app --port 8787               # the web API
