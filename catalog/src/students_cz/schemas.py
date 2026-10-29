@@ -171,6 +171,9 @@ class HelperCardOut(BaseModel):
     # the name is empty: somebody who published without one is otherwise a
     # name and nothing else.
     service: str | None = None
+    # The subject of the offer the card stands for, when it has one: the line
+    # that comes next when there is no headline.
+    subject: str | None = None
     price: Price | None = None
     # The line under the name explaining why this person is in the list at all.
     # Sometimes it says the match is weak; that is the point.

@@ -26,7 +26,8 @@ export function HelperCardView({
   const weak = card.reason?.code === 'reason.cheapest_but_unproven';
   // Somebody who published without a line under their name or a price would
   // otherwise be a name alone, which reads as a card that failed to load.
-  const subtitle = card.affiliation || card.service;
+  // In a list of one service the server leaves the service out.
+  const subtitle = card.affiliation || card.subject || card.service;
 
   return (
     <Card onClick={onClick}>

@@ -150,3 +150,25 @@ async def test_a_card_names_the_service_it_was_found_for(
 
     [card] = [c for c in cards if c.user_id == helper.id]
     assert card.service == "Репетитор по предмету"
+    assert card.subject == "Математический анализ"
+
+
+async def test_a_card_in_one_service_does_not_repeat_its_name(
+    session: AsyncSession, helper_factory
+) -> None:
+    """The screen is already headed with the service; the card would say it twice."""
+    from students_cz.db.models import ServiceType
+
+    helper = await helper_factory(tg_id=92113, price=None)
+    viewer = await _person(session, 92114)
+    tutoring = await session.scalar(
+        select(ServiceType).where(ServiceType.code == "tutoring")
+    )
+    assert tutoring is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, service_type_id=tutoring.id
+    )
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.service is None

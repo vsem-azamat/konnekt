@@ -417,13 +417,20 @@ async def search(
     if viewer.institution_id:
         viewer_institutions.add(viewer.institution_id)
 
-    services = await rows_by_id(session, ServiceType, (o.service_type_id for o in offers))
+    # Not when the search is for one service: the screen is headed with it.
+    services = (
+        await rows_by_id(session, ServiceType, (o.service_type_id for o in offers))
+        if service_type_id is None
+        else {}
+    )
+    subjects = await rows_by_id(session, Subject, (o.subject_id for o in offers))
 
     return total, [
         _to_card(
             offer,
             lang,
             service=services.get(offer.service_type_id),
+            subject=subjects.get(offer.subject_id) if offer.subject_id else None,
             requested_institution_id=institution_id,
             viewer_institutions=viewer_institutions,
             cheapest=float(cheapest) if cheapest is not None else None,
@@ -437,6 +444,7 @@ def _to_card(
     lang: UiLang,
     *,
     service: ServiceType | None,
+    subject: Subject | None,
     requested_institution_id: int | None,
     viewer_institutions: set[int],
     cheapest: float | None,
@@ -450,6 +458,7 @@ def _to_card(
         avatar=avatar_for(user),
         affiliation=helper.headline,
         service=translated(service, lang) if service else None,
+        subject=translated(subject, lang) if subject else None,
         price=Price(
             amount=float(offer.price_amount) if offer.price_amount is not None else None,
             currency=offer.price_currency,

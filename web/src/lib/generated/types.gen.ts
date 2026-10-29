@@ -606,6 +606,10 @@ export type HelperCardOut = {
      * Service
      */
     service?: string | null;
+    /**
+     * Subject
+     */
+    subject?: string | null;
     price?: Price | null;
     reason?: Phrase | null;
     availability?: Phrase | null;
