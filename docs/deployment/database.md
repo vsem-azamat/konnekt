@@ -16,12 +16,14 @@ and it costs one thing worth knowing about — see *Exposure*.
 
 Thirty-six migrations were replaced by a single initial schema, and production,
 built by the old history, was adopted onto it once, on 2026-07-31: the tables
-the squash adds were created, then `alembic stamp fbeb70328d81 --purge` and
-`alembic upgrade head`. The stamp was a true statement rather than a promise:
-production matched the squashed schema for every table it had. Another database
-that predates the squash needs the same steps; `git log` has the script that
-created the missing tables (`scripts/adopt_existing_db.py`, removed once
-production was adopted).
+the squash adds were created, then `alembic stamp fbeb70328d81 --purge`,
+`alembic upgrade head` and `alembic check`. `--purge` is what makes the stamp
+possible: without it Alembic first resolves the recorded revision, which no
+longer exists. The stamp was a true statement rather than a promise: production
+had every table of the squashed schema, apart from the column differences
+below. Another database that predates the squash needs the same steps; `git log`
+has the script that created the missing tables (`scripts/adopt_existing_db.py`,
+removed once production was adopted).
 
 Two follow-ups came out of it, both in `c8d5e2f47a19`: five columns the models
 declare NOT NULL were nullable in production (no row violated them), and two
