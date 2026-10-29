@@ -848,3 +848,13 @@ def test_every_job_has_a_timeout() -> None:
             if "uses" in job:
                 continue
             assert job.get("timeout-minutes"), f"{path.name}: {name}"
+
+
+def test_ci_tests_the_python_the_image_runs() -> None:
+    # "3.12" took the runner's 3.12.3; the image runs a patch release of its own.
+    image = re.search(r"^FROM python:(\d+\.\d+\.\d+)-\S+ AS production", ROOT.joinpath("Dockerfile").read_text(), re.M)
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["python"]["steps"]
+    (uv,) = [step for step in steps if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")]
+
+    assert image
+    assert uv["with"]["python-version"] == image.group(1)
