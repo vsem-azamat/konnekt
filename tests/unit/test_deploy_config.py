@@ -944,8 +944,9 @@ def test_a_pull_request_builds_the_images_the_deploy_builds() -> None:
         yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["images"]["steps"]
     )
 
-    def shape(build: dict[str, Any]) -> tuple[str, str, str]:
-        return (build["context"], build["target"], build["cache-from"])
+    def shape(build: dict[str, Any]) -> str:
+        """All of a build but where its result and cache go."""
+        return repr(sorted((key, value) for key, value in build.items() if key not in ("push", "tags", "cache-to")))
 
     assert sorted(map(shape, pull_request)) == sorted(map(shape, deploy))
     assert all(build["push"] is False for build in pull_request)

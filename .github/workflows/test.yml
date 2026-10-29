@@ -68,7 +68,9 @@ jobs:
         echo "$lanes" >> "$GITHUB_OUTPUT"
 
     # A pull request that changes what the images are built from builds them
-    # (job `images`); main builds and pushes them in the deploy.
+    # (job `images`); main builds and pushes them in the deploy. A moved file
+    # counts at its old path too (--no-renames), as in .githooks/_lib.sh; the
+    # bot's Dockerfile copies README.md, which pyproject.toml names.
     - name: Whether the change reaches the images
       id: images
       env:
@@ -76,7 +78,8 @@ jobs:
       run: |
         images=false
         if [ "$DRAFT" != true ] && [ "$GITHUB_EVENT_NAME" = pull_request ] \
-          && git diff --name-only HEAD^1 HEAD | grep -qE '^(Dockerfile|\.dockerignore|docker/.*|pyproject\.toml|uv\.lock|catalog/(Dockerfile|\.dockerignore|model\.sha256|pyproject\.toml|uv\.lock)|web/(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)|\.github/workflows/(test|deploy)\.yml)$'; then
+          && git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD \
+          | grep -qE '^(Dockerfile|\.dockerignore|docker/.*|README\.md|pyproject\.toml|uv\.lock|catalog/(Dockerfile|\.dockerignore|model\.sha256|pyproject\.toml|uv\.lock)|web/(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)|\.github/workflows/(test|deploy)\.yml)$'; then
           images=true
         fi
         echo "images=$images" >> "$GITHUB_OUTPUT"

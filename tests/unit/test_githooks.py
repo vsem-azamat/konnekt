@@ -604,6 +604,7 @@ def _images_step() -> str:
     "path",
     [
         "Dockerfile",
+        "README.md",
         "catalog/Dockerfile",
         "docker/Caddyfile",
         "uv.lock",
@@ -643,3 +644,16 @@ def test_main_and_drafts_build_no_image_here(repo: Path) -> None:
 
     assert _ci_step(repo, ".", _images_step(), draft="", event="push")[1].split() == ["images=false"]
     assert _ci_step(repo, ".", _images_step(), draft="true")[1].split() == ["images=false"]
+
+
+def test_moving_a_file_the_images_are_built_from_builds_them(repo: Path) -> None:
+    _stage(repo, "catalog/model.sha256", "abc  model\n")
+    _commit(repo)
+    (repo / "catalog" / "infra").mkdir()
+    _git(repo, "mv", "catalog/model.sha256", "catalog/infra/model.sha256")
+    _commit(repo)
+
+    code, output = _ci_step(repo, ".", _images_step())
+
+    assert code == 0
+    assert output.split() == ["images=true"]
