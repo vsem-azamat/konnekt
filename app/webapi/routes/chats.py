@@ -30,8 +30,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chats import previews
-from app.chats.avatars import sync_photo
+from app.chats import previews, profile
 from app.chats.invite_links import is_invite_link
 from app.chats.metadata import (
     BotNotInChatError,
@@ -406,10 +405,7 @@ async def refresh_chat_from_telegram(
         bot=bot, chat_id=chat_id, username=username_of(chat.public_link) if chat.public_link else None
     )
     if metadata is not None:
-        if metadata.title and metadata.title != chat.title:
-            chat.title = metadata.title
-        chat.join_by_request = metadata.join_by_request
-        await sync_photo(session=session, bot=bot, chat=chat, metadata=metadata)
+        await profile.apply(session=session, bot=bot, chat=chat, metadata=metadata)
 
     try:
         member_count = await fetch_member_count(bot=bot, chat_id=chat.id)

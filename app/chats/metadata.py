@@ -96,6 +96,18 @@ class ChatMetadata:
     # an answer without it is False, not unknown.
     join_by_request: bool = False
     username: str | None = None
+    # The rest of what `getChat` says that no update announces when it changes.
+    description: str | None = None
+    chat_type: str | None = None
+    is_forum: bool = False
+    slow_mode_delay: int | None = None
+    permissions: dict[str, bool] | None = None
+    has_protected_content: bool = False
+    has_hidden_members: bool = False
+    # True, or None: Telegram tells only an administrator, and leaves it out when off.
+    has_aggressive_anti_spam_enabled: bool | None = None
+    message_auto_delete_time: int | None = None
+    linked_chat_id: int | None = None
 
 
 def _text(value: object) -> str | None:
@@ -161,7 +173,33 @@ def _metadata_of(chat: ChatFullInfo) -> ChatMetadata:
         avatar_unique_id=_text(getattr(photo, "small_file_unique_id", None)),
         join_by_request=getattr(chat, "join_by_request", None) is True,
         username=_text(getattr(chat, "username", None)),
+        description=_text(getattr(chat, "description", None)),
+        chat_type=_text(getattr(chat.type, "value", chat.type)),
+        # Like join_by_request, Telegram leaves these flags out when they are off.
+        is_forum=getattr(chat, "is_forum", None) is True,
+        slow_mode_delay=_number(getattr(chat, "slow_mode_delay", None)),
+        permissions=_permissions(getattr(chat, "permissions", None)),
+        has_protected_content=getattr(chat, "has_protected_content", None) is True,
+        has_hidden_members=getattr(chat, "has_hidden_members", None) is True,
+        # Shown to administrators only, so its absence is not "off".
+        has_aggressive_anti_spam_enabled=True
+        if getattr(chat, "has_aggressive_anti_spam_enabled", None) is True
+        else None,
+        message_auto_delete_time=_number(getattr(chat, "message_auto_delete_time", None)),
+        linked_chat_id=_number(getattr(chat, "linked_chat_id", None)),
     )
+
+
+def _number(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _permissions(value: object) -> dict[str, bool] | None:
+    """What members may do by default, under Telegram's names; None when it did not say."""
+    dump = getattr(value, "model_dump", None)
+    if dump is None:
+        return None
+    return {name: flag for name, flag in dump().items() if isinstance(flag, bool)}
 
 
 class ChatMigratedError(Exception):

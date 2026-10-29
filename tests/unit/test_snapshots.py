@@ -19,7 +19,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError, TelegramRetryAfter
-from app.chats.snapshots import METADATA_STALENESS_HOURS, snapshot_once
+from app.chats.snapshots import snapshot_once
+from app.core.config import settings
 from app.core.time import utc_now
 from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot
 from sqlalchemy import select, update
@@ -181,7 +182,7 @@ class TestCounting:
 class TestMetadata:
     async def test_a_stale_title_is_refreshed(self, db_session_maker: async_sessionmaker[AsyncSession]) -> None:
         chat = Chat(id=-100, title="Старое имя")
-        chat.last_synced_at = utc_now() - datetime.timedelta(hours=METADATA_STALENESS_HOURS + 1)
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=settings.chat_state.recheck_after_hours + 1)
         await _seed(db_session_maker, chat)
 
         await snapshot_once(session_maker=db_session_maker, bot=_bot(title="Новое имя"))
@@ -291,7 +292,7 @@ class TestMetadata:
         """The gate reads last_synced_at, never modified_at — otherwise editing
         the welcome text in the console would freeze the title."""
         chat = Chat(id=-100, title="Старое имя")
-        chat.last_synced_at = utc_now() - datetime.timedelta(hours=METADATA_STALENESS_HOURS + 1)
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=settings.chat_state.recheck_after_hours + 1)
         chat.modified_at = utc_now()
         await _seed(db_session_maker, chat)
 
@@ -408,7 +409,7 @@ class TestAvatars:
     async def test_a_failed_download_is_tried_again_next_tick_not_tomorrow(self, db_session_maker) -> None:
         chat = Chat(id=-100, title="A")
         chat.photo_file_id = "big-0"
-        chat.last_synced_at = utc_now() - datetime.timedelta(hours=METADATA_STALENESS_HOURS + 1)
+        chat.last_synced_at = utc_now() - datetime.timedelta(hours=settings.chat_state.recheck_after_hours + 1)
         await _seed(db_session_maker, chat)
         bot = _bot_with_photo("big-1", "small-1", "uniq-1")
         bot.download = AsyncMock(side_effect=_refused())
@@ -856,3 +857,22 @@ class TestUpgradedToSupergroup:
 
         assert (await _chat(db_session_maker, -5319178881)).migrated_to_chat_id == -1004394473356
         bot.get_chat_member_count.assert_awaited_once_with(-5319178881)
+
+
+async def test_the_daily_pass_keeps_the_rest_of_the_answer(db_session_maker: async_sessionmaker[AsyncSession]) -> None:
+    """Description and slow mode change without an update; the daily getChat is where they are learnt."""
+    await _seed(db_session_maker, Chat(id=-100, title="A"))
+    bot = _bot()
+    answer = bot.get_chat.side_effect
+
+    async def _get_chat(chat_id: int):
+        chat = await answer(chat_id)
+        chat.description, chat.slow_mode_delay = "Правила в закрепе", 60
+        return chat
+
+    bot.get_chat = AsyncMock(side_effect=_get_chat)
+
+    await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+    stored = await _chat(db_session_maker, -100)
+    assert (stored.description, stored.slow_mode_delay) == ("Правила в закрепе", 60)
