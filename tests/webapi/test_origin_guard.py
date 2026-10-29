@@ -80,3 +80,23 @@ async def test_a_read_with_a_cookie_and_no_origin_goes_through(client) -> None:
 
 async def test_the_admin_site_is_an_allowed_origin(client) -> None:
     assert settings.webapi.allowed_origins == [PUBLIC, ADMIN]
+
+
+@pytest.mark.parametrize("origin", ["https://localhost:5173", "http://localhost:5173"])
+async def test_with_no_url_configured_the_dev_server_may_write(client, origin) -> None:
+    """Vite serves over https (mkcert), or http with VITE_NO_HTTPS=1; its proxy keeps the Origin."""
+    settings.webapi.public_url, settings.webapi.admin_url = "", ""
+    async with client:
+        resp = await client.post("/api/auth/logout", headers=_cookie() | {"Origin": origin})
+
+    assert resp.status_code == 204
+
+
+async def test_the_example_env_names_the_dev_server_as_it_is_served() -> None:
+    """The dev server serves https by default, and the Mini App URL is https or nothing."""
+    from pathlib import Path
+
+    example = (Path(__file__).parents[2] / ".env.example").read_text()
+    public_url = next(line.split("=", 1)[1] for line in example.splitlines() if line.startswith("WEBAPI_PUBLIC_URL="))
+
+    assert public_url == "https://localhost:5173"

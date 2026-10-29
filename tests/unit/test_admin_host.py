@@ -85,5 +85,7 @@ def test_the_webapi_accepts_a_console_of_its_own() -> None:
     assert settings.allowed_origins == [PUBLIC, "https://admin.example.test"]
 
 
-def test_local_development_may_name_a_port_on_localhost() -> None:
-    assert WebApiSettings(public_url="", admin_url="http://localhost:5173").admin_url == "http://localhost:5173"
+@pytest.mark.parametrize("url", ["http://localhost:5173", "https://localhost:5173"])
+def test_local_development_may_name_a_port_on_localhost(url) -> None:
+    """The Vite dev server serves https by default and http with VITE_NO_HTTPS=1."""
+    assert WebApiSettings(public_url="", admin_url=url).admin_url == url

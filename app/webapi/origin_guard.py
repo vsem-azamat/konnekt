@@ -22,8 +22,11 @@ from app.core.config import settings
 if TYPE_CHECKING:
     from starlette.types import ASGIApp, Receive, Scope, Send
 
-# What the CORS middleware falls back to when no URL is configured.
-DEV_ORIGIN = "http://localhost:5173"
+# What the CORS middleware falls back to when no URL is configured: the Vite
+# dev server, over https by default and over http with VITE_NO_HTTPS=1
+# (web/vite.config.ts).
+DEV_ORIGIN = "https://localhost:5173"
+DEV_ORIGINS = [DEV_ORIGIN, "http://localhost:5173"]
 _WRITES = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -35,7 +38,7 @@ class RequireOurOrigin:
         if scope["type"] == "http" and scope["method"] in _WRITES:
             request = Request(scope)
             if settings.webapi.session_cookie_name in request.cookies:
-                allowed = settings.webapi.allowed_origins or [DEV_ORIGIN]
+                allowed = settings.webapi.allowed_origins or DEV_ORIGINS
                 if request.headers.get("origin") not in allowed:
                     await JSONResponse({"detail": "origin not allowed"}, status_code=403)(scope, receive, send)
                     return

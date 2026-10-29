@@ -150,9 +150,9 @@ async def test_revoke_other_users_session_404(client_factory, db_session_maker) 
         assert await s.get(AdminSession, "someone-elses") is not None
 
 
-async def test_get_system_status(client_factory) -> None:
-    settings.webapi.public_url = "http://localhost:5173"
-    settings.webapi.session_ttl_days = 30
+async def test_get_system_status(client_factory, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.webapi, "public_url", "https://localhost:5173")
+    monkeypatch.setattr(settings.webapi, "session_ttl_days", 30)
     async with client_factory() as client:
         resp = await client.get("/api/admin/system")
     assert resp.status_code == 200, resp.text
