@@ -7,16 +7,20 @@
 #
 # Anything short of that proof prints `lanes=` and the deploy runs every lane:
 # a push no pull request merged, a pull request merged behind main (another
-# tree), a run without a record, a record it cannot read, or the API failing.
+# tree), one that changed the checks (.github/, .githooks/, this script), a run
+# without a record, a record it cannot read, or the API failing.
 # Never exits non-zero, so a lookup that fails cannot stop a deploy.
 set -uo pipefail
 
 lookup() {
-  local tree pr head runs run dir record lanes line name value
+  local tree pr head files runs run dir record lanes line name value
   tree=$(gh api "repos/$REPO/git/commits/$SHA" --jq .tree.sha) || return 1
   pr=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null)][0].number // empty') || return 1
   [ -n "$pr" ] || return 1
   head=$(gh api "repos/$REPO/pulls/$pr" --jq .head.sha) || return 1
+  # A record written by checks the pull request itself changed is not taken.
+  files=$(gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename') || return 1
+  ! grep -qE '^(\.github/|\.githooks/|scripts/tested_lanes\.sh$)' <<<"$files" || return 1
   runs=$(gh api "repos/$REPO/actions/workflows/test.yml/runs?event=pull_request&head_sha=$head" \
     --jq '.workflow_runs[].id') || return 1
 

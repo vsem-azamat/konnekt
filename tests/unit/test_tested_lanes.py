@@ -27,7 +27,9 @@ FAKE_GH = r"""#!/usr/bin/env bash
 set -euo pipefail
 answers=${FAKE_GH_DIR:?}
 if [ "$1" = api ]; then
-  key=$(printf '%s' "$2" | tr '/?&=' '____')
+  shift
+  while [ "${1#-}" != "$1" ]; do shift; done
+  key=$(printf '%s' "$1" | tr '/?&=' '____')
   [ -f "$answers/$key" ] || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
   cat "$answers/$key"
   exit 0
@@ -71,6 +73,7 @@ def _merged_pull_request(answers: Path, *, runs: list[int]) -> None:
     _answer(answers, f"repos/{repo}/git/commits/{MERGED}", TREE + "\n")
     _answer(answers, f"repos/{repo}/commits/{MERGED}/pulls", "7\n")
     _answer(answers, f"repos/{repo}/pulls/7", HEAD + "\n")
+    _answer(answers, f"repos/{repo}/pulls/7/files", "app/bot.py\nweb/src/App.tsx\n")
     path = f"repos/{repo}/actions/workflows/test.yml/runs?event=pull_request&head_sha={HEAD}"
     _answer(answers, path, "".join(f"{run}\n" for run in runs))
 
@@ -150,5 +153,15 @@ def test_a_record_naming_unknown_lanes_is_not_trusted(gh: Path) -> None:
 def test_a_record_with_a_value_other_than_true_or_false_is_not_trusted(gh: Path) -> None:
     _merged_pull_request(gh, runs=[11])
     (gh / "run_11").write_text(f"tree={TREE}\npython=yes\nweb=true\ncatalog=true\n")
+
+    assert _lanes(gh) == (0, "lanes=")
+
+
+@pytest.mark.parametrize("changed", [".github/workflows/test.yml", "scripts/tested_lanes.sh", ".githooks/lanes"])
+def test_a_pull_request_that_changed_the_checks_is_tested_in_full(gh: Path, changed: str) -> None:
+    """Its record was written by the checks it changed; the deploy does not take their word."""
+    _merged_pull_request(gh, runs=[11])
+    _answer(gh, "repos/o/r/pulls/7/files", f"app/bot.py\n{changed}\n")
+    _record(gh, 11, TREE, python=True, web=True, catalog=True)
 
     assert _lanes(gh) == (0, "lanes=")
