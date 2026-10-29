@@ -22,8 +22,9 @@ from app.core.config import settings
 if TYPE_CHECKING:
     from starlette.types import ASGIApp, Receive, Scope, Send
 
-# What the CORS middleware falls back to when no URL is configured.
-DEV_ORIGIN = "http://localhost:5173"
+# What the CORS middleware falls back to when no URL is configured: the Vite
+# dev server, which serves over https (web/vite.config.ts).
+DEV_ORIGIN = "https://localhost:5173"
 _WRITES = {"POST", "PUT", "PATCH", "DELETE"}
 
 
