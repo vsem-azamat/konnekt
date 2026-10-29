@@ -125,6 +125,10 @@ export interface HelperCard {
   name: string;
   avatar: Avatar;
   affiliation: string | null;
+  /** The service the card was found for, shown where `affiliation` is empty. */
+  service: string | null;
+  /** The offer's subject, next in line when `affiliation` is empty. */
+  subject: string | null;
   price: Price | null;
   /** Why this person is in the list. Sometimes it says the match is weak. */
   reason: Phrase | null;

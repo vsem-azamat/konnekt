@@ -291,7 +291,9 @@ export default function ProfilePage() {
                     {/* `/offer`, not the route that used to be here: `/become-helper`
                         was deleted with the screen behind it, and a bare string is
                         not something the compiler can catch. */}
-                    <Action onClick={() => navigate('/offer')}>
+                    <Action
+                      onClick={() => navigate('/offer', { state: { from: 'profile' } })}
+                    >
                       <Trans>Предложить услугу</Trans>
                     </Action>
                   </Actions>

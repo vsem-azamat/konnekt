@@ -1,13 +1,14 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { ServiceGrid } from '@/components/ServiceGrid';
 import { Empty, Hint, Screen, SkeletonRows, Sub, Title, ui } from '@/components/Ui';
 import { hapticSelection, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import type { OfferOpened } from '@/lib/generated/types.gen';
 
 /**
  * What can you help with?
@@ -24,10 +25,20 @@ import { api } from '@/lib/api';
  * Tiles the person already offers start ticked. That is not a convenience: the
  * save replaces the whole offer list, so a screen that started empty would
  * quietly delete everything they had the moment they added something new.
+ *
+ * A way in may name a service as well (`state.picked`), for the empty shelf on
+ * the home screen and the results list to open this with the service the
+ * person was looking at (konnekt-ratings' change to those screens). It is
+ * ticked on top of what they already offer, never instead.
  */
 export default function OfferPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLingui();
+  const entry = location.state as {
+    picked?: string[];
+    from?: OfferOpened['source'];
+  } | null;
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
@@ -60,9 +71,23 @@ export default function OfferPage() {
       const code = byId.get(offer.service_type_id);
       if (code) already.add(code);
     }
+    // Only codes the grid has: a stale or hand-written link must not tick a
+    // tile nobody can see and then send it as an offer.
+    const known = new Set(serviceTypes.map((type) => type.code));
+    for (const code of entry?.picked ?? []) if (known.has(code)) already.add(code);
     setPicked(already);
     setLoaded(true);
-  }, [mine, serviceTypes, loaded]);
+  }, [mine, serviceTypes, loaded, entry]);
+
+  // Once per visit, for the catalog's count of who looked at offering. The ref
+  // and not the effect's own deps: React runs a mount effect twice in
+  // development, and twice would be counted twice.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (reported.current) return;
+    reported.current = true;
+    api.reportOfferOpen(entry?.from ?? 'other').catch(() => {});
+  }, [entry]);
 
   const toggle = (code: string) => {
     hapticSelection();

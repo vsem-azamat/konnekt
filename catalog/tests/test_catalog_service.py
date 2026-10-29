@@ -135,3 +135,83 @@ async def test_a_person_who_is_not_there_is_not_recorded_as_read(
 
     assert detail is None
     assert await _events(session, viewer.id, UserEventKind.HELPER_VIEW) == 0
+
+
+async def test_a_card_names_the_service_it_was_found_for(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Somebody who published without a line under their name is a name and
+    nothing else on the card, which reads as a broken one. The service says
+    what they are there for."""
+    helper = await helper_factory(tg_id=92111, price=None)
+    viewer = await _person(session, 92112)
+
+    _, cards = await catalog.search(session, UiLang.RU, viewer=viewer)
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.service == "Репетитор по предмету"
+    assert card.subject == "Математический анализ"
+
+
+async def test_a_card_in_one_service_does_not_repeat_its_name(
+    session: AsyncSession, helper_factory
+) -> None:
+    """The screen is already headed with the service; the card would say it twice."""
+    from students_cz.db.models import ServiceType
+
+    helper = await helper_factory(tg_id=92113, price=None)
+    viewer = await _person(session, 92114)
+    tutoring = await session.scalar(
+        select(ServiceType).where(ServiceType.code == "tutoring")
+    )
+    assert tutoring is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, service_type_id=tutoring.id
+    )
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.service is None
+
+
+async def test_a_card_in_a_search_for_one_subject_does_not_repeat_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    from students_cz.db.models import Subject
+
+    helper = await helper_factory(tg_id=92115, price=None)
+    viewer = await _person(session, 92116)
+    subject = await session.scalar(
+        select(Subject).where(Subject.slug == "matematicka-analyza")
+    )
+    assert subject is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, subject_id=subject.id
+    )
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.subject is None
+
+
+async def test_a_card_in_a_search_for_a_shelf_names_its_own_subject(
+    session: AsyncSession, helper_factory
+) -> None:
+    """«математика» covers every subject on the shelf; which one is the news."""
+    from students_cz.db.models import Subject
+
+    analysis = await helper_factory(tg_id=92117, price=None)
+    algebra = await helper_factory(
+        tg_id=92118, price=None, subject_slug="linearni-algebra"
+    )
+    viewer = await _person(session, 92119)
+    shelf = await session.scalar(select(Subject).where(Subject.slug == "math"))
+    assert shelf is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, subject_id=shelf.id
+    )
+
+    by_user = {c.user_id: c.subject for c in cards}
+    assert by_user[analysis.id] == "Математический анализ"
+    assert by_user[algebra.id] == "Линейная алгебра"

@@ -917,6 +917,59 @@
         }
       }
     },
+    "/api/v1/helper/opened": {
+      "post": {
+        "tags": [
+          "helper"
+        ],
+        "summary": "Offer Opened",
+        "description": "Somebody opened the screen where a service is offered.\n\nIts own call rather than a side effect of `GET /helper`: the profile and\n«Мои услуги» read that too, and counting them would count people who\nalready offer something as people thinking about it.",
+        "operationId": "offer_opened_api_v1_helper_opened_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferOpened"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/helper/offers/{offer_id}": {
       "patch": {
         "tags": [
@@ -3369,6 +3422,28 @@
             ],
             "title": "Affiliation"
           },
+          "service": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
           "price": {
             "anyOf": [
               {
@@ -4327,6 +4402,28 @@
           "service_type_id"
         ],
         "title": "OfferIn"
+      },
+      "OfferOpened": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "home",
+              "tab",
+              "profile",
+              "results",
+              "my-helper",
+              "link",
+              "other"
+            ],
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "title": "OfferOpened"
       },
       "OfferOut": {
         "properties": {

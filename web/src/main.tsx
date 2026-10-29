@@ -41,6 +41,7 @@ import {
   startReporting,
 } from '@/lib/clientErrors';
 import { followKeyboard } from '@/lib/keyboard';
+import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { router } from '@/router';
@@ -77,8 +78,36 @@ async function bootstrap(): Promise<void> {
   initSdk();
   reportFailures();
   reportLaunch();
+  followStartLink();
   await initLocale();
   render();
+}
+
+/**
+ * Open the screen a `startapp` link names, once per launch.
+ *
+ * Once: Telegram keeps the launch parameters for the whole session, reloads
+ * included, and somebody who went on from the offer screen and reloaded
+ * «Мои услуги» must stay there rather than be sent back. Keyed by the launch's
+ * own init data rather than a bare flag: in Telegram Web the app lives in an
+ * iframe of a long-lived tab, whose session storage outlives the launch, and a
+ * second link tapped in that tab would otherwise open the first tab instead.
+ *
+ * Pushed, not replaced: the first entry stays underneath, so Back leads to the
+ * app's first screen. Replaced, it would be the only entry, and the offer
+ * screen, which has no tab bar, would have no way out but publishing.
+ */
+function followStartLink(): void {
+  const route = startRoute(retrieveLaunchParams().tgWebAppStartParam);
+  if (!route) return;
+  const key = `start-link-followed:${new URLSearchParams(rawInitData() ?? '').get('hash') ?? ''}`;
+  try {
+    if (sessionStorage.getItem(key) === '1') return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    // No storage: follow it, and a reload may follow it again.
+  }
+  void router.navigate(route.path, { state: route.state });
 }
 
 /** One line in the console's audience per launch, never in the way of the app. */

@@ -464,6 +464,10 @@ msgstr "Karta v aplikaci"
 msgid "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 msgstr "Nic jsme nenašli. Zkus zkratku — ČVUT, VŠE, MUNI."
 
+#: src/pages/MyHelper.tsx
+msgid "Предмет"
+msgstr "Předmět"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "Jak to probíhá"
@@ -560,6 +564,7 @@ msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět
 msgid "могут получить сообщение"
 msgstr "mohou dostat zprávu"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Umíš něco, co ostatní potřebují?"
@@ -674,6 +679,10 @@ msgstr "Zadej poptávku — ozvou se sami"
 #: src/console/pages/Chats.tsx
 msgid "Добавить в каталог"
 msgstr "Přidat do katalogu"
+
+#: src/pages/MyHelper.tsx
+msgid "по нему тебя ищут студенты"
+msgstr "podle něj tě studenti hledají"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -1488,6 +1497,10 @@ msgstr "Na všechny otevřené žádosti někdo odpověděl."
 msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 msgstr "Zatím ho vidíš jen ty. Až bude hotový, vyber «V katalogu»."
 
+#: src/pages/MyHelper.tsx
+msgid "Что добавить"
+msgstr "Co doplnit"
+
 #: src/console/pages/Catalog.tsx
 msgid "скрыта, автор изменил анкету"
 msgstr "skrytý, autor ho upravil"
@@ -1549,6 +1562,10 @@ msgstr "Navrženo přes MCP. Čeká na stisk admina, vyprší za {left} min."
 #: src/console/pages/Chats.tsx
 msgid "Внешний чат"
 msgstr "Externí chat"
+
+#: src/components/HelperCard.tsx
+msgid "цена договорная"
+msgstr "cena dohodou"
 
 #: src/pages/Mine.tsx
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
@@ -1748,6 +1765,7 @@ msgstr "Koncept"
 msgid "Модерировать"
 msgstr "Moderovat"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
 msgstr "Pomáhat ostatním"
@@ -1898,6 +1916,10 @@ msgstr "nový, {when}"
 msgid "Общее"
 msgstr "Obecné"
 
+#: src/pages/Home.tsx
+msgid "Предложи услугу — студенты напишут сами"
+msgstr "Nabídni službu — studenti se ti ozvou sami"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
 msgstr "např. Pojištění pro studenty"
@@ -1944,6 +1966,7 @@ msgstr "Načítáme profil…"
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "Co zachytil detektor. Vyřízené z fronty odchází."
 
+#: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx
 msgid "Строчка под именем"
 msgstr "Řádek pod jménem"
@@ -2179,8 +2202,8 @@ msgid "начался {started} · последний всплеск тольк�
 msgstr "začal {started} · poslední nával právě teď"
 
 #: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — математика, čeština, физика"
-msgstr "Přidat předmět — matematika, čeština, fyzika"
+#~ msgid "Добавить предмет — математика, čeština, физика"
+#~ msgstr "Přidat předmět — matematika, čeština, fyzika"
 
 #: src/console/BanSheet.tsx
 msgid "Во всех чатах, за всё время. Отменить нельзя."
@@ -3390,6 +3413,10 @@ msgstr "matematická analýza, čeština B2…"
 msgid "Необязательно. Пустое поле значит «договоримся»."
 msgstr "Nepovinné. Prázdné pole znamená „domluvíme se“."
 
+#: src/pages/MyHelper.tsx
+msgid "вуз, курс или опыт — её видно на карточке"
+msgstr "škola, ročník nebo zkušenost — je vidět na kartě"
+
 #: src/pages/Helper.tsx
 #: src/pages/Request.tsx
 msgid "Написать"
@@ -3650,6 +3677,10 @@ msgstr "Neuložilo se. Zkuste to znovu."
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"
 msgstr "žádostí za 7 dní"
+
+#: src/components/SubjectSearch.tsx
+msgid "Предмет, например математика"
+msgstr "Předmět, třeba matematika"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx

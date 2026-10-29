@@ -13,6 +13,7 @@ import type {
   AdminProfileDetail,
   AdsInfo,
   FeedFacetsOut,
+  OfferOpened,
 } from './generated/types.gen';
 import { isApproval } from './join';
 import { isReach, type Reach } from './reach';
@@ -447,6 +448,13 @@ export const api = {
 
   saveHelper: (payload: HelperUpsert) =>
     request<Me>('/helper', { method: 'PUT', body: payload }),
+
+  /**
+   * The offer screen was opened, and from where. Nothing waits on it and
+   * nothing is shown if it fails.
+   */
+  reportOfferOpen: (source: OfferOpened['source']) =>
+    request<void>('/helper/opened', { method: 'POST', body: { source } }),
 
   /** One service out of the catalog, or back in, without touching the rest. */
   pauseOffer: (offerId: number, paused: boolean) =>
