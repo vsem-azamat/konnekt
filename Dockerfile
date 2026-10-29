@@ -22,8 +22,9 @@ FROM node:24.15.0-alpine3.23 AS web-dependencies
 
 WORKDIR /app/web
 
-COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+COPY web/package.json ./
 RUN corepack enable && corepack install
+COPY web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 

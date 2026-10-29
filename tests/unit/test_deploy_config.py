@@ -289,11 +289,12 @@ def test_the_image_build_gets_every_pnpm_config_the_lockfile_was_written_with() 
     the file sitting there either way.
     """
     dockerfile = ROOT.joinpath("Dockerfile").read_text()
-    copied = re.search(r"^COPY (web/\S+ .*?)\./$", dockerfile, re.M)
+    stage = dockerfile.split(" AS web-dependencies", 1)[1].split("\nFROM ", 1)[0]
+    copied = " ".join(re.findall(r"^COPY (web/\S+ .*?)\./$", stage, re.M))
     assert copied, "the web dependency stage no longer copies files one by one"
 
     if (ROOT / "web" / "pnpm-workspace.yaml").exists():
-        assert "web/pnpm-workspace.yaml" in copied.group(1)
+        assert "web/pnpm-workspace.yaml" in copied
 
 
 def test_the_bots_database_is_dumped_daily_off_its_server() -> None:
@@ -875,14 +876,23 @@ def test_pnpm_is_named_once_in_the_web_package() -> None:
 
 
 def test_every_postgres_is_the_same_image() -> None:
-    compose = yaml.safe_load(COMPOSE.read_text())["services"]
-    dev = yaml.safe_load((ROOT / "catalog" / "compose.dev.yml").read_text())["services"]
-    ci = yaml.safe_load(TEST_WORKFLOW.read_text())["jobs"]
-    images = {
-        s["image"]
-        for s in [*compose.values(), *dev.values()]
-        if "postgres" in s.get("image", "") or "pgvector" in s.get("image", "")
-    }
-    images |= {svc["image"] for job in ci.values() for svc in (job.get("services") or {}).values()}
+    """Production's, CI's, the integration tests', the restore drill's and development's.
 
-    assert len(images) == 1, images
+    A different image is a different glibc and ICU, so a test of collation
+    proves another server's; the integration tests had a floating
+    postgres:18-trixie.
+    """
+    # An image's tag names a release ("18-trixie"); a bare number is a port.
+    postgres = re.compile(r"\b((?:pgvector/pgvector|postgres):[\w.-]*[A-Za-z][\w.-]*)")
+    sources = [
+        COMPOSE,
+        DEPLOY,
+        TEST_WORKFLOW,
+        ROOT / "catalog" / "compose.dev.yml",
+        ROOT / "tests" / "integration" / "conftest.py",
+        ROOT / "scripts" / "restore_drill.sh",
+    ]
+    images = {path.name: set(postgres.findall(path.read_text())) for path in sources}
+
+    assert all(images.values()), images
+    assert len(set().union(*images.values())) == 1, images

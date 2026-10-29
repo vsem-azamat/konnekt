@@ -51,7 +51,8 @@ def _lanes(*paths: str) -> set[str]:
         (["alembic/versions/x.py"], {"python"}),
         (["docker-compose.yaml"], {"python"}),
         (["docker/Caddyfile"], {"python"}),
-        (["web/package.json"], {"web"}),
+        # tests/unit/test_deploy_config.py reads its packageManager.
+        (["web/package.json"], {"python", "web"}),
         (["web/tests/a.test.ts"], {"web"}),
         # tests/unit/test_web_split.py reads the Mini App's sources.
         (["web/src/pages/Ads.tsx"], {"python", "web"}),
@@ -62,6 +63,9 @@ def _lanes(*paths: str) -> set[str]:
         (["catalog/openapi.json"], {"catalog", "web"}),
         # Both projects must lock the same aiogram, which a root test checks.
         (["catalog/uv.lock"], {"catalog", "python"}),
+        # And the tool versions of these.
+        (["catalog/Dockerfile"], {"catalog", "python"}),
+        (["catalog/compose.dev.yml"], {"catalog", "python"}),
         (["docs/invariants.md", "README.md", "web/README.md", "catalog/docs/x.md"], set()),
         # A change to the checks themselves runs all of them.
         ([".github/workflows/test.yml"], {"python", "web", "catalog"}),
