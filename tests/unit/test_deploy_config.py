@@ -916,3 +916,11 @@ def test_every_postgres_is_the_same_image() -> None:
 
     assert all(images.values()), images
     assert len(set().union(*images.values())) == 1, images
+
+
+def test_ci_runs_the_tests_on_every_core() -> None:
+    # 3.7 of the Python lane's 4.4 minutes were pytest on one core of four.
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["python"]["steps"]
+    (pytest_step,) = [step for step in steps if "uv run pytest" in str(step.get("run", ""))]
+
+    assert "-n auto" in pytest_step["run"]
