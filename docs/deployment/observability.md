@@ -76,3 +76,26 @@ curl -fsS -H "Authorization: Bearer $OBSERVABILITY_METRICS_SECRET" https://<site
 Then the targets in Prometheus are up, and a line from each process appears in
 Loki within a minute. Without the secret the web API and the catalog answer
 404 (not 401); the bot starts no server, so the edge route to it answers 502.
+
+## Logs from before the last restart
+
+`docker logs` on the host starts at the container's last start, so after a
+deploy the lines before it are only in Loki, which keeps seven days. Loki
+answers on the monitoring server's loopback only; an agent on home reaches it
+over SSH by address (`poryadok` is not an alias there):
+
+```bash
+ssh poryadok@161.97.112.242 'curl -fsS -G http://127.0.0.1:3100/loki/api/v1/query_range \
+  --data-urlencode "query={compose_project=\"supervisor-telegram\", service=\"bot\"} | json | level=\"error\"" \
+  --data-urlencode "start=$(date -u -d "2026-10-27 00:00" +%s)" \
+  --data-urlencode "end=$(date -u -d "2026-10-28 00:00" +%s)" \
+  --data-urlencode limit=200' | jq -r '.data.result[].values[][1]'
+```
+
+The labels are `compose_project`, `service` (`bot`, `webapi`, `catalog-api`,
+`webui`, `catalog-postgres`, `db-backup`, `catalog-backup`) and `level`;
+anything else, an `update_id`, `chat_id` or `request_id`, is a field of the
+JSON line, filtered after `| json` (`| json | request_id="…"`). `limit` caps the
+lines returned, newest first, so narrow the window rather than raise it. The
+lines are the same as `docker logs` and carry what those carry: keep what you
+quote from them to what the question needs.
