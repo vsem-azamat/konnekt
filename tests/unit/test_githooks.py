@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -103,7 +104,11 @@ def test_the_required_check_always_runs() -> None:
 def _gate(results: str, draft: str = "false") -> int:
     """The required check's step, given what the jobs it waits on ended as."""
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
-    (step,) = workflow["jobs"]["test"]["steps"]
+    (step,) = [
+        step
+        for step in workflow["jobs"]["test"]["steps"]
+        if step.get("name") == "Every lane this change touches passed"
+    ]
     env = {**_outside_git(), "RESULTS": results, "DRAFT": draft}
     return _run("bash", "-e", "-c", step["run"], env=env).returncode
 
@@ -114,7 +119,11 @@ def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
 
     assert lanes == {"python", "web"}
     assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", "catalog", *lanes}
-    (step,) = workflow["jobs"]["test"]["steps"]
+    (step,) = [
+        step
+        for step in workflow["jobs"]["test"]["steps"]
+        if step.get("name") == "Every lane this change touches passed"
+    ]
     assert step["env"]["RESULTS"] == "${{ join(needs.*.result, ' ') }}"
 
 
@@ -285,12 +294,18 @@ def _lanes_steps() -> list[Any]:
 
 
 def _ci_step(
-    repo: Path, workdir: str, script: str, draft: str = "false", event: str = "pull_request"
+    repo: Path, workdir: str, script: str, draft: str = "false", event: str = "pull_request", tested: str = ""
 ) -> tuple[int, str]:
     (repo / workdir).mkdir(exist_ok=True)
     output = repo / "github_output"
     output.write_text("")
-    env = {**_env(), "GITHUB_EVENT_NAME": event, "GITHUB_OUTPUT": str(output), "DRAFT": draft}
+    env = {
+        **_env(),
+        "GITHUB_EVENT_NAME": event,
+        "GITHUB_OUTPUT": str(output),
+        "DRAFT": draft,
+        "TESTED": tested,
+    }
     result = _run("bash", "-e", "-c", script, cwd=repo / workdir, env=env)
     return result.returncode, output.read_text()
 
@@ -514,3 +529,66 @@ def test_pre_commit_leaves_what_ruff_excludes_alone(repo: Path) -> None:
 
     assert "ok    catalog ruff check" in result.stdout, result.stdout + result.stderr
     assert "ok    catalog ruff format" in result.stdout, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(("workdir", "script"), _lanes_steps())
+def test_the_deploy_leaves_out_the_lanes_already_passed_on_its_tree(repo: Path, workdir: str, script: str) -> None:
+    code, output = _ci_step(repo, workdir, script, draft="", event="push", tested="python catalog")
+
+    assert code == 0
+    assert sorted(output.split()) == ["catalog=false", "python=false", "web=true"]
+
+
+def _record_steps() -> list[dict[str, Any]]:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    steps = workflow["jobs"]["test"]["steps"]
+    return [step for step in steps if "tested" in str(step.get("run", "")) or "tested" in str(step.get("with", ""))]
+
+
+def _record(**env: str) -> str:
+    """The pull request run's record of what it proved, as its step writes it."""
+    (step,) = [step for step in _record_steps() if "run" in step]
+    with tempfile.TemporaryDirectory() as tmp:
+        _run("bash", "-e", "-c", step["run"], cwd=tmp, env={**_outside_git(), **env}, check=True)
+        return (Path(tmp) / "tested.txt").read_text()
+
+
+def test_the_record_names_the_lanes_that_passed() -> None:
+    record = _record(TREE="t" * 40, PYTHON="success", WEB="skipped", CATALOG_LANE="true", CATALOG="success")
+
+    assert record.split() == [f"tree={'t' * 40}", "python=true", "web=false", "catalog=true"]
+
+
+def test_the_record_does_not_count_a_failed_lane() -> None:
+    record = _record(TREE="t" * 40, PYTHON="failure", WEB="cancelled", CATALOG_LANE="true", CATALOG="failure")
+
+    assert record.split()[1:] == ["python=false", "web=false", "catalog=false"]
+
+
+def test_the_record_does_not_count_a_catalog_whose_steps_all_skipped() -> None:
+    """The catalog job succeeds with its lane off: nothing ran, so nothing was proved."""
+    record = _record(TREE="t" * 40, PYTHON="success", WEB="success", CATALOG_LANE="false", CATALOG="success")
+
+    assert record.split()[-1] == "catalog=false"
+
+
+def test_the_record_is_written_before_the_required_check_reports() -> None:
+    """A merge as soon as the check is green must find it, and only a pull request's run records."""
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["test"]["steps"]
+    names = [step.get("name") or step.get("uses") for step in steps]
+    record = _record_steps()
+
+    assert len(record) == 2
+    assert all("github.event_name == 'pull_request'" in step["if"] for step in record)
+    assert names.index("Every lane this change touches passed") > max(steps.index(step) for step in record)
+    (upload,) = [step for step in record if "uses" in step]
+    assert upload["continue-on-error"] is True
+
+
+def test_the_deploy_reads_the_record_the_pull_request_wrote() -> None:
+    """The artifact's name and file are shared by the upload and scripts/tested_lanes.sh."""
+    (upload,) = [step for step in _record_steps() if "uses" in step]
+    script = (ROOT / "scripts" / "tested_lanes.sh").read_text()
+
+    assert f"-n {upload['with']['name']} " in script
+    assert f'/{upload["with"]["path"]}"' in script

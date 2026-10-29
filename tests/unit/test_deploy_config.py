@@ -916,3 +916,17 @@ def test_every_postgres_is_the_same_image() -> None:
 
     assert all(images.values()), images
     assert len(set().union(*images.values())) == 1, images
+
+
+def test_the_deploy_tests_what_the_merged_pull_request_did_not() -> None:
+    """Its lookup's answer is the lanes to leave out; a failed lookup must not skip the tests."""
+    jobs = yaml.safe_load(DEPLOY.read_text())["jobs"]
+    lookup = [step for step in jobs["tested"]["steps"] if step.get("id") == "lookup"]
+
+    assert lookup
+    assert "scripts/tested_lanes.sh" in lookup[0]["run"]
+    assert jobs["test"]["needs"] == "tested"
+    assert jobs["test"]["with"]["tested"] == "${{ needs.tested.outputs.lanes }}"
+    assert "!cancelled()" in jobs["test"]["if"]
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    assert workflow[True]["workflow_call"]["inputs"]["tested"]["default"] == ""

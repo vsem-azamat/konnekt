@@ -27,9 +27,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test:
+  # The lanes the merged pull request already passed on this very tree, which
+  # the tests below leave out; any doubt leaves out none.
+  tested:
     if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      lanes: ${{ steps.lookup.outputs.lanes }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Lanes the merged pull request passed on this tree
+        id: lookup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: scripts/tested_lanes.sh | tee -a "$GITHUB_OUTPUT"
+
+  test:
+    needs: tested
+    # Not skipped when the lookup failed: its empty answer runs every lane.
+    if: ${{ !cancelled() && github.event_name != 'workflow_dispatch' }}
     uses: ./.github/workflows/test.yml
+    with:
+      tested: ${{ needs.tested.outputs.lanes }}
 
   build-and-push:
     needs: test
