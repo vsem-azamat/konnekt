@@ -60,10 +60,6 @@ msgstr "Включить"
 msgid "Карточек партнёров пока нет."
 msgstr "Карточек партнёров пока нет."
 
-#: src/components/Incoming.tsx
-msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
-msgstr "Заведи в Telegram публичный @username — иначе тебе не ответят"
-
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "нет карточки"
@@ -105,6 +101,10 @@ msgstr "Жирный и ссылки из !welcome после правки зд�
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Нашлось"
+
+#: src/pages/Helper.tsx
+msgid "Привет! Нашёл тебя в Konnekt."
+msgstr "Привет! Нашёл тебя в Konnekt."
 
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
@@ -1328,6 +1328,10 @@ msgstr "с {since}: {0} → {1}"
 msgid "Другое"
 msgstr "Другое"
 
+#: src/pages/Helper.tsx
+msgid "Нужна помощь: {subjects}."
+msgstr "Нужна помощь: {subjects}."
+
 #. placeholder {0}: waiting.requests
 #: src/pages/Profile.tsx
 msgid "{0, plural, one {# заявка} few {# заявки} many {# заявок} other {# заявки}}"
@@ -1813,6 +1817,11 @@ msgstr "Как занимаешься"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Мои услуги"
+
+#: src/components/Incoming.tsx
+#: src/components/NoUsernameNotice.tsx
+msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
+msgstr "Заведи в Telegram публичный @username — иначе тебе не ответят"
 
 #: src/pages/Ads.tsx
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
@@ -3331,6 +3340,10 @@ msgstr "договоримся"
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Не в каталоге · нет ссылки t.me"
 
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя"
+msgstr "Telegram → Настройки → Имя пользователя"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Пояснение над карточкой"
@@ -3694,6 +3707,10 @@ msgstr "Но без этого не доучишься. Сроки и требо
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Не сохранилось. Попробуйте ещё раз."
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь с учёбой."
+msgstr "Нужна помощь с учёбой."
 
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"

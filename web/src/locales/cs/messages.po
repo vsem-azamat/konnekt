@@ -61,10 +61,6 @@ msgstr "Zapnout"
 msgid "Карточек партнёров пока нет."
 msgstr "Zatím žádné karty partnerů."
 
-#: src/components/Incoming.tsx
-msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
-msgstr "Nastav si v Telegramu veřejný @username — jinak ti nikdo neodpoví"
-
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "bez karty"
@@ -106,6 +102,10 @@ msgstr "Tučné písmo a odkazy z !welcome se úpravou zde ztratí."
 #: src/pages/Chats.tsx
 msgid "Нашлось"
 msgstr "Nalezeno"
+
+#: src/pages/Helper.tsx
+msgid "Привет! Нашёл тебя в Konnekt."
+msgstr "Ahoj! Našel jsem tě v Konnektu."
 
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
@@ -1329,6 +1329,10 @@ msgstr "od {since}: {0} → {1}"
 msgid "Другое"
 msgstr "Jiné"
 
+#: src/pages/Helper.tsx
+msgid "Нужна помощь: {subjects}."
+msgstr "Potřebuji pomoc: {subjects}."
+
 #. placeholder {0}: waiting.requests
 #: src/pages/Profile.tsx
 msgid "{0, plural, one {# заявка} few {# заявки} many {# заявок} other {# заявки}}"
@@ -1814,6 +1818,11 @@ msgstr "Jak učíš"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Moje služby"
+
+#: src/components/Incoming.tsx
+#: src/components/NoUsernameNotice.tsx
+msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
+msgstr "Nastav si v Telegramu veřejný @username — jinak ti nikdo neodpoví"
 
 #: src/pages/Ads.tsx
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
@@ -3332,6 +3341,10 @@ msgstr "domluvíme se"
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Není v katalogu · bez odkazu t.me"
 
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя"
+msgstr "Telegram → Nastavení → Uživatelské jméno"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Poznámka nad kartou"
@@ -3695,6 +3708,10 @@ msgstr "Ale bez tohohle to nedoděláš. Termíny a požadavky jsou naše, nabí
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Neuložilo se. Zkuste to znovu."
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь с учёбой."
+msgstr "Potřebuji pomoc se studiem."
 
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"

@@ -545,7 +545,6 @@ export function Action({
   quiet,
   danger,
   tall,
-  sent,
   disabled,
   label,
 }: {
@@ -556,8 +555,6 @@ export function Action({
   danger?: boolean;
   /** 44 px, for the buttons a screen exists to have pressed. */
   tall?: boolean;
-  /** Done already: disabled, but readable as a state rather than as greyed out. */
-  sent?: boolean;
   disabled?: boolean;
   /** What a screen reader says, when the text alone repeats on every card. */
   label?: string;
@@ -566,9 +563,9 @@ export function Action({
     <button
       type="button"
       aria-label={label}
-      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${tall ? css.actionTall : ''} ${sent ? css.actionSent : ''} ${css.pressable}`}
+      className={`${css.action} ${quiet ? css.actionQuiet : ''} ${danger ? css.actionDanger : ''} ${tall ? css.actionTall : ''} ${css.pressable}`}
       onClick={onClick}
-      disabled={disabled || sent}
+      disabled={disabled}
     >
       {children}
     </button>

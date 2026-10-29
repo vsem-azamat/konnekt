@@ -45,16 +45,23 @@ export default function HelperPage() {
 
   const price = data?.offers.find((offer) => offer.price.amount != null)?.price;
 
+  // In the student's own language: it is the student who sends it.
+  const subjects = String(data?.intro_context.subjects ?? '');
+  const intro = [
+    t`Привет! Нашёл тебя в Konnekt.`,
+    subjects ? t`Нужна помощь: ${subjects}.` : t`Нужна помощь с учёбой.`,
+  ].join('\n');
+
   const contact = useMutation({
     mutationFn: () => api.startContact(Number(id)),
     onSuccess: (result) => {
       hapticSuccess();
-      openTelegramLink(withIntro(result.telegram_url, data));
+      openTelegramLink(withIntro(result.telegram_url, intro));
     },
     onError: () => {
       // The link is worth opening even if we failed to record the attempt —
       // losing a statistic is better than losing the introduction.
-      if (data?.telegram_url) openTelegramLink(withIntro(data.telegram_url, data));
+      if (data?.telegram_url) openTelegramLink(withIntro(data.telegram_url, intro));
     },
   });
 
@@ -286,13 +293,8 @@ export default function HelperPage() {
  * what to say. Telegram's deep link carries prefilled text, so the chat opens
  * with the message already in it.
  */
-function withIntro(url: string, data: HelperDetail | undefined): string {
-  const subjects = String(data?.intro_context.subjects ?? '');
-  const lines = [
-    'Привет! Нашёл тебя в Konnekt.',
-    subjects ? `Нужна помощь: ${subjects}.` : 'Нужна помощь с учёбой.',
-  ];
-  return `${url}?text=${encodeURIComponent(lines.join('\n'))}`;
+function withIntro(url: string, text: string): string {
+  return `${url}?text=${encodeURIComponent(text)}`;
 }
 
 /**
