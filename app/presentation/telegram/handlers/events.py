@@ -10,7 +10,14 @@ from urllib.parse import quote
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
-from aiogram.filters import JOIN_TRANSITION, LEFT, ChatMemberUpdatedFilter
+from aiogram.filters import (
+    ADMINISTRATOR,
+    JOIN_TRANSITION,
+    LEAVE_TRANSITION,
+    MEMBER,
+    RESTRICTED,
+    ChatMemberUpdatedFilter,
+)
 from aiogram.types import (
     ChatJoinRequest,
     ChatMemberAdministrator,
@@ -51,6 +58,9 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     """
     joined = event.new_chat_member.user
     logger.info("user_joined", chat_id=event.chat.id, user_id=joined.id)
+    # Let in muted by the captcha in the chat: greeted once they pass it.
+    if await captcha.waits_in_chat(db, event.chat.id, joined.id):
+        return
     # Let in by an admin while their captcha waited: it is settled now.
     await captcha.admitted(bot, db, event.chat.id, joined.id)
 
@@ -70,9 +80,24 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
             raise
 
 
-@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))
-async def user_left(event: ChatMemberUpdated) -> None:
+@router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(LEAVE_TRANSITION))
+async def user_left(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """Left or removed: a captcha in the chat waiting on them has nobody to ask."""
     logger.info("user_left", chat_id=event.chat.id, user_id=event.new_chat_member.user.id)
+    await captcha.let_go(bot, db, event.chat.id, event.new_chat_member.user.id)
+
+
+@router.chat_member(
+    ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(+RESTRICTED >> (MEMBER | ADMINISTRATOR))
+)
+async def user_unmuted(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> None:
+    """An admin let a muted newcomer write: the captcha in the chat is theirs no more.
+
+    The bot's own unmute, after a pass, finds the captcha settled already.
+    """
+    if event.from_user.id == bot.id:
+        return
+    await captcha.let_go(bot, db, event.chat.id, event.new_chat_member.user.id)
 
 
 def _may_invite(member: ChatMemberUnion) -> bool:

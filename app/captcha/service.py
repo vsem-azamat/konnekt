@@ -13,6 +13,11 @@ captcha proves there is a person behind the account, and they already have.
 Somebody who tapped to join one of our chats in the Mini App's catalog is
 approved without one too, once: Telegram signed that tap (`CatalogPass`).
 
+A chat may have the captcha asked in the chat instead (`Chat.captcha_in_chat`):
+the applicant is let in muted and asked in a private message once they open
+the bot from the chat (app/captcha/in_chat.py). The decisions are the same;
+what follows them is muting and removing instead of approving and declining.
+
 Every decision locks its row, so a tap and the expiry sweep cannot both act on
 one request: whichever comes second finds it settled.
 """
@@ -26,10 +31,11 @@ import math
 from aiogram import Bot
 from aiogram.exceptions import AiogramError, TelegramAPIError
 from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup, ReplyParameters
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.captcha import challenge, waves
+from app.captcha import challenge, in_chat, waves
+from app.captcha.locks import lock_chat
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
 from app.chats import welcome
@@ -73,7 +79,7 @@ async def admit(
 
     # One request at a time per chat from the count to the insert: without it a
     # burst counts itself short and opens a wave per handful of requests.
-    await _lock_chat(db, chat.id)
+    await lock_chat(db, chat.id)
     superseded = await _supersede(db, chat.id, user_id, now)
     # A trusted request counts towards a wave like any other, so a raid of
     # accounts that once passed somewhere still raises the alert; it just
@@ -90,6 +96,7 @@ async def admit(
         attempts_left=challenge.ATTEMPTS,
         created_at=now,
         expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
+        in_chat=chat.captcha_in_chat,
     )
     # Asked in this order so that a pass the person did not need is not spent.
     if await _trusted(db, chat.id, user_id, now):
@@ -129,6 +136,10 @@ async def admit(
             await _decline_on_sight(bot, db, row, now)
         return
 
+    if row.in_chat:
+        await _let_in_muted(bot, db, row, chat, now)
+        return
+
     try:
         sent = await with_retry(
             lambda: bot.send_message(
@@ -154,6 +165,53 @@ async def admit(
     await db.commit()
     CAPTCHA_EVENTS.labels(event="sent").inc()
     logger.info("captcha_sent", chat_id=chat.id, user_id=user_id, captcha_id=row.id)
+
+
+async def _let_in_muted(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Chat, now: datetime.datetime) -> None:
+    """Mute the applicant, approve the request, name them in the chat.
+
+    Muted first: approved first, they could write in the moment between.
+    """
+    title = _title(chat)
+    try:
+        await in_chat.mute(bot, row)
+    except TelegramAPIError as err:
+        # Let in unmuted they could write at once, so the request stays with the admins.
+        row.status = JoinCaptcha.STATUS_UNDELIVERED
+        row.resolved_at = now
+        await db.commit()
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_UNDELIVERED).inc()
+        logger.warning("captcha_not_muted", chat_id=chat.id, error=str(err), error_type=type(err).__name__)
+        if lacks_rights(err):
+            await report(
+                bot,
+                f"Капча не смогла ограничить новичка в {html.escape(title)} ({row.user_id}): "
+                f"{html.escape(err.message)}. Проверьте права бота в чате, заявка ждёт админов.",
+            )
+        return
+    try:
+        await with_retry(lambda: bot.approve_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
+    except TelegramAPIError as err:
+        if not already_member(err):
+            # Not let in, so not left muted either: they may come back by another link.
+            await in_chat.unmute(bot, row)
+            row.status = JoinCaptcha.STATUS_GONE
+            row.resolved_at = now
+            await db.commit()
+            CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_GONE).inc()
+            if request_gone(err):
+                logger.info("captcha_request_gone", captcha_id=row.id)
+                return
+            logger.warning("captcha_request_refused", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
+            await report(
+                bot,
+                f"Капча не смогла принять заявку в {html.escape(title)} ({row.user_id}): "
+                f"{html.escape(err.message)}. Заявка ждёт админов чата.",
+            )
+            return
+    CAPTCHA_EVENTS.labels(event="muted").inc()
+    logger.info("captcha_muted", chat_id=row.chat_id, user_id=row.user_id, captcha_id=row.id)
+    await in_chat.announce(bot, db, row.chat_id, now)
 
 
 async def _trusted(db: AsyncSession, chat_id: int, user_id: int, now: datetime.datetime) -> bool:
@@ -261,15 +319,6 @@ async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: C
     logger.info("captcha_trusted", chat_id=row.chat_id, user_id=row.user_id, captcha_id=row.id, source=row.status)
 
 
-async def _lock_chat(db: AsyncSession, chat_id: int) -> None:
-    """Serialise admissions to one chat until the transaction ends.
-
-    PostgreSQL only; the test database runs one request at a time anyway.
-    """
-    if db.get_bind().dialect.name == "postgresql":
-        await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": chat_id})
-
-
 async def _supersede(db: AsyncSession, chat_id: int, user_id: int, now: datetime.datetime) -> list[JoinCaptcha]:
     """Close this person's earlier captcha for the chat: a new request replaces the old one.
 
@@ -345,10 +394,17 @@ async def answer(
     # approval or captcha since the message went out, the request is the
     # admins' once more and the bot decides nothing.
     if not _still_checks(chat):
-        await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
+        if row.in_chat:
+            await _release(bot, db, row, now, title)
+        else:
+            await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.handed_back_text(title))
         logger.info("captcha_chat_no_longer_checks", captcha_id=row.id, chat_id=row.chat_id)
         return Outcome.GONE
+    assert chat is not None
 
+    if row.options[pick] == row.answer and row.in_chat:
+        await _unmute_on_pass(bot, db, row, chat, now)
+        return Outcome.PASSED
     if row.options[pick] == row.answer:
         await _introduce(bot, row, now)
         try:
@@ -363,6 +419,10 @@ async def answer(
     row.attempts_left -= 1
     if row.attempts_left > 0:
         CAPTCHA_EVENTS.labels(event="retry").inc()
+    if row.attempts_left <= 0 and row.in_chat:
+        await _remove(bot, db, row, now, JoinCaptcha.STATUS_FAILED, challenge.removed_failed_text(title))
+        logger.info("captcha_failed", chat_id=row.chat_id, user_id=row.user_id)
+        return Outcome.FAILED
     if row.attempts_left <= 0:
         try:
             await with_retry(lambda: bot.decline_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
@@ -398,6 +458,8 @@ async def admitted(
                 JoinCaptcha.chat_id == chat_id,
                 JoinCaptcha.user_id == user_id,
                 JoinCaptcha.status.in_((JoinCaptcha.STATUS_PENDING, JoinCaptcha.STATUS_HELD)),
+                # Asked in the chat, they join the moment the bot approves: that join settles nothing.
+                JoinCaptcha.in_chat.is_(False),
             )
             # Not skip_locked: the join arrives once, and a row skipped
             # while a wrong tap or a reminder held it would stay open.
@@ -419,12 +481,102 @@ async def admitted(
     logger.info("captcha_admitted_by_hand", chat_id=chat_id, user_id=user_id, count=len(rows))
 
 
+async def waits_in_chat(db: AsyncSession, chat_id: int, user_id: int) -> bool:
+    """Whether this member is muted by the captcha in the chat, so their join is not one to greet yet."""
+    found = await db.scalar(
+        select(JoinCaptcha.id)
+        .where(
+            JoinCaptcha.chat_id == chat_id,
+            JoinCaptcha.user_id == user_id,
+            JoinCaptcha.in_chat,
+            JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
+        )
+        .limit(1)
+    )
+    return found is not None
+
+
+async def let_go(
+    bot: Bot, db: AsyncSession, chat_id: int, user_id: int, *, now: datetime.datetime | None = None
+) -> None:
+    """Close the captcha in the chat of somebody who left, was removed, or was unmuted by an admin.
+
+    Whatever happened is the admins' decision or the person's own; the bot
+    only stops asking. Its own removals and unmutes find the row settled already.
+    """
+    now = now or utc_now()
+    rows = (
+        await db.scalars(
+            select(JoinCaptcha)
+            .where(
+                JoinCaptcha.chat_id == chat_id,
+                JoinCaptcha.user_id == user_id,
+                JoinCaptcha.in_chat,
+                JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
+            )
+            .with_for_update()
+        )
+    ).all()
+    if not rows:
+        await db.rollback()
+        return
+    chat = await db.get(Chat, chat_id)
+    title = _title(chat) if chat else str(chat_id)
+    for row in rows:
+        await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.no_longer_needed_text(title))
+        await in_chat.refresh(bot, db, chat_id, row.card_message_id)
+    logger.info("captcha_in_chat_let_go", chat_id=chat_id, user_id=user_id, count=len(rows))
+
+
+async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Chat, now: datetime.datetime) -> None:
+    """They may write; the card no longer names them, and the chat greets them as it greets anyone."""
+    title = _title(chat)
+    if not await in_chat.unmute(bot, row):
+        await report(
+            bot,
+            f"Капча в {html.escape(title)}: {row.user_id} прошёл(а) проверку, но бот не смог снять ограничение. "
+            "Проверьте права бота в чате.",
+        )
+    await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, challenge.unmuted_text(title, _link(chat)))
+    logger.info("captcha_passed", chat_id=row.chat_id, user_id=row.user_id, in_chat=True)
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+    await _introduce(bot, row, now)
+    # The join itself was not greeted: they could not have answered.
+    if chat.is_welcome_enabled and (user := await in_chat.member(bot, row)):
+        chat_text, lifetime = chat.welcome_message, chat.time_delete
+        message_id = await welcome.greet(bot, chat.id, user, chat_text=chat_text, lifetime=lifetime)
+        if message_id is not None:
+            await welcome.remember(db, chat.id, message_id, lifetime)
+
+
+async def _remove(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, status: str, text: str) -> None:
+    """Out of tries or out of time: out of the chat, and off the card."""
+    if not await in_chat.remove(bot, row):
+        chat = await db.get(Chat, row.chat_id)
+        title = _title(chat) if chat else str(row.chat_id)
+        await report(
+            bot,
+            f"Капча в {html.escape(title)}: бот не смог убрать {row.user_id}, не прошедшего проверку. "
+            "Он остаётся в чате без права писать. Проверьте права бота в чате.",
+        )
+    await _close(bot, db, row, status, now, text)
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+
+
+async def _release(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, title: str) -> None:
+    """The chat stopped checking: whoever it muted for the captcha may write, and the admins decide the rest."""
+    await in_chat.unmute(bot, row)
+    await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.no_longer_needed_text(title))
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+
+
 async def _introduce(bot: Bot, row: JoinCaptcha, now: datetime.datetime) -> None:
     """Konnekt in the private chat, before the approval settles the request and closes it.
 
     Whether it arrives decides nothing: the applicant is let in either way.
     """
-    if now - row.created_at >= _WRITE_WINDOW:
+    # Asked in the chat, they opened the bot themselves: it may write any time.
+    if not row.in_chat and now - row.created_at >= _WRITE_WINDOW:
         return
     try:
         await intro.send(bot, row.user_chat_id, challenge.INTRO, intro.private_markup())
@@ -494,6 +646,13 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
             continue
         chat = await db.get(Chat, row.chat_id)
         title = _title(chat) if chat else str(row.chat_id)
+        if row.in_chat:
+            if _still_checks(chat):
+                await _remove(bot, db, row, now, JoinCaptcha.STATUS_EXPIRED, challenge.removed_expired_text(title))
+            else:
+                await _release(bot, db, row, now, title)
+            settled += 1
+            continue
         if not _still_checks(chat):
             status, note = JoinCaptcha.STATUS_GONE, challenge.handed_back_text(title)
         else:
@@ -533,9 +692,19 @@ async def remind(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = 
         JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
         JoinCaptcha.message_id.is_not(None),
         JoinCaptcha.reminded_at.is_(None),
-        JoinCaptcha.created_at <= now - datetime.timedelta(minutes=settings.captcha.remind_after_minutes),
-        JoinCaptcha.created_at > now - _WRITE_WINDOW,
         JoinCaptcha.expires_at > now,
+        or_(
+            and_(
+                JoinCaptcha.in_chat.is_(False),
+                JoinCaptcha.created_at <= now - datetime.timedelta(minutes=settings.captcha.remind_after_minutes),
+                JoinCaptcha.created_at > now - _WRITE_WINDOW,
+            ),
+            # Asked in the chat: counted from the private message, which they asked for.
+            and_(
+                JoinCaptcha.in_chat,
+                JoinCaptcha.asked_at <= now - datetime.timedelta(minutes=settings.captcha.in_chat_remind_after_minutes),
+            ),
+        ),
     )
     for captcha_id in (await db.scalars(select(JoinCaptcha.id).where(*due))).all():
         row = await db.scalar(
@@ -613,7 +782,7 @@ async def forget_old(db: AsyncSession, *, now: datetime.datetime | None = None) 
 async def run_sweep(
     session_maker: async_sessionmaker[AsyncSession], bot: Bot, interval_seconds: int = SWEEP_INTERVAL_SECONDS
 ) -> None:
-    """Expire and remind unanswered captchas and keep wave alerts current, for as long as the bot runs.
+    """Expire and remind unanswered captchas, name newcomers a card made wait, and keep wave alerts current.
 
     Chat greetings whose time is up are deleted here too: the one loop the bot
     already runs this often, and the one that outlives the process that posted them.
@@ -625,6 +794,7 @@ async def run_sweep(
             await asyncio.sleep(interval_seconds)
             async with session_maker() as session:
                 await expire_stale(bot, session)
+                await in_chat.announce_due(bot, session, utc_now())
                 await remind(bot, session)
                 await welcome.sweep(bot, session)
                 await waves.refresh_alerts(bot, session, utc_now())

@@ -156,3 +156,50 @@ def handed_back_text(chat_title: str) -> str:
 
 def superseded_text(chat_title: str) -> str:
     return f"Эта проверка для чата <b>{html.escape(chat_title)}</b> больше не действует: ты подал(а) новую заявку."
+
+
+# --- asked in the chat (app/captcha/in_chat.py) ------------------------------
+
+# What the card's button opens the bot with: `/start captcha`.
+START_PAYLOAD = "captcha"
+CARD_BUTTON = "Пройти капчу"
+
+
+def card_text(names: list[str], minutes: int) -> str:
+    """The message in the chat naming who may not write yet; `names` are HTML, mentions or plain."""
+    if len(names) == 1:
+        who, verb, whom = names[0], "нажми", ""
+    else:
+        who, verb, whom = ", ".join(names), "нажмите", " каждому"
+    return (
+        f"👋 {who}, чтобы писать в чат, {verb} «{CARD_BUTTON}»: бот задаст{whom} один вопрос в личке.\n\n"
+        f"⏱ На это {duration(minutes)}, потом бот уберёт из чата."
+    )
+
+
+def ask_in_chat_text(chat_title: str, answer: str, minutes_left: int) -> str:
+    return (
+        f"🔐 Проверка для чата <b>{html.escape(chat_title)}</b>\n\n"
+        f"Нажми на <b>{NAMES[answer].upper()}</b>, и сможешь писать в чате.\n\n"
+        f"⏱ Осталось {duration(minutes_left)}."
+    )
+
+
+def unmuted_text(chat_title: str, link: str | None) -> str:
+    title = html.escape(chat_title)
+    where = f'<a href="{html.escape(link)}">{title}</a>' if link else f"<b>{title}</b>"
+    return f"✅ Готово, теперь можно писать в {where}!"
+
+
+def removed_failed_text(chat_title: str) -> str:
+    return f"Проверка для <b>{html.escape(chat_title)}</b> не пройдена, бот убрал тебя из чата. Можно вступить ещё раз."
+
+
+def removed_expired_text(chat_title: str) -> str:
+    return (
+        f"Время на проверку в <b>{html.escape(chat_title)}</b> вышло, бот убрал тебя из чата. Можно вступить ещё раз."
+    )
+
+
+def no_longer_needed_text(chat_title: str) -> str:
+    return f"Проверка для чата <b>{html.escape(chat_title)}</b> больше не нужна."

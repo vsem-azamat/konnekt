@@ -1,4 +1,4 @@
-"""Taps on the join captcha and on a wave alert.
+"""Taps on the join captcha and on a wave alert, and the card's way into the captcha.
 
 Both are answers to messages this bot sent, which is why they live on the
 moderator dispatcher: Telegram returns a press to the identity that sent it.
@@ -6,13 +6,16 @@ Each handler answers the press itself, so the dispatcher's automatic answer is
 turned off for them; a second answer to one press is an error.
 """
 
-from aiogram import Bot, Router, types
+from aiogram import Bot, F, Router, types
+from aiogram.dispatcher.event.bases import SkipHandler
+from aiogram.filters import CommandStart
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.captcha import challenge, service, waves
+from app.captcha import challenge, in_chat, service, waves
 from app.captcha.challenge import CaptchaPick
 from app.captcha.waves import WaveDecision
 from app.core.config import settings
+from app.core.time import utc_now
 from app.db.models import JoinCaptcha
 
 router = Router()
@@ -26,6 +29,17 @@ _REPLIES = {
     service.Outcome.CLOSED: "Эта проверка уже закрыта",
     service.Outcome.GONE: "Заявку рассмотрят админы чата",
 }
+
+
+@router.message(F.chat.type == "private", CommandStart(deep_link=True, magic=F.args == challenge.START_PAYLOAD))
+async def captcha_start(message: types.Message, bot: Bot, db: AsyncSession) -> None:
+    """The button on a card in the chat: the question, for each chat this person waits in.
+
+    Nothing to ask (passed already, out of time, or somebody else's card),
+    and it is a plain /start.
+    """
+    if message.from_user is None or not await in_chat.ask(bot, db, message.from_user.id, utc_now()):
+        raise SkipHandler
 
 
 @router.callback_query(CaptchaPick.filter(), flags=_ANSWERS_ITSELF)

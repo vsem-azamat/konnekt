@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from prometheus_client import Counter
 
-# sent, reminded, held, undelivered, retry, and every status a captcha settles in
+# sent, reminded, held, undelivered, retry, muted and card (asked in the chat), and every status a captcha settles in
 # (passed, trusted, catalog, failed, expired, declined, gone). Never a chat or a person.
 CAPTCHA_EVENTS = Counter("captcha_events_total", "Join captcha outcomes", ["event"])
 
@@ -13,6 +13,8 @@ CAPTCHA_EVENTS = Counter("captcha_events_total", "Join captcha outcomes", ["even
 for _event in (
     "sent",
     "reminded",
+    "muted",
+    "card",
     "retry",
     "held",
     "undelivered",

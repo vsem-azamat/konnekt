@@ -179,6 +179,15 @@ captcha is never delivered. Turn captcha on, or «Пускать всех» in a
 chat (the bot then approves before the other bot asks), in the same step as
 taking the other bot out of it.
 
+**Asked in the chat, the applicant is muted before the request is approved.**
+With `captcha_in_chat` the request is approved at once, so the order is the
+whole guard: approved first, they could write in the moment between.
+Telegram takes a restriction for somebody who is not a member yet (checked
+29.10 on the test group). That approval is a join to Telegram, so the join
+handler must not greet them or treat it as an admin letting them in; they
+are greeted when they pass. Removing them on failure or expiry is a ban
+with their messages, lifted at once, so they may ask again.
+
 ## Approval
 
 **Being in a chat is not permission to moderate it.** The bot can sync a

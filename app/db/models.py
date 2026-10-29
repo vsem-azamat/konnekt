@@ -203,6 +203,10 @@ class Chat(Base):
     # On by default: a quiet chat otherwise reads as a membership log, dozens of
     # "joined"/"left" notices with the occasional real message lost among them.
     is_service_cleanup_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true())
+    # With the captcha on, where it is asked: off, in a private message while
+    # the request waits; on, in the chat itself, the applicant let in muted
+    # (app/captcha/in_chat.py). Read when a request arrives.
+    captcha_in_chat: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
     parent_chat_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("chats.id", ondelete="SET NULL"),
@@ -290,6 +294,7 @@ class Chat(Base):
         is_welcome_enabled: bool = False,
         join_mode: str = JOIN_ADMINS,
         is_service_cleanup_enabled: bool = True,
+        captcha_in_chat: bool = False,
         parent_chat_id: int | None = None,
         relation_notes: str | None = None,
         public_link: str | None = None,
@@ -307,6 +312,7 @@ class Chat(Base):
         self.is_welcome_enabled = is_welcome_enabled
         self.join_mode = join_mode
         self.is_service_cleanup_enabled = is_service_cleanup_enabled
+        self.captcha_in_chat = captcha_in_chat
         self.parent_chat_id = parent_chat_id
         self.relation_notes = relation_notes
         self.public_link = public_link
@@ -615,6 +621,14 @@ class JoinCaptcha(Base):
     resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     # Set before the reminder goes out, so it goes out once even if Telegram refuses it.
     reminded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # Asked in the chat: let in muted, named in a message there (the card),
+    # asked in a private message once they open the bot from it.
+    in_chat: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    card_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # When the card that first named them went up; None until one has.
+    announced_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # When the private message went out, for the reminder.
+    asked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __init__(
         self,
@@ -629,6 +643,7 @@ class JoinCaptcha(Base):
         created_at: datetime.datetime,
         expires_at: datetime.datetime,
         wave_id: int | None = None,
+        in_chat: bool = False,
     ) -> None:
         self.chat_id = chat_id
         self.user_id = user_id
@@ -640,6 +655,7 @@ class JoinCaptcha(Base):
         self.created_at = created_at
         self.expires_at = expires_at
         self.wave_id = wave_id
+        self.in_chat = in_chat
 
 
 class JoinWave(Base):
