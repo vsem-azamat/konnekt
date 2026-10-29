@@ -14,27 +14,16 @@ and it costs one thing worth knowing about — see *Exposure*.
 
 ## The database predates the migration squash
 
-Thirty-six migrations were replaced by a single initial schema. A database built
-by the old history holds a revision number this repository no longer contains,
-so `alembic upgrade head` cannot start from it: it fails with *Can't locate
-revision*. Adopting such a database is a one-time sequence:
-
-```bash
-uv run python scripts/adopt_existing_db.py   # creates the tables the squash adds
-uv run alembic stamp fbeb70328d81 --purge    # --purge: the recorded revision is gone
-uv run alembic upgrade head
-uv run alembic check                         # must say: no new upgrade operations
-```
-
-`--purge` is what makes the stamp possible at all. Without it Alembic tries to
-resolve the revision already in the table before writing the new one, and that is
-exactly the revision that no longer exists.
-
-This was run once, on 2026-07-31, against the production database. It is
-recorded here because the same steps apply to any other database created before
-the squash, and because *why* a stamp was acceptable needs stating: production
-matched the squashed schema for every table it had, and the two it lacked were
-created first, so the stamp was a true statement rather than a promise.
+Thirty-six migrations were replaced by a single initial schema, and production,
+built by the old history, was adopted onto it once, on 2026-07-31: the tables
+the squash adds were created, then `alembic stamp fbeb70328d81 --purge`,
+`alembic upgrade head` and `alembic check`. `--purge` is what makes the stamp
+possible: without it Alembic first resolves the recorded revision, which no
+longer exists. The stamp was a true statement rather than a promise: production
+had every table of the squashed schema, apart from the column differences
+below. Another database that predates the squash needs the same steps; `git log`
+has the script that created the missing tables (`scripts/adopt_existing_db.py`,
+removed once production was adopted).
 
 Two follow-ups came out of it, both in `c8d5e2f47a19`: five columns the models
 declare NOT NULL were nullable in production (no row violated them), and two

@@ -194,7 +194,6 @@ markers = [
     # collect them.
     "handlers: marks tests covering Telegram handlers",
     "middleware: marks tests covering aiogram middleware",
-    "performance: marks tests as performance tests",
 ]
 
 [tool.coverage.run]

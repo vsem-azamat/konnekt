@@ -186,7 +186,6 @@ class Settings(BaseSettings):
     allow_unsigned_init_data: bool = False
 
     # ── Behaviour ───────────────────────────────────────────────────────
-    default_currency: str = "CZK"
     default_ui_lang: str = "ru"
     supported_ui_langs: tuple[str, ...] = ("ru", "cs", "en", "uk")
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
