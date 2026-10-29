@@ -198,13 +198,6 @@
   outline-offset: 2px;
 }
 
-/* A field on a card: the card is the field's own grey, so the fill alone
-   leaves only the placeholder visible. */
-.fieldOnCard {
-  background: var(--bg);
-  box-shadow: inset 0 0 0 1px var(--hairline);
-}
-
 .fieldIcon {
   flex: none;
   color: var(--muted);
@@ -1224,21 +1217,6 @@
   opacity: 1;
 }
 
-/* A cross at the end of a row: the drawing stays small, the place to press is
-   44 px, as a finger needs. Only 10 px reach left, the gap to the control
-   beside it; the rest goes right, into the row's padding and the page edge. */
-.rowRemove {
-  position: relative;
-}
-
-.rowRemove::after {
-  content: '';
-  position: absolute;
-  inset: calc((44px - 100%) / -2);
-  left: -10px;
-  right: calc(100% - 34px);
-}
-
 /* ── cards ──────────────────────────────────────────────────────────── */
 
 .cards {
@@ -1344,13 +1322,6 @@
   font-size: 14.5px;
   font-weight: 680;
   letter-spacing: -0.015em;
-}
-
-.cardAff {
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--muted);
 }
 
 .price {

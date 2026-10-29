@@ -197,15 +197,3 @@ export function ServiceGroupLabel({ group }: { group: ServiceGroup }): ReactElem
       return <Trans>Документы и жизнь</Trans>;
   }
 }
-
-/** Online, in person, or either. */
-export function WorkFormatLabel({ format }: { format: string }): ReactElement {
-  switch (format) {
-    case 'online':
-      return <Trans>Онлайн</Trans>;
-    case 'offline':
-      return <Trans>Очно</Trans>;
-    default:
-      return <Trans>Онлайн и очно</Trans>;
-  }
-}

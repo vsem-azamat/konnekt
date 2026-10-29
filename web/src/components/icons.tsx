@@ -103,7 +103,7 @@ export const BookIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const HeadsetIcon = (p: IconProps) => (
+const HeadsetIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4.5 14v-2.5a7.5 7.5 0 0 1 15 0V14" />
     <rect x="3" y="13.5" width="4" height="6" rx="2" />
@@ -220,7 +220,7 @@ export const ShieldIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const BankIcon = (p: IconProps) => (
+const BankIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M3.6 9.6 12 4.6l8.4 5" />
     <path d="M6.4 11.6v6.2" />
@@ -231,7 +231,7 @@ export const BankIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const PassportIcon = (p: IconProps) => (
+const PassportIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect x="5.8" y="3.4" width="12.4" height="17.2" rx="2" />
     <circle cx="12" cy="10.4" r="2.4" />

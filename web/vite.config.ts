@@ -1,6 +1,5 @@
 import { fileURLToPath, URL } from 'node:url';
-import { lingui, linguiTransformerBabelPreset } from '@lingui/vite-plugin';
-import babel from '@rolldown/plugin-babel';
+import { lingui } from '@lingui/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
@@ -34,11 +33,9 @@ const httpsDisabled = process.env.VITE_NO_HTTPS === '1';
 export default defineConfig({
   plugins: [
     react(),
-    // Compiles src/locales/*/messages.po into loadable JS modules.
-    lingui(),
-    // @vitejs/plugin-react v6 transforms with oxc and no longer runs Babel, so
-    // the Lingui macros need their own Babel pass to be expanded.
-    babel({ presets: [linguiTransformerBabelPreset()] }),
+    // Compiles src/locales/*/messages.po into loadable JS modules, and expands
+    // the Lingui macros itself: @vitejs/plugin-react v6 no longer runs Babel.
+    lingui({ macroTransform: true }),
     // Telegram refuses to load a Mini App over plain HTTP.
     ...(httpsDisabled ? [] : [mkcert()]),
   ],

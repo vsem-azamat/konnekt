@@ -4,8 +4,6 @@ import {
   type MainButtonState,
   mainButton,
   miniApp,
-  useSignal,
-  viewport,
 } from '@tma.js/sdk-react';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
@@ -42,58 +40,6 @@ export function paintChrome(): void {
   miniApp.setHeaderColor.ifAvailable(background as `#${string}`);
   miniApp.setBgColor.ifAvailable(background as `#${string}`);
   miniApp.setBottomBarColor.ifAvailable(background as `#${string}`);
-}
-
-// ── safe area ───────────────────────────────────────────────────────────
-
-export interface SafeArea {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-export interface SafeAreaInfo {
-  /** Insets imposed by the device — the notch and the home indicator. */
-  device: SafeArea;
-  /** Insets imposed by Telegram's own chrome on top of the device ones. */
-  content: SafeArea;
-  /** The two summed, which is what layout almost always wants. */
-  total: SafeArea;
-}
-
-/**
- * Safe area insets in pixels.
- *
- * The same numbers are also published as CSS variables by `bindCssVars` in
- * `main.tsx`; prefer those for layout and reach for this hook only when a
- * measurement has to reach JavaScript.
- */
-export function useSafeArea(): SafeAreaInfo {
-  const device = useSignal(viewport.safeAreaInsets);
-  const content = useSignal(viewport.contentSafeAreaInsets);
-
-  return {
-    device,
-    content,
-    total: {
-      top: device.top + content.top,
-      bottom: device.bottom + content.bottom,
-      left: device.left + content.left,
-      right: device.right + content.right,
-    },
-  };
-}
-
-/** Current viewport size and whether it is mid-gesture. */
-export function useViewport() {
-  return {
-    width: useSignal(viewport.width),
-    height: useSignal(viewport.height),
-    stableHeight: useSignal(viewport.stableHeight),
-    isExpanded: useSignal(viewport.isExpanded),
-    isFullscreen: useSignal(viewport.isFullscreen),
-  };
 }
 
 // ── back button ─────────────────────────────────────────────────────────
