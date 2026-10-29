@@ -1204,7 +1204,6 @@ msgstr "Neuložilo se — zkus to znovu."
 
 #: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
-#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Cena"
@@ -2454,10 +2453,6 @@ msgstr "V katalogu není. Vrátit ho můžeš v sekci „O mně a jak pracuji“
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Jen zabanovat"
-
-#: src/pages/MyHelper.tsx
-msgid "сколько берёшь"
-msgstr "kolik si bereš"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx

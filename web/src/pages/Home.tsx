@@ -17,7 +17,7 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
-import { api } from '@/lib/api';
+import { api, meQuery } from '@/lib/api';
 
 /**
  * The first screen.
@@ -35,11 +35,8 @@ export default function HomePage() {
     queryFn: ({ signal }) => api.getHome(signal),
   });
 
-  // The same `me` the profile reads, so the two agree on who is a helper.
-  const { data: me } = useQuery({
-    queryKey: ['me'],
-    queryFn: ({ signal }) => api.getMe(signal),
-  });
+  // The same `me` the header reads, so the two agree on who is a helper.
+  const { data: me } = useQuery(meQuery);
 
   return (
     <Screen>

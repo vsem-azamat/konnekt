@@ -74,7 +74,7 @@ export function liveCount(helper: MyHelper): number {
 }
 
 /** One thing a listed profile is missing, in the order «Что добавить» asks. */
-export type Missing = 'subject' | 'price' | 'headline';
+export type Missing = 'subject' | 'headline';
 
 /**
  * What a published profile still lacks, for the card on «Мои услуги».
@@ -82,8 +82,9 @@ export type Missing = 'subject' | 'price' | 'headline';
  * Publishing asks for nothing, so a profile can be listed as a name alone,
  * and in the results that reads as a broken card. Asked only of live offers:
  * a paused one is not in the catalog to look empty. A subject only where the
- * service takes one (`requiresSubject`, by service type id); «договорная» is
- * an answer to the price, not a missing one.
+ * service takes one (`requiresSubject`, by service type id). Not the price:
+ * the prices screen says an empty one means «договоримся», and the card in
+ * the results reads it as «цена договорная», so it is an answer.
  */
 export function whatToAdd(helper: MyHelper, requiresSubject: Set<number>): Missing[] {
   const live = helper.offers.filter((offer) => !offer.paused);
@@ -95,11 +96,18 @@ export function whatToAdd(helper: MyHelper, requiresSubject: Set<number>): Missi
   ) {
     missing.push('subject');
   }
-  if (
-    live.some((offer) => offer.price_amount === null && offer.price_unit !== 'negotiable')
-  ) {
-    missing.push('price');
-  }
   if (!helper.headline) missing.push('headline');
   return missing;
+}
+
+/**
+ * The services to open the prices screen with, by code: every one the person
+ * has, paused ones included.
+ *
+ * That screen saves the whole list and the server deletes whatever is missing
+ * from it, so a paused service left out here would be deleted by a save made
+ * to add a subject to another one.
+ */
+export function pricedServices(helper: MyHelper): string[] {
+  return [...new Set(helper.offers.map((offer) => offer.service_type))];
 }

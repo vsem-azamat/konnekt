@@ -26,9 +26,10 @@ import type { OfferOpened } from '@/lib/generated/types.gen';
  * save replaces the whole offer list, so a screen that started empty would
  * quietly delete everything they had the moment they added something new.
  *
- * A way in may name a service as well (`state.picked`): the empty shelf on the
- * home screen and the results list open this with the service the person was
- * looking at. It is ticked on top of what they already offer, never instead.
+ * A way in may name a service as well (`state.picked`), for the empty shelf on
+ * the home screen and the results list to open this with the service the
+ * person was looking at (konnekt-ratings' change to those screens). It is
+ * ticked on top of what they already offer, never instead.
  */
 export default function OfferPage() {
   const navigate = useNavigate();

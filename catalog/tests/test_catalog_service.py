@@ -172,3 +172,23 @@ async def test_a_card_in_one_service_does_not_repeat_its_name(
 
     [card] = [c for c in cards if c.user_id == helper.id]
     assert card.service is None
+
+
+async def test_a_card_in_a_search_for_one_subject_does_not_repeat_it(
+    session: AsyncSession, helper_factory
+) -> None:
+    from students_cz.db.models import Subject
+
+    helper = await helper_factory(tg_id=92115, price=None)
+    viewer = await _person(session, 92116)
+    subject = await session.scalar(
+        select(Subject).where(Subject.slug == "matematicka-analyza")
+    )
+    assert subject is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, subject_id=subject.id
+    )
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.subject is None

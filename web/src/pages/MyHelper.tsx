@@ -28,7 +28,7 @@ import {
 } from '@/components/Ui';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
-import { type Missing, whatToAdd, withPaused } from '@/lib/myServices';
+import { type Missing, pricedServices, whatToAdd, withPaused } from '@/lib/myServices';
 import { ownerStatus, startsListed } from '@/lib/ownerStatus';
 import type { MyHelper, MyOffer, ServiceType } from '@/lib/types';
 
@@ -313,21 +313,15 @@ function WhatToAdd({
   const missing = whatToAdd(helper, requiresSubject);
   if (missing.length === 0) return null;
 
-  // Subject and price are both on the prices screen, which needs the
-  // services it is pricing; it fills itself in from what is already there.
-  const live = helper.offers.filter((offer) => !offer.paused);
-  const codes = [...new Set(live.map((offer) => offer.service_type))];
-  const toPrices = () => navigate('/offer/prices', { state: { picked: codes } });
+  // The subject is on the prices screen, which fills itself in from what is
+  // already there. Every service, paused ones too: see `pricedServices`.
+  const toPrices = () =>
+    navigate('/offer/prices', { state: { picked: pricedServices(helper) } });
 
   const rows: Record<Missing, { title: ReactNode; hint: ReactNode; go: () => void }> = {
     subject: {
       title: <Trans>Предмет</Trans>,
       hint: <Trans>по нему тебя ищут студенты</Trans>,
-      go: toPrices,
-    },
-    price: {
-      title: <Trans>Цена</Trans>,
-      hint: <Trans>сколько берёшь</Trans>,
       go: toPrices,
     },
     headline: {

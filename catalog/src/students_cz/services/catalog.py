@@ -423,7 +423,12 @@ async def search(
         if service_type_id is None
         else {}
     )
-    subjects = await rows_by_id(session, Subject, (o.subject_id for o in offers))
+    # Nor the subject, when the search was for one.
+    subjects = (
+        await rows_by_id(session, Subject, (o.subject_id for o in offers))
+        if subject_id is None
+        else {}
+    )
 
     return total, [
         _to_card(

@@ -7,6 +7,7 @@ import {
   keepsListed,
   liveCount,
   offersWith,
+  pricedServices,
   whatToAdd,
   withPaused,
 } from '../src/lib/myServices.ts';
@@ -129,22 +130,31 @@ test('the count on «Профиль» leaves out switched-off services', () => {
   assert.equal(liveCount(helper('published', [offer(1, { paused: true })])), 0);
 });
 
-test('what to add: a subject where the service needs one, a price, a line under the name', () => {
+test('what to add: a subject where the service needs one, and a line under the name', () => {
   const bare = {
-    ...helper('published', [
-      offer(1, { subject_id: null, subject_name: null, price_amount: null }),
-    ]),
+    ...helper('published', [offer(1, { subject_id: null, subject_name: null })]),
     headline: null,
   };
-  assert.deepEqual(whatToAdd(bare, new Set([1])), ['subject', 'price', 'headline']);
+  assert.deepEqual(whatToAdd(bare, new Set([1])), ['subject', 'headline']);
 });
 
-test('what to add: nothing once each is there, and «договорная» counts as a price', () => {
+test('what to add: an empty price is not asked for, the prices screen calls it «договоримся»', () => {
   const full = {
-    ...helper('published', [offer(1, { price_amount: null, price_unit: 'negotiable' })]),
+    ...helper('published', [offer(1, { price_amount: null, price_unit: 'hour' })]),
     headline: 'ČVUT FEL',
   };
   assert.deepEqual(whatToAdd(full, new Set([1])), []);
+});
+
+test('the prices screen is opened with every service, paused ones too', () => {
+  // It saves the whole list, and the server deletes what is missing from it:
+  // leaving a paused service out would delete it.
+  const h = helper('published', [
+    offer(1, { service_type: 'tutoring' }),
+    offer(2, { service_type: 'insurance', service_type_id: 9, paused: true }),
+    offer(3, { service_type: 'tutoring' }),
+  ]);
+  assert.deepEqual(pricedServices(h), ['tutoring', 'insurance']);
 });
 
 test('what to add: a service that takes no subject is not asked for one, and a paused one is not asked at all', () => {

@@ -1204,7 +1204,6 @@ msgstr "It did not save — try again."
 
 #: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
-#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Price"
@@ -2454,10 +2453,6 @@ msgstr "It isn’t in the catalog. Bring it back under “About me and how I wor
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Ban only"
-
-#: src/pages/MyHelper.tsx
-msgid "сколько берёшь"
-msgstr "what you charge"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx

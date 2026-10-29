@@ -1204,7 +1204,6 @@ msgstr "Не збереглося — спробуй ще раз."
 
 #: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
-#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Ціна"
@@ -2454,10 +2453,6 @@ msgstr "У каталозі її немає. Повернути — у «Про 
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Лише забанити"
-
-#: src/pages/MyHelper.tsx
-msgid "сколько берёшь"
-msgstr "скільки береш"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
