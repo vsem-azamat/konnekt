@@ -1,9 +1,10 @@
-"""Konnekt introducing itself: the demo video and the one button into the app.
+"""Konnekt introducing itself: what it is, its video and the one button into the app.
 
 Said in three places — `/start`, the greeting in a chat and the private chat
-after the captcha. The button reads the same in all of them and the video is
-one setting, off until the final cut is approved; `/start` answers its own
-message and so keeps its own copy of `send`.
+after the captcha. `/start` is an album, the photo and the video under one
+caption, with the button in a message after it, since an album takes none. A
+chat gets the video alone, its button on it: one message per burst of joiners.
+The media are settings, each off until it is set.
 """
 
 import html
@@ -11,7 +12,15 @@ import re
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    InputMediaVideo,
+    Message,
+    WebAppInfo,
+)
+from aiogram.types.media_union import MediaUnion
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -19,6 +28,15 @@ from app.core.logging import get_logger
 logger = get_logger("intro")
 
 OPEN_BUTTON = "Открыть Konnekt 📱"
+
+# What Konnekt is, under the /start album and the greeting in a chat alike.
+ABOUT = (
+    "<b>Konnekt</b> — всё для студентов в Чехии в одном приложении.\n\n"
+    "💬 чат своего факультета в пару касаний\n"
+    "🎓 репетиторы и помощь с экзаменами\n"
+    "📄 страховка, справки, жильё\n"
+    "🙋 умеешь то, что нужно другим? Предложи услугу"
+)
 
 # Telegram's limit for a caption, counted after the markup is parsed.
 CAPTION_LIMIT = 1024
@@ -44,6 +62,21 @@ def fits_caption(text: str) -> bool:
     return len(html.unescape(re.sub(r"<[^>]+>", "", text))) <= CAPTION_LIMIT
 
 
+def album(caption: str) -> list[MediaUnion] | None:
+    """The photo, then the video, with `caption` under them; None unless both are set.
+
+    The caption goes on the first item, which is where Telegram shows an
+    album's text, below the media.
+    """
+    photo, video = settings.telegram.intro_photo, settings.telegram.intro_video
+    if not (photo and video and fits_caption(caption)):
+        return None
+    return [
+        InputMediaPhoto(media=photo, caption=caption),
+        InputMediaVideo(media=video, cover=settings.telegram.intro_video_cover or None, supports_streaming=True),
+    ]
+
+
 async def send(bot: Bot, chat_id: int, text: str, markup: InlineKeyboardMarkup | None) -> tuple[Message, bool]:
     """Send `text` as the video's caption when there is a video, as a message otherwise.
 
@@ -55,7 +88,15 @@ async def send(bot: Bot, chat_id: int, text: str, markup: InlineKeyboardMarkup |
     video = settings.telegram.intro_video
     if video and fits_caption(text):
         try:
-            return await bot.send_video(chat_id=chat_id, video=video, caption=text, reply_markup=markup), True
+            sent = await bot.send_video(
+                chat_id=chat_id,
+                video=video,
+                cover=settings.telegram.intro_video_cover or None,
+                supports_streaming=True,
+                caption=text,
+                reply_markup=markup,
+            )
+            return sent, True
         except TelegramBadRequest as err:
             # The text is at fault, not the video: it fails as a message too.
             if PARSE_ERROR in str(err):

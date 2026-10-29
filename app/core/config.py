@@ -91,14 +91,22 @@ class TelegramSettings(Settings):
         validation_alias="MODERATOR_BOT_RETIRED_TOKEN",
         description="Tokens of retired bots, comma-separated; each answers private messages with the new address",
     )
-    # A placeholder until the final video is approved, so a setting and off by
-    # default. A file_id this bot received, or an https URL Telegram fetches.
+    # Konnekt's own media, so settings and off by default: a file_id this bot
+    # received, or an https URL Telegram fetches (app/core/intro.py).
     intro_video: str = Field(
         default="",
         description=(
-            "Video under the /start greeting, the chat greeting and the note after the captcha "
+            "Video for the /start album, the chat greeting and the note after the captcha "
             "(file_id or https URL); unset sends text only"
         ),
+    )
+    intro_video_cover: str = Field(
+        default="",
+        description="Cover shown on the intro video before it plays (file_id or https URL); unset, its first frame",
+    )
+    intro_photo: str = Field(
+        default="",
+        description="Photo the /start album opens with, beside the video (file_id or https URL); unset, text only",
     )
 
     model_config = SettingsConfigDict(
@@ -115,9 +123,9 @@ class TelegramSettings(Settings):
         # Whitespace too: a secret gets pasted one token per line, and a token holds none.
         return re.split(r"[\s,]+", value) if isinstance(value, str) else value
 
-    @field_validator("intro_video", mode="before")
+    @field_validator("intro_video", "intro_video_cover", "intro_photo", mode="before")
     @classmethod
-    def _strip_video(cls, value: Any) -> Any:
+    def _strip_media(cls, value: Any) -> Any:
         # A variable pasted with its newline would be refused on every /start.
         return value.strip() if isinstance(value, str) else value
 

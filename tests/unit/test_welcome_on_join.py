@@ -25,8 +25,13 @@ pytestmark = pytest.mark.unit
 
 CHAT_ID = -1001234
 BOT_USERNAME = "konnekt_test_bot"
+# The copy Azamat approved (W2), pinned here so a change of it is seen.
 KONNEKT_LINE = (
-    "📱 <b>Konnekt</b> — всё для студентов в Чехии: чаты вузов, репетиторы, страховка и помощь с жизнью здесь."
+    "<b>Konnekt</b> — всё для студентов в Чехии в одном приложении.\n\n"
+    "💬 чат своего факультета в пару касаний\n"
+    "🎓 репетиторы и помощь с экзаменами\n"
+    "📄 страховка, справки, жильё\n"
+    "🙋 умеешь то, что нужно другим? Предложи услугу"
 )
 
 
@@ -77,6 +82,7 @@ def timers(monkeypatch: pytest.MonkeyPatch) -> list[float]:
 @pytest.fixture(autouse=True)
 def _no_video(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.telegram, "intro_video", "")
+    monkeypatch.setattr(settings.telegram, "intro_video_cover", "")
 
 
 def _sent_text(bot) -> str:
@@ -347,11 +353,25 @@ async def test_with_a_video_configured_the_greeting_is_its_caption(
     bot.send_message.assert_not_awaited()
     sent = bot.send_video.await_args.kwargs
     assert sent["video"] == "video-file-id"
+    assert sent["cover"] is None
+    assert sent["supports_streaming"] is True
     assert sent["caption"].startswith("👋 ")
+    [[button]] = sent["reply_markup"].inline_keyboard
+    assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=welcome"
     edit = bot.edit_message_caption.await_args.kwargs
     assert edit["message_id"] == 10
     assert "tg://user?id=2" in edit["caption"]
     bot.edit_message_text.assert_not_awaited()
+
+
+async def test_the_video_shows_its_cover_before_it_plays(session: AsyncSession, bot, timers, monkeypatch) -> None:
+    monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
+    monkeypatch.setattr(settings.telegram, "intro_video_cover", "cover-file-id")
+    await _seed(session, is_welcome_enabled=True)
+
+    await user_joined(_join(), bot, session)
+
+    assert bot.send_video.await_args.kwargs["cover"] == "cover-file-id"
 
 
 async def test_a_refused_video_falls_back_to_text(session: AsyncSession, bot, timers, monkeypatch) -> None:
@@ -382,7 +402,7 @@ async def test_names_that_would_not_fit_under_the_video_are_counted(
     session: AsyncSession, bot, timers, monkeypatch
 ) -> None:
     monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
-    long_text = "П" * (intro.CAPTION_LIMIT - 200)
+    long_text = "П" * (intro.CAPTION_LIMIT - 300)
     await _seed(session, is_welcome_enabled=True, welcome_message=long_text)
 
     await user_joined(_join(1, "M" * 60), bot, session)

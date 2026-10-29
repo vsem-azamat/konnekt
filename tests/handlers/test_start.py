@@ -1,4 +1,4 @@
-"""The front door: `/start`, `/help`, and the way into the console.
+"""The front door: `/start` and `/help`.
 
 `/start` and `/help` used to be one handler, so the first thing anybody saw was
 a справочник — twenty lines of commands, most of which they could not run,
@@ -7,14 +7,15 @@ the console could only be reached by knowing that a command called `/adminlink`
 existed.
 
 What is pinned here is who sees what. The wording will move; the rule that a
-stranger is not handed the moderator's toolbox, and that the console button
-belongs to super administrators alone, should not.
+stranger is not handed the moderator's toolbox, and that `/start` offers one
+way in, should not.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
+from app.core import intro
 from app.presentation.telegram.handlers import start as start_handlers
 
 from tests.plain_language import slang
@@ -46,6 +47,18 @@ def site(monkeypatch):
     monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", CONTACT)
 
 
+@pytest.fixture(autouse=True)
+def _no_media(monkeypatch):
+    """Text unless a test sets the media, whatever a developer's .env holds."""
+    _media(monkeypatch, photo="", video="", cover="")
+
+
+def _media(monkeypatch, *, photo: str, video: str, cover: str) -> None:
+    monkeypatch.setattr(start_handlers.settings.telegram, "intro_photo", photo)
+    monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", video)
+    monkeypatch.setattr(start_handlers.settings.telegram, "intro_video_cover", cover)
+
+
 def _private(factory, command: str, user):
     return factory.create_command_message(
         command=command, user=user, chat=factory.create_chat(id=user.id, type="private", title=None)
@@ -54,11 +67,6 @@ def _private(factory, command: str, user):
 
 def _in_group(factory, command: str, user):
     return factory.create_command_message(command=command, user=user, chat=factory.create_chat())
-
-
-def _rows(message) -> list[list]:
-    markup = message.answer.call_args[1].get("reply_markup")
-    return markup.inline_keyboard if markup else []
 
 
 def _answered(message) -> tuple[str, list]:
@@ -185,44 +193,15 @@ class TestStart:
 
         scheduled.assert_not_called()
 
-    async def test_no_console_button_for_an_ordinary_person(self, telegram_factory, admin_repo, site):
-        message = _private(telegram_factory, "start", create_normal_user(id=555))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        _, buttons = _answered(message)
-        assert not any("онсол" in b.text for b in buttons)
-
-    async def test_a_super_admin_is_offered_the_console_on_top(self, telegram_factory, admin_repo, site):
-        """This replaces having to know that `/adminlink` exists."""
+    async def test_a_super_admin_is_pointed_at_help_and_nothing_more(self, telegram_factory, admin_repo, site):
+        """The console is in the Mini App's header now, for whoever may open it."""
         message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
 
         await start_handlers.start_private(message, admin_repo)
 
         text, buttons = _answered(message)
-        assert "/help" in text
-        assert [len(row) for row in _rows(message)] == [1, 1]
-        console, way_in = buttons
-        assert "онсол" in console.text
-        # Straight into the console as a Mini App. It used to be a callback that
-        # minted a sign-in link; the console now reads the signature Telegram
-        # already attached, so there is no link to mint and none to leak.
-        assert console.web_app is not None
-        assert console.web_app.url == f"{SITE}/console"
-        assert way_in.web_app.url == f"{SITE}/chats"
-
-    async def test_the_console_is_not_offered_where_it_cannot_open(self, telegram_factory, admin_repo, site):
-        """Signing in means handing over `initData`, which only a Mini App has.
-
-        In a group the button would have to be a plain link, and the browser it
-        opened would reach a console able to do nothing but turn them away.
-        """
-        message = _in_group(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        _, buttons = _answered(message)
-        assert not any("онсол" in b.text for b in buttons)
+        assert "Вы главный администратор. Все команды — /help" in text
+        assert [b.text for b in buttons] == ["Открыть Konnekt 📱"]
 
     async def test_without_a_configured_site_it_still_answers(self, telegram_factory, admin_repo, monkeypatch):
         """A missing WEBAPI_PUBLIC_URL must not produce a button to nowhere."""
@@ -236,85 +215,123 @@ class TestStart:
         assert message.answer.call_args[1]["reply_markup"] is None
 
 
+PHOTO = "AgACAgIAAxkBAAIBfake"
 VIDEO = "BAACAgIAAxkBAAIBfake"
+COVER = "AgACAgIAAxkBAAIcover"
+
+
+def _album(message) -> list:
+    return message.answer_media_group.call_args.kwargs["media"]
 
 
 @pytest.mark.handlers
-class TestTheVideo:
-    """The demo video under the greeting is a placeholder, so it is a setting, off by default."""
+class TestTheAlbum:
+    """The photo and the video under one caption, then the button in its own message (W2-f)."""
 
-    async def test_without_a_video_it_answers_with_text(self, telegram_factory, admin_repo, site, monkeypatch):
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", "")
+    async def test_the_greeting_is_the_albums_caption_and_the_button_follows(
+        self, telegram_factory, admin_repo, site, monkeypatch
+    ):
+        """Telegram takes no button on an album, so it comes in a message of its own."""
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer_video.assert_not_called()
-        assert message.answer.call_args[0][0] == start_handlers.GREETING
+        text, buttons = _answered(message)
+        assert text == "Открывай 👇"
+        [button] = buttons
+        assert (button.text, button.web_app.url) == ("Открыть Konnekt 📱", f"{SITE}/chats")
+        photo, video = _album(message)
+        assert (photo.type, photo.media, photo.caption) == ("photo", PHOTO, start_handlers.GREETING)
+        assert (video.type, video.media, video.cover, video.caption) == ("video", VIDEO, COVER, None)
+        assert video.supports_streaming is True
 
-    async def test_a_configured_video_carries_the_greeting(self, telegram_factory, admin_repo, site, monkeypatch):
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+    async def test_without_a_site_it_is_text(self, telegram_factory, admin_repo, site, monkeypatch):
+        """No button to follow the album, and no menu button either: the text says it all."""
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
+        monkeypatch.setattr(start_handlers.settings.webapi, "public_url", "")
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer.assert_not_called()
-        kwargs = message.answer_video.call_args.kwargs
-        assert kwargs["video"] == VIDEO
-        assert kwargs["caption"] == start_handlers.GREETING
-        (button,) = [b for row in kwargs["reply_markup"].inline_keyboard for b in row]
-        assert button.web_app.url == f"{SITE}/chats"
+        message.answer_media_group.assert_not_called()
+        text, buttons = _answered(message)
+        assert (text, buttons) == (start_handlers.GREETING, [])
+
+    def test_a_caption_too_long_is_no_album(self, monkeypatch):
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
+
+        assert intro.album("П" * (intro.CAPTION_LIMIT + 1)) is None
+
+    async def test_without_a_cover_the_video_shows_its_first_frame(
+        self, telegram_factory, admin_repo, site, monkeypatch
+    ):
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover="")
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        assert _album(message)[1].cover is None
+
+    @pytest.mark.parametrize(("photo", "video"), [("", VIDEO), (PHOTO, "")])
+    async def test_half_an_album_is_text(self, telegram_factory, admin_repo, site, monkeypatch, photo, video):
+        _media(monkeypatch, photo=photo, video=video, cover=COVER)
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        message.answer_media_group.assert_not_called()
+        text, buttons = _answered(message)
+        assert text == start_handlers.GREETING
+        assert [b.text for b in buttons] == ["Открыть Konnekt 📱"]
+
+    async def test_the_super_admin_reads_where_help_is_in_the_caption(
+        self, telegram_factory, admin_repo, site, monkeypatch
+    ):
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
+        message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        assert "/help" in _album(message)[0].caption
 
     async def test_a_lost_connection_does_not_greet_twice(self, telegram_factory, admin_repo, site, monkeypatch):
-        """The video may have arrived before the connection dropped."""
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        """The album may have arrived before the connection dropped."""
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         message = _private(telegram_factory, "start", create_normal_user(id=555))
-        message.answer_video.side_effect = TelegramNetworkError(method=MagicMock(), message="timeout")
+        message.answer_media_group.side_effect = TelegramNetworkError(method=MagicMock(), message="timeout")
 
         with pytest.raises(TelegramNetworkError):
             await start_handlers.start_private(message, admin_repo)
 
         message.answer.assert_not_called()
 
-    async def test_a_group_gets_no_video(self, telegram_factory, admin_repo, site, monkeypatch):
+    async def test_a_group_gets_no_album(self, telegram_factory, admin_repo, site, monkeypatch):
         """It would stay in the chat for everybody, after a /start maybe meant for another bot."""
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         message = _in_group(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer_video.assert_not_called()
+        message.answer_media_group.assert_not_called()
         assert message.answer.call_args[0][0] == start_handlers.GREETING
-
-    async def test_the_super_admin_gets_the_console_under_the_video(
-        self, telegram_factory, admin_repo, site, monkeypatch
-    ):
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
-        message = _private(telegram_factory, "start", create_admin_user(id=SUPER_ADMIN_ID))
-
-        await start_handlers.start_private(message, admin_repo)
-
-        kwargs = message.answer_video.call_args.kwargs
-        assert "/help" in kwargs["caption"]
-        rows = kwargs["reply_markup"].inline_keyboard
-        assert [row[0].web_app.url for row in rows] == [f"{SITE}/console", f"{SITE}/chats"]
 
     def test_the_longest_caption_fits(self) -> None:
         """Telegram caps a caption at 1024 characters, a message at 4096."""
         longest = start_handlers.GREETING + "\n\nВы модерируете 1000 чатов. Все команды — /help"
-        assert len(longest) <= 1024
+        assert intro.fits_caption(longest)
 
-    async def test_a_refused_video_still_greets(self, telegram_factory, admin_repo, site, monkeypatch):
+    async def test_a_refused_album_still_greets(self, telegram_factory, admin_repo, site, monkeypatch):
         """A stale file_id must not leave /start silent."""
-        monkeypatch.setattr(start_handlers.settings.telegram, "intro_video", VIDEO)
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         message = _private(telegram_factory, "start", create_normal_user(id=555))
-        message.answer_video.side_effect = TelegramBadRequest(
+        message.answer_media_group.side_effect = TelegramBadRequest(
             method=MagicMock(), message="Bad Request: wrong file identifier/HTTP URL specified"
         )
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer_video.assert_awaited_once()
+        message.answer_media_group.assert_awaited_once()
         text, buttons = _answered(message)
         assert text == start_handlers.GREETING
         assert [b.text for b in buttons] == ["Открыть Konnekt 📱"]

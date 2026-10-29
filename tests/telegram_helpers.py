@@ -121,7 +121,7 @@ class TelegramObjectFactory:
 
         # Add common methods
         message.answer = AsyncMock()
-        message.answer_video = AsyncMock()
+        message.answer_media_group = AsyncMock()
         message.reply = AsyncMock()
         message.delete = AsyncMock()
         message.edit_text = AsyncMock()
