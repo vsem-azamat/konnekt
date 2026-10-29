@@ -2433,6 +2433,26 @@
   color: var(--tone-1-fg);
 }
 
+/* Something the person should fix, that breaks nothing for good: warm, not red. */
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--r-card);
+  background: var(--tone-1-bg);
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.noticeTitle {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--tone-1-fg);
+}
+
 /* In place of the switch an operator's hide takes away. */
 .ownerLocked {
   display: flex;
@@ -2581,7 +2601,14 @@
 }
 
 /* Answered already: still on the list, where the helper looks for it, but
-   with nothing left to press. */
-.actionSent:disabled {
-  opacity: 0.6;
+   with nothing left to press, so a state rather than a button. As tall as
+   the button it replaces, so the card keeps its height. */
+.actionDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--good);
 }

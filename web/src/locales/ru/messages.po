@@ -60,10 +60,6 @@ msgstr "Включить"
 msgid "Карточек партнёров пока нет."
 msgstr "Карточек партнёров пока нет."
 
-#: src/components/Incoming.tsx
-msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
-msgstr "Заведи в Telegram публичный @username — иначе тебе не ответят"
-
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "нет карточки"
@@ -1108,6 +1104,10 @@ msgstr "Ни набегов, ни предложенных банов."
 msgid "список, поиск, фильтры"
 msgstr "список, поиск, фильтры"
 
+#: src/pages/Helper.tsx
+msgid "Привет! Пишу тебе из Konnekt."
+msgstr "Привет! Пишу тебе из Konnekt."
+
 #: src/console/pages/Summary.tsx
 msgid "анкеты, заявки, поиски без ответа"
 msgstr "анкеты, заявки, поиски без ответа"
@@ -1327,6 +1327,10 @@ msgstr "с {since}: {0} → {1}"
 #: src/components/HideReasonText.tsx
 msgid "Другое"
 msgstr "Другое"
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь: {subjects}."
+msgstr "Нужна помощь: {subjects}."
 
 #. placeholder {0}: waiting.requests
 #: src/pages/Profile.tsx
@@ -1765,6 +1769,10 @@ msgstr "Остальные"
 msgid "Новые заявки будут только во «Входящих»."
 msgstr "Новые заявки будут только во «Входящих»."
 
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя, потом открой Konnekt заново"
+msgstr "Telegram → Настройки → Имя пользователя, потом открой Konnekt заново"
+
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
@@ -1813,6 +1821,11 @@ msgstr "Как занимаешься"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Мои услуги"
+
+#: src/components/Incoming.tsx
+#: src/components/NoUsernameNotice.tsx
+msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
+msgstr "Заведи в Telegram публичный @username — иначе тебе не ответят"
 
 #: src/pages/Ads.tsx
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
@@ -3694,6 +3707,10 @@ msgstr "Но без этого не доучишься. Сроки и требо
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Не сохранилось. Попробуйте ещё раз."
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь с учёбой."
+msgstr "Нужна помощь с учёбой."
 
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"

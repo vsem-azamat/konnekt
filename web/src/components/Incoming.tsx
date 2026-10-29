@@ -2,6 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { CheckIcon } from '@/components/icons';
 
 import { formatDay, PhraseView, PriceUnitLabel } from '@/components/Phrase';
 import { Sheet } from '@/components/Sheet';
@@ -352,9 +353,11 @@ function FeedCard({
             buttons reads as a wall rather than as a choice. The filled one
             is the send inside the sheet, where there is exactly one. */}
         {request.responded ? (
-          <Action quiet sent onClick={() => {}}>
+          // A state, not a button: there is nothing left to press.
+          <span className={ui.actionDone}>
+            <CheckIcon size={15} />
             <Trans>Отклик отправлен</Trans>
-          </Action>
+          </span>
         ) : (
           <Action quiet onClick={onRespond}>
             <Trans>Откликнуться</Trans>
@@ -513,7 +516,7 @@ function RespondError({ error }: { error: unknown }) {
 
   if (error.status === 403) return <Trans>Сначала опубликуй профиль</Trans>;
   if (error.status === 409 && detail.includes('username')) {
-    return <Trans>Заведи в Telegram публичный @username — иначе тебе не ответят</Trans>;
+    return <Trans>Заведи в Telegram публичный @username — иначе тебе не ответят</Trans>;
   }
   if (error.status === 409 && detail.includes('already')) {
     return <Trans>На эту заявку ты уже отвечал</Trans>;

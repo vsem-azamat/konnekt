@@ -61,10 +61,6 @@ msgstr "Switch on"
 msgid "Карточек партнёров пока нет."
 msgstr "No partner cards yet."
 
-#: src/components/Incoming.tsx
-msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
-msgstr "Set a public @username in Telegram — otherwise nobody can write back"
-
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "no card"
@@ -1109,6 +1105,10 @@ msgstr "No raids and no proposed bans."
 msgid "список, поиск, фильтры"
 msgstr "list, search, filters"
 
+#: src/pages/Helper.tsx
+msgid "Привет! Пишу тебе из Konnekt."
+msgstr "Hi! I'm writing to you from Konnekt."
+
 #: src/console/pages/Summary.tsx
 msgid "анкеты, заявки, поиски без ответа"
 msgstr "profiles, requests, searches with no answer"
@@ -1328,6 +1328,10 @@ msgstr "since {since}: {0} → {1}"
 #: src/components/HideReasonText.tsx
 msgid "Другое"
 msgstr "Other"
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь: {subjects}."
+msgstr "I need help with: {subjects}."
 
 #. placeholder {0}: waiting.requests
 #: src/pages/Profile.tsx
@@ -1766,6 +1770,10 @@ msgstr "Other chats"
 msgid "Новые заявки будут только во «Входящих»."
 msgstr "New requests will only be in “Incoming”."
 
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя, потом открой Konnekt заново"
+msgstr "Telegram → Settings → Username, then open Konnekt again"
+
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
 msgstr "{count, plural, one {member} other {members}}"
@@ -1814,6 +1822,11 @@ msgstr "How you teach"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "My services"
+
+#: src/components/Incoming.tsx
+#: src/components/NoUsernameNotice.tsx
+msgid "Заведи в Telegram публичный @username — иначе тебе не ответят"
+msgstr "Set a public @username in Telegram — otherwise nobody can write back"
 
 #: src/pages/Ads.tsx
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
@@ -3695,6 +3708,10 @@ msgstr "But you won't get through school without it. Deadlines and requirements 
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Not saved. Try again."
+
+#: src/pages/Helper.tsx
+msgid "Нужна помощь с учёбой."
+msgstr "I need help with my studies."
 
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"

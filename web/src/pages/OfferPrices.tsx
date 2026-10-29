@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import { InstitutionPicker } from '@/components/InstitutionPicker';
 import { CheckIcon, iconForService } from '@/components/icons';
+import { NoUsernameNotice } from '@/components/NoUsernameNotice';
 import { ServiceGroupLabel } from '@/components/Phrase';
 import { SubjectSearch } from '@/components/SubjectSearch';
 import {
@@ -280,6 +281,7 @@ export default function OfferPricesPage() {
       <Sub>
         <Trans>Необязательно. Пустое поле значит «договоримся».</Trans>
       </Sub>
+      <NoUsernameNotice />
 
       {typesFailed || profileFailed ? (
         <Empty
