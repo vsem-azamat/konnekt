@@ -140,6 +140,8 @@ class ChatRead(BaseModel):
     member_count: int | None = None  # last recorded snapshot; None when never measured
     has_photo: bool = False
     last_synced_at: datetime.datetime | None = None
+    # Since when Telegram says the bot is not in the chat; None while it is.
+    bot_absent_at: datetime.datetime | None = None
     created_at: datetime.datetime
 
 
