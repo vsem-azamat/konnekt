@@ -9,8 +9,6 @@
 import { fold } from '../lib/chats.ts';
 import type { ChatStatus, ConsoleChat } from './session.ts';
 
-export type StatusFilter = 'all' | ChatStatus;
-
 export type ConsoleSection =
   | { key: 'review'; title: null; chats: ConsoleChat[] }
   | { key: 'group'; title: string; root: number; chats: ConsoleChat[] }
@@ -27,10 +25,15 @@ function matches(chat: ConsoleChat, query: string): boolean {
     .every((word) => title.includes(word));
 }
 
+/**
+ * The chats `keep` lets through that match `query`, in sections. Parents are
+ * looked up among all of them, so a tab that keeps a child but not its parent
+ * still files it under the parent's name.
+ */
 export function consoleSections(
   chats: ConsoleChat[],
-  filter: StatusFilter,
   query: string,
+  keep: (chat: ConsoleChat) => boolean = () => true,
 ): ConsoleSection[] {
   const byId = new Map(chats.map((chat) => [chat.id, chat]));
   const isParent = new Set(
@@ -40,10 +43,7 @@ export function consoleSections(
         : [],
     ),
   );
-  const shown = chats.filter(
-    (chat) =>
-      (filter === 'all' || chat.resource_status === filter) && matches(chat, query),
-  );
+  const shown = chats.filter((chat) => keep(chat) && matches(chat, query));
 
   const review = shown.filter((chat) => chat.resource_status === 'discovered');
   const groups = new Map<number, ConsoleChat[]>();
@@ -76,19 +76,6 @@ export function consoleSections(
   return sections;
 }
 
-export function statusCounts(chats: ConsoleChat[]): Record<StatusFilter, number> {
-  const count = (status: ChatStatus) =>
-    chats.filter((chat) => chat.resource_status === status).length;
-  return {
-    all: chats.length,
-    discovered: count('discovered'),
-    approved: count('approved'),
-    observed: count('observed'),
-    external: count('external'),
-    disabled: count('disabled'),
-  };
-}
-
 /** The statuses the public catalogue lists; the others await or ended a decision. */
 const LISTABLE: readonly ChatStatus[] = ['approved', 'observed', 'external'];
 
@@ -102,6 +89,54 @@ export function isListed(chat: ConsoleChat): boolean {
     Boolean(chat.title) &&
     Boolean(chat.public_link)
   );
+}
+
+/** Why a chat is or is not in the students' catalogue, in the order the rule asks. */
+export type CatalogPlace = 'listed' | 'undecided' | 'off' | 'no_title' | 'no_link';
+
+export function catalogPlace(chat: ConsoleChat): CatalogPlace {
+  if (chat.resource_status === 'discovered') return 'undecided';
+  if (chat.resource_status === 'disabled') return 'off';
+  if (!chat.title) return 'no_title';
+  if (!chat.public_link) return 'no_link';
+  return 'listed';
+}
+
+/**
+ * The console's tabs, each the answer to one question about the chats: which
+ * wait for me, which do students see, which did I decide on that they still
+ * do not see, which are off.
+ */
+export type ChatTab = 'all' | 'decide' | 'listed' | 'hidden' | 'off';
+
+export function tabOf(chat: ConsoleChat): Exclude<ChatTab, 'all'> {
+  switch (catalogPlace(chat)) {
+    case 'undecided':
+      return 'decide';
+    case 'off':
+      return 'off';
+    case 'listed':
+      return 'listed';
+    default:
+      return 'hidden';
+  }
+}
+
+export function tabCounts(chats: ConsoleChat[]): Record<ChatTab, number> {
+  const counts: Record<ChatTab, number> = {
+    all: chats.length,
+    decide: 0,
+    listed: 0,
+    hidden: 0,
+    off: 0,
+  };
+  for (const chat of chats) counts[tabOf(chat)] += 1;
+  return counts;
+}
+
+/** How many of them students see: the console's one-line answer to that question. */
+export function listedCount(chats: ConsoleChat[]): number {
+  return chats.filter(isListed).length;
 }
 
 /** A `t.me/+hash` or `joinchat` link, as opposed to a username: webapi's rule. */

@@ -142,6 +142,7 @@ async def list_chats(
             member_count=counts.get(chat.id),
             has_photo=chat.photo_file_id is not None,
             last_synced_at=chat.last_synced_at,
+            bot_absent_at=chat.bot_absent_at,
             created_at=chat.created_at,
         )
         for chat in chats
@@ -254,6 +255,7 @@ async def get_chat(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
         welcome_message=chat.welcome_message,
         time_delete=chat.time_delete,
@@ -362,6 +364,7 @@ async def update_chat(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )
 
@@ -456,6 +459,7 @@ async def refresh_chat_from_telegram(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )
 
@@ -583,6 +587,7 @@ def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )
 

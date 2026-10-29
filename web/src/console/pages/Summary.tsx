@@ -135,7 +135,7 @@ function Summary() {
         title={<Trans>Чаты на проверке</Trans>}
         hint={<Trans>бот в них есть, но они не одобрены</Trans>}
         trailing={<Count>{count}</Count>}
-        onClick={() => open('/console/chats?status=discovered')}
+        onClick={() => open('/console/chats?tab=decide')}
       />
     ),
     profiles: (count) => (

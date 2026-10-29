@@ -39,6 +39,29 @@ def client_factory(db_session_maker: async_sessionmaker[AsyncSession]):
     app.dependency_overrides.pop(get_session, None)
 
 
+async def test_the_list_says_which_chats_the_bot_has_left(client_factory, db_session_maker) -> None:
+    """A chat awaiting a decision the bot is no longer in has nothing to decide but switching it off."""
+    gone = datetime.datetime(2026, 10, 1, 12, 0)
+    async with db_session_maker() as session:
+        chat = Chat(id=-1001, title="Gone")
+        chat.bot_absent_at = gone
+        session.add(chat)
+        session.add(Chat(id=-1002, title="Here"))
+        await session.commit()
+
+    async with client_factory() as client:
+        body = {c["title"]: c for c in (await client.get("/api/chats")).json()}
+
+    assert body["Gone"]["bot_absent_at"].startswith("2026-10-01T12:00")
+    assert body["Here"]["bot_absent_at"] is None
+
+    async with client_factory() as client:
+        detail = (await client.get("/api/chats/-1001")).json()
+
+    # The chat page reads it from here, to offer only switching off.
+    assert detail["bot_absent_at"].startswith("2026-10-01T12:00")
+
+
 async def test_list_chats_returns_all(client_factory, db_session_maker) -> None:
     async with db_session_maker() as session:
         session.add(Chat(id=-1001, title="A"))

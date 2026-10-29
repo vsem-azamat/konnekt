@@ -154,6 +154,8 @@ export interface ConsoleChat {
   join_by_request: boolean | null;
   is_welcome_enabled: boolean;
   is_service_cleanup_enabled: boolean;
+  /** Since when Telegram says the bot is not in the chat; null while it is. */
+  bot_absent_at: string | null;
 }
 
 export interface ChatSender {

@@ -86,7 +86,7 @@
 
 .chat small {
   display: block;
-  color: var(--muted);
+  color: var(--ink-soft);
   font-size: 11.5px;
   font-weight: 400;
 }
@@ -100,6 +100,27 @@
   font-size: 11.5px;
   font-weight: 650;
   white-space: nowrap;
+}
+
+/* Not in the students' catalogue: said, and quieter than a chat that is. */
+.off,
+.chat small.off {
+  color: var(--muted);
+}
+
+/* Decided on, yet students do not see it: the one worth a second look. */
+.hidden,
+.chat small.hidden {
+  color: var(--tone-1-fg);
+  font-weight: 600;
+}
+
+/* The count of chats waiting for a decision, in the tab that holds them. */
+.due {
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--tone-1-bg);
+  color: var(--tone-1-fg);
 }
 
 .good {
