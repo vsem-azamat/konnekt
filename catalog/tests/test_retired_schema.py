@@ -151,3 +151,22 @@ async def test_the_column_migration_passes_columns_at_their_default(
     connection = await session.connection()
 
     await connection.run_sync(_column_migration().refuse_unless_empty)
+
+
+async def test_the_column_migration_stops_on_a_flag_set_off(
+    session: AsyncSession,
+) -> None:
+    """For the booleans, `false` is the information: `true` is the default."""
+    await session.execute(
+        text(
+            "ALTER TABLE item_categories"
+            " ADD COLUMN allows_rent boolean NOT NULL DEFAULT true"
+        )
+    )
+    await session.execute(
+        text("INSERT INTO item_categories (code, allows_rent) VALUES ('probe', false)")
+    )
+    connection = await session.connection()
+
+    with pytest.raises(RuntimeError, match=r"item_categories\.allows_rent"):
+        await connection.run_sync(_column_migration().refuse_unless_empty)
