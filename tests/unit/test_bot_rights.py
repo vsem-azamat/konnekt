@@ -231,7 +231,7 @@ async def test_the_gauge_counts_approved_chats_by_what_the_bot_lacks(session) ->
     }
 
 
-async def test_a_kicked_bot_is_recorded_and_not_asked_again(session_maker) -> None:
+async def test_a_removed_bot_is_recorded_and_asked_again_only_when_due(session_maker) -> None:
     async with session_maker() as session:
         session.add(Chat(id=-1001))
         session.add(Chat(id=-1002))
@@ -251,11 +251,17 @@ async def test_a_kicked_bot_is_recorded_and_not_asked_again(session_maker) -> No
     async with session_maker() as session:
         assert (await session.get(ChatBotRights, -1001)).status == "kicked"
         assert (await session.get(ChatBotRights, -1002)).status == "left"
-        # Long ago, as far as the check is concerned: still not asked again.
+    # Just confirmed: not asked again within the day.
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 0
+
+    async with session_maker() as session:
         for row in (await session.scalars(select(ChatBotRights))).all():
             row.known_at = utc_now() - datetime.timedelta(days=30)
         await session.commit()
-    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 0
+    # Due again, in case an update adding the bot back was lost; the same answer adds no history.
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 2
+    async with session_maker() as session:
+        assert len(await _changes(session)) == 2
 
 
 async def test_the_check_stamps_whole_seconds_so_a_change_right_after_still_counts(session_maker) -> None:

@@ -38,7 +38,7 @@ NEEDED_RIGHTS = {
     "no_invite": "can_invite_users",
 }
 PROBLEMS = ("left", "not_admin", *NEEDED_RIGHTS, "unknown")
-# The bot is not in the chat; only an update adding it back changes that.
+# The bot is not in the chat.
 GONE = ("left", "kicked")
 
 
@@ -125,11 +125,11 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
     """Ask Telegram about the bot in every chat not confirmed lately. Returns how many were asked.
 
     Only chats Telegram can answer about: not one known by its invite link
-    alone, nor a group that became a supergroup, nor one the bot is known not
-    to be in, whether the hourly loop found Telegram does not know the chat
-    or the bot was recorded as gone. The update adding the bot back is what
-    brings such a chat back. A chat that refuses otherwise is skipped until
-    the next tick.
+    alone, nor a group that became a supergroup, nor one Telegram does not
+    know to the bot (the hourly loop asks those once a day). A bot that was
+    removed is recorded as gone and asked about as seldom as any other chat,
+    so a return the updates missed is still found. A chat that refuses
+    otherwise is skipped until the next tick.
     """
     config = settings.chat_state
     due = utc_now() - datetime.timedelta(hours=config.recheck_after_hours)
@@ -142,10 +142,7 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
                     Chat.id > Chat.PREVIEW_ID_CEILING,
                     Chat.migrated_to_chat_id.is_(None),
                     Chat.bot_absent_at.is_(None),
-                    or_(
-                        ChatBotRights.known_at.is_(None),
-                        (ChatBotRights.known_at < due) & ChatBotRights.status.not_in(GONE),
-                    ),
+                    or_(ChatBotRights.known_at.is_(None), ChatBotRights.known_at < due),
                 )
                 .order_by(Chat.id)
             )
