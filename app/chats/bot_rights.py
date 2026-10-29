@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError, TelegramRetryAfter
 from sqlalchemy import or_, select
 
+from app.chats.members import ADMINISTRATORS, check_administrators, rights_of, status_of
 from app.chats.metadata import ask
 from app.chats.metrics import BOT_RIGHTS_MISSING
 from app.core.config import settings
@@ -42,22 +43,11 @@ PROBLEMS = ("left", "not_admin", *NEEDED_RIGHTS, "unknown")
 GONE = ("left", "kicked")
 
 
-def rights_of(member: ChatMemberUnion) -> dict[str, bool]:
-    """Every true-or-false field Telegram gave, under its own names.
-
-    A right Telegram left out is left out here too: it omits `can_manage_tags`
-    when it equals `can_pin_messages`, and guessing would record a change
-    Telegram never made.
-    """
-    return {name: value for name, value in member.model_dump().items() if isinstance(value, bool)}
-
-
 async def record(
     db: AsyncSession, chat_id: int, member: ChatMemberUnion, *, at: datetime.datetime, by: int | None = None
 ) -> None:
     """Take what Telegram said the bot is in `chat_id` at `at`, and commit."""
-    # aiogram hands the status over as its enum, whose str() is the enum's name.
-    await _record(db, chat_id, str(getattr(member.status, "value", member.status)), rights_of(member), at=at, by=by)
+    await _record(db, chat_id, status_of(member), rights_of(member), at=at, by=by)
 
 
 async def _record(
@@ -122,7 +112,8 @@ async def refresh_gauge(session: AsyncSession) -> None:
 
 
 async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bot) -> int:
-    """Ask Telegram about the bot in every chat not confirmed lately. Returns how many were asked.
+    """Ask Telegram about the bot in every chat not confirmed lately, and where it is an administrator,
+    about the chat's administrators too (app/chats/members.py). Returns how many chats were asked.
 
     Only groups Telegram can answer about: not a channel (listed as
     somebody else's, and Telegram will not show a bot a channel's member
@@ -176,6 +167,19 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
             continue
         async with session_maker() as session:
             await record(session, chat_id, member, at=at)
+        if status_of(member) not in ADMINISTRATORS:
+            # Without the rights, Telegram may refuse the list, and the bot gets no member updates to keep it.
+            continue
+        await asyncio.sleep(config.pause_between_chats_seconds)
+        try:
+            await check_administrators(session_maker=session_maker, bot=bot, chat_id=chat_id, at=at)
+        except TelegramRetryAfter:
+            logger.warning("bot_rights_check_flooded", asked=asked, due=len(chat_ids))
+            break
+        except TelegramAPIError as err:
+            logger.warning(
+                "administrators_check_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
+            )
     return asked
 
 
