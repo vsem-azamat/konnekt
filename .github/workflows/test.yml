@@ -229,7 +229,10 @@ jobs:
       if: steps.lanes.outputs.web == 'true'
       id: playwright
       working-directory: web
-      run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      run: |
+        version=$(pnpm exec playwright --version | awk '{print $2}')
+        [ -n "$version" ] || { echo "playwright --version printed no version" >&2; exit 1; }
+        echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name: Cache the browser for the layout check
       if: steps.lanes.outputs.web == 'true'
