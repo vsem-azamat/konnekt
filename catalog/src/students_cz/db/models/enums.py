@@ -150,42 +150,6 @@ class ResponseStatus(StrEnum):
     DECLINED = "declined"
 
 
-class ItemKind(StrEnum):
-    RENT = "rent"
-    SALE = "sale"
-
-
-class ItemCondition(StrEnum):
-    NEW = "new"
-    GOOD = "good"
-    USED = "used"
-
-
-class ItemStatus(StrEnum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
-    RESERVED = "reserved"
-    HIDDEN = "hidden"
-    ARCHIVED = "archived"
-
-
-class MaterialKind(StrEnum):
-    NOTES = "notes"
-    PAST_EXAMS = "past_exams"
-    TEMPLATE = "template"
-    COURSE = "course"
-    OTHER = "other"
-
-
-class MaterialAccess(StrEnum):
-    """Payments are deferred, so only ``free`` and ``on_request`` are reachable
-    today. ``paid`` exists so adding a provider later is not a schema change."""
-
-    FREE = "free"
-    ON_REQUEST = "on_request"
-    PAID = "paid"
-
-
 class PayoutModel(StrEnum):
     CPC = "cpc"
     CPL = "cpl"
@@ -209,20 +173,6 @@ class PlacementSlot(StrEnum):
 class PlacementEventKind(StrEnum):
     IMPRESSION = "impression"
     CLICK = "click"
-
-
-class ModerationVerdict(StrEnum):
-    AUTO_OK = "auto_ok"
-    NEEDS_REVIEW = "needs_review"
-    REJECTED = "rejected"
-
-
-class ModeratedEntity(StrEnum):
-    HELPER_PROFILE = "helper_profile"
-    OFFER = "offer"
-    REQUEST = "request"
-    ITEM = "item"
-    MATERIAL = "material"
 
 
 class UserEventKind(StrEnum):

@@ -1,4 +1,4 @@
-"""Operational tables: query log and moderation verdicts."""
+"""Operational tables: the query log and what people did."""
 
 from sqlalchemy import (
     ForeignKey,
@@ -15,8 +15,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from students_cz.db.base import Base, CreatedAtMixin, IdMixin
 from students_cz.db.models.enums import (
     ContentLang,
-    ModeratedEntity,
-    ModerationVerdict,
     UserEventKind,
     pg_enum,
 )
@@ -92,32 +90,4 @@ class UserEvent(IdMixin, CreatedAtMixin, Base):
     )
 
 
-class ModerationReview(IdMixin, CreatedAtMixin, Base):
-    """A verdict on one piece of user content.
-
-    Generic on purpose: profiles, offers, requests, items and materials all pass
-    through the same gate, and the gate may be a model, a human, or both.
-    """
-
-    __tablename__ = "moderation_reviews"
-
-    entity_type: Mapped[ModeratedEntity] = mapped_column(
-        pg_enum(ModeratedEntity, "moderated_entity"), nullable=False
-    )
-    entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    verdict: Mapped[ModerationVerdict] = mapped_column(
-        pg_enum(ModerationVerdict, "moderation_verdict"), nullable=False
-    )
-    reason: Mapped[str | None] = mapped_column(Text)
-    # Which model or which human produced this verdict.
-    reviewer: Mapped[str | None] = mapped_column(String(96))
-    details: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
-
-    __table_args__ = (
-        Index("ix_moderation_reviews_entity", "entity_type", "entity_id", "created_at"),
-        Index("ix_moderation_reviews_queue", "verdict", "created_at"),
-    )
-
-
-__all__ = ["ModerationReview", "SearchQuery"]
+__all__ = ["SearchQuery", "UserEvent"]

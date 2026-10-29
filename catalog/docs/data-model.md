@@ -9,15 +9,14 @@ explains the decisions behind it, not the columns.
 Students CZ connects students in the Czech Republic — mostly foreigners — with
 people who help them: tutors, exam help, written work, nostrification, and the
 paperwork of staying in the country — insurance, a bank statement, a sworn
-translation. It also lists physical things (gear to rent, textbooks to buy),
-digital materials, and partner offers for some of that same paperwork.
+translation. It also lists partner offers for some of that same paperwork.
 
-The last two overlap on purpose: a person offering to sit in the bank with you
+The two overlap on purpose: a person offering to sit in the bank with you
 and a partner selling insurance are different listings with different rules,
 and both are useful. `offers` holds the first, `placements` the second, and
 nothing merges them.
 
-Three different kinds of listing, three different sets of rules. The schema
+Two different kinds of listing, two different sets of rules. The schema
 keeps them apart rather than forcing them into one shape.
 
 ## Three axes, one intersection
@@ -410,23 +409,6 @@ number — it shows a count only when something is being filtered — but the lo
 `results_count` is still the size of the catalog rather than an answer, so
 date-only rows do not belong in the zero-result list either way.
 
-## Services, things, materials
-
-Three tables because three sets of rules:
-
-| | `offers` | `items` | `materials` |
-|---|---|---|---|
-| what | someone's time | something physical | a file |
-| price | per hour / work | per day / week, plus a deposit | Stars |
-| location | online or a district | pickup point | none |
-| money | between people | between people | through Telegram |
-
-The split is not tidiness, it is a payment constraint. Telegram requires Stars
-for digital goods sold inside a mini app; physical goods and real-world services
-are exempt. Materials therefore carry `price_stars`; items never do. Both are
-nullable and `MaterialAccess.PAID` is currently unreachable — payments are
-deferred, and the schema says so honestly instead of pretending.
-
 ## Requests: the catalog in reverse
 
 A directory only works once it is full. Until then the useful direction is the
@@ -505,18 +487,17 @@ deleted, so the address a card handed out keeps meaning that picture.
 
 ## Counters are caches, not truth
 
-`deals_count`, `rating`, `reviews_count`, `response_minutes_avg` on
+`deals_count`, `rating`, `response_minutes_avg` on
 `helper_profiles` are denormalised so list screens do not aggregate on every
 read. They are recomputed by background jobs and never trusted as the source of
 truth. `contacts` is what they are computed from: we do not host conversations —
-those happen in Telegram — but we record that a contact was made and when it was
-answered, so response times are measured rather than self-reported.
+those happen in Telegram — but we record that a contact was made.
 
-`rating` and `reviews_count` are the exception: nothing computes them yet, and
-only the demo seed fills `rating`. The product does not show them, and the
-catalog does not rank by them, until real lessons go through the catalog:
+`rating` is the exception: nothing computes it yet, and only the demo seed
+fills it. The product does not show it, and the catalog does not rank by it,
+until real lessons go through the catalog:
 nobody can leave a review yet, so any number there is not one a student gave.
-The columns stay, and the API still carries `rating` and `reviews`, for when
+The column stays, and the API still carries `rating` and `reviews`, for when
 they return.
 
 ## Conventions
@@ -524,7 +505,7 @@ they return.
 - Every NOT NULL column with a default has a `server_default`. Python-side
   defaults only fire through the ORM, and the legacy import runs raw SQL.
 - Native Postgres enums, created with `values_callable` so the stored values are
-  the enum *values* (`rent`), not the member names (`RENT`).
+  the enum *values* (`cpc`), not the member names (`CPC`).
 - Explicit constraint naming convention in `db/base.py`, otherwise Alembic
   generates unnamed indexes that later migrations cannot drop.
 - Flexible per-type attributes go in `attrs` JSONB with a GIN index. Anything

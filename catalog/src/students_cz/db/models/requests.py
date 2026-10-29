@@ -171,7 +171,6 @@ class Contact(IdMixin, TimestampMixin, Base):
     )
     # The prefilled message we composed, as sent.
     intro_text: Mapped[str | None] = mapped_column(Text)
-    replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RequestAlert(IdMixin, CreatedAtMixin, Base):
