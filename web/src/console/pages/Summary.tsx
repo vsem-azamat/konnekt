@@ -299,6 +299,7 @@ function Summary() {
       error={audience.error}
       retry={() => void audience.refetch()}
       ready={system.data?.publish_bot_ready}
+      table={inBrowser}
     />
   );
 
@@ -356,8 +357,7 @@ function Summary() {
           }
           title={<Trans>Сигналы</Trans>}
           hint={<Trans>набеги заявок и предложенные баны</Trans>}
-          badge={counts.signals || undefined}
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.signals} />}
           onClick={() => open('/console/signals')}
         />
         <Row
@@ -367,7 +367,6 @@ function Summary() {
             </Tile>
           }
           title={<Trans>Чаты</Trans>}
-          badge={counts.chats || undefined}
           hint={
             chats.data ? (
               <Trans>
@@ -384,7 +383,7 @@ function Summary() {
               <Trans>иерархия, защита, модерация</Trans>
             )
           }
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.chats} />}
           onClick={() => open('/console/chats')}
         />
         <Row
@@ -406,8 +405,7 @@ function Summary() {
           }
           title={<Trans>Каталог</Trans>}
           hint={<Trans>анкеты, заявки, поиски без ответа</Trans>}
-          badge={counts.catalog || undefined}
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.catalog} />}
           onClick={() => open('/console/catalog')}
         />
         <Row
@@ -443,7 +441,6 @@ function Summary() {
             </Tile>
           }
           title={<Trans>Реклама</Trans>}
-          badge={counts.spam || undefined}
           hint={
             stats.data ? (
               <Trans>
@@ -454,7 +451,7 @@ function Summary() {
               <Trans>что поймал детектор</Trans>
             )
           }
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.spam} />}
           onClick={() => open('/console/spam')}
         />
         <Row
@@ -492,6 +489,16 @@ function Summary() {
           onClick={() => open('/console/system')}
         />
       </Rows>
+    </>
+  );
+}
+
+/** A section's row ends in what waits there, as a browser's menu counts it. */
+function Waiting({ count }: { count: number }) {
+  return (
+    <>
+      {count ? <Count>{count}</Count> : null}
+      <Chevron />
     </>
   );
 }
@@ -605,6 +612,7 @@ function WaveRow({ wave, onClick }: { wave: WaveSignal; onClick: () => void }) {
           <PeopleIcon size={19} />
         </Tile>
       }
+      wrap
       title={<Trans>Набег на {title}</Trans>}
       hint={
         surge.unit === 'now' ? (
@@ -655,6 +663,7 @@ function ProposalRow({
           <BlockIcon size={19} />
         </Tile>
       }
+      wrap
       title={
         proposal.action === 'blacklist' ? (
           <Trans>Чёрный список: {who}</Trans>
@@ -687,11 +696,14 @@ function Bots({
   error,
   retry,
   ready,
+  table: asTable,
 }: {
   audience: AudienceSummary | undefined;
   error: Error | null;
   retry: () => void;
   ready: boolean | undefined;
+  /** A table beside the queues in a browser; rows on a phone's width. */
+  table: boolean;
 }) {
   const { i18n } = useLingui();
   const n = (value: number) => i18n.number(value);
@@ -708,7 +720,9 @@ function Bots({
       >
         <Trans>Боты</Trans>
       </Label>
-      {audience ? (
+      {audience && !asTable ? (
+        <BotRows audience={audience} />
+      ) : audience ? (
         <div className={css.tableWrap}>
           <table className={css.table}>
             <thead>
@@ -784,6 +798,61 @@ function Bots({
         <SkeletonRows count={2} />
       )}
     </>
+  );
+}
+
+/** The bots table as rows: who each bot is, the number, and what it counts. */
+function BotRows({ audience }: { audience: AudienceSummary }) {
+  const { i18n } = useLingui();
+  const n = (value: number) => i18n.number(value);
+  // Kept whole on its line: «заблокировали» alone above «1» reads as nothing.
+  const blocked = (count: number) => (
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <Trans>заблокировали {n(count)}</Trans>
+    </span>
+  );
+  return (
+    <Rows>
+      <Row
+        wrap
+        title={<Trans>Основной бот</Trans>}
+        hint={
+          <>
+            <Trans>бот и Mini App</Trans>
+            <br />
+            <Trans>могут получить сообщение</Trans> · {blocked(audience.reach.blocked)}
+          </>
+        }
+        trailing={<Count>{n(audience.reach.reachable)}</Count>}
+      />
+      <Row
+        wrap
+        title={<Trans>Бот связи</Trans>}
+        hint={
+          <>
+            <Trans>«Написать нам» и реклама</Trans>
+            <br />
+            <Trans>
+              первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
+            </Trans>{' '}
+            · {blocked(audience.contact_bot_blocked)}
+          </>
+        }
+        trailing={<Count>{n(audience.first_touch.contact_bot ?? 0)}</Count>}
+      />
+      <Row
+        wrap
+        title={<Trans>Старые боты</Trans>}
+        hint={
+          <>
+            <Trans>переехавшие подписчики</Trans>
+            <br />
+            <Trans>первых касаний</Trans>
+          </>
+        }
+        trailing={<Count>{n(audience.first_touch.moved_bot ?? 0)}</Count>}
+      />
+    </Rows>
   );
 }
 

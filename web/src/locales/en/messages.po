@@ -1819,6 +1819,11 @@ msgstr "My services"
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
 msgstr "Students of Czech universities, in the chats and in this app. We clean the chats of spam every day, so other people's ads do not drown out your post."
 
+#. placeholder {0}: n(count)
+#: src/console/pages/Summary.tsx
+msgid "заблокировали {0}"
+msgstr "{0} blocked it"
+
 #: src/components/TabBar.tsx
 msgid "опиши задачу — придут отклики"
 msgstr "describe the task and replies will come"

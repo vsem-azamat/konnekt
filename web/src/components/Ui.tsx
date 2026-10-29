@@ -329,6 +329,7 @@ export function Row({
   trailing,
   badge,
   outline = false,
+  wrap = false,
   onClick,
 }: {
   leading?: ReactNode;
@@ -338,6 +339,8 @@ export function Row({
   badge?: ReactNode;
   /** Drawn rather than filled: a row for something that is not ours. */
   outline?: boolean;
+  /** Title and hint run onto more lines rather than lose their ends. */
+  wrap?: boolean;
   onClick?: () => void;
 }) {
   const Tag = onClick ? 'button' : 'div';
@@ -349,7 +352,7 @@ export function Row({
     >
       {badge ? <Badge>{badge}</Badge> : null}
       {leading}
-      <span className={css.rowBody}>
+      <span className={wrap ? `${css.rowBody} ${css.rowWrap}` : css.rowBody}>
         <span className={css.rowName}>{title}</span>
         {hint ? <span className={css.rowHint}>{hint}</span> : null}
       </span>
