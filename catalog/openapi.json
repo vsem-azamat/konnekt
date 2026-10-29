@@ -1919,6 +1919,60 @@
         }
       }
     },
+    "/api/v1/showcase": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Read Places",
+        "description": "The paid places under «Документы и жизнь», in the order they are drawn,\neach live card counted as seen.\n\nNot part of `/home`: other screens read that, and a partner is billed on\nthese impressions, so only the shelf that draws the cards asks for them.",
+        "operationId": "read_places_api_v1_showcase_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShowcaseSlotOut"
+                  },
+                  "title": "Response Read Places Api V1 Showcase Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/showcase/{card_id}": {
       "get": {
         "tags": [
@@ -4502,20 +4556,12 @@
             },
             "type": "array",
             "title": "Things"
-          },
-          "showcase": {
-            "items": {
-              "$ref": "#/components/schemas/ShowcaseSlotOut"
-            },
-            "type": "array",
-            "title": "Showcase"
           }
         },
         "type": "object",
         "required": [
           "people",
-          "things",
-          "showcase"
+          "things"
         ],
         "title": "HomeOut"
       },
@@ -6255,6 +6301,7 @@
             "title": "Until"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "service",
@@ -6451,6 +6498,7 @@
             "title": "Until"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "ShowcaseCardPatch",
         "description": "Some of a card's fields. A published card shows the change at once."

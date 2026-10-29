@@ -8,12 +8,12 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.core.config import Settings, get_settings
 from students_cz.db.models import Placement, PlacementEvent
-from students_cz.db.models.enums import PlacementEventKind
+from students_cz.db.models.enums import PlacementEventKind, PlacementSlot
 
 from .conftest import app_for, auth_header
 
@@ -24,6 +24,18 @@ STUDENT = 97302
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+
+
+@pytest.fixture(autouse=True)
+async def _no_cards_but_these(session: AsyncSession) -> None:
+    """The suite runs on a shared, seeded database, where somebody previewing
+    the showcase leaves cards up. Taken down inside the test's transaction,
+    which is rolled back."""
+    await session.execute(
+        update(Placement)
+        .where(Placement.slot == PlacementSlot.HOME_LIFE)
+        .values(is_active=False)
+    )
 
 
 def _client(session: AsyncSession) -> AsyncClient:
@@ -71,22 +83,22 @@ async def _live(http: AsyncClient, **change) -> dict:
 
 
 async def _home(http: AsyncClient) -> dict[str, Any]:
-    body = (await http.get("/api/v1/home", headers=auth_header(STUDENT))).json()
-    return {slot["service"]: slot["card"] for slot in body["showcase"]}
+    body = (await http.get("/api/v1/showcase", headers=auth_header(STUDENT))).json()
+    return {slot["service"]: slot["card"] for slot in body}
 
 
 async def test_home_has_the_three_places_in_order_and_empty(
     session: AsyncSession,
 ) -> None:
     async with _client(session) as http:
-        body = (await http.get("/api/v1/home", headers=auth_header(STUDENT))).json()
+        body = (await http.get("/api/v1/showcase", headers=auth_header(STUDENT))).json()
 
-    assert [slot["service"] for slot in body["showcase"]] == [
+    assert [slot["service"] for slot in body] == [
         "bank_letter",
         "insurance",
         "residence",
     ]
-    assert all(slot["card"] is None for slot in body["showcase"])
+    assert all(slot["card"] is None for slot in body)
 
 
 async def test_a_draft_is_shown_to_nobody(session: AsyncSession) -> None:
@@ -306,3 +318,91 @@ async def test_a_student_cannot_run_the_showcase(session: AsyncSession) -> None:
         response = await http.post(CARDS, headers=auth_header(STUDENT), json=_card())
 
     assert response.status_code == 403
+
+
+async def test_home_alone_counts_no_impression(session: AsyncSession) -> None:
+    """Other screens read /home; only the shelf that draws the cards asks for
+    them, and a partner is billed on what it counts."""
+    async with _client(session) as http:
+        card = await _live(http)
+        await http.get("/api/v1/home", headers=auth_header(STUDENT))
+
+    impressions = await session.scalar(
+        select(func.count()).where(PlacementEvent.placement_id == card["id"])
+    )
+    assert impressions == 0
+
+
+async def test_a_later_until_does_not_put_a_card_beside_another(
+    session: AsyncSession,
+) -> None:
+    async with _client(session) as http:
+        old = await _live(http)
+        placement = await session.get(Placement, old["id"])
+        assert placement is not None
+        await session.refresh(placement, ["offer"])
+        placement.offer.valid_to = datetime.now(UTC) - timedelta(minutes=1)
+        await session.flush()
+        new = await _live(http, partner="Next Bank")
+        later = (datetime.now(UTC) + timedelta(days=60)).isoformat()
+        back = await http.patch(
+            f"{CARDS}/{old['id']}", headers=ADMIN, json={"until": later}
+        )
+        places = await _home(http)
+
+    assert back.status_code == 409
+    assert str(new["id"]) in back.text
+    assert places["bank_letter"]["id"] == new["id"]
+
+
+async def test_a_later_until_extends_a_card_whose_place_is_free(
+    session: AsyncSession,
+) -> None:
+    async with _client(session) as http:
+        card = await _live(http)
+        later = (datetime.now(UTC) + timedelta(days=60)).isoformat()
+        extended = await http.patch(
+            f"{CARDS}/{card['id']}", headers=ADMIN, json={"until": later}
+        )
+
+    assert extended.status_code == 200
+    assert extended.json()["status"] == "published"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param({"write_to": "google"}, id="a-word-is-not-a-username"),
+        pytest.param({"until": "2026-12-01T10:00:00"}, id="until-without-a-zone"),
+        pytest.param({"colour": "red"}, id="a-field-it-does-not-have"),
+    ],
+)
+async def test_what_an_agent_might_get_wrong_is_refused(
+    session: AsyncSession, change: dict
+) -> None:
+    async with _client(session) as http:
+        created = await http.post(CARDS, headers=ADMIN, json=_card(**change))
+        card = await _draft(http)
+        patched = await http.patch(f"{CARDS}/{card['id']}", headers=ADMIN, json=change)
+
+    assert created.status_code == 422
+    assert patched.status_code == 422
+
+
+async def test_a_photo_sent_without_its_length_is_still_held_to_2_mb(
+    session: AsyncSession,
+) -> None:
+    async def chunks():
+        yield PNG
+        for _ in range(3):
+            yield b"\x00" * (1024 * 1024)
+
+    async with _client(session) as http:
+        card = await _draft(http)
+        response = await http.put(
+            f"{CARDS}/{card['id']}/photo",
+            headers={**ADMIN, "Content-Type": "image/png"},
+            content=chunks(),
+        )
+
+    assert response.status_code == 413

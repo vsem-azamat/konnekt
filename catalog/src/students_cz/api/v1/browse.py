@@ -8,7 +8,7 @@ from students_cz.schemas import (
     HelperDetailOut,
     HomeOut,
 )
-from students_cz.services import catalog, showcase
+from students_cz.services import catalog
 
 router = APIRouter()
 
@@ -16,8 +16,7 @@ router = APIRouter()
 @router.get("/home", response_model=HomeOut, tags=["catalog"])
 async def home(session: SessionDep, lang: LangDep, user: UserDep) -> HomeOut:
     people, things = await catalog.open_home(session, lang, viewer=user)
-    places = await showcase.home(session, lang, viewer_id=user.id)
-    return HomeOut(people=people, things=things, showcase=places)
+    return HomeOut(people=people, things=things)
 
 
 @router.get("/helpers/{user_id}", response_model=HelperDetailOut, tags=["catalog"])

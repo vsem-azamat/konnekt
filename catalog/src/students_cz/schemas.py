@@ -16,7 +16,15 @@ Two conventions worth stating once:
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from students_cz.db.models.enums import (
     HIDE_NOTE_MAX,
@@ -328,8 +336,6 @@ class HomeSection(BaseModel):
 class HomeOut(BaseModel):
     people: list[HomeSection]
     things: list[HomeSection]
-    # The paid places under «Документы и жизнь», in the order they are drawn.
-    showcase: list["ShowcaseSlotOut"]
 
 
 # ── partners ────────────────────────────────────────────────────────────
@@ -826,12 +832,16 @@ class ShowcaseSlotOut(BaseModel):
 
 def _write_to(value: str) -> str:
     """Where «Написать» leads: an https link, or a Telegram @username, which
-    becomes its t.me link."""
-    import re
+    becomes its t.me link. The @ is required, so a stray word is refused
+    rather than turned into somebody's chat; the name is held to the rule
+    `ADS_CONTACT` is."""
+    from students_cz.core.config import TELEGRAM_USERNAME
 
     handle = value.strip()
-    if re.fullmatch(r"@?[A-Za-z][A-Za-z0-9_]{4,31}", handle):
-        return f"https://t.me/{handle.removeprefix('@')}"
+    if handle.startswith("@"):
+        if not TELEGRAM_USERNAME.fullmatch(handle[1:]):
+            raise ValueError("not a Telegram username")
+        return f"https://t.me/{handle[1:]}"
     return _https_link(handle)
 
 
@@ -848,6 +858,9 @@ PriceFrom = Annotated[int | None, Field(ge=0, le=1_000_000)]
 class ShowcaseCardIn(BaseModel):
     """A new card, saved as a draft. Nobody sees it until it is published."""
 
+    # An agent's misspelt field is a 422, not a card quietly saved without it.
+    model_config = ConfigDict(extra="forbid")
+
     service: str
     partner: Annotated[Line, StringConstraints(max_length=200)]
     title: ShowcaseTitle
@@ -856,7 +869,8 @@ class ShowcaseCardIn(BaseModel):
     price_from: PriceFrom = None
     write_to: Annotated[str, StringConstraints(max_length=1024)]
     # The card comes down by itself at this moment and the place is free again.
-    until: datetime
+    # With its zone: a bare time would be read in the server's.
+    until: AwareDatetime
 
     @field_validator("write_to")
     @classmethod
@@ -867,13 +881,15 @@ class ShowcaseCardIn(BaseModel):
 class ShowcaseCardPatch(BaseModel):
     """Some of a card's fields. A published card shows the change at once."""
 
+    model_config = ConfigDict(extra="forbid")
+
     partner: Annotated[Line | None, StringConstraints(max_length=200)] = None
     title: ShowcaseTitle | None = None
     line: ShowcaseLine = None
     text: ShowcaseText = None
     price_from: PriceFrom = None
     write_to: Annotated[str | None, StringConstraints(max_length=1024)] = None
-    until: datetime | None = None
+    until: AwareDatetime | None = None
 
     @field_validator("write_to")
     @classmethod
@@ -898,6 +914,3 @@ class AdminShowcaseCard(BaseModel):
     published_at: datetime | None
     impressions: int
     clicks: int
-
-
-HomeOut.model_rebuild()

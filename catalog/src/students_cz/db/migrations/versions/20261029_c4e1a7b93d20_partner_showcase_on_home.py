@@ -4,8 +4,9 @@ Revision ID: c4e1a7b93d20
 Revises: 5b2e8f1c9a03
 Create Date: 2026-10-29
 
-Only additions, so the release before this one runs on the new schema: one
-enum value, one table, three nullable columns.
+Only additions: one enum value, one table, three nullable columns. The
+release before runs on it until the first showcase card, whose slot that
+release cannot read in its partner list; see docs/deploy.md, «Rolling back».
 """
 
 from collections.abc import Sequence

@@ -424,12 +424,10 @@ async def partner_named(session: AsyncSession, name: str) -> Partner:
 async def create_placement(
     session: AsyncSession, lang: UiLang, card: AdminPlacementIn
 ) -> AdminPlacement:
-    """A card on the Life screen, the one slot the app draws.
+    """A card on the Life screen.
 
-    The partner is found by name ignoring case, so a second card for the same
-    company does not make a second company; the text is stored in the
-    operator's language, and readers in another see it as the first text the
-    card has.
+    The text is stored in the operator's language, and readers in another see
+    it as the first text the card has.
     """
     partner = await partner_named(session, card.partner)
     offer = PartnerOffer(

@@ -40,6 +40,7 @@ import type {
   SearchResult,
   ServiceType,
   ShowcaseCard,
+  ShowcaseSlot,
   Subject,
 } from './types';
 
@@ -396,6 +397,12 @@ export const api = {
     },
     signal?: AbortSignal,
   ) => request<Placement[]>('/placements', { query: { ...params }, signal }),
+
+  /**
+   * The paid places under «Документы и жизнь», each live card counted as
+   * seen: asked for only where the shelf is drawn.
+   */
+  getShowcase: (signal?: AbortSignal) => request<ShowcaseSlot[]>('/showcase', { signal }),
 
   /** A live partner card's page; a card taken down is a 404. */
   getShowcaseCard: (cardId: number, signal?: AbortSignal) =>

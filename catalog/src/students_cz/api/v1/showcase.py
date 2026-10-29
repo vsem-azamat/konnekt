@@ -15,12 +15,26 @@ from students_cz.schemas import (
     ShowcaseCardIn,
     ShowcaseCardOut,
     ShowcaseCardPatch,
+    ShowcaseSlotOut,
 )
 from students_cz.services import showcase
 
 router = APIRouter()
 
 Sha256 = Annotated[str, Path(pattern=r"^[0-9a-f]{64}$")]
+
+
+@router.get("/showcase", response_model=list[ShowcaseSlotOut], tags=["partners"])
+async def read_places(
+    session: SessionDep, lang: LangDep, user: UserDep
+) -> list[ShowcaseSlotOut]:
+    """The paid places under «Документы и жизнь», in the order they are drawn,
+    each live card counted as seen.
+
+    Not part of `/home`: other screens read that, and a partner is billed on
+    these impressions, so only the shelf that draws the cards asks for them.
+    """
+    return await showcase.home(session, lang, viewer_id=user.id)
 
 
 @router.get("/showcase/{card_id}", response_model=ShowcaseCardOut, tags=["partners"])
@@ -49,7 +63,10 @@ async def read_photo(sha256: Sha256, session: SessionDep) -> Response:
     return Response(
         content=found.content,
         media_type=found.mime,
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -116,14 +133,17 @@ async def put_photo(
 ) -> AdminShowcaseCard:
     """The cover, as the request's raw body: JPEG, PNG or WebP, at most 2 MB.
     The card crops it to 16:9."""
-    declared = request.headers.get("content-length", "")
-    if declared.isdigit() and int(declared) > showcase.PHOTO_MAX_BYTES:
-        raise HTTPException(
-            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "a photo is at most 2 MB"
-        )
-    content = await request.body()
+    # Read as it comes and refused past the limit, whether or not the
+    # request said its length: a chunked body would otherwise be held whole.
+    content = bytearray()
+    async for chunk in request.stream():
+        content += chunk
+        if len(content) > showcase.PHOTO_MAX_BYTES:
+            raise HTTPException(
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "a photo is at most 2 MB"
+            )
     mime = content_type.split(";")[0].strip().lower()
-    return await showcase.set_photo(session, operator.lang, card_id, mime, content)
+    return await showcase.set_photo(session, operator.lang, card_id, mime, bytes(content))
 
 
 @admin.get("/cards/{card_id}/preview", response_model=ShowcaseCardOut)

@@ -21,11 +21,12 @@ const TELEGRAM = /^https:\/\/(t\.me|telegram\.me)\//;
 export default function PartnerPage() {
   const { id } = useParams();
   const cardId = Number(id);
+  const valid = Number.isInteger(cardId) && cardId > 0;
   const { t, i18n } = useLingui();
   const { data, isPending, isError } = useQuery({
     queryKey: ['showcase-card', cardId],
     queryFn: ({ signal }) => api.getShowcaseCard(cardId, signal),
-    enabled: Number.isInteger(cardId) && cardId > 0,
+    enabled: valid,
   });
 
   useMainButton(
@@ -45,7 +46,9 @@ export default function PartnerPage() {
       : null,
   );
 
-  if (isPending && !isError) {
+  // A disabled query stays pending for ever, so an id that is no card's
+  // goes straight to «закончилось».
+  if (valid && isPending && !isError) {
     return (
       <Screen>
         <AppHeader />

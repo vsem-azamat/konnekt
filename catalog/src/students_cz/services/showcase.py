@@ -126,7 +126,12 @@ async def home(
     """Every place, with its live card or none, each live card counted as seen."""
     now = datetime.now(UTC)
     live: dict[str, Placement] = {}
-    for placement in (await session.scalars(_cards())).all():
+    # Only cards that went up and stayed up: the rest are history, which only
+    # grows. Oldest first, should two ever share a place.
+    up = _cards().where(
+        Placement.is_active.is_(True), Placement.published_at.is_not(None)
+    )
+    for placement in (await session.scalars(up.order_by(Placement.id))).all():
         if _live(placement, now):
             live.setdefault(_service(placement), placement)
     for placement in live.values():
@@ -283,6 +288,14 @@ async def update(
         if required in sent and getattr(change, required) is None:
             raise Invalid(f"a card cannot be without {required}")
 
+    if (
+        change.until is not None
+        and placement.is_active
+        and placement.published_at is not None
+    ):
+        # A later `until` brings an expired card back up, into a place
+        # somebody may have taken since.
+        await _claim(session, placement, datetime.now(UTC))
     if change.partner is not None:
         partner = await partner_named(session, change.partner)
         offer.partner_id = partner.id
@@ -355,32 +368,37 @@ async def publish(session: AsyncSession, lang: UiLang, card_id: int) -> AdminSho
         raise Invalid("add a photo first: the card is drawn around it")
     if offer.valid_to is None or offer.valid_to <= now:
         raise Invalid("`until` has passed: set a later one first")
-    service = _service(placement)
-    # Every card locked, in one order, so two publishes for one place cannot
-    # both see it free, nor wait on each other for ever.
-    cards = (
-        await session.scalars(
-            _cards().order_by(Placement.id).with_for_update(of=Placement)
-        )
-    ).all()
-    taken = next(
-        (
-            p
-            for p in cards
-            if p.id != placement.id and _service(p) == service and _live(p, now)
-        ),
-        None,
-    )
-    if taken is not None:
-        raise Conflict(
-            f"the {service} place is taken by card {taken.id} until "
-            f"{taken.offer.valid_to:%Y-%m-%d}; unpublish it first"
-        )
+    await _claim(session, placement, now)
     placement.is_active = True
     if placement.published_at is None:
         placement.published_at = now
     await session.flush()
     return await admin_card(session, lang, card_id)
+
+
+async def _claim(session: AsyncSession, placement: Placement, now: datetime) -> None:
+    """A 409 unless the card's place is free of every other live card.
+
+    The place's cards are locked in one order, so two cards going up into it
+    cannot both see it free, nor wait on each other for ever. `NO KEY UPDATE`
+    rather than `UPDATE`: an impression or a click inserted meanwhile takes a
+    key-share lock on its card, and must not wait for this.
+    """
+    service = _service(placement)
+    cards = (
+        await session.scalars(
+            _cards()
+            .where(Placement.conditions["service_type"].astext == service)
+            .order_by(Placement.id)
+            .with_for_update(of=Placement, key_share=True)
+        )
+    ).all()
+    taken = next((p for p in cards if p.id != placement.id and _live(p, now)), None)
+    if taken is not None:
+        raise Conflict(
+            f"the {service} place is taken by card {taken.id} until "
+            f"{taken.offer.valid_to:%Y-%m-%d}; unpublish it first"
+        )
 
 
 async def unpublish(

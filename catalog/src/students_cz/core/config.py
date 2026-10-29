@@ -36,6 +36,10 @@ def _find_env_file(start: Path | None = None) -> Path | None:
 ENV_FILE = _find_env_file()
 
 
+# A Telegram username without its «@», as Telegram allows one.
+TELEGRAM_USERNAME = re.compile(r"[A-Za-z][A-Za-z0-9_]{3,31}")
+
+
 class Settings(BaseSettings):
     # One .env in catalog/, shared with compose.dev.yml, so the database
     # credentials cannot drift between the container and the application.
@@ -126,7 +130,7 @@ class Settings(BaseSettings):
         if not isinstance(value, str):
             raise ValueError("ADS_CONTACT must be a Telegram username")
         username = value.strip().removeprefix("@")
-        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{3,31}", username):
+        if not TELEGRAM_USERNAME.fullmatch(username):
             raise ValueError("ADS_CONTACT must be a Telegram username, without a link")
         return username
 

@@ -811,10 +811,6 @@ export type HomeOut = {
      * Things
      */
     things: Array<HomeSection>;
-    /**
-     * Showcase
-     */
-    showcase: Array<ShowcaseSlotOut>;
 };
 
 /**
@@ -2932,6 +2928,39 @@ export type RegisterClickApiV1PlacementsPlacementIdClickPostResponses = {
 };
 
 export type RegisterClickApiV1PlacementsPlacementIdClickPostResponse = RegisterClickApiV1PlacementsPlacementIdClickPostResponses[keyof RegisterClickApiV1PlacementsPlacementIdClickPostResponses];
+
+export type ReadPlacesApiV1ShowcaseGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/showcase';
+};
+
+export type ReadPlacesApiV1ShowcaseGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReadPlacesApiV1ShowcaseGetError = ReadPlacesApiV1ShowcaseGetErrors[keyof ReadPlacesApiV1ShowcaseGetErrors];
+
+export type ReadPlacesApiV1ShowcaseGetResponses = {
+    /**
+     * Response Read Places Api V1 Showcase Get
+     *
+     * Successful Response
+     */
+    200: Array<ShowcaseSlotOut>;
+};
+
+export type ReadPlacesApiV1ShowcaseGetResponse = ReadPlacesApiV1ShowcaseGetResponses[keyof ReadPlacesApiV1ShowcaseGetResponses];
 
 export type ReadCardApiV1ShowcaseCardIdGetData = {
     body?: never;

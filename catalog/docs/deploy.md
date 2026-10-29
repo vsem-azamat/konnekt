@@ -79,6 +79,13 @@ leaves a schema the previous release still runs on (docs/invariants.md).
 Migrations do not run backwards; reversing a schema change is its own,
 deliberate decision.
 
+One exception, from the home showcase (2026-10-29): a release before it reads
+every placement as its own `PlacementSlot`, which has no `home_life`. Rolled
+back past it once a showcase card exists, its console's partner list fails
+with `LookupError`; the Mini App and everything else run. The cards cannot be
+moved to an older slot, which would put them on that slot's screen, so roll
+back that far only with the partner list accepted as broken.
+
 The pre-move stack is gone: its containers were removed on 30 September 2026,
 once the catalog had been checked end to end from here. Undoing the move means
 reverting #141 here and teachers-catalog #61, which removed that repository's

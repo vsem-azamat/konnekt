@@ -259,8 +259,6 @@ export type { HomeSection };
 export interface Home {
   people: HomeSection[];
   things: HomeSection[];
-  /** The paid places under «Документы и жизнь», in the order they are drawn. */
-  showcase: ShowcaseSlot[];
 }
 
 /** From the contract: a paid place on home, and a partner card in it. */

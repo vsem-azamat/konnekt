@@ -52,15 +52,20 @@ export default function HomePage() {
     staleTime: 60 * 60_000,
   });
   const contact = ads?.contact_url;
+  const { data: places } = useQuery({
+    queryKey: ['showcase'],
+    queryFn: ({ signal }) => api.getShowcase(signal),
+  });
   // The paid places under «Документы и жизнь». None, while there is no card
   // and nobody to invite a partner to write to: the shelf is its tiles then.
-  const paid = data
-    ? shelf(
-        data.showcase,
-        data.people.filter((section) => section.group === 'life'),
-        contact,
-      )
-    : null;
+  const paid =
+    data && places
+      ? shelf(
+          places,
+          data.people.filter((section) => section.group === 'life'),
+          contact,
+        )
+      : null;
 
   // Nobody offers it yet: no list to open, so the tile says so and offers to
   // be the first, rather than opening an empty one.
