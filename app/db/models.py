@@ -762,6 +762,41 @@ class ChatAvatar(Base):
         self.content_type = content_type
 
 
+class UserPhoto(Base):
+    """A person's Telegram photo as the console shows it, one row per person shown.
+
+    Kept in the database for the reasons ``ChatAvatar`` gives. It is fetched the
+    first time the console shows someone rather than for everybody ahead of time:
+    the console shows a few dozen people, the bot has seen thousands.
+
+    A row without ``content`` is an answer as well: Telegram showed the bot no
+    photo, because there is none or the person's privacy settings hide it.
+    Asking again on every page load would only find the same.
+    """
+
+    __tablename__ = "user_photos"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    unique_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    content_type: Mapped[str] = mapped_column(String(32), default="image/jpeg")
+    fetched_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+
+    def __init__(
+        self,
+        user_id: int,
+        unique_id: str | None,
+        content: bytes | None,
+        fetched_at: datetime.datetime | None = None,
+        content_type: str = "image/jpeg",
+    ) -> None:
+        self.user_id = user_id
+        self.unique_id = unique_id
+        self.content = content
+        self.content_type = content_type
+        self.fetched_at = fetched_at or utc_now()
+
+
 class ChatMemberSnapshot(Base):
     """Periodic member-count observations for managed chats.
 
