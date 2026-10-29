@@ -85,3 +85,58 @@ async def test_the_ads_bot_is_not_an_ad(session: AsyncSession, monkeypatch: pyte
     monkeypatch.setattr(settings.ads_bot, "contact", "@konnekt_ads_bot")
 
     assert await _record(session, "🤖 Связь с админами по любому вопросу: @konnekt_ads_bot") == set()
+
+
+@pytest.mark.usefixtures("classmate")
+async def test_someone_whose_messages_were_spam_is_no_classmate(session: AsyncSession) -> None:
+    session.add(User(id=4, username="spam_boss"))
+    session.add(Message(chat_id=CHAT, user_id=4, message_id=12, message="Нужны люди", spam=True))
+    await session.commit()
+
+    assert await _record(session, "пишите @spam_boss") == {"@spam_boss"}
+
+
+@pytest.mark.usefixtures("classmate")
+async def test_a_blocked_user_is_no_classmate(session: AsyncSession) -> None:
+    session.add(User(id=4, username="banned_one", blocked=True))
+    session.add(Message(chat_id=CHAT, user_id=4, message_id=12, message="привет"))
+    await session.commit()
+
+    assert await _record(session, "пишите @banned_one") == {"@banned_one"}
+
+
+@pytest.mark.usefixtures("classmate")
+async def test_an_ad_answered_keeps_its_answer_when_the_named_account_writes_later(session: AsyncSession) -> None:
+    (ping,) = await record_ad_signals(
+        session, chat_id=CHAT, user_id=SENDER, message_id=100, text="Кастинг, пишите @puppet_b"
+    )
+    ping.verdict = "ad"
+    session.add(User(id=5, username="puppet_b"))
+    session.add(Message(chat_id=CHAT, user_id=5, message_id=13, message="hi"))
+    await session.commit()
+
+    rows = await record_ad_signals(
+        session, chat_id=CHAT, user_id=SENDER, message_id=100, text="Кастинг, пишите  @puppet_b", replace=True
+    )
+
+    assert [(row.matches, row.verdict) for row in rows] == [(["@puppet_b"], "ad")]
+
+
+async def test_an_invite_link_in_the_catalog_clears_only_that_invite(session: AsyncSession) -> None:
+    session.add(
+        Chat(id=OTHER_CHAT, title="FEL", resource_status=Chat.STATUS_APPROVED, public_link="https://t.me/+AbCdEf123")
+    )
+    await session.commit()
+
+    assert await _record(session, "https://t.me/+AbCdEf123 и https://t.me/+Other999") == {"t.me/+other999"}
+
+
+async def test_a_link_to_a_discovered_chat_is_still_flagged(session: AsyncSession) -> None:
+    session.add(
+        Chat(
+            id=OTHER_CHAT, title="Работа", resource_status=Chat.STATUS_DISCOVERED, public_link="https://t.me/rabota_cz"
+        )
+    )
+    await session.commit()
+
+    assert await _record(session, "все подробности https://t.me/rabota_cz") == {"t.me/rabota_cz"}

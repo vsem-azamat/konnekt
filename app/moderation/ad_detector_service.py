@@ -28,29 +28,41 @@ def _truncate(text: str, limit: int) -> str:
     return text[: max(0, limit - 1)].rstrip() + "…"
 
 
-async def _ours(db: AsyncSession) -> list[str]:
-    """Handles that are never an ad: the configured ones, the ads bot, every chat with a public link.
-
-    A chat's link is a username or an invite; either way the detector's
-    whitelist reduces it to what a link or mention of that chat matches.
-    """
+def _configured() -> list[str]:
+    """Handles never flagged by configuration: the whitelist and the ads bot."""
     ours = list(settings.moderation.ad_detector_whitelist)
     if settings.ads_bot.contact_username:
         ours.append(settings.ads_bot.contact_username)
-    ours.extend(link for link in await db.scalars(select(Chat.public_link)) if link)
     return ours
 
 
+async def _catalog(db: AsyncSession) -> list[str]:
+    """The links of the chats our catalog lists.
+
+    Only listed ones: a discovered chat is someone else's, and a link to it is
+    exactly what an ad carries. A link is a username or an invite; either way
+    the detector's whitelist reduces it to what a link or mention of it matches.
+    """
+    links = await db.scalars(select(Chat.public_link).where(Chat.resource_status.in_(Chat.LISTABLE_STATUSES)))
+    return [link for link in links if link]
+
+
 async def _without_classmates(
-    db: AsyncSession, signals: list[AdSignal], *, chat_id: int, user_id: int
+    db: AsyncSession, signals: list[AdSignal], *, chat_id: int, user_id: int, flagged: set[str]
 ) -> list[AdSignal]:
     """Drop mentions of people, other than the sender, who have written in this chat.
 
     Students tag each other; an ad sends readers to someone they have not
     met. The sender is not exempt: a message naming its own author is how a
-    stranger advertises themselves.
+    stranger advertises themselves. Nor is anyone a moderator has turned
+    away: their spam and their block do not make them a classmate.
+
+    A mention this message was already flagged for stays flagged: someone
+    writing in the chat later does not take back an ad, nor its answer.
     """
-    handles = [sig.canonical.removeprefix("@") for sig in signals if sig.kind == "mention"]
+    handles = [
+        sig.canonical.removeprefix("@") for sig in signals if sig.kind == "mention" and sig.canonical not in flagged
+    ]
     if not handles:
         return signals
     classmates = set(
@@ -58,7 +70,10 @@ async def _without_classmates(
             select(func.lower(User.username)).where(
                 func.lower(User.username).in_(handles),
                 User.id != user_id,
-                select(Message.id).where(Message.chat_id == chat_id, Message.user_id == User.id).exists(),
+                User.blocked.is_(False),
+                select(Message.id)
+                .where(Message.chat_id == chat_id, Message.user_id == User.id, Message.spam.is_(False))
+                .exists(),
             )
         )
     )
@@ -82,13 +97,6 @@ async def record_ad_signals(
     """
     if not settings.moderation.ad_detector_enabled:
         return []
-    signals = extract_ad_signals(text, whitelist=await _ours(db)) if text else []
-    signals = await _without_classmates(db, signals, chat_id=chat_id, user_id=user_id)
-    snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars) if text else None
-    by_kind: dict[str, list[str]] = {}
-    for sig in signals:
-        by_kind.setdefault(sig.kind, []).append(sig.canonical)
-
     # An edit: what the message holds now replaces what it held, so a message
     # edited three times is still one message with one ad. A hit whose links
     # did not change is the same hit and keeps its answer; other links are a
@@ -101,6 +109,18 @@ async def record_ad_signals(
                 select(SpamPing).where(SpamPing.chat_id == chat_id, SpamPing.message_id == message_id)
             )
         }
+
+    signals = extract_ad_signals(text, whitelist=_configured()) if text else []
+    if signals:
+        signals = extract_ad_signals(text, whitelist=_configured() + await _catalog(db))
+    flagged = {match for ping in earlier.values() for match in ping.matches}
+    signals = await _without_classmates(db, signals, chat_id=chat_id, user_id=user_id, flagged=flagged)
+    snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars) if text else None
+    by_kind: dict[str, list[str]] = {}
+    for sig in signals:
+        by_kind.setdefault(sig.kind, []).append(sig.canonical)
+
+    if replace:
         for kind, ping in earlier.items():
             if kind not in by_kind:
                 await db.delete(ping)
