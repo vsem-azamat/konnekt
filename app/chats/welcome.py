@@ -7,27 +7,45 @@ edit notifies nobody, so only the first name in a burst is pinged.
 
 The greeting stays `Chat.time_delete` seconds after the last joiner and is
 then deleted; a chat that keeps its greetings (`time_delete` 0) starts a new
-one after `BURST_SECONDS` without joins. What is up lives in this process
-only: after a restart the next joiner gets a new greeting, and one that was
-up when the bot stopped is not deleted.
+one after `BURST_SECONDS` without joins. Which greeting is up lives in this
+process only, so after a restart the next joiner gets a new one. When each is
+to go is a row (`WelcomeGreeting`), and `sweep` deletes it from there: a
+restart, a deploy among them, cannot leave a greeting up for good.
 """
 
 import asyncio
+import datetime
 import html
 from dataclasses import dataclass, field
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+)
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import intro
 from app.core.logging import get_logger
+from app.core.time import utc_now
+from app.db.models import WelcomeGreeting
 
 logger = get_logger("chats.welcome")
 
 # Names shown before the rest are counted: «Marek, Tereza, Jakub и ещё 2».
 NAMED = 3
 BURST_SECONDS = 300
+# Greetings deleted per sweep: a backlog after a long stop goes over a few runs.
+SWEEP_BATCH = 50
+# Telegram lets a bot delete its own message for this long after it was sent.
+DELETABLE_FOR = datetime.timedelta(hours=48)
+# Refusals that asking again will not change.
+_FINAL = (TelegramBadRequest, TelegramForbiddenError, TelegramNotFound, TelegramMigrateToChat)
 # The source the Mini App records for people who came from a greeting.
 SOURCE = "welcome"
 
@@ -60,26 +78,85 @@ def text(names: list[str], others: int, chat_text: str | None) -> str:
     return "\n\n".join(lines)
 
 
-async def greet(bot: Bot, chat_id: int, user: User, *, chat_text: str | None, lifetime: int) -> None:
+async def greet(bot: Bot, chat_id: int, user: User, *, chat_text: str | None, lifetime: int) -> int | None:
     """Greet `user`: in the greeting that is up, or in a new one.
 
-    Takes the chat's settings as values, not its row: joiners queue on the
-    lock while Telegram answers, and none of them should hold a database
-    connection meanwhile.
+    Returns the greeting's message id, for the caller to record when it is to
+    go, or None when nothing was sent or `user` is in it already. Takes the
+    chat's settings as values, not its row: joiners queue on the lock while
+    Telegram answers, and none of them should hold a database connection
+    meanwhile.
     """
     async with _locks.setdefault(chat_id, asyncio.Lock()):
         greeting = _up.get(chat_id)
         if greeting is not None:
             if user.id in greeting.user_ids:
-                return
+                return None
             if await _add(bot, chat_id, greeting, user):
-                _keep(bot, chat_id, greeting, lifetime)
-                return
+                _keep(chat_id, greeting, lifetime)
+                return greeting.message_id
             _drop(chat_id)
         greeting = await _post(bot, chat_id, user, chat_text)
-        if greeting is not None:
-            _up[chat_id] = greeting
-            _keep(bot, chat_id, greeting, lifetime)
+        if greeting is None:
+            return None
+        _up[chat_id] = greeting
+        _keep(chat_id, greeting, lifetime)
+        return greeting.message_id
+
+
+async def remember(db: AsyncSession, chat_id: int, message_id: int, lifetime: int) -> None:
+    """Record that the greeting goes `lifetime` seconds from now; a chat that keeps them records nothing."""
+    if not lifetime:
+        return
+    db.add(WelcomeGreeting(chat_id, message_id, utc_now() + datetime.timedelta(seconds=lifetime)))
+    await db.commit()
+
+
+async def sweep(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = None) -> None:
+    """Delete every greeting whose last join's time is up, whether or not this process posted it.
+
+    Oldest first, so greetings Telegram keeps refusing cannot take every run.
+    A refusal that will not change is forgotten: the greeting is gone, the bot
+    is out of the chat, or the group became a supergroup under another id.
+    Flood control and the network are tried again on the next run, and past
+    the 48 hours a bot may delete its own message in, nothing is tried at all.
+    """
+    now = now or utc_now()
+    last = func.max(WelcomeGreeting.delete_at)
+    due = (
+        await db.execute(
+            select(WelcomeGreeting.chat_id, WelcomeGreeting.message_id, last)
+            .group_by(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
+            .having(last <= now)
+            .order_by(last)
+            .limit(SWEEP_BATCH)
+        )
+    ).all()
+    for chat_id, message_id, delete_at in due:
+        if now - delete_at < DELETABLE_FOR:
+            try:
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except _FINAL as err:
+                logger.info(
+                    "welcome_not_deletable",
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    error=str(err),
+                    error_type=type(err).__name__,
+                )
+            except TelegramAPIError as err:
+                logger.warning(
+                    "welcome_not_deleted",
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    error=str(err),
+                    error_type=type(err).__name__,
+                )
+                continue
+        await db.execute(
+            delete(WelcomeGreeting).where(WelcomeGreeting.chat_id == chat_id, WelcomeGreeting.message_id == message_id)
+        )
+        await db.commit()
 
 
 def _name(user: User) -> str:
@@ -156,30 +233,25 @@ async def _markup(bot: Bot) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=intro.OPEN_BUTTON, url=url)]])
 
 
-def _keep(bot: Bot, chat_id: int, greeting: _Greeting, lifetime: int) -> None:
-    """(Re)start the greeting's clock from now, the latest join."""
+def _keep(chat_id: int, greeting: _Greeting, lifetime: int) -> None:
+    """(Re)start the greeting's clock from now, the latest join: while it runs, joiners are added to it."""
     if greeting.timer is not None:
         greeting.timer.cancel()
-    greeting.timer = asyncio.create_task(_run_out(bot, chat_id, greeting, lifetime))
+    greeting.timer = asyncio.create_task(_run_out(chat_id, greeting, lifetime))
     _timers.add(greeting.timer)
     greeting.timer.add_done_callback(_timers.discard)
 
 
-async def _run_out(bot: Bot, chat_id: int, greeting: _Greeting, lifetime: int) -> None:
+async def _run_out(chat_id: int, greeting: _Greeting, lifetime: int) -> None:
+    # The next joiner gets a greeting of their own; deleting this one is `sweep`'s.
     await _sleep(lifetime or BURST_SECONDS)
     async with _locks[chat_id]:
         if _up.get(chat_id) is greeting:
             del _up[chat_id]
-    if not lifetime:
-        return
-    try:
-        await bot.delete_message(chat_id=chat_id, message_id=greeting.message_id)
-    except TelegramAPIError as err:
-        logger.debug("welcome_not_deleted", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
 
 
 def _drop(chat_id: int) -> None:
-    # Its clock keeps running: whatever is left of it is still deleted on time.
+    # Its rows stay: whatever is left of it is still deleted on time.
     _up.pop(chat_id, None)
 
 

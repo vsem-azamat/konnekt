@@ -61,7 +61,14 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     chat_text, lifetime = chat.welcome_message, chat.time_delete
     # Done with the database before waiting on Telegram and on other joiners.
     await db.commit()
-    await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
+    message_id = await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
+    if message_id is not None:
+        try:
+            await welcome.remember(db, chat.id, message_id, lifetime)
+        except Exception:
+            # Posted but not recorded: nothing will delete this greeting.
+            logger.exception("welcome_not_recorded", chat_id=chat.id, message_id=message_id)
+            raise
 
 
 @router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))

@@ -12,7 +12,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+    TelegramRetryAfter,
+)
 from aiogram.types import Chat, ChatMemberLeft, ChatMemberMember, ChatMemberUpdated, User
 from app.chats import welcome
 from app.core import intro
@@ -193,7 +199,6 @@ async def test_once_the_greeting_is_gone_the_next_joiner_gets_a_new_one(
     ran_out.set()
     for _ in range(5):
         await asyncio.sleep(0)
-    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=9)
 
     ran_out.clear()
     await user_joined(_join(2), bot, session)
@@ -307,7 +312,6 @@ async def test_the_clock_of_a_replaced_greeting_leaves_the_new_one_alone(session
     await _settle()
     await user_joined(_join(3), bot, session)
 
-    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=9)
     assert bot.edit_message_text.await_args.kwargs["message_id"] == 11
     assert bot.send_message.await_count == 2
 
@@ -499,3 +503,129 @@ async def test_a_captcha_closed_by_the_join_still_greets(session: AsyncSession, 
 
     assert (await session.scalar(select(JoinCaptcha.status))) == JoinCaptcha.STATUS_GONE
     bot.send_message.assert_awaited_once()
+
+
+# --- deleted on time, by the sweep, restart or not --------------------------
+
+
+def _rows(session: AsyncSession):
+    from app.db.models import WelcomeGreeting
+
+    return session.scalars(select(WelcomeGreeting))
+
+
+async def test_a_greeting_is_deleted_on_time_after_a_restart(session: AsyncSession, bot, timers) -> None:
+    """The process that posted it is gone; the row it left still deletes it."""
+    await _seed(session, is_welcome_enabled=True, time_delete=900)
+    await user_joined(_join(1), bot, session)
+    (row,) = (await _rows(session)).all()
+    welcome.forget()  # the restart
+
+    await welcome.sweep(bot, session, now=row.delete_at - timedelta(seconds=1))
+    bot.delete_message.assert_not_awaited()
+
+    await welcome.sweep(bot, session, now=row.delete_at)
+    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=9)
+    assert (await _rows(session)).all() == []
+
+
+async def test_the_last_joiner_decides_when_the_greeting_goes(session: AsyncSession, bot, timers, monkeypatch) -> None:
+    t0 = datetime(2026, 10, 29, 12, 0)
+    monkeypatch.setattr(welcome, "utc_now", lambda: t0)
+    await _seed(session, is_welcome_enabled=True, time_delete=900)
+    await user_joined(_join(1), bot, session)
+    monkeypatch.setattr(welcome, "utc_now", lambda: t0 + timedelta(minutes=10))
+    await user_joined(_join(2), bot, session)
+
+    await welcome.sweep(bot, session, now=t0 + timedelta(minutes=20))
+    bot.delete_message.assert_not_awaited()
+    await welcome.sweep(bot, session, now=t0 + timedelta(minutes=25))
+    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=9)
+
+
+async def test_a_greeting_telegram_no_longer_has_is_forgotten(session: AsyncSession, bot, timers) -> None:
+    """Deleted by an admin, or past the 48 hours a bot may delete its own message in."""
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    bot.delete_message.side_effect = TelegramBadRequest(method=MagicMock(), message="message to delete not found")
+
+    await welcome.sweep(bot, session, now=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1))
+
+    assert (await _rows(session)).all() == []
+
+
+async def test_flood_control_on_a_delete_tries_again_next_run(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    bot.delete_message.side_effect = TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=5)
+    later = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1)
+
+    await welcome.sweep(bot, session, now=later)
+    assert len((await _rows(session)).all()) == 1
+
+    bot.delete_message.side_effect = None
+    await welcome.sweep(bot, session, now=later)
+    assert (await _rows(session)).all() == []
+
+
+async def test_a_chat_that_keeps_its_greetings_records_none(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=0)
+
+    await user_joined(_join(1), bot, session)
+
+    bot.send_message.assert_awaited_once()
+    assert (await _rows(session)).all() == []
+
+
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was kicked from the supergroup chat"),
+        TelegramNotFound(method=MagicMock(), message="Not Found"),
+        TelegramMigrateToChat(method=MagicMock(), message="group upgraded", migrate_to_chat_id=-100999),
+    ],
+)
+async def test_a_refusal_that_will_not_change_is_forgotten(session: AsyncSession, bot, timers, refusal) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    bot.delete_message.side_effect = refusal
+
+    await welcome.sweep(bot, session, now=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1))
+
+    assert (await _rows(session)).all() == []
+
+
+async def test_past_48_hours_it_is_forgotten_without_asking(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    (row,) = (await _rows(session)).all()
+
+    await welcome.sweep(bot, session, now=row.delete_at + welcome.DELETABLE_FOR)
+
+    bot.delete_message.assert_not_awaited()
+    assert (await _rows(session)).all() == []
+
+
+async def test_stuck_greetings_do_not_crowd_out_one_that_is_due(
+    session: AsyncSession, bot, timers, monkeypatch
+) -> None:
+    """Oldest first: a due greeting older than the ones Telegram keeps refusing is not crowded out of the batch."""
+    from app.db.models import WelcomeGreeting
+
+    t0 = datetime(2026, 10, 29, 12, 0)
+    for i in range(welcome.SWEEP_BATCH):
+        # Chat ids that sort before CHAT_ID, so only the order by age puts it in the batch.
+        session.add(WelcomeGreeting(-2_000_000_000_000 - i, 1, t0 + timedelta(minutes=10)))
+    session.add(WelcomeGreeting(CHAT_ID, 9, t0))
+    await session.commit()
+
+    async def refuse(*, chat_id: int, message_id: int) -> bool:
+        if chat_id != CHAT_ID:
+            raise TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=5)
+        return True
+
+    bot.delete_message.side_effect = refuse
+
+    await welcome.sweep(bot, session, now=t0 + timedelta(hours=1))
+
+    bot.delete_message.assert_any_await(chat_id=CHAT_ID, message_id=9)

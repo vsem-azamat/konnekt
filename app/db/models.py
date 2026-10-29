@@ -684,6 +684,31 @@ class ChatAvatar(Base):
         self.content_type = content_type
 
 
+class WelcomeGreeting(Base):
+    """A chat greeting that is up, and when it is to go: one row per join it greets.
+
+    The greeting lives in the bot's memory while joins add names to it, and a
+    restart forgets it. This is what deletes it on time anyway: the captcha
+    sweep removes every greeting whose latest row is due (`app/chats/welcome.py`).
+    A join added to a greeting is a row of its own rather than an update, so
+    two joins at once never write the same row.
+    """
+
+    __tablename__ = "welcome_greetings"
+    __table_args__ = (Index("ix_welcome_greetings_chat_id_message_id", "chat_id", "message_id"),)
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    message_id: Mapped[int] = mapped_column(BigInteger)
+    delete_at: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
+
+    def __init__(self, chat_id: int, message_id: int, delete_at: datetime.datetime) -> None:
+        self.chat_id = chat_id
+        self.message_id = message_id
+        self.delete_at = delete_at
+
+
 class UserPhoto(Base):
     """A person's Telegram photo as the console shows it, one row per person shown.
 

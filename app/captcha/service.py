@@ -32,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.captcha import challenge, waves
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
+from app.chats import welcome
 from app.core import intro
 from app.core.config import settings
 from app.core.enums import ModerationEventAction
@@ -612,7 +613,11 @@ async def forget_old(db: AsyncSession, *, now: datetime.datetime | None = None) 
 async def run_sweep(
     session_maker: async_sessionmaker[AsyncSession], bot: Bot, interval_seconds: int = SWEEP_INTERVAL_SECONDS
 ) -> None:
-    """Expire and remind unanswered captchas and keep wave alerts current, for as long as the bot runs."""
+    """Expire and remind unanswered captchas and keep wave alerts current, for as long as the bot runs.
+
+    Chat greetings whose time is up are deleted here too: the one loop the bot
+    already runs this often, and the one that outlives the process that posted them.
+    """
     forgotten_at: datetime.datetime | None = None
     reported_at = utc_now()
     while True:
@@ -621,6 +626,7 @@ async def run_sweep(
             async with session_maker() as session:
                 await expire_stale(bot, session)
                 await remind(bot, session)
+                await welcome.sweep(bot, session)
                 await waves.refresh_alerts(bot, session, utc_now())
                 if utc_now() - reported_at > _UNDELIVERED_EVERY:
                     until = utc_now()
