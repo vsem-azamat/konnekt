@@ -10,8 +10,13 @@ Updates miss what changed while the bot was down. Members are too many to
 ask about one by one, so only administrators are checked, once a day with
 the bot's own rights: `getChatAdministrators`, which leaves bots out, and
 `getChatMember` for anybody stored as an administrator who is no longer on
-that list. Other bots that are administrators are known from updates only;
-the full list of them takes a user account.
+that list. A chat thus costs two calls a day and one more per stored
+administrator off the list; another bot that is an administrator is never
+on it, so is asked about every day. Bots no update named are not known at
+all: the full list of them takes a user account.
+
+A restriction or a ban that runs out sends no update: `until_date` is to be
+compared with now, never taken as still in force.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING
 
+from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from sqlalchemy import select
 
 from app.chats.metadata import ask
@@ -60,12 +66,22 @@ def _until(member: ChatMemberUnion) -> datetime.datetime | None:
     return as_naive_utc(until)
 
 
-async def record(db: AsyncSession, chat_id: int, member: ChatMemberUnion, *, at: datetime.datetime) -> None:
+async def record(
+    db: AsyncSession,
+    chat_id: int,
+    member: ChatMemberUnion,
+    *,
+    at: datetime.datetime,
+    update_id: int | None = None,
+) -> None:
     """Take what Telegram said `member` is in `chat_id` at `at`, and commit.
 
-    An update older than what is stored changes nothing. The first state is
-    inserted in one statement, as with the bot's own rights: a join and a
-    promotion in the same second arrive as two updates handled at once.
+    An update older than what is stored changes nothing. Telegram's times are
+    whole seconds, and the captcha mutes and then admits within one, so in
+    the same second the later update (Telegram numbers them in order) wins;
+    the daily check has no number and takes the second only from nothing.
+    The first state is inserted in one statement, as with the bot's own
+    rights: a join and a promotion arrive as two updates handled at once.
     """
     status, rights, until = status_of(member), rights_of(member), _until(member)
     created = await db.execute(
@@ -78,6 +94,7 @@ async def record(db: AsyncSession, chat_id: int, member: ChatMemberUnion, *, at:
             until_date=until,
             changed_at=at,
             known_at=at,
+            update_id=update_id,
         )
         .on_conflict_do_nothing(index_elements=[ChatMember.chat_id, ChatMember.user_id])
         .returning(ChatMember.user_id)
@@ -86,13 +103,22 @@ async def record(db: AsyncSession, chat_id: int, member: ChatMemberUnion, *, at:
         await db.commit()
         return
     row = await db.get(ChatMember, (chat_id, member.user.id), with_for_update=True, populate_existing=True)
-    if row is None or row.known_at > at:
+    if row is None or row.known_at > at or (row.known_at == at and _earlier(update_id, row.update_id)):
         await db.rollback()
         return
     if (row.status, row.rights, row.until_date) != (status, rights, until):
         row.status, row.rights, row.until_date, row.changed_at = status, rights, until, at
-    row.known_at = at
+    row.known_at, row.update_id = at, update_id
     await db.commit()
+
+
+def _earlier(update_id: int | None, stored: int | None) -> bool:
+    """Whether an update from the same second as the stored state is older than it.
+
+    Without a number on either side (the daily check) there is no telling:
+    the stored state stays.
+    """
+    return update_id is None or (stored is not None and update_id < stored)
 
 
 async def check_administrators(
@@ -110,15 +136,30 @@ async def check_administrators(
         listed = {admin.user.id for admin in admins} | {bot.id}
         stale = (
             await session.scalars(
-                select(ChatMember.user_id).where(
+                select(ChatMember.user_id)
+                .where(
                     ChatMember.chat_id == chat_id,
                     ChatMember.status.in_(ADMINISTRATORS),
                     ChatMember.user_id.not_in(listed),
                 )
+                .order_by(ChatMember.user_id)
             )
         ).all()
     # Off the list: demoted, gone, or a bot, which the list never shows.
     for user_id in stale:
-        member = await ask(lambda user_id=user_id: bot.get_chat_member(chat_id, user_id))
+        try:
+            member = await ask(lambda user_id=user_id: bot.get_chat_member(chat_id, user_id))
+        except TelegramRetryAfter:
+            raise
+        except TelegramAPIError as err:
+            # One person Telegram will not answer about must not hide the rest until tomorrow.
+            logger.warning(
+                "administrator_check_failed",
+                chat_id=chat_id,
+                user_id=user_id,
+                error=str(err),
+                error_type=type(err).__name__,
+            )
+            continue
         async with session_maker() as session:
             await record(session, chat_id, member, at=at)

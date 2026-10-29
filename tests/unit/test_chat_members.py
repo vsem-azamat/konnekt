@@ -24,6 +24,7 @@ from app.chats import members
 from app.db.models import ChatMember
 from app.db.models import User as DbUser
 from app.presentation.telegram.middlewares.chat_state import ChatStateMiddleware
+from sqlalchemy import select
 
 pytestmark = pytest.mark.unit
 
@@ -114,12 +115,12 @@ async def test_an_older_update_changes_nothing_and_the_same_state_only_confirms(
     assert (row.changed_at, row.known_at) == (T0, T0 + datetime.timedelta(hours=1))
 
 
-def _chat_member_update() -> Update:
+def _chat_member_update(chat_type: str = "supergroup") -> Update:
     return Update.model_validate(
         {
             "update_id": 1,
             "chat_member": {
-                "chat": {"id": CHAT_ID, "type": "supergroup", "title": "ČVUT FIT"},
+                "chat": {"id": CHAT_ID, "type": chat_type, "title": "ČVUT FIT"},
                 "from": OWNER.model_dump(exclude_none=True),
                 "date": int(T0.replace(tzinfo=datetime.UTC).timestamp()),
                 "old_chat_member": {"status": "left", "user": JAN.model_dump(exclude_none=True)},
@@ -180,3 +181,94 @@ async def test_the_daily_check_finds_a_demotion_the_updates_missed(session_maker
         guard = await session.get(ChatMember, (CHAT_ID, other_bot.id))
         assert (guard.status, guard.known_at) == ("administrator", at)
     assert sorted(call.args[1] for call in bot.get_chat_member.await_args_list) == [gone_admin.id, other_bot.id]
+
+
+async def test_in_the_same_second_the_later_update_wins_whatever_order_they_arrive(session) -> None:
+    """The captcha mutes and admits within a second; handled at once, the admit may be recorded first."""
+    muted = ChatMemberRestricted.model_validate({"user": JAN, "is_member": False, "until_date": 0, **_PERMISSIONS})
+    admitted = _restricted()
+
+    await members.record(session, CHAT_ID, admitted, at=T0, update_id=11)
+    await members.record(session, CHAT_ID, muted, at=T0, update_id=10)
+
+    row = await session.get(ChatMember, (CHAT_ID, JAN.id))
+    assert (row.rights["is_member"], row.update_id) == (True, 11)
+
+
+async def test_the_daily_check_does_not_overrule_an_update_from_the_same_second(session) -> None:
+    await members.record(session, CHAT_ID, _restricted(), at=T0, update_id=11)
+
+    await members.record(session, CHAT_ID, ChatMemberMember(user=JAN), at=T0)
+
+    assert (await session.get(ChatMember, (CHAT_ID, JAN.id))).status == "restricted"
+
+
+async def test_the_daily_check_asks_only_about_administrators_and_survives_a_refusal(session_maker) -> None:
+    from aiogram.exceptions import TelegramBadRequest
+
+    refusing = User(id=8, is_bot=False, first_name="Deleted")
+    gone_admin = User(id=10, is_bot=False, first_name="Ex")
+    plain = User(id=11, is_bot=False, first_name="Plain")
+    async with session_maker() as session:
+        for user in (refusing, gone_admin):
+            await members.record(session, CHAT_ID, _admin(user), at=T0)
+        await members.record(session, CHAT_ID, ChatMemberMember(user=plain), at=T0)
+
+    def answer(_chat_id: int, user_id: int):
+        if user_id == refusing.id:
+            raise TelegramBadRequest(method=MagicMock(), message="user not found")
+        return ChatMemberMember(user=gone_admin)
+
+    bot = _bot(admins=[], members_by_id={})
+    bot.get_chat_member = AsyncMock(side_effect=answer)
+
+    await members.check_administrators(
+        session_maker=session_maker, bot=bot, chat_id=CHAT_ID, at=T0 + datetime.timedelta(days=1)
+    )
+
+    # Not the plain member: members are too many to ask about one by one.
+    assert [call.args[1] for call in bot.get_chat_member.await_args_list] == [refusing.id, gone_admin.id]
+    async with session_maker() as session:
+        assert (await session.get(ChatMember, (CHAT_ID, gone_admin.id))).status == "member"
+
+
+def _update(**payload) -> Update:
+    return Update.model_validate({"update_id": 1, **payload})
+
+
+async def test_a_join_request_and_a_button_press_record_the_person(session) -> None:
+    request = {
+        "chat": {"id": CHAT_ID, "type": "supergroup", "title": "ČVUT FIT"},
+        "from": JAN.model_dump(exclude_none=True),
+        "user_chat_id": JAN.id,
+        "date": int(T0.replace(tzinfo=datetime.UTC).timestamp()),
+    }
+    pressed = {"id": "q", "from": OWNER.model_dump(exclude_none=True), "chat_instance": "c", "data": "x"}
+
+    for update in (_update(chat_join_request=request), _update(callback_query=pressed)):
+        await ChatStateMiddleware()(AsyncMock(), update, {"db": session})
+
+    assert await session.get(DbUser, JAN.id) is not None
+    assert await session.get(DbUser, OWNER.id) is not None
+
+
+async def test_a_channels_subscribers_are_not_recorded(session) -> None:
+    handler = AsyncMock()
+
+    await ChatStateMiddleware()(handler, _chat_member_update("channel"), {"db": session})
+
+    handler.assert_awaited_once()
+    assert await session.get(ChatMember, (CHAT_ID, JAN.id)) is None
+    assert await session.get(DbUser, JAN.id) is None
+
+
+async def test_a_failure_to_record_rolls_back_and_passes_the_update_on(session, monkeypatch) -> None:
+    async def broken(db, *args, **kwargs) -> None:
+        await db.execute(select(ChatMember))
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(members, "record", broken)
+    handler = AsyncMock(return_value="handled")
+
+    assert await ChatStateMiddleware()(handler, _chat_member_update(), {"db": session}) == "handled"
+    assert not session.in_transaction()

@@ -31,13 +31,17 @@ _GROUPS = ("group", "supergroup")
 
 
 def _people(update: types.Update) -> list[types.User]:
-    """Everybody the update names, other than a message's author."""
+    """Everybody the update names, other than a message's author.
+
+    Only from groups, and a press of the bot's own button: a channel the bot
+    administers would otherwise add every subscriber.
+    """
     found: list[types.User] = []
-    if change := update.chat_member:
+    if (change := update.chat_member) and change.chat.type in _GROUPS:
         found += [change.from_user, change.new_chat_member.user]
-    if change := update.my_chat_member:
+    if (change := update.my_chat_member) and change.chat.type in _GROUPS:
         found.append(change.from_user)
-    if request := update.chat_join_request:
+    if (request := update.chat_join_request) and request.chat.type in _GROUPS:
         found.append(request.from_user)
     if pressed := update.callback_query:
         found.append(pressed.from_user)
@@ -72,4 +76,6 @@ async def _record(db: "AsyncSession", update: types.Update) -> None:
         )
     change = update.chat_member
     if change is not None and change.chat.type in _GROUPS:
-        await members.record(db, change.chat.id, change.new_chat_member, at=as_naive_utc(change.date))
+        await members.record(
+            db, change.chat.id, change.new_chat_member, at=as_naive_utc(change.date), update_id=update.update_id
+        )

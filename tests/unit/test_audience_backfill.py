@@ -93,16 +93,20 @@ async def test_catalog_users_with_their_reach_and_opt_out(session_maker):
 async def test_a_private_contact_with_the_main_bot_is_estimated_and_labelled(session_maker):
     """`users` holds group members too; whoever left no trace in a group or in moderation is the estimate."""
     async with session_maker() as db:
-        db.add_all(
-            [
-                User(id=41, first_name="Private", username="only_dm"),
-                User(id=42, first_name="Talker"),
-                User(id=43, first_name="Banned", blocked=True),
-                User(id=44, first_name="Pinged"),
-                User(id=45, first_name="Moderated"),
-                User(id=-1001, first_name="A channel"),
-            ]
-        )
+        people = [
+            User(id=41, first_name="Private", username="only_dm"),
+            User(id=42, first_name="Talker"),
+            User(id=43, first_name="Banned", blocked=True),
+            User(id=44, first_name="Pinged"),
+            User(id=45, first_name="Moderated"),
+            User(id=-1001, first_name="A channel"),
+        ]
+        for person in people:
+            person.created_at = backfill.ESTIMATE_BEFORE - datetime.timedelta(days=1)
+        # Recorded since people who never wrote are: a joiner, not a private contact.
+        joiner = User(id=46, first_name="Joiner")
+        joiner.created_at = backfill.ESTIMATE_BEFORE
+        db.add_all([*people, joiner])
         db.add(Message(chat_id=-100777, user_id=42, message_id=1, message="hi"))
         db.add(SpamPing(chat_id=-100777, user_id=44, message_id=2, kind="ad", matches=[], detected_at=T0))
         db.add(ModerationEvent(action="ban", source="command", actor_id=1, target_user_id=45, chat_id=-100777))

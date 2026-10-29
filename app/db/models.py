@@ -818,10 +818,14 @@ class ChatMember(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     status: Mapped[str] = mapped_column(String(16))
     rights: Mapped[dict[str, bool]] = mapped_column(JSON)
-    # Until when a restriction or a ban holds; None is for good, or not restricted.
+    # Until when a restriction or a ban holds (for a member, a paid subscription);
+    # None is for good, or none. Telegram sends nothing when it runs out.
     until_date: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     changed_at: Mapped[datetime.datetime] = mapped_column(DateTime)
     known_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    # Telegram's number for the update that set the state, to order two from the
+    # same second; None when the daily check set it.
+    update_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class ChatBotRights(Base):

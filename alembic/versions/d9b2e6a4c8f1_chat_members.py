@@ -28,6 +28,7 @@ def upgrade() -> None:
         sa.Column("until_date", sa.DateTime(), nullable=True),
         sa.Column("changed_at", sa.DateTime(), nullable=False),
         sa.Column("known_at", sa.DateTime(), nullable=False),
+        sa.Column("update_id", sa.BigInteger(), nullable=True),
         sa.PrimaryKeyConstraint("chat_id", "user_id"),
     )
     op.create_index("ix_chat_members_user_id", "chat_members", ["user_id"])
