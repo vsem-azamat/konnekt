@@ -54,6 +54,9 @@ What is public anyway. Printed in every public workflow log.
 | `WEBAPI_ADMIN_URL` | Optional. The origin the console opens at in a browser; the OpenID Connect redirect is `<it>/api/auth/telegram/callback` and must be one of BotFather's Allowed URLs |
 | `ADS_BOT_NAME` | Optional. The ads desk bot's display name; unset keeps the one in `app/core/config.py` |
 | `CATALOG_ADS_CONTACT` | Optional. The Telegram username the ads pages and the bot's /start and /contacts offer; unset, they offer none |
+| `MODERATOR_BOT_INTRO_VIDEO` | Optional. Konnekt's video, a file_id this bot received or an https URL: under the chat greeting and the note after the captcha, and in the /start album |
+| `MODERATOR_BOT_INTRO_VIDEO_COVER` | Optional. The video's cover, likewise; unset, its first frame |
+| `MODERATOR_BOT_INTRO_PHOTO` | Optional. The photo the /start album opens with, likewise |
 
 ## Features switch themselves on
 
@@ -64,6 +67,8 @@ and off otherwise:
 | --- | --- |
 | MCP control plane | `MCP_TOKEN` is set |
 | Ads contact desk | `ADS_BOT_TOKEN` and `ADS_BOT_GROUP_ID` are set |
+| Video in the greetings | `MODERATOR_BOT_INTRO_VIDEO` is set |
+| /start album | `MODERATOR_BOT_INTRO_PHOTO`, `MODERATOR_BOT_INTRO_VIDEO` and `WEBAPI_PUBLIC_URL` are set |
 
 Everything the application does runs on the bot token. Titles, photos and
 member counts are Bot API calls; message history and search read the rows the

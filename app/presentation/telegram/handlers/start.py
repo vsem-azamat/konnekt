@@ -43,7 +43,7 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
     return types.InlineKeyboardButton(text=text, url=url)
 
 
-# The whole greeting, so a change of copy is a change of this line alone.
+# The copy lives in app/core/intro.py, shared with the greeting in a chat.
 GREETING = intro.ABOUT
 OPEN_BUTTON = intro.OPEN_BUTTON
 # Under the album, which takes no button of its own.
@@ -81,7 +81,9 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
     # Deliberately not scheduled for deletion: this is the message somebody
     # comes back to. The album only in a private chat: in a group it would stay
     # for everybody, after a /start that may have been meant for another bot.
-    if private and (media := intro.album(text)):
+    # And only with a button to follow it: without a site there is no menu
+    # button either, and the text is all there is.
+    if private and markup and (media := intro.album(text)):
         try:
             await message.answer_media_group(media=media)
         except TelegramBadRequest as err:
@@ -90,8 +92,7 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
             # may have arrived, and a second greeting would follow it.
             logger.error("start_album_refused", error=str(err), error_type=type(err).__name__)
         else:
-            if markup:
-                await message.answer(BUTTON_NOTE, reply_markup=markup)
+            await message.answer(BUTTON_NOTE, reply_markup=markup)
             return
 
     await message.answer(text, disable_web_page_preview=True, reply_markup=markup)

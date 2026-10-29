@@ -1,4 +1,4 @@
-"""The front door: `/start`, `/help`, and the way into the console.
+"""The front door: `/start` and `/help`.
 
 `/start` and `/help` used to be one handler, so the first thing anybody saw was
 a справочник — twenty lines of commands, most of which they could not run,
@@ -45,6 +45,11 @@ def site(monkeypatch):
     monkeypatch.setattr(start_handlers.settings.webapi, "public_url", SITE)
     monkeypatch.setattr(start_handlers.settings.admin, "super_admins", [SUPER_ADMIN_ID])
     monkeypatch.setattr(start_handlers.settings.ads_bot, "contact", CONTACT)
+
+
+@pytest.fixture(autouse=True)
+def _no_media(monkeypatch):
+    """Text unless a test sets the media, whatever a developer's .env holds."""
     _media(monkeypatch, photo="", video="", cover="")
 
 
@@ -241,16 +246,22 @@ class TestTheAlbum:
         assert (video.type, video.media, video.cover, video.caption) == ("video", VIDEO, COVER, None)
         assert video.supports_streaming is True
 
-    async def test_without_a_site_the_album_comes_alone(self, telegram_factory, admin_repo, site, monkeypatch):
-        """A note pointing down at no button would be worse than none."""
+    async def test_without_a_site_it_is_text(self, telegram_factory, admin_repo, site, monkeypatch):
+        """No button to follow the album, and no menu button either: the text says it all."""
         _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         monkeypatch.setattr(start_handlers.settings.webapi, "public_url", "")
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer_media_group.assert_awaited_once()
-        message.answer.assert_not_called()
+        message.answer_media_group.assert_not_called()
+        text, buttons = _answered(message)
+        assert (text, buttons) == (start_handlers.GREETING, [])
+
+    def test_a_caption_too_long_is_no_album(self, monkeypatch):
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
+
+        assert intro.album("П" * (intro.CAPTION_LIMIT + 1)) is None
 
     async def test_without_a_cover_the_video_shows_its_first_frame(
         self, telegram_factory, admin_repo, site, monkeypatch

@@ -62,6 +62,13 @@ async def _seed_chat(session: AsyncSession, *, captcha: bool = True, link: str |
     await session.commit()
 
 
+@pytest.fixture(autouse=True)
+def _no_intro_media(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Text unless a test sets the video, whatever a developer's .env holds."""
+    monkeypatch.setattr(settings.telegram, "intro_video", "")
+    monkeypatch.setattr(settings.telegram, "intro_video_cover", "")
+
+
 @pytest.fixture
 def bot() -> MagicMock:
     tg_bot = MagicMock()

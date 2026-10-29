@@ -354,6 +354,7 @@ async def test_with_a_video_configured_the_greeting_is_its_caption(
     sent = bot.send_video.await_args.kwargs
     assert sent["video"] == "video-file-id"
     assert sent["cover"] is None
+    assert sent["supports_streaming"] is True
     assert sent["caption"].startswith("👋 ")
     [[button]] = sent["reply_markup"].inline_keyboard
     assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=welcome"
