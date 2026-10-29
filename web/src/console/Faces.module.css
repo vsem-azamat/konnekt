@@ -1,0 +1,70 @@
+/* A face: letters on a tone, the photo over them once it loads. */
+.face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* A chat is a rounded square, a person a circle. */
+.square {
+  border-radius: 28%;
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.photoShown {
+  opacity: 1;
+}
+
+/* «@username · id» under a name: the handle a link, the rest grey. */
+.handle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.handle a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handle a:hover {
+  text-decoration-color: var(--ink);
+}
+
+.copy {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}

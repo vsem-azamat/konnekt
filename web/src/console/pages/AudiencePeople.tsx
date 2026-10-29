@@ -10,11 +10,9 @@ import {
   ChipView,
   Hint,
   Label,
-  Letters,
   Row,
   Rows,
   SkeletonRows,
-  Tile,
   Title,
   ui,
 } from '@/components/Ui';
@@ -27,10 +25,10 @@ import {
   type Touchpoint,
 } from '@/console/audience';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { PersonFace } from '@/console/Faces';
 import { audiencePeopleQuery } from '@/console/queries';
 import { personName, utc } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
-import { initials } from '@/lib/chats';
 
 /** Everybody in the audience, newest activity first, filtered by where they came and whether the bot may write. */
 export default function ConsoleAudiencePeoplePage() {
@@ -163,11 +161,7 @@ function People() {
                 return (
                   <Row
                     key={person.user_id}
-                    leading={
-                      <Tile tone={3}>
-                        <Letters text={initials(name.replace('@', ''))} />
-                      </Tile>
-                    }
+                    leading={<PersonFace person={person} size={34} />}
                     title={name}
                     hint={
                       <span className={ui.touchpoints}>

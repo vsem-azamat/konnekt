@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { Sheet } from '@/components/Sheet';
-import { Action, Hint, Row, Rows, Sub, ui } from '@/components/Ui';
+import { Action, Hint, Row, Rows, ui } from '@/components/Ui';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
 import { type BanOutcome, banOutcome } from '@/console/ban';
+import { ChatFace, Handle, PersonFace } from '@/console/Faces';
 import { FailureText } from '@/console/FailureText';
+import css from '@/console/Pings.module.css';
 import {
   blockedQuery,
   consoleChanges,
@@ -40,28 +42,35 @@ export function PingRows({
     });
   return (
     <Rows>
-      {pings.map((ping) => (
-        <Row
-          key={ping.id}
-          title={
-            <>
-              {personName(ping)}
-              {ping.blocked ? ` · ${t`заблокирован`}` : null}
-            </>
-          }
-          hint={[
-            ping.matches.join(', '),
-            showChat ? (ping.chat_title ?? String(ping.chat_id)) : null,
-            when(ping.detected_at),
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-          onClick={() => {
-            hapticSelection();
-            onPick(ping);
-          }}
-        />
-      ))}
+      {pings.map((ping) => {
+        const found = ping.matches.join(', ');
+        return (
+          <Row
+            key={ping.id}
+            leading={<PersonFace person={ping} size={32} />}
+            title={
+              <>
+                {personName(ping)}
+                {ping.blocked ? ` · ${t`заблокирован`}` : null}
+              </>
+            }
+            hint={[
+              ping.username && personName(ping) !== `@${ping.username}`
+                ? `@${ping.username}`
+                : null,
+              t`найдено: ${found}`,
+              showChat ? (ping.chat_title ?? String(ping.chat_id)) : null,
+              when(ping.detected_at),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            onClick={() => {
+              hapticSelection();
+              onPick(ping);
+            }}
+          />
+        );
+      })}
     </Rows>
   );
 }
@@ -137,14 +146,18 @@ export function PingSheet({
 
   return (
     <Sheet title={t`Реклама`} closeLabel={t`Отмена`} onClose={close}>
-      <Sub>
-        {personName(ping)}
-        {ping.username && personName(ping) !== `@${ping.username}`
-          ? ` · @${ping.username}`
-          : null}
-        {' · '}
-        {ping.chat_title ?? ping.chat_id}
-      </Sub>
+      <div className={css.who}>
+        <PersonFace person={ping} size={48} />
+        <span className={css.whoText}>
+          <span className={css.whoName}>{personName(ping)}</span>
+          <Handle person={ping} />
+        </span>
+      </div>
+      <div className={css.where}>
+        <Trans>в чате</Trans>
+        <ChatFace chat={{ id: ping.chat_id, title: ping.chat_title }} size={20} />
+        <b>{ping.chat_title ?? ping.chat_id}</b>
+      </div>
       {ping.snippet ? <blockquote className={ui.quote}>{ping.snippet}</blockquote> : null}
       <Hint>{ping.matches.join(', ')}</Hint>
       <div className={ui.actionsStacked}>
@@ -158,7 +171,7 @@ export function PingSheet({
           </Hint>
         ) : (
           <Action onClick={() => setBanning(true)}>
-            <Trans>Забанить…</Trans>
+            <Trans>Забанить</Trans>
           </Action>
         )}
         {onOpenChat ? (

@@ -517,6 +517,10 @@ msgstr "Where"
 msgid "Добавить услугу"
 msgstr "Add a service"
 
+#: src/console/Faces.tsx
+msgid "Скопировано"
+msgstr "Copied"
+
 #: src/console/Charts.tsx
 msgid "Ср"
 msgstr "Wed"
@@ -1105,6 +1109,7 @@ msgid "Автор изменил её после этого: вернуть ил
 msgstr "The author has changed it since: bring it back or keep it hidden?"
 
 #: src/console/pages/Spam.tsx
+#: src/console/SpamSplit.tsx
 msgid "Разобрано"
 msgstr "Done"
 
@@ -1263,6 +1268,7 @@ msgid "Каталог за неделю"
 msgstr "Catalog this week"
 
 #: src/console/pages/Spam.tsx
+#: src/console/SpamSplit.tsx
 msgid "Не реклама"
 msgstr "Not an ad"
 
@@ -1531,6 +1537,7 @@ msgid "Защита"
 msgstr "Protection"
 
 #: src/console/pages/Spam.tsx
+#: src/console/SpamSplit.tsx
 msgid "ссылка"
 msgstr "link"
 
@@ -1644,6 +1651,10 @@ msgstr "{0, plural, one {# chat} other {# chats}} · {approved} approved"
 msgid "Неделя"
 msgstr "A week"
 
+#: src/console/Faces.tsx
+msgid "без @username · id {id}"
+msgstr "no @username · id {id}"
+
 #: src/console/Charts.tsx
 msgid "Сообщения по дням недели и часам; больше всего: {busiest}"
 msgstr "Messages by weekday and hour; busiest: {busiest}"
@@ -1685,6 +1696,10 @@ msgstr "What you are ready to pay"
 #: src/console/pages/Audience.tsx
 msgid "Новые люди по неделям, от старой к нынешней: {0}"
 msgstr "New people by week, oldest to current: {0}"
+
+#: src/console/SpamSplit.tsx
+msgid "Выбранный случай"
+msgstr "Selected hit"
 
 #: src/components/Phrase.tsx
 #: src/components/ServiceSheet.tsx
@@ -2022,6 +2037,10 @@ msgstr "Public link"
 msgid "без срока"
 msgstr "no deadline"
 
+#: src/console/SpamSplit.tsx
+msgid "Открыть чат ›"
+msgstr "Open the chat ›"
+
 #. placeholder {0}: sender.message_count
 #: src/console/pages/Chat.tsx
 msgid "{0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}"
@@ -2189,6 +2208,10 @@ msgstr "How students will see it"
 msgid "Уже решено в Telegram или срок вышел."
 msgstr "Already decided in Telegram, or its time ran out."
 
+#: src/console/Pings.tsx
+msgid "найдено: {found}"
+msgstr "caught: {found}"
+
 #: src/pages/Home.tsx
 msgid "Не удалось загрузить каталог"
 msgstr "Couldn't load the catalog"
@@ -2208,6 +2231,10 @@ msgstr "started {started} · last burst just now"
 #: src/console/BanSheet.tsx
 msgid "Во всех чатах, за всё время. Отменить нельзя."
 msgstr "In every chat, ever. This cannot be undone."
+
+#: src/console/Pings.tsx
+msgid "в чате"
+msgstr "in"
 
 #: src/pages/Profile.tsx
 msgid "своих заявок нет"
@@ -2601,6 +2628,9 @@ msgid "Отметок «не реклама» нет."
 msgstr "Nothing marked «not an ad»."
 
 #: src/console/BanSheet.tsx
+#: src/console/pages/Spam.tsx
+#: src/console/Pings.tsx
+#: src/console/SpamSplit.tsx
 msgid "Забанить"
 msgstr "Ban"
 
@@ -2626,6 +2656,10 @@ msgstr "{days} days"
 #: src/console/pages/Partners.tsx
 msgid "рядом с нострификацией"
 msgstr "next to nostrification"
+
+#: src/console/Faces.tsx
+msgid "Скопировать id"
+msgstr "Copy id"
 
 #: src/console/pages/Chat.tsx
 msgid "Снять с публичной вкладки?"
@@ -2827,6 +2861,7 @@ msgid "Статус"
 msgstr "Status"
 
 #: src/console/pages/Spam.tsx
+#: src/console/SpamSplit.tsx
 msgid "Автор забанен"
 msgstr "Author banned"
 
@@ -2906,6 +2941,7 @@ msgid "Этот случай уже разобрал другой модерат
 msgstr "Another moderator has already reviewed this one."
 
 #: src/console/pages/Spam.tsx
+#: src/console/SpamSplit.tsx
 msgid "упоминание"
 msgstr "mention"
 
@@ -3489,8 +3525,8 @@ msgstr "No new profiles this week."
 
 #: src/console/pages/Spam.tsx
 #: src/console/Pings.tsx
-msgid "Забанить…"
-msgstr "Ban…"
+#~ msgid "Забанить…"
+#~ msgstr "Ban…"
 
 #~ msgid "Цена за час, Kč — необязательно"
 #~ msgstr "Price per hour, Kč — optional"

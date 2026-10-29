@@ -23,6 +23,7 @@ import {
 } from '@/components/Ui';
 import { useBrowserConsole } from '@/console/browserContext';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { ChatFace, PersonFace } from '@/console/Faces';
 import { FailureText } from '@/console/FailureText';
 import { PingSheet } from '@/console/Pings';
 import {
@@ -34,6 +35,7 @@ import {
   spamQueueQuery,
 } from '@/console/queries';
 import css from '@/console/Spam.module.css';
+import { SpamSplit, useWideWindow } from '@/console/SpamSplit';
 import {
   ConsoleError,
   personName,
@@ -79,6 +81,8 @@ function Spam() {
     days: null,
   });
   const [opened, setOpened] = useState<Opened>(null);
+  const wide = useWideWindow() && inBrowser;
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const queue = useInfiniteQuery(spamQueueQuery(filters));
   const count = useQuery(spamCountQuery(filters));
   const chats = useQuery(consoleChatsQuery);
@@ -122,6 +126,27 @@ function Spam() {
     chats.data?.find((chat) => chat.id === id)?.title ?? String(id);
   const unreviewed = count.data?.count;
   const pings = queue.data?.pages.flat() ?? [];
+  const selected = pings.find((ping) => ping.id === selectedId) ?? pings[0];
+  // Answered in the panel: the next one in the queue is the one shown.
+  const answer = (ping: SpamPing, verdict: Exclude<SpamVerdict, 'ad'>) => {
+    hapticSelection();
+    const at = pings.findIndex((row) => row.id === ping.id);
+    setSelectedId((pings[at + 1] ?? pings[at - 1])?.id ?? null);
+    review.mutate({ ping, verdict });
+  };
+  const more = queue.hasNextPage ? (
+    <div style={{ marginTop: 12 }}>
+      <Actions>
+        <Action
+          quiet
+          disabled={queue.isFetchingNextPage}
+          onClick={() => void queue.fetchNextPage()}
+        >
+          <Trans>Показать ещё</Trans>
+        </Action>
+      </Actions>
+    </div>
+  ) : null;
 
   const statusChip = (status: PingStatus, label: ReactNode) => (
     <ChipView active={filters.status === status} onClick={() => filter({ status })}>
@@ -198,10 +223,26 @@ function Spam() {
             )}
           </Hint>
         </div>
+      ) : wide && selected ? (
+        <SpamSplit
+          pings={pings}
+          selected={selected}
+          showChat={filters.chatId === null}
+          busy={review.isPending}
+          more={more}
+          onSelect={(ping) => {
+            hapticSelection();
+            setSelectedId(ping.id);
+          }}
+          onBan={(ping) => setOpened({ kind: 'ping', ping, ban: true })}
+          onReview={answer}
+          onOpenChat={(ping) => navigate(`/console/chats/${ping.chat_id}`)}
+          dayName={(day) => <DayName day={day} />}
+        />
       ) : (
         <>
           {byDay(pings).map((group) => (
-            <div key={group.day}>
+            <div key={group.day} className={css.queue}>
               <Label aside={group.pings.length}>
                 <DayName day={group.day} />
               </Label>
@@ -223,19 +264,7 @@ function Spam() {
               </div>
             </div>
           ))}
-          {queue.hasNextPage ? (
-            <div style={{ marginTop: 12 }}>
-              <Actions>
-                <Action
-                  quiet
-                  disabled={queue.isFetchingNextPage}
-                  onClick={() => void queue.fetchNextPage()}
-                >
-                  <Trans>Показать ещё</Trans>
-                </Action>
-              </Actions>
-            </div>
-          ) : null}
+          {more}
         </>
       )}
 
@@ -332,37 +361,65 @@ function PingCard({
   // What the detector caught; a kind it learns later goes unnamed until named here.
   const kind =
     ping.kind === 'link' ? t`ссылка` : ping.kind === 'mention' ? t`упоминание` : null;
+  const handle =
+    ping.username && personName(ping) !== `@${ping.username}`
+      ? `@${ping.username}`
+      : null;
   return (
     <div className={ui.pingCard}>
-      <button
-        type="button"
-        className={`${ui.pingCardBody} ${ui.pressable}`}
-        onClick={() => {
-          hapticSelection();
-          onOpen();
-        }}
-      >
-        <span className={ui.pingCardTop}>
-          <span>
-            {showChat ? (
-              <>
-                <b>{ping.chat_title ?? ping.chat_id}</b>
-                {' · '}
-              </>
-            ) : null}
-            {personName(ping)}
+      <span className={ui.pingCardFace}>
+        <PersonFace person={ping} size={40} />
+      </span>
+      <div className={ui.pingCardMain}>
+        <button
+          type="button"
+          className={`${ui.pingCardBody} ${ui.pressable}`}
+          onClick={() => {
+            hapticSelection();
+            onOpen();
+          }}
+        >
+          <span className={ui.pingCardTop}>
+            <span className={ui.pingCardWho}>
+              <b>{personName(ping)}</b>
+              {handle ? <span className={ui.pingCardHandle}> {handle}</span> : null}
+            </span>
+            <span className={ui.pingCardWhen}>
+              {kind ? (
+                <span
+                  className={
+                    showChat
+                      ? `${ui.pingCardKind} ${ui.pingCardKindWide}`
+                      : ui.pingCardKind
+                  }
+                >
+                  {kind}
+                </span>
+              ) : null}
+              {time}
+            </span>
           </span>
-          <span className={ui.pingCardWhen}>
-            {kind ? <span className={ui.pingCardKind}>{kind}</span> : null}
-            {time}
+          {showChat ? (
+            <span className={ui.pingCardChat}>
+              <ChatFace chat={{ id: ping.chat_id, title: ping.chat_title }} size={16} />
+              <span>{ping.chat_title ?? ping.chat_id}</span>
+              {/* On a phone the name needs the top line: what was caught moves here. */}
+              {kind ? (
+                <span className={`${ui.pingCardKind} ${ui.pingCardKindNarrow}`}>
+                  {kind}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+          <span className={ui.pingCardText}>
+            {ping.snippet ?? ping.matches.join(', ')}
           </span>
-        </span>
-        <span className={ui.pingCardText}>{ping.snippet ?? ping.matches.join(', ')}</span>
-      </button>
+        </button>
+      </div>
       {awaitsAnswer(ping) ? (
         <Actions>
           <Action disabled={busy} onClick={onBan}>
-            <Trans>Забанить…</Trans>
+            <Trans>Забанить</Trans>
           </Action>
           <Action quiet disabled={busy} onClick={() => onReview('not_ad')}>
             <Trans>Не реклама</Trans>

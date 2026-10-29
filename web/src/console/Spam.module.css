@@ -8,3 +8,175 @@
   flex-wrap: wrap;
   gap: var(--gap-row) 16px;
 }
+
+/* The day's heading and count as wide as the cards under it. */
+.queue {
+  max-width: 960px;
+}
+
+/* A wide window (layout B): the queue on the left, the hit picked on the right. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 4px;
+}
+
+.list {
+  min-width: 0;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.line {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.line:hover {
+  background: var(--surface);
+}
+
+.lineOn,
+.lineOn:hover {
+  background: var(--surface-pressed);
+}
+
+.lineBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lineTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.lineTop b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.lineChat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.lineChat span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineText {
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Stays in view while the queue beside it scrolls. */
+.panel {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 760px;
+  padding: 18px 20px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.panelWho {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.panelWhoText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.panelWhoText b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+}
+
+.panelWhen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.panelChat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.panelChat b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.panelChat button {
+  flex: none;
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.panelText {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

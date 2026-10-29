@@ -9,21 +9,19 @@ import {
   ChipView,
   Hint,
   Label,
-  Letters,
   Row,
   Rows,
   SkeletonRows,
   Sub,
-  Tile,
   Title,
   ui,
 } from '@/components/Ui';
 import { useAudienceLabels } from '@/console/AudienceLabels';
 import { ESTIMATE_SOURCE, reachOf } from '@/console/audience';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { PersonFace } from '@/console/Faces';
 import { audiencePersonQuery } from '@/console/queries';
 import { personName, utc } from '@/console/session';
-import { initials } from '@/lib/chats';
 
 /** One person: where they have been, and whether each bot may write to them. */
 export default function ConsoleAudiencePersonPage() {
@@ -89,9 +87,7 @@ function Person({ id }: { id: number }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <Tile tone={2} large>
-          <Letters text={initials(name.replace('@', ''))} />
-        </Tile>
+        <PersonFace person={data} size={56} />
         <div>
           <Title>{name}</Title>
           <Sub>
