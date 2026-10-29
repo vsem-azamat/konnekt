@@ -32,8 +32,8 @@ catalog's, in [`catalog/docs/`](../catalog/docs/).
 Two things this project deliberately does **not** have:
 
 - **No UI kit and no webfonts.** System font only, no CDN, no external
-  requests. The interface is themed entirely from Telegram's own CSS variables
-  so it matches whatever client it is opened in.
+  requests. The palette is the app's own, light or dark (`src/lib/theme.ts`),
+  not the client's.
 - **No `telegram-web-app.js`.** The official script and `@tma.js` both claim
   the same bridge and conflict. The SDK is the only thing talking to Telegram.
 
@@ -133,39 +133,22 @@ close the app from the client's menu rather than just backing out of it.
 | `pnpm i18n:compile`   | Compile catalogs by hand (the build does not need it) |
 | `pnpm api:generate`   | Regenerate the catalog API's types, see below         |
 
-## Layout
+## Styling
 
-```
-src/
-  main.tsx           startup: mock env, SDK, locale, render
-  mockEnv.ts         fake Telegram environment, DEV only
-  router.tsx         routes
-  Root.tsx           shell; binds the Telegram back button to the router
-  index.css          reset and Telegram CSS variables — nothing else
-  hooks/useTelegram  theme, safe area, back button, main button
-  lib/api.ts         fetch client; adds `Authorization: tma <initData>`
-  lib/types.ts       hand-written mirrors of the API schemas
-  i18n/              locale resolution and lazy catalog loading
-  locales/{ru,cs,en,uk}/messages.po
-  pages/             route components (placeholders for now)
-```
-
-### Styling
-
-`src/index.css` is a reset plus the wiring for Telegram's runtime CSS
-variables, and that is all it should ever be. Component styles belong with
-their components. The variables — `--tg-theme-*`, `--tg-viewport-*`,
-`--tg-viewport-safe-area-inset-*` — only exist once the SDK has mounted, so
-always give them a fallback:
+Colours come from `src/styles/tokens.css`, which reads only `data-theme`.
+`src/index.css` is the reset and the page frame; component styles belong with
+their components. Telegram's viewport variables —
+`--tg-viewport-safe-area-inset-*` and the like — only exist once the SDK has
+mounted, so always give them a fallback:
 
 ```css
-color: var(--tg-theme-text-color, #000000);
+padding-top: var(--tg-viewport-safe-area-inset-top, 0px);
 ```
 
 `index.html` sets `viewport-fit=cover`; without it the safe-area insets are
 always zero and the layout will not clear the notch.
 
-### Translations
+## Translations
 
 Only interface chrome lives in the catalogs. Names of subjects, faculties and
 service types are translated in the database and arrive from the API already
@@ -193,7 +176,7 @@ The startup locale comes from the Telegram user's `language_code`, normalised
 (`en-US` → `en`, unknown → `ru`, and the legacy `cz`/`ua` → `cs`/`uk`). A
 choice the user makes by hand is stored in `localStorage` and outranks it.
 
-### API types
+## API types
 
 `src/lib/generated/` holds types generated from the catalog API's OpenAPI
 document, and it is **committed**. `src/lib/types.ts` still declares the rest
