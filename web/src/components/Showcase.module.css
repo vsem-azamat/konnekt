@@ -5,6 +5,9 @@
 .hero {
   display: grid;
   gap: 10px;
+  /* Each card its own height: a photo stretched to the pair's would leave
+     16:9 and crop the partner's picture at the sides. */
+  align-items: start;
 }
 
 .pair {
@@ -138,22 +141,6 @@
 .main .line {
   -webkit-line-clamp: 3;
   font-size: 13.5px;
-}
-
-/* Beside the pair, the big card is as tall as the two of them; its photo
-   takes what the text leaves, so no gap opens under the text. */
-@media (min-width: 900px) {
-  .main .coverWrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .main .cover {
-    flex: 1;
-    aspect-ratio: auto;
-    min-height: 0;
-  }
 }
 
 /* E1: nobody has taken the place yet. */
