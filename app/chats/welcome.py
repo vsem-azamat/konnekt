@@ -19,7 +19,13 @@ import html
 from dataclasses import dataclass, field
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+)
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +42,10 @@ NAMED = 3
 BURST_SECONDS = 300
 # Greetings deleted per sweep: a backlog after a long stop goes over a few runs.
 SWEEP_BATCH = 50
+# Telegram lets a bot delete its own message for this long after it was sent.
+DELETABLE_FOR = datetime.timedelta(hours=48)
+# Refusals that asking again will not change.
+_FINAL = (TelegramBadRequest, TelegramForbiddenError, TelegramNotFound, TelegramMigrateToChat)
 # The source the Mini App records for people who came from a greeting.
 SOURCE = "welcome"
 
@@ -105,33 +115,44 @@ async def remember(db: AsyncSession, chat_id: int, message_id: int, lifetime: in
 async def sweep(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = None) -> None:
     """Delete every greeting whose last join's time is up, whether or not this process posted it.
 
-    A greeting Telegram no longer has, deleted by an admin or past the 48
-    hours a bot may delete its own message in, is forgotten too. Flood
-    control and the network are not: those are tried again on the next run.
+    Oldest first, so greetings Telegram keeps refusing cannot take every run.
+    A refusal that will not change is forgotten: the greeting is gone, the bot
+    is out of the chat, or the group became a supergroup under another id.
+    Flood control and the network are tried again on the next run, and past
+    the 48 hours a bot may delete its own message in, nothing is tried at all.
     """
     now = now or utc_now()
+    last = func.max(WelcomeGreeting.delete_at)
     due = (
         await db.execute(
-            select(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
+            select(WelcomeGreeting.chat_id, WelcomeGreeting.message_id, last)
             .group_by(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
-            .having(func.max(WelcomeGreeting.delete_at) <= now)
+            .having(last <= now)
+            .order_by(last)
             .limit(SWEEP_BATCH)
         )
     ).all()
-    for chat_id, message_id in due:
-        try:
-            await bot.delete_message(chat_id=chat_id, message_id=message_id)
-        except TelegramBadRequest as err:
-            logger.info(
-                "welcome_already_gone",
-                chat_id=chat_id,
-                message_id=message_id,
-                error=str(err),
-                error_type=type(err).__name__,
-            )
-        except TelegramAPIError as err:
-            logger.warning("welcome_not_deleted", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
-            continue
+    for chat_id, message_id, delete_at in due:
+        if now - delete_at < DELETABLE_FOR:
+            try:
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except _FINAL as err:
+                logger.info(
+                    "welcome_not_deletable",
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    error=str(err),
+                    error_type=type(err).__name__,
+                )
+            except TelegramAPIError as err:
+                logger.warning(
+                    "welcome_not_deleted",
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    error=str(err),
+                    error_type=type(err).__name__,
+                )
+                continue
         await db.execute(
             delete(WelcomeGreeting).where(WelcomeGreeting.chat_id == chat_id, WelcomeGreeting.message_id == message_id)
         )

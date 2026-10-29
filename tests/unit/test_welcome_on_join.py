@@ -12,7 +12,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+    TelegramRetryAfter,
+)
 from aiogram.types import Chat, ChatMemberLeft, ChatMemberMember, ChatMemberUpdated, User
 from app.chats import welcome
 from app.core import intro
@@ -569,3 +575,56 @@ async def test_a_chat_that_keeps_its_greetings_records_none(session: AsyncSessio
 
     bot.send_message.assert_awaited_once()
     assert (await _rows(session)).all() == []
+
+
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        TelegramForbiddenError(method=MagicMock(), message="Forbidden: bot was kicked from the supergroup chat"),
+        TelegramNotFound(method=MagicMock(), message="Not Found"),
+        TelegramMigrateToChat(method=MagicMock(), message="group upgraded", migrate_to_chat_id=-100999),
+    ],
+)
+async def test_a_refusal_that_will_not_change_is_forgotten(session: AsyncSession, bot, timers, refusal) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    bot.delete_message.side_effect = refusal
+
+    await welcome.sweep(bot, session, now=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1))
+
+    assert (await _rows(session)).all() == []
+
+
+async def test_past_48_hours_it_is_forgotten_without_asking(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True, time_delete=60)
+    await user_joined(_join(1), bot, session)
+    (row,) = (await _rows(session)).all()
+
+    await welcome.sweep(bot, session, now=row.delete_at + welcome.DELETABLE_FOR)
+
+    bot.delete_message.assert_not_awaited()
+    assert (await _rows(session)).all() == []
+
+
+async def test_stuck_greetings_do_not_crowd_out_one_that_is_due(
+    session: AsyncSession, bot, timers, monkeypatch
+) -> None:
+    """Oldest first: greetings flood control keeps refusing leave room for the rest over the runs."""
+    from app.db.models import WelcomeGreeting
+
+    t0 = datetime(2026, 10, 29, 12, 0)
+    for i in range(welcome.SWEEP_BATCH):
+        session.add(WelcomeGreeting(-1000 - i, 1, t0 + timedelta(minutes=10)))
+    session.add(WelcomeGreeting(CHAT_ID, 9, t0))
+    await session.commit()
+
+    async def refuse(*, chat_id: int, message_id: int) -> bool:
+        if chat_id != CHAT_ID:
+            raise TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=5)
+        return True
+
+    bot.delete_message.side_effect = refuse
+
+    await welcome.sweep(bot, session, now=t0 + timedelta(hours=1))
+
+    bot.delete_message.assert_any_await(chat_id=CHAT_ID, message_id=9)

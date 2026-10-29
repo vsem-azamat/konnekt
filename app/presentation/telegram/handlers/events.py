@@ -63,7 +63,12 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     await db.commit()
     message_id = await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
     if message_id is not None:
-        await welcome.remember(db, chat.id, message_id, lifetime)
+        try:
+            await welcome.remember(db, chat.id, message_id, lifetime)
+        except Exception:
+            # Posted but not recorded: nothing will delete this greeting.
+            logger.exception("welcome_not_recorded", chat_id=chat.id, message_id=message_id)
+            raise
 
 
 @router.chat_member(ChatTypeFilter(["group", "supergroup"]), ChatMemberUpdatedFilter(member_status_changed=LEFT))
