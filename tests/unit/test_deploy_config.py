@@ -19,6 +19,7 @@ import signal
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -930,3 +931,23 @@ def test_the_deploy_tests_what_the_merged_pull_request_did_not() -> None:
     assert "!cancelled()" in jobs["test"]["if"]
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
     assert workflow[True]["workflow_call"]["inputs"]["tested"]["default"] == ""
+
+
+def test_a_pull_request_builds_the_images_the_deploy_builds() -> None:
+    """Same contexts, targets and caches; never pushed, and never writing the cache main reads."""
+
+    def builds(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [step["with"] for step in steps if str(step.get("uses", "")).startswith("docker/build-push-action@")]
+
+    deploy = builds(yaml.safe_load(DEPLOY.read_text())["jobs"]["build-and-push"]["steps"])
+    pull_request = builds(
+        yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["images"]["steps"]
+    )
+
+    def shape(build: dict[str, Any]) -> str:
+        """All of a build but where its result and cache go."""
+        return repr(sorted((key, value) for key, value in build.items() if key not in ("push", "tags", "cache-to")))
+
+    assert sorted(map(shape, pull_request)) == sorted(map(shape, deploy))
+    assert all(build["push"] is False for build in pull_request)
+    assert not any("cache-to" in build for build in pull_request)

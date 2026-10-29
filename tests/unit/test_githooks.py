@@ -117,7 +117,7 @@ def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
     lanes = {name for name, job in workflow["jobs"].items() if "if" in job and "changes" in str(job["if"])}
 
-    assert lanes == {"python", "web"}
+    assert lanes == {"python", "web", "images"}
     assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", "catalog", *lanes}
     (step,) = [
         step
@@ -130,9 +130,9 @@ def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
 @pytest.mark.parametrize(
     "results",
     [
-        "success success success success success",
-        "success success skipped skipped success",
-        "success success success skipped success",
+        "success success success success success skipped",
+        "success success skipped skipped success skipped",
+        "success success success skipped success skipped",
     ],
 )
 def test_the_required_check_passes_lanes_that_passed_or_were_not_needed(results: str) -> None:
@@ -142,10 +142,10 @@ def test_the_required_check_passes_lanes_that_passed_or_were_not_needed(results:
 @pytest.mark.parametrize(
     "results",
     [
-        "success success failure success success",
-        "success success cancelled skipped success",
-        "failure success skipped skipped success",
-        "success success success success failure",
+        "success success failure success success skipped",
+        "success success cancelled skipped success skipped",
+        "failure success skipped skipped success skipped",
+        "success success success success failure skipped",
         # Fewer results than jobs: the expression read something else.
         "",
         "success success success",
@@ -157,7 +157,7 @@ def test_the_required_check_fails_a_lane_that_did_not_pass(results: str) -> None
 
 def test_the_required_check_fails_a_draft() -> None:
     """Its green would stand for the ready run's until that run's lanes finish."""
-    assert _gate("success success skipped skipped skipped", draft="true") != 0
+    assert _gate("success success skipped skipped skipped skipped", draft="true") != 0
 
 
 # The hooks against a scratch repository: a copy of the configuration they
@@ -592,3 +592,68 @@ def test_the_deploy_reads_the_record_the_pull_request_wrote() -> None:
 
     assert f"-n {upload['with']['name']} " in script
     assert f'/{upload["with"]["path"]}"' in script
+
+
+def _images_step() -> str:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    (step,) = [step for step in workflow["jobs"]["changes"]["steps"] if step.get("id") == "images"]
+    return step["run"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "Dockerfile",
+        "README.md",
+        "catalog/Dockerfile",
+        "docker/Caddyfile",
+        "uv.lock",
+        "catalog/uv.lock",
+        "pyproject.toml",
+        "web/pnpm-lock.yaml",
+        "web/package.json",
+        ".dockerignore",
+        ".github/workflows/deploy.yml",
+    ],
+)
+def test_a_change_to_what_the_images_are_built_from_builds_them(repo: Path, path: str) -> None:
+    _stage(repo, path, "changed\n")
+    _commit(repo)
+
+    code, output = _ci_step(repo, ".", _images_step())
+
+    assert code == 0
+    assert output.split() == ["images=true"]
+
+
+@pytest.mark.parametrize("path", ["app/bot.py", "web/src/App.tsx", "catalog/src/x.py", "docs/x.md"])
+def test_other_changes_build_no_image(repo: Path, path: str) -> None:
+    _stage(repo, path, "changed\n")
+    _commit(repo)
+
+    code, output = _ci_step(repo, ".", _images_step())
+
+    assert code == 0
+    assert output.split() == ["images=false"]
+
+
+def test_main_and_drafts_build_no_image_here(repo: Path) -> None:
+    """main builds and pushes them in the deploy; a draft runs nothing."""
+    _stage(repo, "Dockerfile", "changed\n")
+    _commit(repo)
+
+    assert _ci_step(repo, ".", _images_step(), draft="", event="push")[1].split() == ["images=false"]
+    assert _ci_step(repo, ".", _images_step(), draft="true")[1].split() == ["images=false"]
+
+
+def test_moving_a_file_the_images_are_built_from_builds_them(repo: Path) -> None:
+    _stage(repo, "catalog/model.sha256", "abc  model\n")
+    _commit(repo)
+    (repo / "catalog" / "infra").mkdir()
+    _git(repo, "mv", "catalog/model.sha256", "catalog/infra/model.sha256")
+    _commit(repo)
+
+    code, output = _ci_step(repo, ".", _images_step())
+
+    assert code == 0
+    assert output.split() == ["images=true"]
