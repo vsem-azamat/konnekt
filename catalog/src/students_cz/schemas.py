@@ -813,6 +813,8 @@ class ShowcaseCardOut(BaseModel):
     # The photo's id; the client loads `/showcase/photos/{photo}`.
     photo: str | None
     until: datetime | None
+    # Where «Написать» leads, after the click is recorded.
+    write_to: str
 
 
 class ShowcaseSlotOut(BaseModel):

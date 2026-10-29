@@ -6339,6 +6339,10 @@
               }
             ],
             "title": "Until"
+          },
+          "write_to": {
+            "type": "string",
+            "title": "Write To"
           }
         },
         "type": "object",
@@ -6351,7 +6355,8 @@
           "text",
           "price_from",
           "photo",
-          "until"
+          "until",
+          "write_to"
         ],
         "title": "ShowcaseCardOut",
         "description": "A card as a student reads it: on home, and on its own page."

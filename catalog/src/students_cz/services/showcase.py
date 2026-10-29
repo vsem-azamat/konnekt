@@ -88,6 +88,7 @@ def _card(placement: Placement, lang: UiLang) -> ShowcaseCardOut:
         price_from=offer.price_from,
         photo=offer.photo,
         until=offer.valid_to,
+        write_to=offer.url,
     )
 
 
@@ -197,7 +198,7 @@ async def _admin(session: AsyncSession, lang: UiLang, *where) -> list[AdminShowc
                 line=view.line,
                 text=view.text,
                 price_from=view.price_from,
-                write_to=placement.offer.url,
+                write_to=view.write_to,
                 photo=view.photo,
                 until=view.until,
                 published_at=placement.published_at,
