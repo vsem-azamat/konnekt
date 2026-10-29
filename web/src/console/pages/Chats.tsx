@@ -13,12 +13,10 @@ import {
   ChipView,
   Hint,
   Label,
-  Letters,
   Row,
   Rows,
   SkeletonRows,
   Sub,
-  Tile,
   Title,
   ui,
 } from '@/components/Ui';
@@ -34,11 +32,11 @@ import {
   type StatusFilter,
   statusCounts,
 } from '@/console/chats';
+import { ChatFace } from '@/console/Faces';
 import { FailureText } from '@/console/FailureText';
 import { consoleChanges, consoleChatsQuery, consoleStatsQuery } from '@/console/queries';
 import { type ConsoleChat, ConsoleError, type MemberDelta } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
-import { initials } from '@/lib/chats';
 
 const FILTERS: StatusFilter[] = [
   'all',
@@ -323,9 +321,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
                 >
                   <td>
                     <span className={table.chat}>
-                      <Tile tone={tileTone(chat)} round>
-                        <Letters text={initials(title)} />
-                      </Tile>
+                      <ChatFace chat={chat} size={34} tone={tileTone(chat)} />
                       <span>
                         <Link to={to} onClick={(event) => event.stopPropagation()}>
                           {title}
@@ -386,11 +382,7 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
           ];
   return (
     <Row
-      leading={
-        <Tile tone={tileTone(chat)}>
-          <Letters text={initials(title)} />
-        </Tile>
-      }
+      leading={<ChatFace chat={chat} size={34} tone={tileTone(chat)} />}
       title={title}
       hint={facts.filter(Boolean).join(' · ')}
       trailing={<Chevron />}

@@ -12,12 +12,10 @@ import {
   Chevron,
   Hint,
   Label,
-  Letters,
   Row,
   Rows,
   SkeletonRows,
   Sub,
-  Tile,
   Title,
   ui,
 } from '@/components/Ui';
@@ -27,6 +25,7 @@ import { type BanOutcome, banOutcome } from '@/console/ban';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
+import { ChatFace, PersonFace } from '@/console/Faces';
 import { FailureText } from '@/console/FailureText';
 import { JoinModeRow } from '@/console/JoinMode';
 import { PingRows, PingSheet } from '@/console/Pings';
@@ -51,7 +50,7 @@ import {
 import { hasFormatting, welcomeChange, welcomePlain } from '@/console/welcome';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { chatsQuery, institutionsQuery } from '@/lib/api';
-import { initials, TOPICS } from '@/lib/chats';
+import { TOPICS } from '@/lib/chats';
 import type { Institution } from '@/lib/types';
 
 /**
@@ -250,9 +249,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
-        <Tile tone={3}>
-          <Letters text={initials(title)} />
-        </Tile>
+        <ChatFace chat={{ id: chat.id, title: chat.title }} size={56} />
         <Title>{title}</Title>
       </div>
       <div style={{ marginTop: 6 }}>
@@ -280,6 +277,19 @@ function ChatScreen({ chatId }: { chatId: number }) {
           ) : (
             <Trans>отключён</Trans>
           )}
+          {chat.public_link ? (
+            <>
+              {' · '}
+              <a
+                className={ui.inlineLink}
+                href={chat.public_link}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {chat.public_link.replace(/^https?:\/\//, '')}
+              </a>
+            </>
+          ) : null}
         </Sub>
       </div>
 
@@ -590,9 +600,13 @@ function ChatScreen({ chatId }: { chatId: number }) {
             return (
               <Row
                 key={sender.user_id}
+                leading={<PersonFace person={sender} size={32} />}
                 title={personName(sender)}
                 hint={
                   <>
+                    {sender.username && personName(sender) !== `@${sender.username}`
+                      ? `@${sender.username} · `
+                      : null}
                     <Plural
                       value={sender.message_count}
                       one="# сообщение"
