@@ -2,10 +2,9 @@
 
 Said in three places — `/start`, the greeting in a chat and the private chat
 after the captcha. `/start` is an album, the photo and the video under one
-caption: the person came to the bot, and the menu button «Открыть» is the way
-in, so it carries no button. A chat gets the video alone, since an album takes
-no button and the greeting's link is the point there. The media are settings,
-each off until it is set.
+caption, with the button in a message after it, since an album takes none. A
+chat gets the video alone, its button on it: one message per burst of joiners.
+The media are settings, each off until it is set.
 """
 
 import html

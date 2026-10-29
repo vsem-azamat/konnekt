@@ -223,20 +223,34 @@ def _album(message) -> list:
 class TestTheAlbum:
     """The photo and the video under one caption, and nothing else (W2-f)."""
 
-    async def test_the_greeting_is_the_albums_caption_and_the_only_message(
+    async def test_the_greeting_is_the_albums_caption_and_the_button_follows(
         self, telegram_factory, admin_repo, site, monkeypatch
     ):
-        """No button: Telegram takes none on an album, and the menu button «Открыть» is the way in."""
+        """Telegram takes no button on an album, so it comes in a message of its own."""
         _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
         message = _private(telegram_factory, "start", create_normal_user(id=555))
 
         await start_handlers.start_private(message, admin_repo)
 
-        message.answer.assert_not_called()
+        text, buttons = _answered(message)
+        assert text == "Открывай 👇"
+        [button] = buttons
+        assert (button.text, button.web_app.url) == ("Открыть Konnekt 📱", f"{SITE}/chats")
         photo, video = _album(message)
         assert (photo.type, photo.media, photo.caption) == ("photo", PHOTO, start_handlers.GREETING)
         assert (video.type, video.media, video.cover, video.caption) == ("video", VIDEO, COVER, None)
         assert video.supports_streaming is True
+
+    async def test_without_a_site_the_album_comes_alone(self, telegram_factory, admin_repo, site, monkeypatch):
+        """A note pointing down at no button would be worse than none."""
+        _media(monkeypatch, photo=PHOTO, video=VIDEO, cover=COVER)
+        monkeypatch.setattr(start_handlers.settings.webapi, "public_url", "")
+        message = _private(telegram_factory, "start", create_normal_user(id=555))
+
+        await start_handlers.start_private(message, admin_repo)
+
+        message.answer_media_group.assert_awaited_once()
+        message.answer.assert_not_called()
 
     async def test_without_a_cover_the_video_shows_its_first_frame(
         self, telegram_factory, admin_repo, site, monkeypatch

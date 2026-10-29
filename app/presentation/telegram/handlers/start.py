@@ -46,16 +46,19 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
 # The whole greeting, so a change of copy is a change of this line alone.
 GREETING = intro.ABOUT
 OPEN_BUTTON = intro.OPEN_BUTTON
+# Under the album, which takes no button of its own.
+BUTTON_NOTE = "Открывай 👇"
 
 
 @router.message(Command("start", prefix="/!"))
 async def start_private(message: types.Message, admin_repo: AdminRepository) -> None:
-    """Say what this is, in one message: the album, or text where there is none.
+    """Say what this is, and offer one way in: the chats.
 
-    The album carries no button, since Telegram takes none on one: the menu
-    button «Открыть» is the way into «Чаты», and the console is in the Mini
-    App's header for whoever may open it. A deep link (`/start <source>`) gets
-    the same answer; the audience middleware has already recorded the source.
+    The album, then the button in a message of its own, since Telegram takes
+    none on an album (W2-f); text with the button where there is no album. The
+    console is in the Mini App's header for whoever may open it. A deep link
+    (`/start <source>`) gets the same answer; the audience middleware has
+    already recorded the source.
     """
     if not message.from_user:
         return
@@ -70,6 +73,10 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
         text += f"\n\nВы модерируете {len(chats)} {moderates}. Все команды — /help"
 
     private = message.chat.type == "private"
+    markup = None
+    if settings.webapi.public_url:
+        button = _open_button(OPEN_BUTTON, f"{_site()}/chats", private=private)
+        markup = types.InlineKeyboardMarkup(inline_keyboard=[[button]])
 
     # Deliberately not scheduled for deletion: this is the message somebody
     # comes back to. The album only in a private chat: in a group it would stay
@@ -77,19 +84,16 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
     if private and (media := intro.album(text)):
         try:
             await message.answer_media_group(media=media)
-            return
         except TelegramBadRequest as err:
             # A file_id of another bot, or a URL Telegram could not fetch, must
             # not leave /start silent. Network errors are not caught: the album
             # may have arrived, and a second greeting would follow it.
             logger.error("start_album_refused", error=str(err), error_type=type(err).__name__)
+        else:
+            if markup:
+                await message.answer(BUTTON_NOTE, reply_markup=markup)
+            return
 
-    # Without the album the text carries the way in, where the menu button may
-    # be missing (plain http) or out of reach (a group).
-    markup = None
-    if settings.webapi.public_url:
-        button = _open_button(OPEN_BUTTON, f"{_site()}/chats", private=private)
-        markup = types.InlineKeyboardMarkup(inline_keyboard=[[button]])
     await message.answer(text, disable_web_page_preview=True, reply_markup=markup)
 
 
