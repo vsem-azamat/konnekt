@@ -6,11 +6,12 @@ takes the same writes and gives the rights back as they went in.
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 
 import pytest
 import sqlalchemy as sa
-from aiogram.types import ChatMemberAdministrator, ChatMemberLeft, User
+from aiogram.types import ChatMemberAdministrator, ChatMemberLeft, ChatMemberMember, User
 from alembic import command
 from app.chats import bot_rights
 from app.db.models import ChatBotRights, ChatBotRightsChange
@@ -53,6 +54,20 @@ async def test_a_change_and_its_history_round_trip(pg_session) -> None:
     changes = (await pg_session.scalars(select(ChatBotRightsChange).order_by(ChatBotRightsChange.id))).all()
     assert [c.status for c in changes] == ["administrator", "left"]
     assert changes[0].rights["can_restrict_members"] is True
+
+
+async def test_two_first_updates_at_once_keep_the_newer(pg_session_maker) -> None:
+    # Added and promoted in one breath: two updates, each finding no row.
+    async def one(member, at) -> None:
+        async with pg_session_maker() as session:
+            await bot_rights.record(session, CHAT_ID, member, at=at)
+
+    await asyncio.gather(one(ChatMemberMember(user=BOT), T0), one(ADMIN, T0 + datetime.timedelta(seconds=2)))
+
+    async with pg_session_maker() as session:
+        row = await session.get(ChatBotRights, CHAT_ID)
+    assert row is not None
+    assert row.status == "administrator"
 
 
 def test_it_upgrades_and_downgrades_cleanly(database) -> None:  # noqa: F811

@@ -113,13 +113,18 @@ async def run_queue_depths(session_maker: async_sessionmaker[AsyncSession], inte
         try:
             async with session_maker() as session:
                 await refresh_queue_depths(session)
-                await bot_rights.refresh_gauge(session)
-            await asyncio.sleep(interval_seconds)
         except asyncio.CancelledError:
             raise
         except Exception:
             logger.exception("queue_depths_failed")
-            await asyncio.sleep(interval_seconds)
+        try:
+            async with session_maker() as session:
+                await bot_rights.refresh_gauge(session)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("bot_rights_gauge_failed")
+        await asyncio.sleep(interval_seconds)
 
 
 def build_metrics_app() -> Any:

@@ -10,7 +10,7 @@ import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.types import ChatMemberAdministrator, ChatMemberLeft, ChatMemberMember, Update, User
 from app.chats import bot_rights
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
@@ -128,10 +128,16 @@ async def test_a_private_chat_is_not_a_chat_the_bot_is_in(session) -> None:
 
 
 async def test_a_failure_to_record_never_drops_the_update(session, monkeypatch) -> None:
-    monkeypatch.setattr(bot_rights, "record", AsyncMock(side_effect=RuntimeError("db down")))
+    async def broken(db, *args, **kwargs) -> None:
+        await db.execute(select(Chat).where(Chat.id == 1))
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(bot_rights, "record", broken)
     handler = AsyncMock(return_value="handled")
 
     assert await ChatStateMiddleware()(handler, _my_chat_member(), {"db": session}) == "handled"
+    # Rolled back, so the handlers after it still have a session to work with.
+    assert not session.in_transaction()
 
 
 def _bot(answer=None) -> MagicMock:
@@ -223,3 +229,41 @@ async def test_the_gauge_counts_approved_chats_by_what_the_bot_lacks(session) ->
         "no_invite": 1,
         "unknown": 1,
     }
+
+
+async def test_a_kicked_bot_is_recorded_and_not_asked_again(session_maker) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1001))
+        session.add(Chat(id=-1002))
+        await session.commit()
+
+    def answer(chat_id: int, user_id: int):
+        message = (
+            "bot was kicked from the supergroup chat"
+            if chat_id == -1001
+            else "bot is not a member of the supergroup chat"
+        )
+        raise TelegramForbiddenError(method=MagicMock(), message=message)
+
+    bot = _bot(answer)
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 2
+
+    async with session_maker() as session:
+        assert (await session.get(ChatBotRights, -1001)).status == "kicked"
+        assert (await session.get(ChatBotRights, -1002)).status == "left"
+        # Long ago, as far as the check is concerned: still not asked again.
+        for row in (await session.scalars(select(ChatBotRights))).all():
+            row.known_at = utc_now() - datetime.timedelta(days=30)
+        await session.commit()
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 0
+
+
+async def test_the_check_stamps_whole_seconds_so_a_change_right_after_still_counts(session_maker) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1001))
+        await session.commit()
+
+    await bot_rights.check_once(session_maker=session_maker, bot=_bot())
+
+    async with session_maker() as session:
+        assert (await session.get(ChatBotRights, -1001)).known_at.microsecond == 0
