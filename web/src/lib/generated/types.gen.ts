@@ -1588,6 +1588,7 @@ export type ServiceTypeOut = {
      * Price Hints
      */
     price_hints: Array<number>;
+    price_hint_unit: PriceUnit | null;
     /**
      * Subject Hints
      */

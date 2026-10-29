@@ -123,6 +123,9 @@ class ServiceTypeOut(BaseModel):
     # subjects offered as chips. Empty where there are none; present always,
     # for the same reason as `options`. See services/offer_hints.py.
     price_hints: list[int]
+    # What `price_hints` are per. Not always `default_price_unit`: the errands
+    # default to the hour, and their chips are per item.
+    price_hint_unit: PriceUnit | None
     subject_hints: list[SubjectHintOut]
 
 

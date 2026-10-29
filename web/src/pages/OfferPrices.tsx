@@ -30,7 +30,16 @@ import { groupRuns } from '@/lib/groups';
 import { afterHelperSaved } from '@/lib/helperSaved';
 import { asInput } from '@/lib/myServices';
 import { useSubjectLabel } from '@/lib/offerHints';
-import { type Axis, addAxis, type Draft, dropRow, keyOf } from '@/lib/offerRows';
+import {
+  type Axis,
+  addAxis,
+  applyPriceChip,
+  type Draft,
+  dropRow,
+  keyOf,
+  priceChipOn,
+  typedPrice,
+} from '@/lib/offerRows';
 import { splitNote } from '@/lib/subjectNote';
 import { TURNAROUNDS, TurnaroundLabel } from '@/lib/turnaround';
 import type {
@@ -412,7 +421,15 @@ export default function OfferPricesPage() {
                           onPrice={(price) =>
                             setRows((current) =>
                               current.map((other) =>
-                                other.key === row.key ? { ...other, price } : other,
+                                other.key === row.key
+                                  ? typedPrice(
+                                      other,
+                                      price,
+                                      type.price_hint_unit ??
+                                        type.default_price_unit ??
+                                        'hour',
+                                    )
+                                  : other,
                               ),
                             )
                           }
@@ -425,18 +442,14 @@ export default function OfferPricesPage() {
                           }
                         />
                       ))}
-                      {type.price_hints.length > 0 && type.default_price_unit ? (
+                      {type.price_hints.length > 0 && type.price_hint_unit ? (
                         <PriceHintChips
                           amounts={type.price_hints}
-                          unit={type.default_price_unit}
-                          current={mineHere[0]}
+                          unit={type.price_hint_unit}
+                          isOn={(price, unit) => priceChipOn(rows, type.id, price, unit)}
                           onPick={(price, unit) =>
                             setRows((current) =>
-                              current.map((other) =>
-                                other.service_type_id === type.id
-                                  ? { ...other, price, unit }
-                                  : other,
-                              ),
+                              applyPriceChip(current, type.id, price, unit),
                             )
                           }
                         />
@@ -761,25 +774,26 @@ function SubjectHintChips({
 }
 
 /**
- * A few prices and «договорная», one tap each, written into the field above,
- * which stays editable. For every row of the service: one tap prices it whole.
+ * A few prices and «договоримся», one tap each, written into the field above,
+ * which stays editable. Which rows a tap writes to and when a chip reads as
+ * chosen are `applyPriceChip` and `priceChipOn`, tested in offerRows.
  */
 function PriceHintChips({
   amounts,
   unit,
-  current,
+  isOn,
   onPick,
 }: {
   amounts: number[];
   unit: PriceUnit;
-  current: Draft | undefined;
+  isOn: (price: string, unit: PriceUnit) => boolean;
   onPick: (price: string, unit: PriceUnit) => void;
 }) {
-  const negotiable = current?.unit === 'negotiable';
+  const negotiable = isOn('', 'negotiable');
   return (
     <Chips>
       {amounts.map((amount) => {
-        const on = current?.price === String(amount) && current.unit === unit;
+        const on = isOn(String(amount), unit);
         return (
           <ChipView
             key={amount}
@@ -796,7 +810,7 @@ function PriceHintChips({
         pressed={negotiable}
         onClick={() => onPick('', 'negotiable')}
       >
-        <Trans>договорная</Trans>
+        <Trans>договоримся</Trans>
       </ChipView>
     </Chips>
   );

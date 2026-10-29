@@ -5397,6 +5397,16 @@
             "type": "array",
             "title": "Price Hints"
           },
+          "price_hint_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "subject_hints": {
             "items": {
               "$ref": "#/components/schemas/SubjectHintOut"
@@ -5418,6 +5428,7 @@
           "default_price_unit",
           "options",
           "price_hints",
+          "price_hint_unit",
           "subject_hints"
         ],
         "title": "ServiceTypeOut"

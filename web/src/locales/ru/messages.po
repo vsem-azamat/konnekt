@@ -3321,6 +3321,10 @@ msgstr "Как работаешь"
 msgid "Ничего не нашлось."
 msgstr "Ничего не нашлось."
 
+#: src/pages/OfferPrices.tsx
+msgid "договоримся"
+msgstr "договоримся"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Пояснение над карточкой"

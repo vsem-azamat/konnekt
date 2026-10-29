@@ -3294,6 +3294,10 @@ msgstr "Як працюєш"
 msgid "Ничего не нашлось."
 msgstr "Нічого не знайшлося."
 
+#: src/pages/OfferPrices.tsx
+msgid "договоримся"
+msgstr "домовимось"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Пояснення над карткою"
