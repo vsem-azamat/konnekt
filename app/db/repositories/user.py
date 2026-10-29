@@ -20,21 +20,40 @@ class UserRepository:
         return result.scalars().first() is not None
 
     async def upsert_profile(
-        self, user_id: int, *, username: str | None, first_name: str | None, last_name: str | None
+        self,
+        user_id: int,
+        *,
+        username: str | None,
+        first_name: str | None,
+        last_name: str | None,
+        language_code: str | None = None,
+        is_premium: bool | None = None,
     ) -> None:
         """Record what Telegram says about a person, creating them if new.
 
         Never touches `blocked` or `verify`. One statement, so two updates
         from a new user at once cannot both try to create them.
+
+        The language and Premium are kept as last said: None is "not said",
+        which Telegram's user object often is about the language.
         """
         profile = {"username": username, "first_name": first_name, "last_name": last_name}
-        statement = insert_for(self.db, User).values(id=user_id, **profile, created_at=utc_now(), modified_at=utc_now())
+        said = {
+            name: value
+            for name, value in (("language_code", language_code), ("is_premium", is_premium))
+            if value is not None
+        }
+        statement = insert_for(self.db, User).values(
+            id=user_id, **profile, **said, created_at=utc_now(), modified_at=utc_now()
+        )
         # Only when something changed: every message from a person would
         # otherwise rewrite their row and bump modified_at.
-        changed = or_(*(getattr(User, name).is_distinct_from(statement.excluded[name]) for name in profile))
+        changed = or_(*(getattr(User, name).is_distinct_from(statement.excluded[name]) for name in {**profile, **said}))
         await self.db.execute(
             statement.on_conflict_do_update(
-                index_elements=[User.id], set_={**profile, "modified_at": utc_now()}, where=changed
+                index_elements=[User.id],
+                set_={**profile, **{name: statement.excluded[name] for name in said}, "modified_at": utc_now()},
+                where=changed,
             )
         )
         await self.db.commit()

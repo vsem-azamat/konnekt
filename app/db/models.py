@@ -354,6 +354,9 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String, nullable=True)
     first_name: Mapped[str | None] = mapped_column(String, nullable=True)
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    # As Telegram last said; it often leaves the language out, and then the last one stays.
+    language_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    is_premium: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     verify: Mapped[bool] = mapped_column(Boolean, default=True)
     blocked: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
@@ -796,6 +799,33 @@ class ChatMemberSnapshot(Base):
         self.member_count = member_count
         if captured_at is not None:
             self.captured_at = captured_at
+
+
+class ChatMember(Base):
+    """What one person is in one chat now, as Telegram last said: member, restricted, left, kicked, administrator or creator.
+
+    Written only by `app/chats/members.py`, from membership updates and, for
+    administrators, from the daily check. Only the current state: a ban or a
+    mute is in moderation_events, and comings and goings are not kept.
+    `rights` is every true-or-false field of Telegram's member object (an
+    administrator's rights, a restricted member's permissions).
+    """
+
+    __tablename__ = "chat_members"
+    __table_args__ = (Index("ix_chat_members_user_id", "user_id"),)
+
+    chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    status: Mapped[str] = mapped_column(String(16))
+    rights: Mapped[dict[str, bool]] = mapped_column(JSON)
+    # Until when a restriction or a ban holds (for a member, a paid subscription);
+    # None is for good, or none. Telegram sends nothing when it runs out.
+    until_date: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    changed_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    known_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    # Telegram's number for the update that set the state, to order two from the
+    # same second; None when the daily check set it.
+    update_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class ChatBotRights(Base):

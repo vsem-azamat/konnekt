@@ -143,6 +143,7 @@ async def test_a_failure_to_record_never_drops_the_update(session, monkeypatch) 
 def _bot(answer=None) -> MagicMock:
     bot = MagicMock(id=BOT.id)
     bot.get_chat_member = AsyncMock(side_effect=answer or (lambda *_: _admin()))
+    bot.get_chat_administrators = AsyncMock(return_value=[])
     return bot
 
 
@@ -274,3 +275,35 @@ async def test_the_check_stamps_whole_seconds_so_a_change_right_after_still_coun
 
     async with session_maker() as session:
         assert (await session.get(ChatBotRights, -1001)).known_at.microsecond == 0
+
+
+async def test_the_check_asks_for_the_administrators_only_where_the_bot_is_one(session_maker) -> None:
+    async with session_maker() as session:
+        session.add(Chat(id=-1001))
+        session.add(Chat(id=-1002))
+        await session.commit()
+    bot = _bot(lambda chat_id, _user_id: _admin() if chat_id == -1001 else ChatMemberMember(user=BOT))
+
+    await bot_rights.check_once(session_maker=session_maker, bot=bot)
+
+    assert [call.args[0] for call in bot.get_chat_administrators.await_args_list] == [-1001]
+
+
+async def test_a_refused_administrators_list_skips_that_chat_and_flood_control_ends_the_tick(session_maker) -> None:
+    async with session_maker() as session:
+        for chat_id in (-1003, -1002, -1001):
+            session.add(Chat(id=chat_id))
+        await session.commit()
+    bot = _bot()
+
+    def listing(chat_id: int):
+        if chat_id == -1003:
+            raise TelegramBadRequest(method=MagicMock(), message="chat not found")
+        raise TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=600)
+
+    bot.get_chat_administrators = AsyncMock(side_effect=listing)
+
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 2
+    async with session_maker() as session:
+        # Both asked chats still had the bot's own rights recorded.
+        assert len((await session.scalars(select(ChatBotRights))).all()) == 2
