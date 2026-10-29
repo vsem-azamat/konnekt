@@ -4,7 +4,7 @@ The counterpart to `browse`: the same offers, seen from the side of the person
 who owns them.
 """
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, status
 from sqlalchemy import select
 
 from students_cz.api.deps import (
@@ -24,18 +24,19 @@ from students_cz.db.models import (
     ServiceType,
     Subject,
 )
-from students_cz.db.models.enums import PublishStatus
+from students_cz.db.models.enums import PublishStatus, UserEventKind
 from students_cz.schemas import (
     HelperUpsert,
     MeOut,
     MyHelperOut,
     MyOfferOut,
+    OfferOpened,
     OfferPause,
 )
 from students_cz.services import helpers
 from students_cz.services.naming import names_by_id
 from students_cz.services.notify import quote
-from students_cz.services.people import full_name
+from students_cz.services.people import full_name, log_event
 
 router = APIRouter()
 
@@ -78,6 +79,17 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
         new_request_alerts=helper.new_request_alerts,
         offers=await _my_offers(session, lang, offers),
     )
+
+
+@router.post("/helper/opened", status_code=status.HTTP_204_NO_CONTENT, tags=["helper"])
+async def offer_opened(payload: OfferOpened, session: SessionDep, user: UserDep) -> None:
+    """Somebody opened the screen where a service is offered.
+
+    Its own call rather than a side effect of `GET /helper`: the profile and
+    «Мои услуги» read that too, and counting them would count people who
+    already offer something as people thinking about it.
+    """
+    await log_event(session, user.id, UserEventKind.OFFER_OPEN, source=payload.source)
 
 
 @router.patch("/helper/offers/{offer_id}", response_model=MyOfferOut, tags=["helper"])

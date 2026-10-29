@@ -481,3 +481,47 @@ async def test_a_paused_offer_no_longer_brings_requests_up_the_feed(
         headers=auth_header(OWNER),
     )
     assert (await reason() or {}).get("code") != "feed.same_subject"
+
+
+async def test_opening_the_offer_screen_is_recorded_with_where_from(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The only sign of somebody who looked at offering and walked away.
+
+    A profile exists only once it is published, so without this the catalog
+    cannot tell a person who never found the way in from one who found it and
+    left.
+    """
+    from students_cz.db.models import UserEvent
+    from students_cz.db.models.enums import UserEventKind
+
+    response = await client.post(
+        "/api/v1/helper/opened", json={"source": "home"}, headers=auth_header(OWNER)
+    )
+
+    assert response.status_code == 204
+    user = await session.scalar(select(User).where(User.tg_id == OWNER))
+    assert user is not None
+    events = (
+        await session.scalars(
+            select(UserEvent).where(
+                UserEvent.kind == UserEventKind.OFFER_OPEN, UserEvent.user_id == user.id
+            )
+        )
+    ).all()
+    assert [event.payload for event in events] == [{"source": "home"}]
+
+
+async def test_the_offer_screen_names_only_entries_it_knows(client: AsyncClient) -> None:
+    """A free string here would be a field anybody can fill the log with."""
+    response = await client.post(
+        "/api/v1/helper/opened", json={"source": "x" * 500}, headers=auth_header(OWNER)
+    )
+
+    assert response.status_code == 422
+
+
+async def test_recording_the_offer_screen_needs_init_data(client: AsyncClient) -> None:
+    response = await client.post("/api/v1/helper/opened", json={"source": "home"})
+
+    assert response.status_code == 401

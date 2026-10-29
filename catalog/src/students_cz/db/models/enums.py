@@ -241,3 +241,7 @@ class UserEventKind(StrEnum):
     REQUEST_RESPONDED = "request_responded"
     RESPONSE_ACCEPTED = "response_accepted"
     PROFILE_PUBLISHED = "profile_published"
+    # The «Чем ты можешь помочь?» screen opened, with where from. A profile is
+    # written only on publish, so this is the one trace of somebody who looked
+    # at offering and left.
+    OFFER_OPEN = "offer_open"

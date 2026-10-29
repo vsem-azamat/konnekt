@@ -14,7 +14,7 @@ Two conventions worth stating once:
 """
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
@@ -167,6 +167,10 @@ class HelperCardOut(BaseModel):
     name: str
     avatar: Avatar
     affiliation: str | None = None
+    # The service this card was found for, by name. Drawn where the line under
+    # the name is empty: somebody who published without one is otherwise a
+    # name and nothing else.
+    service: str | None = None
     price: Price | None = None
     # The line under the name explaining why this person is in the list at all.
     # Sometimes it says the match is weak; that is the point.
@@ -417,6 +421,16 @@ class MyOfferOut(BaseModel):
 
 class OfferPause(BaseModel):
     paused: bool
+
+
+# Where the offer screen was opened from: the app's own ways in, and `link`
+# for a bot or chat button that opens it directly. Named, not free text, so
+# the log holds a short list somebody can count rather than whatever was sent.
+OfferEntry = Literal["home", "tab", "profile", "results", "my-helper", "link", "other"]
+
+
+class OfferOpened(BaseModel):
+    source: OfferEntry
 
 
 class MyHelperOut(BaseModel):

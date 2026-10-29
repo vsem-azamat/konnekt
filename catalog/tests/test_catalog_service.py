@@ -135,3 +135,18 @@ async def test_a_person_who_is_not_there_is_not_recorded_as_read(
 
     assert detail is None
     assert await _events(session, viewer.id, UserEventKind.HELPER_VIEW) == 0
+
+
+async def test_a_card_names_the_service_it_was_found_for(
+    session: AsyncSession, helper_factory
+) -> None:
+    """Somebody who published without a line under their name is a name and
+    nothing else on the card, which reads as a broken one. The service says
+    what they are there for."""
+    helper = await helper_factory(tg_id=92111, price=None)
+    viewer = await _person(session, 92112)
+
+    _, cards = await catalog.search(session, UiLang.RU, viewer=viewer)
+
+    [card] = [c for c in cards if c.user_id == helper.id]
+    assert card.service == "Репетитор по предмету"
