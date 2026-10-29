@@ -88,7 +88,7 @@ jobs:
       if: steps.lanes.outputs.python == 'true'
       uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       with:
-        version: "0.11.11"
+        version: "0.11.33"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
 
@@ -310,7 +310,7 @@ jobs:
       if: steps.lanes.outputs.catalog == 'true'
       uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       with:
-        version: "0.11.11"
+        version: "0.11.33"
         enable-cache: true
         cache-dependency-glob: "catalog/uv.lock"
 

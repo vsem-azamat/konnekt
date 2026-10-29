@@ -2,7 +2,7 @@
 # Multi-stage build for optimized production image
 FROM python:3.12.13-slim-trixie AS dependencies
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.11 /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.33 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
@@ -15,15 +15,15 @@ COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-# The Mini App, pnpm 11: the lockfile was written by 11, and a frozen install
-# refuses a lockfile from another major.
+# The Mini App, with the pnpm its package.json names (packageManager), the
+# same one CI's corepack picks: a frozen install refuses a lockfile written by
+# another major.
 FROM node:24.15.0-alpine3.23 AS web-dependencies
 
 WORKDIR /app/web
 
-RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
-
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+RUN corepack enable && corepack install
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
