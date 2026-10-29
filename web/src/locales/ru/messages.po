@@ -145,8 +145,8 @@ msgid "То, чем ты занимаешься"
 msgstr "То, чем ты занимаешься"
 
 #: src/pages/Results.tsx
-msgid "Свободны"
-msgstr "Свободны"
+#~ msgid "Свободны"
+#~ msgstr "Свободны"
 
 #: src/console/BanSheet.tsx
 msgid "Одобренных чатов нет: банить пока негде."
@@ -284,6 +284,10 @@ msgstr "например: подходит для продления визы"
 #: src/console/Charts.tsx
 msgid "Участников посчитали меньше двух раз: линии пока нет."
 msgstr "Участников посчитали меньше двух раз: линии пока нет."
+
+#: src/pages/Results.tsx
+msgid "у кого есть окна, и кто быстрее отвечает"
+msgstr "у кого есть окна, и кто быстрее отвечает"
 
 #: src/components/TabBar.tsx
 msgid "Помощь"
@@ -569,6 +573,7 @@ msgstr "могут получить сообщение"
 
 #: src/pages/Home.tsx
 #: src/pages/Profile.tsx
+#: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Умеешь то, что нужно другим?"
 
@@ -724,6 +729,10 @@ msgstr "Другие чаты"
 msgid "другие {0}"
 msgstr "другие {0}"
 
+#: src/pages/Results.tsx
+msgid "Есть свободное время"
+msgstr "Есть свободное время"
+
 #. placeholder {0}: search.times
 #: src/console/pages/Catalog.tsx
 msgid "{0, plural, one {# раз} few {# раза} many {# раз} other {# раза}}"
@@ -865,6 +874,7 @@ msgstr "Число"
 #~ msgid "{name} забанен не везде"
 #~ msgstr "{name} забанен не везде"
 
+#: src/components/EmptyServiceSheet.tsx
 #: src/pages/Ask.tsx
 msgid "Оставить заявку"
 msgstr "Оставить заявку"
@@ -961,6 +971,10 @@ msgstr "факультеты, общежития, общие"
 #: src/console/pages/Signals.tsx
 msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
 msgstr "начался {started} · последний всплеск {hoursAgo} ч назад"
+
+#: src/pages/Results.tsx
+msgid "Имя или вуз"
+msgstr "Имя или вуз"
 
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
@@ -1641,6 +1655,10 @@ msgstr "В каталоге"
 msgid "Активные"
 msgstr "Активные"
 
+#: src/components/EmptyServiceSheet.tsx
+msgid "Здесь пока никого"
+msgstr "Здесь пока никого"
+
 #: src/console/pages/Audience.tsx
 msgid "8 недель"
 msgstr "8 недель"
@@ -1977,6 +1995,12 @@ msgstr "Бот начнёт отвечать на команды и удалят
 msgid "Загружаем анкету…"
 msgstr "Загружаем анкету…"
 
+#. placeholder {0}: closest.length + rest.length
+#. placeholder {1}: data.results.length
+#: src/pages/Results.tsx
+msgid "Нашлось {0} среди первых {1}"
+msgstr "Нашлось {0} среди первых {1}"
+
 #: src/console/pages/Spam.tsx
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "Что поймал детектор. Разобранное уходит из очереди."
@@ -2056,8 +2080,8 @@ msgid "Не больше четырёх букв."
 msgstr "Не больше четырёх букв."
 
 #: src/pages/Results.tsx
-msgid "Кто может помочь"
-msgstr "Кто может помочь"
+#~ msgid "Кто может помочь"
+#~ msgstr "Кто может помочь"
 
 #: src/components/ChatRow.tsx
 msgid "с темами"
@@ -2272,6 +2296,10 @@ msgstr "Вход устарел: откройте приложение зано�
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 
+#: src/components/EmptyServiceSheet.tsx
+msgid "Твоя анкета будет здесь первой."
+msgstr "Твоя анкета будет здесь первой."
+
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
 msgstr "Отвечаем, в каких чатах это уместно и сколько стоит."
@@ -2389,6 +2417,10 @@ msgstr "внешний"
 msgid "Пт"
 msgstr "Пт"
 
+#: src/pages/Results.tsx
+msgid "Подходят лучше"
+msgstr "Подходят лучше"
+
 #: src/console/FailureText.tsx
 msgid "Сервер отказал: главного администратора забанить нельзя."
 msgstr "Сервер отказал: главного администратора забанить нельзя."
@@ -2416,7 +2448,6 @@ msgstr "Для стирания: введите <0>{word}</0>, чтобы под
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Summary.tsx
 #: src/pages/Ask.tsx
-#: src/pages/Results.tsx
 msgid "всего {0}"
 msgstr "всего {0}"
 
@@ -2503,7 +2534,9 @@ msgstr "{count, plural, one {ещё # чат: {names}} few {ещё # чата: {
 msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 msgstr "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 
+#: src/components/EmptyServiceSheet.tsx
 #: src/pages/Profile.tsx
+#: src/pages/Results.tsx
 msgid "Предложить услугу"
 msgstr "Предложить услугу"
 
@@ -2538,12 +2571,14 @@ msgstr "Реклама"
 
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
+#: src/components/EmptyServiceSheet.tsx
 #: src/components/Incoming.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/ServiceSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
+#: src/pages/Results.tsx
 msgid "Закрыть"
 msgstr "Закрыть"
 
@@ -2728,6 +2763,10 @@ msgstr "Я не бот"
 #: src/components/TabBar.tsx
 msgid "Разместить"
 msgstr "Разместить"
+
+#: src/pages/Results.tsx
+msgid "Сначала показывать"
+msgstr "Сначала показывать"
 
 #: src/pages/OfferPrices.tsx
 msgid "Договоримся"
@@ -2933,6 +2972,10 @@ msgstr "Этот случай уже разобрал другой модера�
 msgid "упоминание"
 msgstr "упоминание"
 
+#: src/pages/Results.tsx
+msgid "по цене, от меньшей"
+msgstr "по цене, от меньшей"
+
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"
 msgstr "Где выполнен вход"
@@ -2950,6 +2993,10 @@ msgstr "Работы"
 #: src/console/pages/Spam.tsx
 msgid "Чат"
 msgstr "Чат"
+
+#: src/pages/Results.tsx
+msgid "твой вуз и предмет, потом кто больше занимался"
+msgstr "твой вуз и предмет, потом кто больше занимался"
 
 #: src/components/RequestSheet.tsx
 msgid "+ бюджет"
@@ -3411,6 +3458,10 @@ msgstr "Не получилось посчитать"
 msgid "нужна ссылка t.me"
 msgstr "нужна ссылка t.me"
 
+#: src/pages/Results.tsx
+msgid "Добавь себя в этот список — студенты напишут тебе сами."
+msgstr "Добавь себя в этот список — студенты напишут тебе сами."
+
 #: src/console/pages/Spam.tsx
 msgid "Вчера"
 msgstr "Вчера"
@@ -3533,6 +3584,11 @@ msgstr "Забанить…"
 msgid "Тебя видят студенты. Выключатель скрывает одну услугу."
 msgstr "Тебя видят студенты. Выключатель скрывает одну услугу."
 
+#. placeholder {0}: data.total
+#: src/pages/Results.tsx
+msgid "Кто может помочь · {0}"
+msgstr "Кто может помочь · {0}"
+
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx
 msgid "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
@@ -3583,6 +3639,11 @@ msgstr "Капча, приветствие и чёрный список здес
 #: src/console/pages/Chat.tsx
 msgid "Включить модерацию?"
 msgstr "Включить модерацию?"
+
+#. placeholder {0}: closest.length + rest.length
+#: src/pages/Results.tsx
+msgid "Нашлось {0}"
+msgstr "Нашлось {0}"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -3820,8 +3881,8 @@ msgid "Не удалось загрузить охват"
 msgstr "Не удалось загрузить охват"
 
 #: src/pages/Results.tsx
-msgid "Подходят"
-msgstr "Подходят"
+#~ msgid "Подходят"
+#~ msgstr "Подходят"
 
 #. placeholder {0}: chat.member_count
 #. placeholder {0}: wave.member_count

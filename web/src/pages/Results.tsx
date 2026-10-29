@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { HelperCardView } from '@/components/HelperCard';
+import { ChevronIcon, SearchIcon } from '@/components/icons';
 import { RequestSheet } from '@/components/RequestSheet';
+import { Pick, Sheet } from '@/components/Sheet';
 import {
+  Action,
+  Actions,
   Cards,
   Chips,
   ChipView,
   Empty,
   Label,
   Screen,
-  Segmented,
   SkeletonRows,
   Sub,
   ui,
@@ -21,6 +24,7 @@ import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { chipKey, chipLabel } from '@/lib/chips';
+import { find } from '@/lib/search';
 import type { HelperCard, SearchSort } from '@/lib/types';
 
 /**
@@ -35,6 +39,22 @@ export default function ResultsPage() {
   const navigate = useNavigate();
   const { t, i18n } = useLingui();
   const [sort, setSort] = useState<SearchSort>('relevance');
+  const [sorting, setSorting] = useState(false);
+  const [needle, setNeedle] = useState('');
+  // The service this list was opened for, handed to «Предложить услугу» so the
+  // tile is already ticked there.
+  const service = params.get('service');
+  const offer = () =>
+    navigate('/offer', { state: { picked: service ? [service] : [], from: 'results' } });
+  // Somebody who already offers this is on the list, and «добавь себя» would
+  // be asking them to do what they did.
+  const mine = useQuery({
+    queryKey: ['my-helper'],
+    queryFn: ({ signal }) => api.getMyHelper(signal),
+  });
+  const offersThis =
+    service !== null &&
+    (mine.data?.offers ?? []).some((offer) => offer.service_type === service);
   // Opened straight away when the search screen sent somebody here because it
   // found nobody: the button there said «Оставить заявку», and landing on an
   // empty list with the sheet still shut would be that promise unkept.
@@ -74,7 +94,9 @@ export default function ResultsPage() {
   // catalog under one person's query before quietly swapping it out.
   const { data, isPending, isError } = useQuery({
     queryKey: ['search', filters, sort],
-    queryFn: ({ signal }) => api.search({ ...filters, sort }, signal),
+    // The field above the list searches inside it, so it loads as much of it
+    // as the API gives in one page rather than the first 20.
+    queryFn: ({ signal }) => api.search({ ...filters, sort, limit: 50 }, signal),
     enabled: filters !== null && !onlyGuess,
   });
 
@@ -115,9 +137,19 @@ export default function ResultsPage() {
   // main search ranked past its first page, and then the top group would be an
   // empty list under a heading counting everybody.
   const split = matching.length > 0;
-  const closest = split ? matching : (data?.results ?? []);
+  // The field above the list: narrows the people already loaded, by name or
+  // school, matched as the chat search matches («чвут» finds ČVUT). Not a new
+  // search — the service, subject and school are the chips above.
+  const wanted = needle.trim() !== '';
+  const kept = new Set(
+    find(data?.results ?? [], (card) => [card.name, card.affiliation], needle).map(
+      (card) => card.user_id,
+    ),
+  );
+  const found = (card: HelperCard) => kept.has(card.user_id);
+  const closest = (split ? matching : (data?.results ?? [])).filter(found);
   const rest = split
-    ? (data?.results ?? []).filter((card) => !guessed.has(card.user_id))
+    ? (data?.results ?? []).filter((card) => !guessed.has(card.user_id)).filter(found)
     : [];
 
   return (
@@ -139,18 +171,6 @@ export default function ResultsPage() {
         ) : (
           <div style={{ height: 8 }} />
         )}
-        <Segmented
-          value={sort}
-          onChange={(next) => {
-            hapticSelection();
-            setSort(next);
-          }}
-          options={[
-            { value: 'relevance', label: t`Подходят` },
-            { value: 'price', label: t`Дешевле` },
-            { value: 'available', label: t`Свободны` },
-          ]}
-        />
 
         {onlyGuess ? (
           // The guess *is* the list here, so it owns the states an ordinary
@@ -208,11 +228,48 @@ export default function ResultsPage() {
               body={<Trans>Никто пока не предлагает то, что ты ищешь.</Trans>}
             />
             <AskInstead onClick={() => setAsking(true)} found={0} />
+            {offersThis ? null : <OfferYourself onClick={offer} />}
           </>
         ) : (
           <>
-            <Label aside={<Trans>всего {data.total}</Trans>}>
-              <Trans>Кто может помочь</Trans>
+            {data.total > 8 ? (
+              // Not over a handful: four cards need no search, and the field
+              // would only push them down.
+              <div className={ui.field} style={{ marginTop: 4 }}>
+                <SearchIcon size={18} className={ui.fieldIcon} />
+                <input
+                  value={needle}
+                  onChange={(event) => setNeedle(event.target.value)}
+                  placeholder={t`Имя или вуз`}
+                  maxLength={100}
+                  style={{ all: 'unset', flex: 1, minWidth: 0 }}
+                />
+              </div>
+            ) : null}
+            <Label
+              aside={
+                <button
+                  type="button"
+                  className={`${ui.sortButton} ${ui.pressable}`}
+                  onClick={() => setSorting(true)}
+                >
+                  <SortName sort={sort} />
+                  <ChevronIcon size={14} className={ui.sortChevron} />
+                </button>
+              }
+            >
+              {wanted && data.total > data.results.length ? (
+                // Only the loaded page is searched; past it, «никого» would be
+                // a claim about people it never looked at.
+                <Trans>
+                  Нашлось {closest.length + rest.length} среди первых{' '}
+                  {data.results.length}
+                </Trans>
+              ) : wanted ? (
+                <Trans>Нашлось {closest.length + rest.length}</Trans>
+              ) : (
+                <Trans>Кто может помочь · {data.total}</Trans>
+              )}
             </Label>
             {/* Why these are first. Two unexplained groups is worse than one
                 list: the reader is owed the guess that reordered them. */}
@@ -253,9 +310,31 @@ export default function ResultsPage() {
                 thing, and the second one is the whole other half of the
                 product. */}
             <AskInstead onClick={() => setAsking(true)} found={data.total} />
+            {offersThis ? null : <OfferYourself onClick={offer} />}
           </>
         )}
       </Screen>
+      {sorting ? (
+        <Sheet
+          title={<Trans>Сначала показывать</Trans>}
+          onClose={() => setSorting(false)}
+          closeLabel={t`Закрыть`}
+        >
+          {(['relevance', 'price', 'available'] as const).map((value) => (
+            <Pick
+              key={value}
+              name={<SortName sort={value} />}
+              hint={<SortHint sort={value} />}
+              selected={sort === value}
+              onClick={() => {
+                hapticSelection();
+                setSort(value);
+                setSorting(false);
+              }}
+            />
+          ))}
+        </Sheet>
+      ) : null}
       {asking ? (
         <RequestSheet
           text={words}
@@ -296,6 +375,57 @@ function AskInstead({ onClick, found }: { onClick: () => void; found: number }) 
         <Trans>Оставить</Trans>
       </span>
     </button>
+  );
+}
+
+/** What the list is ordered by, in the same words on the button and in the sheet. */
+function SortName({ sort }: { sort: SearchSort }) {
+  switch (sort) {
+    case 'price':
+      return <Trans>Дешевле</Trans>;
+    case 'available':
+      return <Trans>Есть свободное время</Trans>;
+    default:
+      return <Trans>Подходят лучше</Trans>;
+  }
+}
+
+function SortHint({ sort }: { sort: SearchSort }) {
+  switch (sort) {
+    case 'price':
+      return <Trans>по цене, от меньшей</Trans>;
+    case 'available':
+      return <Trans>у кого есть окна, и кто быстрее отвечает</Trans>;
+    default:
+      return <Trans>твой вуз и предмет, потом кто больше занимался</Trans>;
+  }
+}
+
+/**
+ * The third way out: be on this list yourself.
+ *
+ * The person who needed a tutor last term is the one who can be one now. The
+ * same words as on «Профиль», so the offer reads as one thing wherever it is.
+ * A filled card rather than another dashed row: under the request row it was
+ * read as a second way of asking (Azamat's pick, 2026-10-29).
+ */
+function OfferYourself({ onClick }: { onClick: () => void }) {
+  return (
+    <div className={ui.offerCard}>
+      <b>
+        <Trans>Умеешь то, что нужно другим?</Trans>
+      </b>
+      <span>
+        <Trans>Добавь себя в этот список — студенты напишут тебе сами.</Trans>
+      </span>
+      <Actions>
+        {/* Quiet: students are most of the people here, and this must not
+            outshout their own way out, the request row above. */}
+        <Action tall quiet onClick={onClick}>
+          <Trans>Предложить услугу</Trans>
+        </Action>
+      </Actions>
+    </div>
   );
 }
 

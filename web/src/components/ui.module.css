@@ -1718,6 +1718,49 @@
   font-size: 12.5px;
 }
 
+/* What the results are ordered by, in the heading over them: a word and a
+   chevron that opens the choice, where the tabs used to be. 36 px tall to
+   press, though it reads as text. */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 36px;
+  margin: -12px -6px -12px 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 600;
+}
+
+.sortChevron {
+  transform: rotate(90deg);
+}
+
+/* Variant B of «Предложить услугу» under the results: a filled card with a
+   real button, louder than the dashed request row above it. */
+.offerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 14px 14px 12px;
+  border-radius: var(--r-card);
+  background: var(--good-soft);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.offerCard b {
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 680;
+}
+
 /* An on/off control, saved when flipped. Drawn with the rest of the kit, so
    it takes the same tokens in both themes. */
 .switch {
