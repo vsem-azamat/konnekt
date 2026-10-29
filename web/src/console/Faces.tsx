@@ -132,9 +132,12 @@ export function Handle({ person }: { person: FacePerson }) {
         type="button"
         className={css.copy}
         onClick={() =>
+          // Refused (a WebView without it, a denied permission): the id is on
+          // screen to select by hand.
           void navigator.clipboard
             ?.writeText(String(person.user_id))
             .then(() => setCopied(true))
+            .catch(() => undefined)
         }
       >
         {copied ? <Trans>Скопировано</Trans> : <Trans>Скопировать id</Trans>}

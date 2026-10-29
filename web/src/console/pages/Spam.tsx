@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Pick, Sheet } from '@/components/Sheet';
@@ -126,7 +126,13 @@ function Spam() {
     chats.data?.find((chat) => chat.id === id)?.title ?? String(id);
   const unreviewed = count.data?.count;
   const pings = queue.data?.pages.flat() ?? [];
-  const selected = pings.find((ping) => ping.id === selectedId) ?? pings[0];
+  // A hit that leaves the list (banned from the panel, answered in another tab)
+  // gives its place to the one after it, not to the top of the queue.
+  const selectedAt = useRef(0);
+  const found = pings.findIndex((ping) => ping.id === selectedId);
+  if (found >= 0) selectedAt.current = found;
+  const selected =
+    found >= 0 ? pings[found] : pings[Math.min(selectedAt.current, pings.length - 1)];
   // Answered in the panel: the next one in the queue is the one shown.
   const answer = (ping: SpamPing, verdict: Exclude<SpamVerdict, 'ad'>) => {
     hapticSelection();

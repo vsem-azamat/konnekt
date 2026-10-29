@@ -16,12 +16,16 @@ export interface FacePerson {
   username: string | null;
 }
 
-/** «Дарина Коваленко» is «ДК»; a name-less person is their handle's first letter. */
+/** A name's first letter: an emoji in front is skipped, never cut in half. */
+const firstLetter = (text: string | null) => text?.match(/\p{L}/u)?.[0];
+
+/** «Мила Орлова» is «МО»; a name-less person is their handle's first letter. */
 export function personLetters(person: FacePerson): string {
-  const first = person.first_name?.trim().at(0);
-  const last = person.last_name?.trim().at(0);
+  const first = firstLetter(person.first_name);
+  const last = firstLetter(person.last_name);
   if (first) return `${first}${last ?? ''}`.toUpperCase();
-  return (person.username?.at(0) ?? '#').toUpperCase();
+  if (last) return last.toUpperCase();
+  return (firstLetter(person.username) ?? '#').toUpperCase();
 }
 
 /** The same person is the same colour on every screen. */

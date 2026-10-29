@@ -24,6 +24,11 @@ test('a person is their first and last initials', () => {
   assert.equal(personLetters(person({ first_name: 'anna' })), 'A');
 });
 
+test('an emoji before a name is skipped, not cut in half', () => {
+  assert.equal(personLetters(person({ first_name: '🔥Max' })), 'M');
+  assert.equal(personLetters(person({ first_name: '💸', last_name: 'Заработок' })), 'З');
+});
+
 test('a person without a name is their handle, then a sign', () => {
   assert.equal(personLetters(person({ username: 'ritik160' })), 'R');
   assert.equal(personLetters(person({})), '#');
