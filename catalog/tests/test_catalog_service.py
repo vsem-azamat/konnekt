@@ -192,3 +192,26 @@ async def test_a_card_in_a_search_for_one_subject_does_not_repeat_it(
 
     [card] = [c for c in cards if c.user_id == helper.id]
     assert card.subject is None
+
+
+async def test_a_card_in_a_search_for_a_shelf_names_its_own_subject(
+    session: AsyncSession, helper_factory
+) -> None:
+    """«математика» covers every subject on the shelf; which one is the news."""
+    from students_cz.db.models import Subject
+
+    analysis = await helper_factory(tg_id=92117, price=None)
+    algebra = await helper_factory(
+        tg_id=92118, price=None, subject_slug="linearni-algebra"
+    )
+    viewer = await _person(session, 92119)
+    shelf = await session.scalar(select(Subject).where(Subject.slug == "math"))
+    assert shelf is not None
+
+    _, cards = await catalog.search(
+        session, UiLang.RU, viewer=viewer, subject_id=shelf.id
+    )
+
+    by_user = {c.user_id: c.subject for c in cards}
+    assert by_user[analysis.id] == "Математический анализ"
+    assert by_user[algebra.id] == "Линейная алгебра"

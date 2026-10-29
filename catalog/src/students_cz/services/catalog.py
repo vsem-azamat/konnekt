@@ -423,19 +423,21 @@ async def search(
         if service_type_id is None
         else {}
     )
-    # Nor the subject, when the search was for one.
-    subjects = (
-        await rows_by_id(session, Subject, (o.subject_id for o in offers))
-        if subject_id is None
-        else {}
-    )
+    subjects = await rows_by_id(session, Subject, (o.subject_id for o in offers))
 
     return total, [
         _to_card(
             offer,
             lang,
             service=services.get(offer.service_type_id),
-            subject=subjects.get(offer.subject_id) if offer.subject_id else None,
+            # Nor the subject where it is the one searched for. Card by card: a
+            # search for a shelf («математика») covers many, and each card's
+            # own is what it adds.
+            subject=(
+                subjects.get(offer.subject_id)
+                if offer.subject_id and offer.subject_id != subject_id
+                else None
+            ),
             requested_institution_id=institution_id,
             viewer_institutions=viewer_institutions,
             cheapest=float(cheapest) if cheapest is not None else None,
