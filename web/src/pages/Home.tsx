@@ -2,15 +2,18 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
-import { SearchIcon } from '@/components/icons';
+import { PlusIcon, SearchIcon } from '@/components/icons';
 import { ServiceGrid } from '@/components/ServiceGrid';
 import {
   AvatarStack,
+  Chevron,
   Count,
+  Label,
   Row,
   Rows,
   Screen,
   SkeletonRows,
+  Tile,
   Title,
   ui,
 } from '@/components/Ui';
@@ -30,6 +33,12 @@ export default function HomePage() {
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ['home'],
     queryFn: ({ signal }) => api.getHome(signal),
+  });
+
+  // The same `me` the profile reads, so the two agree on who is a helper.
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: ({ signal }) => api.getMe(signal),
   });
 
   return (
@@ -94,6 +103,33 @@ export default function HomePage() {
           }}
         />
       )}
+
+      {/* The way in for the few who could offer something, under the shelves
+          rather than above them: most people here came to find help, and the
+          grid is theirs. Worded as the profile's card is, so the offer reads
+          the same wherever it is made. Not drawn until `me` has answered: a
+          helper must not see it flash in and out. */}
+      {me && !me.is_helper ? (
+        <>
+          <Label>
+            <Trans>Помогать другим</Trans>
+          </Label>
+          <Rows>
+            <Row
+              outline
+              onClick={() => navigate('/offer', { state: { from: 'home' } })}
+              leading={
+                <Tile tone={1}>
+                  <PlusIcon size={19} />
+                </Tile>
+              }
+              title={<Trans>Умеешь то, что нужно другим?</Trans>}
+              hint={<Trans>Предложи услугу — студенты напишут сами</Trans>}
+              trailing={<Chevron />}
+            />
+          </Rows>
+        </>
+      ) : null}
     </Screen>
   );
 }

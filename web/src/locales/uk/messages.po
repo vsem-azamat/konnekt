@@ -464,6 +464,10 @@ msgstr "Картка в застосунку"
 msgid "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 msgstr "Нічого не знайшли. Спробуй скорочення — ČVUT, VŠE, MUNI."
 
+#: src/pages/MyHelper.tsx
+msgid "Предмет"
+msgstr "Предмет"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "Як це працює"
@@ -560,6 +564,7 @@ msgstr "Ті самі кнопки, що в особистому повідом�
 msgid "могут получить сообщение"
 msgstr "можуть отримати повідомлення"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Вмієш те, що потрібно іншим?"
@@ -674,6 +679,10 @@ msgstr "Залиш заявку — відгукнуться самі"
 #: src/console/pages/Chats.tsx
 msgid "Добавить в каталог"
 msgstr "Додати до каталогу"
+
+#: src/pages/MyHelper.tsx
+msgid "по нему тебя ищут студенты"
+msgstr "за ним тебе шукають студенти"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -1195,6 +1204,7 @@ msgstr "Не збереглося — спробуй ще раз."
 
 #: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
+#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Ціна"
@@ -1488,6 +1498,10 @@ msgstr "На всі відкриті заявки хтось відгукнув�
 msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 msgstr "Поки її бачиш тільки ти. Вибери «У каталозі», коли все готово."
 
+#: src/pages/MyHelper.tsx
+msgid "Что добавить"
+msgstr "Що додати"
+
 #: src/console/pages/Catalog.tsx
 msgid "скрыта, автор изменил анкету"
 msgstr "прихована, автор змінив анкету"
@@ -1549,6 +1563,10 @@ msgstr "Запропоновано через MCP. Чекає на натиск�
 #: src/console/pages/Chats.tsx
 msgid "Внешний чат"
 msgstr "Зовнішній чат"
+
+#: src/components/HelperCard.tsx
+msgid "цена договорная"
+msgstr "ціна договірна"
 
 #: src/pages/Mine.tsx
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
@@ -1748,6 +1766,7 @@ msgstr "Чернетка"
 msgid "Модерировать"
 msgstr "Модерувати"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
 msgstr "Допомагати іншим"
@@ -1898,6 +1917,10 @@ msgstr "нова, {when}"
 msgid "Общее"
 msgstr "Загальне"
 
+#: src/pages/Home.tsx
+msgid "Предложи услугу — студенты напишут сами"
+msgstr "Запропонуй послугу — студенти напишуть самі"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
 msgstr "наприклад: Страховка для студентів"
@@ -1944,6 +1967,7 @@ msgstr "Завантажуємо анкету…"
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "Що впіймав детектор. Розібране зникає з черги."
 
+#: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx
 msgid "Строчка под именем"
 msgstr "Рядок під іменем"
@@ -2179,8 +2203,8 @@ msgid "начался {started} · последний всплеск тольк�
 msgstr "почався {started} · останній сплеск щойно"
 
 #: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — математика, čeština, физика"
-msgstr "Додати предмет — математика, čeština, фізика"
+#~ msgid "Добавить предмет — математика, čeština, физика"
+#~ msgstr "Додати предмет — математика, čeština, фізика"
 
 #: src/console/BanSheet.tsx
 msgid "Во всех чатах, за всё время. Отменить нельзя."
@@ -2430,6 +2454,10 @@ msgstr "У каталозі її немає. Повернути — у «Про 
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Лише забанити"
+
+#: src/pages/MyHelper.tsx
+msgid "сколько берёшь"
+msgstr "скільки береш"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -3390,6 +3418,10 @@ msgstr "математичний аналіз, čeština B2…"
 msgid "Необязательно. Пустое поле значит «договоримся»."
 msgstr "Необов'язково. Порожнє поле означає «домовимося»."
 
+#: src/pages/MyHelper.tsx
+msgid "вуз, курс или опыт — её видно на карточке"
+msgstr "виш, курс або досвід — його видно на картці"
+
 #: src/pages/Helper.tsx
 #: src/pages/Request.tsx
 msgid "Написать"
@@ -3650,6 +3682,10 @@ msgstr "Не збереглося. Спробуйте ще раз."
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"
 msgstr "заявок за 7 днів"
+
+#: src/components/SubjectSearch.tsx
+msgid "Предмет, например математика"
+msgstr "Предмет, наприклад математика"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx

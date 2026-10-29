@@ -72,3 +72,34 @@ export function allPaused(helper: MyHelper): boolean {
 export function liveCount(helper: MyHelper): number {
   return helper.offers.filter((offer) => !offer.paused).length;
 }
+
+/** One thing a listed profile is missing, in the order «Что добавить» asks. */
+export type Missing = 'subject' | 'price' | 'headline';
+
+/**
+ * What a published profile still lacks, for the card on «Мои услуги».
+ *
+ * Publishing asks for nothing, so a profile can be listed as a name alone,
+ * and in the results that reads as a broken card. Asked only of live offers:
+ * a paused one is not in the catalog to look empty. A subject only where the
+ * service takes one (`requiresSubject`, by service type id); «договорная» is
+ * an answer to the price, not a missing one.
+ */
+export function whatToAdd(helper: MyHelper, requiresSubject: Set<number>): Missing[] {
+  const live = helper.offers.filter((offer) => !offer.paused);
+  const missing: Missing[] = [];
+  if (
+    live.some(
+      (offer) => requiresSubject.has(offer.service_type_id) && offer.subject_id === null,
+    )
+  ) {
+    missing.push('subject');
+  }
+  if (
+    live.some((offer) => offer.price_amount === null && offer.price_unit !== 'negotiable')
+  ) {
+    missing.push('price');
+  }
+  if (!helper.headline) missing.push('headline');
+  return missing;
+}

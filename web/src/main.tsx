@@ -41,6 +41,7 @@ import {
   startReporting,
 } from '@/lib/clientErrors';
 import { followKeyboard } from '@/lib/keyboard';
+import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
 import LandingPage from '@/pages/Landing';
 import { router } from '@/router';
@@ -77,8 +78,28 @@ async function bootstrap(): Promise<void> {
   initSdk();
   reportFailures();
   reportLaunch();
+  followStartLink();
   await initLocale();
   render();
+}
+
+/**
+ * Open the screen a `startapp` link names, once per launch.
+ *
+ * Once: Telegram keeps the launch parameters for the whole session, reloads
+ * included, and somebody who went on from the offer screen and reloaded
+ * «Мои услуги» must stay there rather than be sent back.
+ */
+function followStartLink(): void {
+  const route = startRoute(retrieveLaunchParams().tgWebAppStartParam);
+  if (!route) return;
+  try {
+    if (sessionStorage.getItem('start-link-followed') === '1') return;
+    sessionStorage.setItem('start-link-followed', '1');
+  } catch {
+    // No storage: follow it, and a reload may follow it again.
+  }
+  void router.navigate(route.path, { replace: true, state: route.state });
 }
 
 /** One line in the console's audience per launch, never in the way of the app. */

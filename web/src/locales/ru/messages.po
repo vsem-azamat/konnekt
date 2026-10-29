@@ -465,6 +465,10 @@ msgstr "Карточка в приложении"
 msgid "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 msgstr "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 
+#: src/pages/MyHelper.tsx
+msgid "Предмет"
+msgstr "Предмет"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "Как проходит"
@@ -563,6 +567,7 @@ msgstr "Те же кнопки, что в личном сообщении бот
 msgid "могут получить сообщение"
 msgstr "могут получить сообщение"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Умеешь то, что нужно другим?"
@@ -679,6 +684,10 @@ msgstr "Оставь заявку — ответят сами"
 #: src/console/pages/Chats.tsx
 msgid "Добавить в каталог"
 msgstr "Добавить в каталог"
+
+#: src/pages/MyHelper.tsx
+msgid "по нему тебя ищут студенты"
+msgstr "по нему тебя ищут студенты"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -1206,6 +1215,7 @@ msgstr "Не сохранилось — попробуй ещё раз."
 
 #: src/components/ServiceSheet.tsx
 #: src/console/pages/PartnerNew.tsx
+#: src/pages/MyHelper.tsx
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Цена"
@@ -1501,6 +1511,10 @@ msgstr "На все открытые заявки кто-то откликнул
 msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 msgstr "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 
+#: src/pages/MyHelper.tsx
+msgid "Что добавить"
+msgstr "Что добавить"
+
 #: src/console/pages/Catalog.tsx
 msgid "скрыта, автор изменил анкету"
 msgstr "скрыта, автор изменил анкету"
@@ -1563,6 +1577,10 @@ msgstr "Предложено через MCP. Ждёт нажатия админ�
 #: src/console/pages/Chats.tsx
 msgid "Внешний чат"
 msgstr "Внешний чат"
+
+#: src/components/HelperCard.tsx
+msgid "цена договорная"
+msgstr "цена договорная"
 
 #: src/pages/Mine.tsx
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
@@ -1762,6 +1780,7 @@ msgstr "Черновик"
 msgid "Модерировать"
 msgstr "Модерировать"
 
+#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
 msgstr "Помогать другим"
@@ -1913,6 +1932,10 @@ msgstr "новая, {when}"
 msgid "Общее"
 msgstr "Общее"
 
+#: src/pages/Home.tsx
+msgid "Предложи услугу — студенты напишут сами"
+msgstr "Предложи услугу — студенты напишут сами"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Страховка для студентов"
 msgstr "например: Страховка для студентов"
@@ -1959,6 +1982,7 @@ msgstr "Загружаем анкету…"
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "Что поймал детектор. Разобранное уходит из очереди."
 
+#: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx
 msgid "Строчка под именем"
 msgstr "Строчка под именем"
@@ -2195,8 +2219,8 @@ msgid "начался {started} · последний всплеск тольк�
 msgstr "начался {started} · последний всплеск только что"
 
 #: src/components/SubjectSearch.tsx
-msgid "Добавить предмет — математика, čeština, физика"
-msgstr "Добавить предмет — математика, čeština, физика"
+#~ msgid "Добавить предмет — математика, čeština, физика"
+#~ msgstr "Добавить предмет — математика, čeština, физика"
 
 #: src/console/BanSheet.tsx
 msgid "Во всех чатах, за всё время. Отменить нельзя."
@@ -2448,6 +2472,10 @@ msgstr "В каталоге её нет. Вернуть — в «О себе и 
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Только забанить"
+
+#: src/pages/MyHelper.tsx
+msgid "сколько берёшь"
+msgstr "сколько берёшь"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -3417,6 +3445,10 @@ msgstr "математический анализ, čeština B2…"
 msgid "Необязательно. Пустое поле значит «договоримся»."
 msgstr "Необязательно. Пустое поле значит «договоримся»."
 
+#: src/pages/MyHelper.tsx
+msgid "вуз, курс или опыт — её видно на карточке"
+msgstr "вуз, курс или опыт — её видно на карточке"
+
 #: src/pages/Helper.tsx
 #: src/pages/Request.tsx
 msgid "Написать"
@@ -3683,6 +3715,10 @@ msgstr "Не сохранилось. Попробуйте ещё раз."
 #: src/console/pages/Catalog.tsx
 msgid "заявок за 7 дней"
 msgstr "заявок за 7 дней"
+
+#: src/components/SubjectSearch.tsx
+msgid "Предмет, например математика"
+msgstr "Предмет, например математика"
 
 #: src/pages/MyHelper.tsx
 #: src/pages/MyHelperAbout.tsx

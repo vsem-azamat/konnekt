@@ -602,6 +602,10 @@ export type HelperCardOut = {
      * Affiliation
      */
     affiliation?: string | null;
+    /**
+     * Service
+     */
+    service?: string | null;
     price?: Price | null;
     reason?: Phrase | null;
     availability?: Phrase | null;
@@ -1056,6 +1060,16 @@ export type OfferIn = {
      * Paused
      */
     paused?: boolean;
+};
+
+/**
+ * OfferOpened
+ */
+export type OfferOpened = {
+    /**
+     * Source
+     */
+    source: 'home' | 'tab' | 'profile' | 'results' | 'my-helper' | 'link' | 'other';
 };
 
 /**
@@ -2146,6 +2160,37 @@ export type UpsertHelperApiV1HelperPutResponses = {
 };
 
 export type UpsertHelperApiV1HelperPutResponse = UpsertHelperApiV1HelperPutResponses[keyof UpsertHelperApiV1HelperPutResponses];
+
+export type OfferOpenedApiV1HelperOpenedPostData = {
+    body: OfferOpened;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/helper/opened';
+};
+
+export type OfferOpenedApiV1HelperOpenedPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OfferOpenedApiV1HelperOpenedPostError = OfferOpenedApiV1HelperOpenedPostErrors[keyof OfferOpenedApiV1HelperOpenedPostErrors];
+
+export type OfferOpenedApiV1HelperOpenedPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type OfferOpenedApiV1HelperOpenedPostResponse = OfferOpenedApiV1HelperOpenedPostResponses[keyof OfferOpenedApiV1HelperOpenedPostResponses];
 
 export type PauseOfferApiV1HelperOffersOfferIdPatchData = {
     body: OfferPause;

@@ -7,6 +7,7 @@ import {
   keepsListed,
   liveCount,
   offersWith,
+  whatToAdd,
   withPaused,
 } from '../src/lib/myServices.ts';
 import type { MyHelper, MyOffer } from '../src/lib/types.ts';
@@ -126,4 +127,33 @@ test('the count on «Профиль» leaves out switched-off services', () => {
     2,
   );
   assert.equal(liveCount(helper('published', [offer(1, { paused: true })])), 0);
+});
+
+test('what to add: a subject where the service needs one, a price, a line under the name', () => {
+  const bare = {
+    ...helper('published', [
+      offer(1, { subject_id: null, subject_name: null, price_amount: null }),
+    ]),
+    headline: null,
+  };
+  assert.deepEqual(whatToAdd(bare, new Set([1])), ['subject', 'price', 'headline']);
+});
+
+test('what to add: nothing once each is there, and «договорная» counts as a price', () => {
+  const full = {
+    ...helper('published', [offer(1, { price_amount: null, price_unit: 'negotiable' })]),
+    headline: 'ČVUT FEL',
+  };
+  assert.deepEqual(whatToAdd(full, new Set([1])), []);
+});
+
+test('what to add: a service that takes no subject is not asked for one, and a paused one is not asked at all', () => {
+  const h = {
+    ...helper('published', [
+      offer(1, { service_type_id: 7, subject_id: null }),
+      offer(2, { subject_id: null, price_amount: null, paused: true }),
+    ]),
+    headline: 'x',
+  };
+  assert.deepEqual(whatToAdd(h, new Set([1])), []);
 });

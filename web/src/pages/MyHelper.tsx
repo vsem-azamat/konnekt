@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
@@ -13,9 +13,11 @@ import {
   Action,
   Actions,
   Cards,
+  Chevron,
   Empty,
   formatMoney,
   Hint,
+  Label,
   Row,
   Rows,
   Screen,
@@ -26,7 +28,7 @@ import {
 } from '@/components/Ui';
 import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
-import { withPaused } from '@/lib/myServices';
+import { type Missing, whatToAdd, withPaused } from '@/lib/myServices';
 import { ownerStatus, startsListed } from '@/lib/ownerStatus';
 import type { MyHelper, MyOffer, ServiceType } from '@/lib/types';
 
@@ -130,6 +132,10 @@ export default function MyHelperPage() {
         />
       ) : null}
 
+      {data && serviceTypes ? (
+        <WhatToAdd helper={data} serviceTypes={serviceTypes} />
+      ) : null}
+
       {!seen ? (
         <div style={{ marginTop: 16 }}>
           <SkeletonRows count={4} />
@@ -189,7 +195,7 @@ export default function MyHelperPage() {
                 }
                 title={<Trans>Добавить услугу</Trans>}
                 hint={<Trans>репетиторство, работы, документы</Trans>}
-                onClick={() => navigate('/offer')}
+                onClick={() => navigate('/offer', { state: { from: 'my-helper' } })}
               />
               <Row
                 leading={
@@ -281,5 +287,73 @@ function ServiceCard({
         </Action>
       </Actions>
     </div>
+  );
+}
+
+/**
+ * «Что добавить»: what a listed profile is missing, each a step away.
+ *
+ * Publishing asks for nothing, which is why people publish; what they leave
+ * empty is what makes their card read as broken in the results. So it is
+ * asked for here, afterwards, where the person can see it is still missing.
+ * Gone once nothing is. Only for a listed profile: a hidden one is not seen.
+ */
+function WhatToAdd({
+  helper,
+  serviceTypes,
+}: {
+  helper: MyHelper;
+  serviceTypes: ServiceType[];
+}) {
+  const navigate = useNavigate();
+  if (helper.status !== 'published') return null;
+  const requiresSubject = new Set(
+    serviceTypes.filter((type) => type.requires_subject).map((type) => type.id),
+  );
+  const missing = whatToAdd(helper, requiresSubject);
+  if (missing.length === 0) return null;
+
+  // Subject and price are both on the prices screen, which needs the
+  // services it is pricing; it fills itself in from what is already there.
+  const live = helper.offers.filter((offer) => !offer.paused);
+  const codes = [...new Set(live.map((offer) => offer.service_type))];
+  const toPrices = () => navigate('/offer/prices', { state: { picked: codes } });
+
+  const rows: Record<Missing, { title: ReactNode; hint: ReactNode; go: () => void }> = {
+    subject: {
+      title: <Trans>Предмет</Trans>,
+      hint: <Trans>по нему тебя ищут студенты</Trans>,
+      go: toPrices,
+    },
+    price: {
+      title: <Trans>Цена</Trans>,
+      hint: <Trans>сколько берёшь</Trans>,
+      go: toPrices,
+    },
+    headline: {
+      title: <Trans>Строчка под именем</Trans>,
+      hint: <Trans>вуз, курс или опыт — её видно на карточке</Trans>,
+      go: () => navigate('/my-helper/about'),
+    },
+  };
+
+  return (
+    <>
+      <Label>
+        <Trans>Что добавить</Trans>
+      </Label>
+      <Rows>
+        {missing.map((item) => (
+          <Row
+            key={item}
+            outline
+            title={rows[item].title}
+            hint={rows[item].hint}
+            trailing={<Chevron />}
+            onClick={rows[item].go}
+          />
+        ))}
+      </Rows>
+    </>
   );
 }

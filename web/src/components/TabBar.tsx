@@ -44,10 +44,10 @@ export function TabBar() {
     navigate(to);
   };
 
-  const post = (to: string) => {
+  const post = (to: string, from?: 'tab') => {
     hapticSelection();
     setPosting(false);
-    navigate(to);
+    navigate(to, from ? { state: { from } } : undefined);
   };
 
   return (
@@ -109,7 +109,7 @@ export function TabBar() {
             }
             name={<Trans>Предлагаю услугу</Trans>}
             hint={<Trans>репетиторство, работы, помощь</Trans>}
-            onClick={() => post('/offer')}
+            onClick={() => post('/offer', 'tab')}
           />
         </Sheet>
       ) : null}
