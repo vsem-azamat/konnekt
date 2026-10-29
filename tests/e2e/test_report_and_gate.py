@@ -535,7 +535,6 @@ class TestHistoryUnderContention:
             return None  # what the other update saw a moment ago
 
         monkeypatch.setattr(UserRepository, "get_by_id", not_there_yet)
-        monkeypatch.setattr(UserRepository, "_get_user_model", not_there_yet)
 
         async with db_session_maker() as session:
             await history_service.merge_user(session, User(id=TARGET_USER_ID, is_bot=False, first_name="New"))

@@ -7,7 +7,6 @@ from zoneinfo import ZoneInfo
 from aiogram import types
 
 from app.core.config import settings
-from app.core.text import escape_html
 
 
 async def _delete_later(message: types.Message, seconds: int) -> None:
@@ -32,50 +31,6 @@ def sleep_and_delete(message: types.Message, seconds: int = 60) -> None:
 def get_user_mention(user: types.User) -> str:
     """Return mention markup for a user."""
     return user.mention_html()
-
-
-def get_chat_mention(tg_object: types.Message | types.Chat) -> str:
-    """Return HTML link to a chat or its message."""
-    chat_link = get_chat_link(tg_object)
-    if isinstance(tg_object, types.Message):
-        return f'<a href="{chat_link}">{escape_html(tg_object.chat.title or "")}</a>'
-    return f'<a href="{chat_link}">{escape_html(tg_object.title or "")}</a>'
-
-
-def get_message_mention(message: types.Message) -> str:
-    chat_link = get_message_link(message)
-    return f'<a href="{chat_link}">Cообщение</a>'
-
-
-def _strip_chat_id_prefix(chat_id: int) -> str:
-    """Strip the -100 prefix from supergroup/channel IDs for t.me/c/ links."""
-    s = str(chat_id)
-    if s.startswith("-100"):
-        return s[4:]
-    return s.lstrip("-")
-
-
-def get_message_link(tg_object: types.Message) -> str:
-    """Generate a direct link to a message."""
-    chat = tg_object.chat
-
-    if chat.username:  # Public chat or channel
-        return f"https://t.me/{chat.username}/{tg_object.message_id}"
-
-    if chat.type in ["group", "supergroup"]:  # Private group without username
-        return f"https://t.me/c/{_strip_chat_id_prefix(chat.id)}/{tg_object.message_id}"
-
-    # Private 1-on-1 chat
-    return f"https://t.me/{chat.id}/{tg_object.message_id}"
-
-
-def get_chat_link(tg_object: types.Message | types.Chat) -> str:
-    """Return a direct link to a chat."""
-    chat = tg_object.chat if isinstance(tg_object, types.Message) else tg_object
-
-    if chat.username:
-        return f"https://t.me/{chat.username}"
-    return f"https://t.me/c/{_strip_chat_id_prefix(chat.id)}"
 
 
 _MUTE_COMMAND = re.compile(r"[!/]mute(?:@\w+)?(?:\s+(?P<time>\d+)\s*(?P<unit>[mhdw])?)?", re.IGNORECASE)

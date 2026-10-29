@@ -23,7 +23,7 @@ class AdminRepository:
 
     async def save(self, admin: Admin) -> Admin:
         """Save admin."""
-        admin_model = await self._get_admin_model(admin.id)
+        admin_model = await self.get_by_id(admin.id)
         if admin_model:
             admin_model.state = admin.state
         else:
@@ -78,7 +78,7 @@ class AdminRepository:
         if await self.is_admin_in(user_id, chat_id):
             return False
 
-        admin = await self._get_admin_model(user_id)
+        admin = await self.get_by_id(user_id)
         if admin is None:
             self.db.add(Admin(id=user_id))
         elif not admin.state:
@@ -111,11 +111,6 @@ class AdminRepository:
 
         await self.db.commit()
         return True
-
-    async def _get_admin_model(self, admin_id: int) -> Admin | None:
-        """Get admin model by ID."""
-        result = await self.db.execute(select(Admin).filter(Admin.id == admin_id))
-        return result.scalars().first()
 
 
 def get_admin_repository(db: AsyncSession) -> AdminRepository:

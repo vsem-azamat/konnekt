@@ -54,14 +54,6 @@ class Admin(Base):
         self.id = id
         self.state = state
 
-    def activate(self) -> None:
-        """Activate admin status"""
-        self.state = True
-
-    def deactivate(self) -> None:
-        """Deactivate admin status"""
-        self.state = False
-
     @property
     def is_active(self) -> bool:
         """Check if admin is active"""
@@ -307,27 +299,6 @@ class Chat(Base):
         self.city = city
         self.topic = topic
 
-    def enable_welcome(self, message: str | None = None) -> None:
-        """Enable welcome message for new members"""
-        self.is_welcome_enabled = True
-        if message:
-            self.welcome_message = message
-
-    def disable_welcome(self) -> None:
-        """Disable welcome message"""
-        self.is_welcome_enabled = False
-
-    def set_welcome_message(self, message: str) -> None:
-        """Set welcome message text"""
-        self.welcome_message = message
-
-    def set_welcome_delete_time(self, seconds: int) -> None:
-        """Set auto-delete time for welcome messages"""
-        if seconds > 0:
-            self.time_delete = seconds
-        else:
-            raise ValueError("Delete time must be positive")
-
     @property
     def is_captcha_enabled(self) -> bool:
         """Whether requests to join get the captcha; read-only, the mode is what is set."""
@@ -395,23 +366,10 @@ class User(Base):
         """Unblock user (remove from blacklist)"""
         self.blocked = False
 
-    def verify_user(self) -> None:
-        """Mark user as verified"""
-        self.verify = True
-
-    def unverify_user(self) -> None:
-        """Mark user as unverified"""
-        self.verify = False
-
     @property
     def is_blocked(self) -> bool:
         """Check if user is blocked"""
         return self.blocked
-
-    @property
-    def is_verified(self) -> bool:
-        """Check if user is verified"""
-        return self.verify
 
     @property
     def display_name(self) -> str:
@@ -423,17 +381,6 @@ class User(Base):
         if self.username:
             return f"@{self.username}"
         return f"User {self.id}"
-
-    def update_profile(
-        self, username: str | None = None, first_name: str | None = None, last_name: str | None = None
-    ) -> None:
-        """Update user profile information"""
-        if username is not None:
-            self.username = username
-        if first_name is not None:
-            self.first_name = first_name
-        if last_name is not None:
-            self.last_name = last_name
 
 
 class ChatLink(Base):
@@ -448,18 +395,6 @@ class ChatLink(Base):
         self.text = text
         self.link = link
         self.priority = priority
-
-    def update_priority(self, priority: int) -> None:
-        """Update link priority"""
-        self.priority = priority
-
-    def update_text(self, text: str) -> None:
-        """Update link display text"""
-        self.text = text
-
-    def update_link(self, link: str) -> None:
-        """Update link URL"""
-        self.link = link
 
 
 class Message(Base):
@@ -507,19 +442,6 @@ class Message(Base):
         self.message = message
         self.message_info = message_info or {}
         self.spam = spam
-
-    def mark_as_spam(self) -> None:
-        """Mark message as spam"""
-        self.spam = True
-
-    def unmark_as_spam(self) -> None:
-        """Remove spam marking"""
-        self.spam = False
-
-    @property
-    def is_spam(self) -> bool:
-        """Check if message is marked as spam"""
-        return self.spam
 
 
 class PendingAction(Base):
