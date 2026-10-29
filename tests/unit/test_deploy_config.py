@@ -491,7 +491,7 @@ def test_a_release_can_be_deployed_again_by_its_sha() -> None:
 
 def test_ci_runs_the_app_migrations() -> None:
     """Tests build the schema with create_all; only alembic proves the history."""
-    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["test"]["steps"]
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["python"]["steps"]
     runs = "\n".join(str(s.get("run", "")) for s in steps)
 
     assert "alembic upgrade head" in runs
@@ -670,7 +670,7 @@ def test_ci_runs_the_databases_production_runs() -> None:
     services = yaml.safe_load(COMPOSE.read_text())["services"]
     production = services["catalog-postgres"]
 
-    for job in ("test", "catalog"):
+    for job in ("python", "catalog"):
         assert workflow["jobs"][job]["services"]["postgres"]["image"] == production["image"], job
     ci_catalog = workflow["jobs"]["catalog"]["services"]["postgres"]["env"]
     assert ci_catalog["POSTGRES_INITDB_ARGS"] == production["environment"]["POSTGRES_INITDB_ARGS"]
@@ -838,3 +838,13 @@ def test_each_image_build_keeps_its_cache_in_a_scope_of_its_own() -> None:
         scopes.append(read["scope"])
     assert len(builds) == 3
     assert len(set(scopes)) == len(scopes)
+
+
+def test_every_job_has_a_timeout() -> None:
+    # The default is six hours, and a hung check holds its pull request and
+    # the deploy queue behind it for all of them.
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for name, job in yaml.safe_load(path.read_text())["jobs"].items():
+            if "uses" in job:
+                continue
+            assert job.get("timeout-minutes"), f"{path.name}: {name}"
