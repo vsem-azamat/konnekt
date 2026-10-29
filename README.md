@@ -48,19 +48,29 @@ chats clean, and admins run everything from one console.
 | Catalog API | Tutors, services, requests; its own database | `catalog/` |
 | Mini App and console | React 19, one app for students and admins | `web/` |
 
-Removing a person always stays with a human: the bot can propose a ban, and a
-super admin confirms it or it expires.
+Removing a person always stays with a human: the control plane (an outside
+agent) can only propose a ban or a blacklist entry, and a super admin confirms
+it in the bot or the console, or it expires.
 
 ## Run it locally
 
+You need Docker, uv and pnpm. Each of the last four lines is a long-running
+process, so give each its own terminal.
+
 ```bash
 cp .env.example .env            # MODERATOR_BOT_TOKEN, DB_*, ADMIN_SUPER_ADMINS
+docker run -d --name konnekt-db -p 127.0.0.1:5432:5432 \
+  -e POSTGRES_PASSWORD=<DB_PASSWORD from .env> -e POSTGRES_DB=moderator_bot \
+  pgvector/pgvector:0.8.6-pg18-bookworm
 uv sync --dev && uv run alembic upgrade head
 uv run -m app.presentation.telegram                          # the bot
 uv run uvicorn app.webapi.main:app --port 8787               # the web API
 make -C catalog setup && make -C catalog api                 # the catalog API
 pnpm --dir web install && pnpm --dir web dev                 # the Mini App
 ```
+
+The Mini App's dev server serves HTTPS by default; see
+[`web/README.md`](web/README.md) for that and for testing outside Telegram.
 
 Production deploys from GitHub through the workflow; see
 [`docs/deployment/`](docs/deployment/). How we work is in
