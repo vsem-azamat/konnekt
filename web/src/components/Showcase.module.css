@@ -1,11 +1,13 @@
 /* The paid places under «Документы и жизнь»: one big card over a pair on a
-   phone, the big one beside the pair on a wide screen (H2). An open place is
-   drawn lower than a taken one (E1), so the cards stay what the eye lands on. */
+   phone, three equal tiles in a row from 720px. Beside a pair, a big card
+   ends ~100px short of it, and stretching it would crop the photo. An open
+   place is drawn lower than a taken one (E1), so the cards stay what the eye
+   lands on. */
 
 .hero {
   display: grid;
   gap: 10px;
-  /* Each card its own height: a photo stretched to the pair's would leave
+  /* Each card its own height: a photo stretched to the row's would leave
      16:9 and crop the partner's picture at the sides. */
   align-items: start;
 }
@@ -21,12 +23,12 @@
   min-width: 0;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .hero {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .pair {
-    grid-template-columns: 1fr;
+    display: contents;
   }
 }
 
@@ -143,6 +145,22 @@
   font-size: 13.5px;
 }
 
+/* In a row of equal tiles the first is no bigger, so it is no louder. */
+@media (min-width: 720px) {
+  .main .title {
+    font-size: 14.5px;
+  }
+  .main .line {
+    -webkit-line-clamp: 2;
+    font-size: 12.5px;
+  }
+  .main .meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
 /* E1: nobody has taken the place yet. */
 .open {
   border: 1.5px dashed var(--hairline);
@@ -154,7 +172,14 @@
   place-items: center;
   aspect-ratio: 32 / 9;
   width: 100%;
-  background: var(--surface);
+}
+
+/* A third of the row at 32:9 would be a wide grey field round a small icon. */
+@media (min-width: 720px) {
+  .openCover {
+    aspect-ratio: auto;
+    height: 64px;
+  }
 }
 
 .invite {
