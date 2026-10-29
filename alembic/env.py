@@ -35,11 +35,10 @@ config.set_main_option("sqlalchemy.url", settings.database.sync_url)
 def include_object(object_, name, type_, reflected, compare_to):
     """Keep autogenerate to the tables this repository actually owns.
 
-    The production database predates the migration squash and still holds tables
-    for features that have left — the content pipeline's, the moderation agent's,
-    the cost ledger. They hold data somebody may still want, and they are nobody's
-    business here. Without this filter the next `--autogenerate` would cheerfully
-    propose dropping all of them.
+    A table nobody maps is somebody else's, or a leftover to be dropped on
+    purpose: production carried the content pipeline's and the agent's until
+    b6e1f4a8c203. Without this filter `--autogenerate` would propose dropping
+    whatever such table it finds, as part of some unrelated migration.
     """
     if type_ == "table" and reflected and name not in target_metadata.tables:
         return False
