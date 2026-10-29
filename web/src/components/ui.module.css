@@ -2601,13 +2601,13 @@
 }
 
 /* Answered already: still on the list, where the helper looks for it, but
-   with nothing left to press. */
-/* An answer already given, where its button was: read as a state. */
+   with nothing left to press, so a state rather than a button. As tall as
+   the button it replaces, so the card keeps its height. */
 .actionDone {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 38px;
   font-size: 14px;
   font-weight: 600;
   color: var(--good);

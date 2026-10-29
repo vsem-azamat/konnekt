@@ -103,10 +103,6 @@ msgstr "Жирний шрифт і посилання з !welcome після р�
 msgid "Нашлось"
 msgstr "Знайшлося"
 
-#: src/pages/Helper.tsx
-msgid "Привет! Нашёл тебя в Konnekt."
-msgstr "Привіт! Знайшов тебе в Konnekt."
-
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
 msgstr "Детектор тут нічого не знаходив."
@@ -1109,6 +1105,10 @@ msgstr "Ні набігів, ні запропонованих банів."
 msgid "список, поиск, фильтры"
 msgstr "список, пошук, фільтри"
 
+#: src/pages/Helper.tsx
+msgid "Привет! Пишу тебе из Konnekt."
+msgstr "Привіт! Пишу тобі з Konnekt."
+
 #: src/console/pages/Summary.tsx
 msgid "анкеты, заявки, поиски без ответа"
 msgstr "анкети, заявки, пошуки без відповіді"
@@ -1769,6 +1769,10 @@ msgstr "Інші"
 #: src/pages/MyHelperAbout.tsx
 msgid "Новые заявки будут только во «Входящих»."
 msgstr "Нові заявки будуть лише у «Вхідних»."
+
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя, потом открой Konnekt заново"
+msgstr "Telegram → Налаштування → Ім'я користувача, потім відкрий Konnekt знову"
 
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
@@ -3340,10 +3344,6 @@ msgstr "домовимось"
 #: src/console/pages/Chat.tsx
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Не в каталозі · немає посилання t.me"
-
-#: src/components/NoUsernameNotice.tsx
-msgid "Telegram → Настройки → Имя пользователя"
-msgstr "Telegram → Налаштування → Ім'я користувача"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"

@@ -48,7 +48,7 @@ export default function HelperPage() {
   // In the student's own language: it is the student who sends it.
   const subjects = String(data?.intro_context.subjects ?? '');
   const intro = [
-    t`Привет! Нашёл тебя в Konnekt.`,
+    t`Привет! Пишу тебе из Konnekt.`,
     subjects ? t`Нужна помощь: ${subjects}.` : t`Нужна помощь с учёбой.`,
   ].join('\n');
 

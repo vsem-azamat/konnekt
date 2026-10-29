@@ -103,10 +103,6 @@ msgstr "Tučné písmo a odkazy z !welcome se úpravou zde ztratí."
 msgid "Нашлось"
 msgstr "Nalezeno"
 
-#: src/pages/Helper.tsx
-msgid "Привет! Нашёл тебя в Konnekt."
-msgstr "Ahoj! Našel jsem tě v Konnektu."
-
 #: src/console/pages/Chat.tsx
 msgid "Детектор здесь ничего не находил."
 msgstr "Detektor tu nic nenašel."
@@ -1109,6 +1105,10 @@ msgstr "Žádné nájezdy ani navržené bany."
 msgid "список, поиск, фильтры"
 msgstr "seznam, hledání, filtry"
 
+#: src/pages/Helper.tsx
+msgid "Привет! Пишу тебе из Konnekt."
+msgstr "Ahoj! Píšu ti přes Konnekt."
+
 #: src/console/pages/Summary.tsx
 msgid "анкеты, заявки, поиски без ответа"
 msgstr "profily, žádosti, hledání bez výsledku"
@@ -1769,6 +1769,10 @@ msgstr "Ostatní"
 #: src/pages/MyHelperAbout.tsx
 msgid "Новые заявки будут только во «Входящих»."
 msgstr "Nové poptávky uvidíš jen v „Příchozích“."
+
+#: src/components/NoUsernameNotice.tsx
+msgid "Telegram → Настройки → Имя пользователя, потом открой Konnekt заново"
+msgstr "Telegram → Nastavení → Uživatelské jméno, pak znovu otevři Konnekt"
 
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
@@ -3340,10 +3344,6 @@ msgstr "domluvíme se"
 #: src/console/pages/Chat.tsx
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Není v katalogu · bez odkazu t.me"
-
-#: src/components/NoUsernameNotice.tsx
-msgid "Telegram → Настройки → Имя пользователя"
-msgstr "Telegram → Nastavení → Uživatelské jméno"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
