@@ -279,6 +279,70 @@ export type AdminSearch = {
 };
 
 /**
+ * AdminShowcaseCard
+ *
+ * A card as the operator manages it.
+ */
+export type AdminShowcaseCard = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Status
+     */
+    status: 'draft' | 'published' | 'expired' | 'unpublished';
+    /**
+     * Service
+     */
+    service: string;
+    /**
+     * Partner
+     */
+    partner: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Line
+     */
+    line: string | null;
+    /**
+     * Text
+     */
+    text: string | null;
+    /**
+     * Price From
+     */
+    price_from: number | null;
+    /**
+     * Write To
+     */
+    write_to: string;
+    /**
+     * Photo
+     */
+    photo: string | null;
+    /**
+     * Until
+     */
+    until: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Impressions
+     */
+    impressions: number;
+    /**
+     * Clicks
+     */
+    clicks: number;
+};
+
+/**
  * AdsInfo
  *
  * What the ads page needs from us: who a business writes to, if anyone.
@@ -747,6 +811,10 @@ export type HomeOut = {
      * Things
      */
     things: Array<HomeSection>;
+    /**
+     * Showcase
+     */
+    showcase: Array<ShowcaseSlotOut>;
 };
 
 /**
@@ -1222,7 +1290,7 @@ export type PlacementOut = {
  *
  * Where a partner block may appear. Grows as screens are added.
  */
-export type PlacementSlot = 'screen_life' | 'screen_nostrification' | 'screen_languages' | 'screen_search_empty' | 'after_request_created' | 'profile_footer';
+export type PlacementSlot = 'screen_life' | 'screen_nostrification' | 'screen_languages' | 'screen_search_empty' | 'after_request_created' | 'profile_footer' | 'home_life';
 
 /**
  * Price
@@ -1593,6 +1661,143 @@ export type ServiceTypeOut = {
      * Subject Hints
      */
     subject_hints: Array<SubjectHintOut>;
+};
+
+/**
+ * ShowcaseCardIn
+ *
+ * A new card, saved as a draft. Nobody sees it until it is published.
+ */
+export type ShowcaseCardIn = {
+    /**
+     * Service
+     */
+    service: string;
+    /**
+     * Partner
+     */
+    partner: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Line
+     */
+    line?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Price From
+     */
+    price_from?: number | null;
+    /**
+     * Write To
+     */
+    write_to: string;
+    /**
+     * Until
+     */
+    until: string;
+};
+
+/**
+ * ShowcaseCardOut
+ *
+ * A card as a student reads it: on home, and on its own page.
+ */
+export type ShowcaseCardOut = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Service
+     */
+    service: string;
+    /**
+     * Partner
+     */
+    partner: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Line
+     */
+    line: string | null;
+    /**
+     * Text
+     */
+    text: string | null;
+    /**
+     * Price From
+     */
+    price_from: number | null;
+    /**
+     * Photo
+     */
+    photo: string | null;
+    /**
+     * Until
+     */
+    until: string | null;
+    /**
+     * Write To
+     */
+    write_to: string;
+};
+
+/**
+ * ShowcaseCardPatch
+ *
+ * Some of a card's fields. A published card shows the change at once.
+ */
+export type ShowcaseCardPatch = {
+    /**
+     * Partner
+     */
+    partner?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Line
+     */
+    line?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Price From
+     */
+    price_from?: number | null;
+    /**
+     * Write To
+     */
+    write_to?: string | null;
+    /**
+     * Until
+     */
+    until?: string | null;
+};
+
+/**
+ * ShowcaseSlotOut
+ *
+ * One paid place: the service it is for, and its card, if one is live.
+ */
+export type ShowcaseSlotOut = {
+    /**
+     * Service
+     */
+    service: string;
+    card: ShowcaseCardOut | null;
 };
 
 /**
@@ -2727,6 +2932,354 @@ export type RegisterClickApiV1PlacementsPlacementIdClickPostResponses = {
 };
 
 export type RegisterClickApiV1PlacementsPlacementIdClickPostResponse = RegisterClickApiV1PlacementsPlacementIdClickPostResponses[keyof RegisterClickApiV1PlacementsPlacementIdClickPostResponses];
+
+export type ReadCardApiV1ShowcaseCardIdGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/showcase/{card_id}';
+};
+
+export type ReadCardApiV1ShowcaseCardIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReadCardApiV1ShowcaseCardIdGetError = ReadCardApiV1ShowcaseCardIdGetErrors[keyof ReadCardApiV1ShowcaseCardIdGetErrors];
+
+export type ReadCardApiV1ShowcaseCardIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ShowcaseCardOut;
+};
+
+export type ReadCardApiV1ShowcaseCardIdGetResponse = ReadCardApiV1ShowcaseCardIdGetResponses[keyof ReadCardApiV1ShowcaseCardIdGetResponses];
+
+export type ReadPhotoApiV1ShowcasePhotosSha256GetData = {
+    body?: never;
+    path: {
+        /**
+         * Sha256
+         */
+        sha256: string;
+    };
+    query?: never;
+    url: '/api/v1/showcase/photos/{sha256}';
+};
+
+export type ReadPhotoApiV1ShowcasePhotosSha256GetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReadPhotoApiV1ShowcasePhotosSha256GetError = ReadPhotoApiV1ShowcasePhotosSha256GetErrors[keyof ReadPhotoApiV1ShowcasePhotosSha256GetErrors];
+
+export type ReadPhotoApiV1ShowcasePhotosSha256GetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ListCardsApiV1AdminShowcaseCardsGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/showcase/cards';
+};
+
+export type ListCardsApiV1AdminShowcaseCardsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListCardsApiV1AdminShowcaseCardsGetError = ListCardsApiV1AdminShowcaseCardsGetErrors[keyof ListCardsApiV1AdminShowcaseCardsGetErrors];
+
+export type ListCardsApiV1AdminShowcaseCardsGetResponses = {
+    /**
+     * Response List Cards Api V1 Admin Showcase Cards Get
+     *
+     * Successful Response
+     */
+    200: Array<AdminShowcaseCard>;
+};
+
+export type ListCardsApiV1AdminShowcaseCardsGetResponse = ListCardsApiV1AdminShowcaseCardsGetResponses[keyof ListCardsApiV1AdminShowcaseCardsGetResponses];
+
+export type CreateCardApiV1AdminShowcaseCardsPostData = {
+    body: ShowcaseCardIn;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/showcase/cards';
+};
+
+export type CreateCardApiV1AdminShowcaseCardsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateCardApiV1AdminShowcaseCardsPostError = CreateCardApiV1AdminShowcaseCardsPostErrors[keyof CreateCardApiV1AdminShowcaseCardsPostErrors];
+
+export type CreateCardApiV1AdminShowcaseCardsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: AdminShowcaseCard;
+};
+
+export type CreateCardApiV1AdminShowcaseCardsPostResponse = CreateCardApiV1AdminShowcaseCardsPostResponses[keyof CreateCardApiV1AdminShowcaseCardsPostResponses];
+
+export type ReadAdminCardApiV1AdminShowcaseCardsCardIdGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}';
+};
+
+export type ReadAdminCardApiV1AdminShowcaseCardsCardIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReadAdminCardApiV1AdminShowcaseCardsCardIdGetError = ReadAdminCardApiV1AdminShowcaseCardsCardIdGetErrors[keyof ReadAdminCardApiV1AdminShowcaseCardsCardIdGetErrors];
+
+export type ReadAdminCardApiV1AdminShowcaseCardsCardIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminShowcaseCard;
+};
+
+export type ReadAdminCardApiV1AdminShowcaseCardsCardIdGetResponse = ReadAdminCardApiV1AdminShowcaseCardsCardIdGetResponses[keyof ReadAdminCardApiV1AdminShowcaseCardsCardIdGetResponses];
+
+export type ChangeCardApiV1AdminShowcaseCardsCardIdPatchData = {
+    body: ShowcaseCardPatch;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}';
+};
+
+export type ChangeCardApiV1AdminShowcaseCardsCardIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeCardApiV1AdminShowcaseCardsCardIdPatchError = ChangeCardApiV1AdminShowcaseCardsCardIdPatchErrors[keyof ChangeCardApiV1AdminShowcaseCardsCardIdPatchErrors];
+
+export type ChangeCardApiV1AdminShowcaseCardsCardIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminShowcaseCard;
+};
+
+export type ChangeCardApiV1AdminShowcaseCardsCardIdPatchResponse = ChangeCardApiV1AdminShowcaseCardsCardIdPatchResponses[keyof ChangeCardApiV1AdminShowcaseCardsCardIdPatchResponses];
+
+export type PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutData = {
+    body: Blob | File;
+    headers: {
+        /**
+         * Content-Type
+         */
+        'content-type': string;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}/photo';
+};
+
+export type PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutError = PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutErrors[keyof PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutErrors];
+
+export type PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminShowcaseCard;
+};
+
+export type PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutResponse = PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutResponses[keyof PutPhotoApiV1AdminShowcaseCardsCardIdPhotoPutResponses];
+
+export type PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}/preview';
+};
+
+export type PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetError = PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetErrors[keyof PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetErrors];
+
+export type PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ShowcaseCardOut;
+};
+
+export type PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetResponse = PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetResponses[keyof PreviewCardApiV1AdminShowcaseCardsCardIdPreviewGetResponses];
+
+export type PublishCardApiV1AdminShowcaseCardsCardIdPublishPostData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}/publish';
+};
+
+export type PublishCardApiV1AdminShowcaseCardsCardIdPublishPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PublishCardApiV1AdminShowcaseCardsCardIdPublishPostError = PublishCardApiV1AdminShowcaseCardsCardIdPublishPostErrors[keyof PublishCardApiV1AdminShowcaseCardsCardIdPublishPostErrors];
+
+export type PublishCardApiV1AdminShowcaseCardsCardIdPublishPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminShowcaseCard;
+};
+
+export type PublishCardApiV1AdminShowcaseCardsCardIdPublishPostResponse = PublishCardApiV1AdminShowcaseCardsCardIdPublishPostResponses[keyof PublishCardApiV1AdminShowcaseCardsCardIdPublishPostResponses];
+
+export type UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: number;
+    };
+    query?: never;
+    url: '/api/v1/admin/showcase/cards/{card_id}/unpublish';
+};
+
+export type UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostError = UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostErrors[keyof UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostErrors];
+
+export type UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminShowcaseCard;
+};
+
+export type UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostResponse = UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostResponses[keyof UnpublishCardApiV1AdminShowcaseCardsCardIdUnpublishPostResponses];
 
 export type ReadCatalogApiV1AdminCatalogGetData = {
     body?: never;

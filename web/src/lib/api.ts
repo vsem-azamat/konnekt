@@ -39,6 +39,7 @@ import type {
   SearchParams,
   SearchResult,
   ServiceType,
+  ShowcaseCard,
   Subject,
 } from './types';
 
@@ -72,6 +73,14 @@ let catalogRoute: CatalogRoute = (path, search) => ({
  */
 export function routeCatalogCalls(route: CatalogRoute): void {
   catalogRoute = route;
+}
+
+/**
+ * Where a partner card's photo is. An `<img>` sends no initData, and needs
+ * none: the address is the hash of the picture, which only a card hands out.
+ */
+export function showcasePhoto(sha256: string): string {
+  return catalogRoute(`/showcase/photos/${sha256}`, '').url;
 }
 
 /** Thrown for any non-2xx response. */
@@ -387,6 +396,10 @@ export const api = {
     },
     signal?: AbortSignal,
   ) => request<Placement[]>('/placements', { query: { ...params }, signal }),
+
+  /** A live partner card's page; a card taken down is a 404. */
+  getShowcaseCard: (cardId: number, signal?: AbortSignal) =>
+    request<ShowcaseCard>(`/showcase/${cardId}`, { signal }),
 
   registerPlacementClick: (placementId: number) =>
     request<void>(`/placements/${placementId}/click`, { method: 'POST' }),
