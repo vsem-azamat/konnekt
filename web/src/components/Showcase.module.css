@@ -1,0 +1,236 @@
+/* The paid places under «Документы и жизнь»: one big card over a pair on a
+   phone, the big one beside the pair on a wide screen (H2). An open place is
+   drawn lower than a taken one (E1), so the cards stay what the eye lands on. */
+
+.hero {
+  display: grid;
+  gap: 10px;
+  /* Each card its own height: a photo stretched to the pair's would leave
+     16:9 and crop the partner's picture at the sides. */
+  align-items: start;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pair > *,
+.hero > * {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: 2fr 1fr;
+  }
+  .pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  text-align: left;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.card:active {
+  background: var(--surface-pressed);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.coverWrap {
+  position: relative;
+  display: block;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--surface-pressed);
+}
+
+/* Over a photo, so its own light ground rather than the theme's: it has to
+   read on whatever the partner sent. */
+.badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #3b4148;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14.5px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.line {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12.5px;
+}
+
+.pair .meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.provider {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.price {
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.main .title {
+  font-size: 17px;
+}
+
+.main .line {
+  -webkit-line-clamp: 3;
+  font-size: 13.5px;
+}
+
+/* E1: nobody has taken the place yet. */
+.open {
+  border: 1.5px dashed var(--hairline);
+  background: transparent;
+}
+
+.openCover {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 32 / 9;
+  width: 100%;
+  background: var(--surface);
+}
+
+.invite {
+  color: var(--accent);
+}
+
+.rows {
+  margin-top: 8px;
+}
+
+/* The card's own page. Edge to edge on a phone, a framed picture on a wide
+   screen, where full width would be a banner. */
+.pageCover {
+  display: block;
+  width: calc(100% + 2 * var(--pad-screen));
+  max-width: none;
+  margin: 0 calc(-1 * var(--pad-screen));
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--surface-pressed);
+}
+
+@media (min-width: 900px) {
+  .pageCover {
+    width: 100%;
+    margin: 0;
+    border-radius: var(--r-card);
+    max-height: 360px;
+  }
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  margin-top: 14px;
+}
+
+.who b {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.service {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.from {
+  font-weight: 680;
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.text {
+  white-space: pre-wrap;
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.fine {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 14px 0 0;
+}
+
+.sheetText {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+.sheetFine {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}

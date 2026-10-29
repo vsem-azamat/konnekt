@@ -403,29 +403,33 @@ def _partner_code(name: str, taken: set[str]) -> str:
     return code
 
 
-async def create_placement(
-    session: AsyncSession, lang: UiLang, card: AdminPlacementIn
-) -> AdminPlacement:
-    """A card on the Life screen, the one slot the app draws.
-
-    The partner is found by name ignoring case, so a second card for the same
-    company does not make a second company; the text is stored in the
-    operator's language, and readers in another see it as the first text the
-    card has.
-    """
+async def partner_named(session: AsyncSession, name: str) -> Partner:
+    """The partner of that name ignoring case, made if there is none, so a
+    second card for the same company does not make a second company."""
     partner = (
         await session.scalars(
             select(Partner)
-            .where(func.lower(Partner.name) == card.partner.lower())
+            .where(func.lower(Partner.name) == name.lower())
             .order_by(Partner.id)
         )
     ).first()
     if partner is None:
         taken = set((await session.scalars(select(Partner.code))).all())
-        partner = Partner(code=_partner_code(card.partner, taken), name=card.partner)
+        partner = Partner(code=_partner_code(name, taken), name=name)
         session.add(partner)
         await session.flush()
+    return partner
 
+
+async def create_placement(
+    session: AsyncSession, lang: UiLang, card: AdminPlacementIn
+) -> AdminPlacement:
+    """A card on the Life screen.
+
+    The text is stored in the operator's language, and readers in another see
+    it as the first text the card has.
+    """
+    partner = await partner_named(session, card.partner)
     offer = PartnerOffer(
         partner_id=partner.id, url=card.url, logo_text=card.logo_text or None
     )
@@ -463,6 +467,10 @@ async def set_placement_active(
     placement = await session.get(Placement, placement_id)
     if placement is None:
         raise NotFound("no such placement")
+    if placement.slot == PlacementSlot.HOME_LIFE:
+        # A showcase card goes live only through its publish, which keeps one
+        # card to a place; a switch here would put a second one up beside it.
+        raise Conflict("a showcase card is published through /admin/showcase")
     placement.is_active = active
     await session.flush()
     return await _placement(session, lang, placement_id)

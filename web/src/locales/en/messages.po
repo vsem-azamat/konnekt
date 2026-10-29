@@ -219,6 +219,10 @@ msgstr "Check your connection and try again."
 msgid "Онлайн"
 msgstr "Online"
 
+#: src/pages/Partner.tsx
+msgid "Партнёр Konnekt"
+msgstr "Konnekt partner"
+
 #: src/console/ProfileSheet.tsx
 msgid "Скрыть из каталога…"
 msgstr "Hide from the catalog…"
@@ -1168,6 +1172,7 @@ msgid "анкеты, заявки, поиски без ответа"
 msgstr "profiles, requests, searches with no answer"
 
 #: src/components/PartnerBlock.tsx
+#: src/components/Showcase.tsx
 #: src/console/pages/PartnerNew.tsx
 msgid "Партнёр"
 msgstr "Partner"
@@ -1586,6 +1591,10 @@ msgstr "It goes first in the «Not about school» section. Three cards show ther
 
 #~ msgid "Публичная ссылка вида https://t.me/имя или @имя. Бота туда не добавляем: чат попадёт в каталог с пометкой «не наш»."
 #~ msgstr "A public link like https://t.me/name or @name. The bot is not added there: the chat goes into the catalogue marked as not ours."
+
+#: src/components/Showcase.tsx
+msgid "{service} — место для партнёра"
+msgstr "{service} — a place for a partner"
 
 #: src/console/pages/Chats.tsx
 msgid "Только ссылка"
@@ -2313,6 +2322,10 @@ msgstr "Already decided in Telegram, or its time ran out."
 msgid "найдено: {found}"
 msgstr "caught: {found}"
 
+#: src/components/Showcase.tsx
+msgid "Откроется чат с {handle}"
+msgstr "Opens a chat with {handle}"
+
 #: src/pages/Home.tsx
 msgid "Не удалось загрузить каталог"
 msgstr "Couldn't load the catalog"
@@ -2378,6 +2391,10 @@ msgstr "Turnaround: <0/>"
 #: src/pages/Helper.tsx
 msgid "Свободные окна"
 msgstr "Open time slots"
+
+#: src/pages/Partner.tsx
+msgid "Партнёр больше не показывает эту карточку."
+msgstr "The partner no longer shows this card."
 
 #: src/console/FailureText.tsx
 #: src/console/pages/PartnerNew.tsx
@@ -2501,6 +2518,10 @@ msgstr "Cheaper"
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
 msgstr "30 days"
+
+#: src/components/Showcase.tsx
+msgid "Хочешь, чтобы здесь была твоя услуга? Напиши нам — обсудим условия. Карточку с фото и текстом сделаем сами."
+msgstr "Want your service here? Write to us and we'll agree on the terms. We'll make the card with a photo and text ourselves."
 
 #: src/console/TopSearch.tsx
 #~ msgid "внешний"
@@ -2667,6 +2688,7 @@ msgstr "Ads"
 #: src/components/Incoming.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/ServiceSheet.tsx
+#: src/components/Showcase.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
@@ -2677,6 +2699,10 @@ msgstr "Close"
 #: src/console/Charts.tsx
 msgid "Сб"
 msgstr "Sat"
+
+#: src/components/Showcase.tsx
+msgid "Разместить ›"
+msgstr "Place it ›"
 
 #: src/pages/Profile.tsx
 msgid "открытых нет"
@@ -2702,6 +2728,10 @@ msgstr "{0, plural, one {# day} other {# days}}"
 #: src/console/pages/Chat.tsx
 msgid "название, фото и число участников"
 msgstr "name, photo and member count"
+
+#: src/components/Showcase.tsx
+msgid "Твоя услуга здесь"
+msgstr "Your service here"
 
 #: src/components/Phrase.tsx
 #: src/components/ServiceSheet.tsx
@@ -2803,6 +2833,10 @@ msgstr "Telegram refused in every chat: check the bot's rights and ban again."
 #: src/console/pages/Chat.tsx
 msgid "Не задан: только общее приветствие"
 msgstr "Not set: only the standard greeting"
+
+#: src/pages/Partner.tsx
+msgid "Размещено до {until}"
+msgstr "Shown until {until}"
 
 #: src/pages/Chats.tsx
 #: src/pages/MyHelper.tsx
@@ -2942,6 +2976,11 @@ msgstr "This is what it looks like"
 #: src/console/pages/PartnerNew.tsx
 msgid "Каталог не принял карточку: проверьте ссылку и длину полей."
 msgstr "The catalog refused the card: check the link and the length of the fields."
+
+#: src/components/Showcase.tsx
+#: src/pages/Partner.tsx
+msgid "от {amount} Kč"
+msgstr "from {amount} Kč"
 
 #: src/console/pages/Chats.tsx
 #: src/console/TopSearch.tsx
@@ -3632,6 +3671,7 @@ msgid "вуз, курс или опыт — её видно на карточк�
 msgstr "school, year or experience, shown on your card"
 
 #: src/pages/Helper.tsx
+#: src/pages/Partner.tsx
 #: src/pages/Request.tsx
 msgid "Написать"
 msgstr "Message"
@@ -3780,6 +3820,7 @@ msgstr "{0} found"
 #~ msgstr "{0, plural, one {Experience with this exam: # student} other {Experience with this exam: # students}}"
 
 #: src/components/AdsContact.tsx
+#: src/components/Showcase.tsx
 msgid "Написать в Telegram"
 msgstr "Write on Telegram"
 
@@ -4089,6 +4130,10 @@ msgstr "all services switched off"
 #: src/console/BanSheet.tsx
 msgid "Бан во всех наших чатах. Снять можно в «Чёрном списке»."
 msgstr "A ban in all our chats. It can be lifted in the «Blacklist»."
+
+#: src/pages/Partner.tsx
+msgid "Предложение закончилось"
+msgstr "This offer has ended"
 
 #: src/pages/Join.tsx
 msgid "Заявка устарела или открыта не тем аккаунтом. Подай её заново."

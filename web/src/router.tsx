@@ -18,6 +18,7 @@ import MyHelperAboutPage from '@/pages/MyHelperAbout';
 import NotFoundPage from '@/pages/NotFound';
 import OfferPage from '@/pages/Offer';
 import OfferPricesPage from '@/pages/OfferPrices';
+import PartnerPage from '@/pages/Partner';
 import ProfilePage from '@/pages/Profile';
 import RequestPage from '@/pages/Request';
 import ResultsPage from '@/pages/Results';
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
           { path: 'my-helper', element: <MyHelperPage /> },
           { path: 'my-helper/about', element: <MyHelperAboutPage /> },
           { path: 'life', element: <LifePage /> },
+          { path: 'partner/:id', element: <PartnerPage /> },
           { path: 'console', lazy: screen(() => import('@/console/pages/Summary')) },
           {
             path: 'console/audience',

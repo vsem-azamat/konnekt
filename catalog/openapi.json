@@ -1919,6 +1919,678 @@
         }
       }
     },
+    "/api/v1/showcase": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Read Places",
+        "description": "The paid places under «Документы и жизнь», in the order they are drawn,\neach live card counted as seen.\n\nNot part of `/home`: other screens read that, and a partner is billed on\nthese impressions, so only the shelf that draws the cards asks for them.",
+        "operationId": "read_places_api_v1_showcase_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShowcaseSlotOut"
+                  },
+                  "title": "Response Read Places Api V1 Showcase Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/showcase/{card_id}": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Read Card",
+        "description": "A live card's page. «Написать» is a click on the placement, as for every\npartner card: `POST /placements/{id}/click`, then the card's link.",
+        "operationId": "read_card_api_v1_showcase__card_id__get",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowcaseCardOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/showcase/photos/{sha256}": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Read Photo",
+        "description": "A card's photo, without initData: an `<img>` cannot send it.\n\nThe address is the hash of the bytes, so it names this picture for ever\nand is cached as immutable; nobody can reach a photo without its hash,\nwhich only a card hands out.",
+        "operationId": "read_photo_api_v1_showcase_photos__sha256__get",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Cards",
+        "description": "Every card there has been, newest first, with last month's numbers.",
+        "operationId": "list_cards_api_v1_admin_showcase_cards_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminShowcaseCard"
+                  },
+                  "title": "Response List Cards Api V1 Admin Showcase Cards Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Card",
+        "description": "A draft. Nobody sees it until it is published.",
+        "operationId": "create_card_api_v1_admin_showcase_cards_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowcaseCardIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards/{card_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Read Admin Card",
+        "operationId": "read_admin_card_api_v1_admin_showcase_cards__card_id__get",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Change Card",
+        "description": "Only the fields sent; a published card shows the change at once.",
+        "operationId": "change_card_api_v1_admin_showcase_cards__card_id__patch",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowcaseCardPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards/{card_id}/photo": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Photo",
+        "description": "The cover, as the request's raw body: JPEG, PNG or WebP, at most 2 MB.\nThe card crops it to 16:9.",
+        "operationId": "put_photo_api_v1_admin_showcase_cards__card_id__photo_put",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "content-type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content-Type"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards/{card_id}/preview": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Preview Card",
+        "description": "The card exactly as the Mini App will read it, in any state, counted as\nnobody seeing it. The photo is at `/showcase/photos/{photo}`.",
+        "operationId": "preview_card_api_v1_admin_showcase_cards__card_id__preview_get",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowcaseCardOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards/{card_id}/publish": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Publish Card",
+        "description": "Live now. 409 while another card holds the place; 422 without a photo\nor with `until` past.",
+        "operationId": "publish_card_api_v1_admin_showcase_cards__card_id__publish_post",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/showcase/cards/{card_id}/unpublish": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Unpublish Card",
+        "description": "Down now. Nothing is deleted; publishing again puts it back.",
+        "operationId": "unpublish_card_api_v1_admin_showcase_cards__card_id__unpublish_post",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShowcaseCard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/catalog": {
       "get": {
         "tags": [
@@ -2934,6 +3606,135 @@
           "last_at"
         ],
         "title": "AdminSearch"
+      },
+      "AdminShowcaseCard": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "expired",
+              "unpublished"
+            ],
+            "title": "Status"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "partner": {
+            "type": "string",
+            "title": "Partner"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price From"
+          },
+          "write_to": {
+            "type": "string",
+            "title": "Write To"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "impressions": {
+            "type": "integer",
+            "title": "Impressions"
+          },
+          "clicks": {
+            "type": "integer",
+            "title": "Clicks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "service",
+          "partner",
+          "title",
+          "line",
+          "text",
+          "price_from",
+          "write_to",
+          "photo",
+          "until",
+          "published_at",
+          "impressions",
+          "clicks"
+        ],
+        "title": "AdminShowcaseCard",
+        "description": "A card as the operator manages it."
       },
       "AdsInfo": {
         "properties": {
@@ -4712,7 +5513,8 @@
           "screen_languages",
           "screen_search_empty",
           "after_request_created",
-          "profile_footer"
+          "profile_footer",
+          "home_life"
         ],
         "title": "PlacementSlot",
         "description": "Where a partner block may appear. Grows as screens are added."
@@ -5432,6 +6234,299 @@
           "subject_hints"
         ],
         "title": "ServiceTypeOut"
+      },
+      "ShowcaseCardIn": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "partner": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Partner"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 70
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 600
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price From"
+          },
+          "write_to": {
+            "type": "string",
+            "maxLength": 1024,
+            "title": "Write To"
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Until"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service",
+          "partner",
+          "title",
+          "write_to",
+          "until"
+        ],
+        "title": "ShowcaseCardIn",
+        "description": "A new card, saved as a draft. Nobody sees it until it is published."
+      },
+      "ShowcaseCardOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "partner": {
+            "type": "string",
+            "title": "Partner"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price From"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          },
+          "write_to": {
+            "type": "string",
+            "title": "Write To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "service",
+          "partner",
+          "title",
+          "line",
+          "text",
+          "price_from",
+          "photo",
+          "until",
+          "write_to"
+        ],
+        "title": "ShowcaseCardOut",
+        "description": "A card as a student reads it: on home, and on its own page."
+      },
+      "ShowcaseCardPatch": {
+        "properties": {
+          "partner": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 70
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 600
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price From"
+          },
+          "write_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Write To"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ShowcaseCardPatch",
+        "description": "Some of a card's fields. A published card shows the change at once."
+      },
+      "ShowcaseSlotOut": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShowcaseCardOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "card"
+        ],
+        "title": "ShowcaseSlotOut",
+        "description": "One paid place: the service it is for, and its card, if one is live."
       },
       "Stat": {
         "properties": {

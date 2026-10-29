@@ -16,7 +16,15 @@ Two conventions worth stating once:
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from students_cz.db.models.enums import (
     HIDE_NOTE_MAX,
@@ -782,3 +790,127 @@ class AdminHide(BaseModel):
 
 class AdminPlacementSwitch(BaseModel):
     is_active: bool
+
+
+# ── the home showcase ───────────────────────────────────────────────────
+#
+# Paid places under «Документы и жизнь», one per service in
+# services.showcase.SLOTS. The operator, or an agent on their behalf, makes the
+# cards through the admin API; see docs/showcase-api.md. The limits are the
+# ones the card was drawn to: a title past 32 breaks the tile, a line past 70
+# its two lines, a text past 600 the page.
+
+SHOWCASE_TITLE_MAX = 32
+SHOWCASE_LINE_MAX = 70
+SHOWCASE_TEXT_MAX = 600
+ShowcaseStatus = Literal["draft", "published", "expired", "unpublished"]
+
+
+class ShowcaseCardOut(BaseModel):
+    """A card as a student reads it: on home, and on its own page."""
+
+    id: int
+    service: str
+    partner: str
+    title: str
+    line: str | None
+    text: str | None
+    price_from: int | None
+    # The photo's id; the client loads `/showcase/photos/{photo}`.
+    photo: str | None
+    until: datetime | None
+    # Where «Написать» leads, after the click is recorded.
+    write_to: str
+
+
+class ShowcaseSlotOut(BaseModel):
+    """One paid place: the service it is for, and its card, if one is live."""
+
+    service: str
+    card: ShowcaseCardOut | None
+
+
+def _write_to(value: str) -> str:
+    """Where «Написать» leads: an https link, or a Telegram @username, which
+    becomes its t.me link. The @ is required, so a stray word is refused
+    rather than turned into somebody's chat; the name is held to the rule
+    `ADS_CONTACT` is."""
+    from students_cz.core.config import TELEGRAM_USERNAME
+
+    handle = value.strip()
+    if handle.startswith("@"):
+        if not TELEGRAM_USERNAME.fullmatch(handle[1:]):
+            raise ValueError("not a Telegram username")
+        return f"https://t.me/{handle[1:]}"
+    return _https_link(handle)
+
+
+ShowcaseTitle = Annotated[Line, StringConstraints(max_length=SHOWCASE_TITLE_MAX)]
+ShowcaseLine = Annotated[
+    str | None, StringConstraints(strip_whitespace=True, max_length=SHOWCASE_LINE_MAX)
+]
+ShowcaseText = Annotated[
+    str | None, StringConstraints(strip_whitespace=True, max_length=SHOWCASE_TEXT_MAX)
+]
+PriceFrom = Annotated[int | None, Field(ge=0, le=1_000_000)]
+
+
+class ShowcaseCardIn(BaseModel):
+    """A new card, saved as a draft. Nobody sees it until it is published."""
+
+    # An agent's misspelt field is a 422, not a card quietly saved without it.
+    model_config = ConfigDict(extra="forbid")
+
+    service: str
+    partner: Annotated[Line, StringConstraints(max_length=200)]
+    title: ShowcaseTitle
+    line: ShowcaseLine = None
+    text: ShowcaseText = None
+    price_from: PriceFrom = None
+    write_to: Annotated[str, StringConstraints(max_length=1024)]
+    # The card comes down by itself at this moment and the place is free again.
+    # With its zone: a bare time would be read in the server's.
+    until: AwareDatetime
+
+    @field_validator("write_to")
+    @classmethod
+    def _write_to_link(cls, value: str) -> str:
+        return _write_to(value)
+
+
+class ShowcaseCardPatch(BaseModel):
+    """Some of a card's fields. A published card shows the change at once."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    partner: Annotated[Line | None, StringConstraints(max_length=200)] = None
+    title: ShowcaseTitle | None = None
+    line: ShowcaseLine = None
+    text: ShowcaseText = None
+    price_from: PriceFrom = None
+    write_to: Annotated[str | None, StringConstraints(max_length=1024)] = None
+    until: AwareDatetime | None = None
+
+    @field_validator("write_to")
+    @classmethod
+    def _write_to_link(cls, value: str | None) -> str | None:
+        return None if value is None else _write_to(value)
+
+
+class AdminShowcaseCard(BaseModel):
+    """A card as the operator manages it."""
+
+    id: int
+    status: ShowcaseStatus
+    service: str
+    partner: str
+    title: str
+    line: str | None
+    text: str | None
+    price_from: int | None
+    write_to: str
+    photo: str | None
+    until: datetime | None
+    published_at: datetime | None
+    impressions: int
+    clicks: int

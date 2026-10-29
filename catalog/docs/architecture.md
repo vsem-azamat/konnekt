@@ -311,8 +311,7 @@ otherwise the only way to do either is the database.
   looked at: listing does not wait for it.
 - `/admin/partners`: every placement, active or not, with its impressions and
   clicks over the last 30 days.
-- `POST /admin/placements`: a new card on the Life screen, the one slot the
-  app draws. It takes the partner's name, an `https` link, the title and,
+- `POST /admin/placements`: a new card on the Life screen. It takes the partner's name, an `https` link, the title and,
   optionally, a subtitle, a price, a note and a monogram of up to four
   letters. A partner is reused when one of that name, ignoring case, exists.
   The new card goes first, above every card there is: a slot shows three at
@@ -321,7 +320,14 @@ otherwise the only way to do either is the database.
   The text is stored in the operator's language; a reader in another language
   sees it too, since a card shows the first text it has when none is in theirs.
 - `PATCH /admin/placements/{id}`: switches a card on or off. Stopping is how
-  a card ends; nothing is deleted, so its impressions and clicks stay.
+  a card ends; nothing is deleted, so its impressions and clicks stay. A
+  showcase card is the exception, a 409: it goes live only through its own
+  publish, which keeps one card to a place.
+- `/admin/showcase/cards`: the paid places on home, under «Документы и
+  жизнь». A card is a draft until published, comes down when unpublished or
+  when its `until` passes, and is never deleted. No console screen makes
+  them: agents call this on the operator's behalf, and
+  [showcase-api.md](showcase-api.md) is their manual.
 
 It names people as the catalog does, a first name and an initial: no handle,
 no Telegram id, no contact. The console opens a profile in a sheet of its own,

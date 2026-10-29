@@ -21,6 +21,7 @@ from students_cz.api.v1 import (
     public,
     requests,
     search,
+    showcase,
     taxonomy,
 )
 
@@ -36,6 +37,7 @@ for _module in (
     cabinet,
     requests,
     placements,
+    showcase,
     admin,
 ):
     router.include_router(_module.router)
