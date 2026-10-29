@@ -183,20 +183,12 @@ class Chat(Base):
     # Telegram's "approve new members", as getChat last said; None until asked.
     # Only a public chat's means anything: a private one takes requests by link.
     join_by_request: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    # The switch join_mode replaced, kept only so the previous release runs
-    # beside this one during a deploy. Read by nothing; dropped by the next migration.
-    _legacy_captcha: Mapped[bool] = mapped_column(
-        "is_captcha_enabled", Boolean, default=False, server_default=sa.false()
-    )
-
     # ADMINS given by the migration only for want of a link, to be settled by
     # the chat's first getChat answer. Any mode set afterwards is a choice.
     join_mode_guessed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
 
     @validates("join_mode")
-    def _keep_legacy_captcha(self, _key: str, mode: str) -> str:
-        # Kept true to the mode, so a release rolled back to reads what was set.
-        self._legacy_captcha = mode == self.JOIN_CAPTCHA
+    def _mode_is_chosen(self, _key: str, mode: str) -> str:
         self.join_mode_guessed = False
         return mode
 
