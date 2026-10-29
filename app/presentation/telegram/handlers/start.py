@@ -1,4 +1,4 @@
-"""The front door: a greeting, a справочник, and the way into the console.
+"""The front door: a greeting and a справочник.
 
 `/start` and `/help` were one handler answering one wall of text. That wall was
 the first thing a first-year saw, it listed commands they could not run, it
@@ -13,7 +13,6 @@ role of whoever asked.
 from aiogram import Router, types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import intro
@@ -32,16 +31,6 @@ def _site() -> str:
     return settings.webapi.public_url.rstrip("/")
 
 
-def _mini_app_possible(*, private: bool) -> bool:
-    """Whether Telegram will accept a Mini App button here at all.
-
-    It wants a private chat and an https address, and it refuses the whole
-    message rather than the offending button — so `/start` in a group would
-    answer nothing, and so would a developer pointed at plain http.
-    """
-    return private and settings.webapi.public_url.startswith("https://")
-
-
 def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardButton:
     """Open the site inside Telegram where that is allowed, as a link where it is not.
 
@@ -55,25 +44,25 @@ def _open_button(text: str, url: str, *, private: bool) -> types.InlineKeyboardB
 
 
 # The whole greeting, so a change of copy is a change of this line alone.
-GREETING = "<b>Konnekt</b>\n\nСтуденческие чаты Чехии и помощь с учёбой — в одном приложении."
+GREETING = intro.ABOUT
 OPEN_BUTTON = intro.OPEN_BUTTON
-CONSOLE_BUTTON = "⚙️ Открыть консоль"
 
 
 @router.message(Command("start", prefix="/!"))
 async def start_private(message: types.Message, admin_repo: AdminRepository) -> None:
-    """Say what this is, and offer one way in: the chats.
+    """Say what this is, in one message: the album, or text where there is none.
 
-    A deep link (`/start <source>`) gets the same answer; the audience
-    middleware has already recorded the source.
+    The album carries no button, since Telegram takes none on one: the menu
+    button «Открыть» is the way into «Чаты», and the console is in the Mini
+    App's header for whoever may open it. A deep link (`/start <source>`) gets
+    the same answer; the audience middleware has already recorded the source.
     """
     if not message.from_user:
         return
 
     text = GREETING
     # Only those who have more to type than a stranger are pointed at /help.
-    is_super_admin = message.from_user.id in settings.admin.super_admins
-    if is_super_admin:
+    if message.from_user.id in settings.admin.super_admins:
         text += "\n\nВы главный администратор. Все команды — /help"
     elif await admin_repo.is_admin(message.from_user.id):
         chats = await admin_repo.chats_for(message.from_user.id)
@@ -82,35 +71,25 @@ async def start_private(message: types.Message, admin_repo: AdminRepository) -> 
 
     private = message.chat.type == "private"
 
-    # The console is a Mini App and only a Mini App: signing in means handing
-    # over the `initData` Telegram signed, which a browser opened from a group
-    # would not have. Offering the button where it cannot work would send the
-    # one person who has it to a page that can only turn them away.
-    shows_console = is_super_admin and _mini_app_possible(private=private)
-
-    builder = InlineKeyboardBuilder()
-    if shows_console:
-        builder.row(_open_button(CONSOLE_BUTTON, f"{_site()}/console", private=private))
-    # «Чаты», where the menu button «Открыть» goes too: finding a chat is why
-    # most people come. «Помощь» is the tab beside it; advertising and
-    # «Написать нам» live in the Mini App's profile and /contacts.
-    if settings.webapi.public_url:
-        builder.row(_open_button(OPEN_BUTTON, f"{_site()}/chats", private=private))
-
-    # Deliberately not scheduled for deletion. This is the message somebody
-    # comes back to; the справочник below is the one that may go.
-    markup = builder.as_markup() if any(builder.buttons) else None
-    # The video only in a private chat: in a group it would stay in the chat
+    # Deliberately not scheduled for deletion: this is the message somebody
+    # comes back to. The album only in a private chat: in a group it would stay
     # for everybody, after a /start that may have been meant for another bot.
-    if private and (video := settings.telegram.intro_video):
+    if private and (media := intro.album(text)):
         try:
-            await message.answer_video(video=video, caption=text, reply_markup=markup)
+            await message.answer_media_group(media=media)
             return
         except TelegramBadRequest as err:
             # A file_id of another bot, or a URL Telegram could not fetch, must
-            # not leave /start silent. Network errors are not caught: the video
+            # not leave /start silent. Network errors are not caught: the album
             # may have arrived, and a second greeting would follow it.
-            logger.error("start_video_refused", error=str(err), error_type=type(err).__name__)
+            logger.error("start_album_refused", error=str(err), error_type=type(err).__name__)
+
+    # Without the album the text carries the way in, where the menu button may
+    # be missing (plain http) or out of reach (a group).
+    markup = None
+    if settings.webapi.public_url:
+        button = _open_button(OPEN_BUTTON, f"{_site()}/chats", private=private)
+        markup = types.InlineKeyboardMarkup(inline_keyboard=[[button]])
     await message.answer(text, disable_web_page_preview=True, reply_markup=markup)
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # ModerationSettings validation
 # ---------------------------------------------------------------------------
@@ -25,10 +27,11 @@ class TestContainerTryGetBot:
         assert c.try_get_bot() is bot
 
 
-def test_the_start_video_is_read_without_the_newline_it_was_pasted_with(monkeypatch):
+@pytest.mark.parametrize("name", ["intro_video", "intro_video_cover", "intro_photo"])
+def test_the_intro_media_are_read_without_the_newline_they_were_pasted_with(monkeypatch, name):
     """A file_id with its newline would be refused on every /start."""
     from app.core.config import TelegramSettings
 
-    monkeypatch.setenv("MODERATOR_BOT_INTRO_VIDEO", " BAACAgIAAxkB \n")
+    monkeypatch.setenv(f"MODERATOR_BOT_{name.upper()}", " BAACAgIAAxkB \n")
 
-    assert TelegramSettings(_env_file=None).intro_video == "BAACAgIAAxkB"
+    assert getattr(TelegramSettings(_env_file=None), name) == "BAACAgIAAxkB"

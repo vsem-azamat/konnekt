@@ -25,9 +25,6 @@ from app.core.logging import get_logger
 
 logger = get_logger("chats.welcome")
 
-KONNEKT_LINE = (
-    "📱 <b>Konnekt</b> — всё для студентов в Чехии: чаты вузов, репетиторы, страховка и помощь с жизнью здесь."
-)
 # Names shown before the rest are counted: «Marek, Tereza, Jakub и ещё 2».
 NAMED = 3
 BURST_SECONDS = 300
@@ -57,7 +54,7 @@ _timers: set[asyncio.Task[None]] = set()
 
 def text(names: list[str], others: int, chat_text: str | None) -> str:
     who = ", ".join(names) + (f" и ещё {others}" if others else "")
-    lines = [f"👋 {who}, <b>добро пожаловать!</b>", KONNEKT_LINE]
+    lines = [f"👋 {who}, <b>добро пожаловать!</b>", intro.ABOUT]
     if chat_text:
         lines.append(chat_text)
     return "\n\n".join(lines)

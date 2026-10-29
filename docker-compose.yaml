@@ -107,8 +107,10 @@ services:
       # Only the bot process: the retired bots answer from here. Several
       # tokens, comma-separated; a second process polling them would fight it.
       MODERATOR_BOT_RETIRED_TOKEN: ${MODERATOR_BOT_RETIRED_TOKEN:-}
-      # The video under the /start greeting; unset sends text only.
+      # Konnekt's video, its cover and the /start photo; unset sends text only.
       MODERATOR_BOT_INTRO_VIDEO: ${MODERATOR_BOT_INTRO_VIDEO:-}
+      MODERATOR_BOT_INTRO_VIDEO_COVER: ${MODERATOR_BOT_INTRO_VIDEO_COVER:-}
+      MODERATOR_BOT_INTRO_PHOTO: ${MODERATOR_BOT_INTRO_PHOTO:-}
       # The ads contact desk (app/presentation/telegram/ads.py), likewise only here.
       ADS_BOT_TOKEN: ${ADS_BOT_TOKEN:-}
       ADS_BOT_GROUP_ID: ${ADS_BOT_GROUP_ID:-}
