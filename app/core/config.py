@@ -420,6 +420,35 @@ class CaptchaSettings(Settings):
     )
 
 
+class ChatStateSettings(Settings):
+    """How often what no Telegram update announces is asked for again.
+
+    Updates are the source of what the bot knows about a chat; this check
+    covers what they leave out and anything a downtime made the bot miss.
+    """
+
+    recheck_after_hours: int = Field(
+        default=24,
+        description="A chat whose state was last confirmed longer ago than this is asked again",
+    )
+    tick_minutes: int = Field(
+        default=60,
+        description="How often the check looks for chats due to be asked",
+    )
+    pause_between_chats_seconds: float = Field(
+        default=1.0,
+        description="Pause between two chats' calls, to stay under Telegram's flood control",
+    )
+
+    model_config = SettingsConfigDict(
+        env_prefix="CHAT_STATE_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class McpSettings(Settings):
     """MCP server served by the bot process for external agent clients.
 
@@ -523,6 +552,7 @@ class AppSettings(Settings):
     moderation: ModerationSettings = Field(default_factory=ModerationSettings)
     captcha: CaptchaSettings = Field(default_factory=CaptchaSettings)
     webapi: WebApiSettings = Field(default_factory=WebApiSettings)
+    chat_state: ChatStateSettings = Field(default_factory=ChatStateSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import datetime
 from typing import TYPE_CHECKING, Any
 
 from aiogram import BaseMiddleware
@@ -11,7 +10,7 @@ from aiogram.types import TelegramObject, Update
 from app.audience import record
 from app.audience.record import SOURCE, Person
 from app.core.logging import get_logger
-from app.core.time import utc_now
+from app.core.time import as_naive_utc, utc_now
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -69,7 +68,7 @@ class AudienceMiddleware(BaseMiddleware):
             if change.chat.type != "private" or self.reach is None:
                 return
             # Telegram's time, not ours: a block and an unblock must keep their order.
-            at = _naive(change.date)
+            at = as_naive_utc(change.date)
             async with self.session_maker() as db:
                 if change.new_chat_member.status == ChatMemberStatus.KICKED:
                     await record.blocked(db, change.from_user.id, self.reach, at=at)
@@ -85,7 +84,7 @@ class AudienceMiddleware(BaseMiddleware):
         user = message.from_user if message else pressed.from_user if pressed else None
         if chat is None or chat.type != "private" or user is None:
             return
-        at = _naive(message.date) if message else utc_now()
+        at = as_naive_utc(message.date) if message else utc_now()
         source = None
         if message and message.text and message.text.startswith("/start "):
             payload = message.text.removeprefix("/start ").strip()
@@ -93,8 +92,3 @@ class AudienceMiddleware(BaseMiddleware):
         async with self.session_maker() as db:
             await record.seen(db, Person.from_user(user), self.touchpoint, at=at, source=source, started=self.reach)
             await db.commit()
-
-
-def _naive(moment: datetime.datetime) -> datetime.datetime:
-    """Telegram's aware UTC time, as this database stores it."""
-    return moment.astimezone(datetime.UTC).replace(tzinfo=None)
