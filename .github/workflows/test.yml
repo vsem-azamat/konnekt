@@ -100,15 +100,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        # A pull request's merge commit and main under it: what it changes.
-        fetch-depth: 2
 
     - name: Install uv
       uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       with:
         version: "0.11.11"
-        python-version: "3.12"
+        # The patch release the image runs (Dockerfile); uv fetches it, where
+        # "3.12" took the runner's own 3.12.3.
+        python-version: "3.12.13"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
 
@@ -173,9 +172,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        # A pull request's merge commit and main under it: what it changes.
-        fetch-depth: 2
 
     - name: Set up Node.js
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -268,9 +264,11 @@ jobs:
   # The check branch protection requires, by this name (`test (3.12)`; the
   # matrix is kept for the name alone). It always runs, so it always reports:
   # a lane skipped because the change cannot break it passes, and one that
-  # failed, was cancelled or never ran fails it.
+  # failed, was cancelled or never ran fails it. A draft fails it too: a draft
+  # runs no lane, and its green would stand for the ready run's until that
+  # run's lanes finish and this job reports again.
   test:
-    needs: [changes, routes, python, web]
+    needs: [changes, routes, python, web, catalog]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -282,9 +280,20 @@ jobs:
     - name: Every lane this change touches passed
       env:
         RESULTS: ${{ join(needs.*.result, ' ') }}
+        DRAFT: ${{ github.event.pull_request.draft }}
       run: |
-        echo "changes, routes, python, web: $RESULTS"
-        for result in $RESULTS; do
+        echo "changes, routes, python, web, catalog: $RESULTS"
+        if [ "$DRAFT" = true ]; then
+          echo "a draft runs no lane; mark it ready for review" >&2
+          exit 1
+        fi
+        # One result per job above, or the expression read something else.
+        set -- $RESULTS
+        if [ $# -ne 5 ]; then
+          echo "expected 5 results, got $#" >&2
+          exit 1
+        fi
+        for result in "$@"; do
           case "$result" in
             success | skipped) ;;
             *) echo "a lane ended $result" >&2; exit 1 ;;
@@ -334,7 +343,7 @@ jobs:
         # A pull request's merge commit and main under it: what it changes.
         fetch-depth: 2
 
-    # As in the test job.
+    # As in the changes job.
     - name: Lanes this change touches
       id: lanes
       env:
@@ -401,7 +410,7 @@ jobs:
       run: uv run pytest -q
 
     # catalog/openapi.json is what web/ generates its client from, and the
-    # test job checks that client against it. Declared at import time, so no
+    # web job checks that client against it. Declared at import time, so no
     # database and no server.
     - name: The committed OpenAPI document matches the API
       if: steps.lanes.outputs.catalog == 'true'

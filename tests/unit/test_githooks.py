@@ -96,11 +96,12 @@ def test_the_required_check_always_runs() -> None:
     assert job["strategy"]["matrix"]["python-version"] == ["3.12"]
 
 
-def _gate(results: str) -> int:
-    """The required check's step, given what the lanes it waits on ended as."""
+def _gate(results: str, draft: str = "false") -> int:
+    """The required check's step, given what the jobs it waits on ended as."""
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
     (step,) = workflow["jobs"]["test"]["steps"]
-    return _run("bash", "-e", "-c", step["run"], env={**_outside_git(), "RESULTS": results}).returncode
+    env = {**_outside_git(), "RESULTS": results, "DRAFT": draft}
+    return _run("bash", "-e", "-c", step["run"], env=env).returncode
 
 
 def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
@@ -108,17 +109,42 @@ def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
     lanes = {name for name, job in workflow["jobs"].items() if "if" in job and "changes" in str(job["if"])}
 
     assert lanes == {"python", "web"}
-    assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", *lanes}
+    assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", "catalog", *lanes}
+    (step,) = workflow["jobs"]["test"]["steps"]
+    assert step["env"]["RESULTS"] == "${{ join(needs.*.result, ' ') }}"
 
 
-@pytest.mark.parametrize("results", ["success success success", "success skipped skipped", "success success skipped"])
+@pytest.mark.parametrize(
+    "results",
+    [
+        "success success success success success",
+        "success success skipped skipped success",
+        "success success success skipped success",
+    ],
+)
 def test_the_required_check_passes_lanes_that_passed_or_were_not_needed(results: str) -> None:
     assert _gate(results) == 0
 
 
-@pytest.mark.parametrize("results", ["success failure success", "success cancelled skipped", "failure skipped skipped"])
+@pytest.mark.parametrize(
+    "results",
+    [
+        "success success failure success success",
+        "success success cancelled skipped success",
+        "failure success skipped skipped success",
+        "success success success success failure",
+        # Fewer results than jobs: the expression read something else.
+        "",
+        "success success success",
+    ],
+)
 def test_the_required_check_fails_a_lane_that_did_not_pass(results: str) -> None:
     assert _gate(results) != 0
+
+
+def test_the_required_check_fails_a_draft() -> None:
+    """Its green would stand for the ready run's until that run's lanes finish."""
+    assert _gate("success success skipped skipped skipped", draft="true") != 0
 
 
 # The hooks against a scratch repository: a copy of the configuration they
