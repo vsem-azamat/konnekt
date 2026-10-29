@@ -1584,6 +1584,14 @@ export type ServiceTypeOut = {
      * Options
      */
     options: Array<ServiceOptionOut>;
+    /**
+     * Price Hints
+     */
+    price_hints: Array<number>;
+    /**
+     * Subject Hints
+     */
+    subject_hints: Array<SubjectHintOut>;
 };
 
 /**
@@ -1598,6 +1606,26 @@ export type Stat = {
      * Value
      */
     value: string;
+};
+
+/**
+ * SubjectHintOut
+ *
+ * A subject offered as a chip on the prices screen.
+ */
+export type SubjectHintOut = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**

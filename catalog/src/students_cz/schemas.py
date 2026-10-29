@@ -81,6 +81,14 @@ class ServiceOptionOut(BaseModel):
     label: str
 
 
+class SubjectHintOut(BaseModel):
+    """A subject offered as a chip on the prices screen."""
+
+    id: int
+    slug: str
+    name: str
+
+
 class ServiceTypeOut(BaseModel):
     id: int
     code: str
@@ -111,6 +119,11 @@ class ServiceTypeOut(BaseModel):
     # then types it `| undefined` for a key every response carries. See
     # `Avatar.photo_url`.
     options: list[ServiceOptionOut]
+    # One-tap prices on the prices screen, in `default_price_unit`, and the
+    # subjects offered as chips. Empty where there are none; present always,
+    # for the same reason as `options`. See services/offer_hints.py.
+    price_hints: list[int]
+    subject_hints: list[SubjectHintOut]
 
 
 class SubjectOut(BaseModel):

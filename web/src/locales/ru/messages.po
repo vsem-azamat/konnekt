@@ -1231,6 +1231,10 @@ msgstr "Здесь ведут чаты и смотрят за каталогом
 msgid "по вузам и факультетам"
 msgstr "по вузам и факультетам"
 
+#: src/lib/offerHints.ts
+msgid "Чешский B2"
+msgstr "Чешский B2"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Слишком длинно для каталога."
 msgstr "Слишком длинно для каталога."
@@ -1317,6 +1321,10 @@ msgstr "Отклонить"
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
 msgstr "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
+
+#: src/lib/offerHints.ts
+msgid "Чешский B1"
+msgstr "Чешский B1"
 
 #: src/pages/Request.tsx
 msgid "Отказать"
@@ -1434,6 +1442,10 @@ msgstr "Тебя видят в поиске и могут написать."
 msgid "Только наблюдает"
 msgstr "Только наблюдает"
 
+#: src/lib/offerHints.ts
+msgid "Немецкий"
+msgstr "Немецкий"
+
 #: src/console/pages/Chat.tsx
 msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
 msgstr "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
@@ -1547,6 +1559,10 @@ msgstr "Защита"
 #: src/console/pages/Spam.tsx
 msgid "ссылка"
 msgstr "ссылка"
+
+#: src/pages/OfferPrices.tsx
+msgid "Язык, например чешский"
+msgstr "Язык, например чешский"
 
 #: src/console/pages/Chat.tsx
 msgid "Модерирует"
@@ -3110,6 +3126,10 @@ msgstr "По этому запросу пока никого"
 msgid "Закрыта"
 msgstr "Закрыта"
 
+#: src/lib/offerHints.ts
+msgid "Английский"
+msgstr "Английский"
+
 #. placeholder {0}: formatMoney(price.amount)
 #: src/pages/Helper.tsx
 msgid "Написать · {0} Kč"
@@ -3324,6 +3344,10 @@ msgstr "Не про учёбу"
 #: src/pages/Ask.tsx
 msgid "курсовая работа"
 msgstr "курсовая работа"
+
+#: src/lib/offerHints.ts
+msgid "Статистика"
+msgstr "Статистика"
 
 #: src/pages/Landing.tsx
 msgid "Вступительные экзамены"
@@ -3922,6 +3946,10 @@ msgstr "Нажмите, чтобы попробовать ещё раз"
 #: src/pages/Mine.tsx
 msgid "Открытые · {0}"
 msgstr "Открытые · {0}"
+
+#: src/lib/offerHints.ts
+msgid "Python"
+msgstr "Python"
 
 #: src/components/Phrase.tsx
 msgid "Разобраться заранее"
