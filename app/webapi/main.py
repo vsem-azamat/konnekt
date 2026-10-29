@@ -14,7 +14,7 @@ from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.webapi.deps import require_super_admin
-from app.webapi.origin_guard import DEV_ORIGIN, RequireOurOrigin
+from app.webapi.origin_guard import DEV_ORIGINS, RequireOurOrigin
 from app.webapi.request_log import RequestLog
 from app.webapi.routes import (
     admin,
@@ -109,7 +109,7 @@ def create_app() -> FastAPI:
     app.add_middleware(RequireOurOrigin)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.webapi.allowed_origins or [DEV_ORIGIN],
+        allow_origins=settings.webapi.allowed_origins or DEV_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

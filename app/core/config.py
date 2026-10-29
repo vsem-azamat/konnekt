@@ -287,13 +287,13 @@ class WebApiSettings(Settings):
         One with a port or a path matches no request, so the console would be
         configured and unreachable. Refused at startup instead; the deploy
         refuses the same URLs (scripts/admin_host.sh). Local development may
-        name a port on localhost.
+        name a port on localhost, over http or https.
         """
         if not self.admin_url:
             return self
         admin = urlsplit(self.admin_url)
         local = admin.hostname in {"localhost", "127.0.0.1"}
-        if admin.scheme != ("http" if local else "https") or not admin.hostname:
+        if admin.scheme not in ({"http", "https"} if local else {"https"}) or not admin.hostname:
             raise ValueError("admin_url must be an https URL")
         if (admin.port and not local) or admin.path.strip("/") or admin.query or admin.fragment:
             raise ValueError("admin_url must be a bare origin: no port, no path")
