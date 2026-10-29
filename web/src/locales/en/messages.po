@@ -519,6 +519,10 @@ msgstr "Wed"
 msgid "не указан: стоит в «Общее»"
 msgstr "not set: listed under “General”"
 
+#: src/console/pages/Summary.tsx
+msgid "набеги заявок и предложенные баны"
+msgstr "join raids and proposed bans"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
 msgstr "The chat will be turned off. You can bring its mode back right here."
@@ -1963,6 +1967,7 @@ msgstr "Ads in the last day"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Signals"
 

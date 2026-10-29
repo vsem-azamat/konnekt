@@ -518,6 +518,10 @@ msgstr "Ср"
 msgid "не указан: стоит в «Общее»"
 msgstr "не указан: стоит в «Общее»"
 
+#: src/console/pages/Summary.tsx
+msgid "набеги заявок и предложенные баны"
+msgstr "набеги заявок и предложенные баны"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
 msgstr "Чат будет отключён. Вернуть режим можно здесь же."
@@ -1962,6 +1966,7 @@ msgstr "Реклама за сутки"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Сигналы"
 

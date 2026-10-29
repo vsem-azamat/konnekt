@@ -519,6 +519,10 @@ msgstr "St"
 msgid "не указан: стоит в «Общее»"
 msgstr "neuvedeno: stojí v „Obecné“"
 
+#: src/console/pages/Summary.tsx
+msgid "набеги заявок и предложенные баны"
+msgstr "nájezdy žádostí a navržené bany"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
 msgstr "Chat bude vypnut. Režim lze vrátit přímo zde."
@@ -1963,6 +1967,7 @@ msgstr "Reklama za den"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Signály"
 

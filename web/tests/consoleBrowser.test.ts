@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 
 import {
@@ -52,4 +54,20 @@ test('a missing session sends the browser to sign in, and a failed request does 
   assert.equal(endsSession(new ConsoleError(401, 'not-kept')), false);
   assert.equal(endsSession(new ConsoleError(500)), false);
   assert.equal(endsSession(new Error('network')), false);
+});
+
+test('the Mini App reaches every console screen the browser does', () => {
+  // One console in two layouts: a row on the summary must not lead nowhere.
+  const router = readFileSync(
+    join(import.meta.dirname, '..', 'src', 'router.tsx'),
+    'utf8',
+  );
+  const miniApp = [...router.matchAll(/path: '(console(?:\/[^']*)?)'/g)].map(([, path]) =>
+    (path ?? '').replace(/^console\/?/, ''),
+  );
+  assert.ok(miniApp.includes(''), 'the walk found the summary');
+  assert.deepEqual(
+    BROWSER_PATHS.filter((path) => !miniApp.includes(path)),
+    [],
+  );
 });

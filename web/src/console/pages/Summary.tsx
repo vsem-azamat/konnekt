@@ -4,6 +4,7 @@ import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   BagIcon,
+  BellIcon,
   BlockIcon,
   ChatIcon,
   DocumentIcon,
@@ -44,6 +45,7 @@ import css from '@/console/Summary.module.css';
 import { type AttentionKey, attention, type BusyChat } from '@/console/session';
 import {
   elapsed,
+  menuCounts,
   minutesUntil,
   type PendingActionSignal,
   type WaveSignal,
@@ -79,11 +81,13 @@ function Summary() {
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
-  // The browser's summary also lists the waves and the proposals, and says
-  // whether the console's bot can act; the menu reads the signals already.
+  // The waves and the proposals, and whether the console's bot can act: the
+  // same in both layouts. A browser's menu reads the signals too.
   const inBrowser = useBrowserConsole();
-  const signals = useQuery({ ...consoleSignalsQuery, enabled: inBrowser });
-  const system = useQuery({ ...consoleSystemQuery, enabled: inBrowser });
+  const signals = useQuery(consoleSignalsQuery);
+  const system = useQuery(consoleSystemQuery);
+  // What the browser's menu counts, on the summary's sections in the Mini App.
+  const counts = menuCounts(signals.data, catalog.data?.counts);
 
   const open = (path: string) => {
     hapticSelection();
@@ -92,16 +96,14 @@ function Summary() {
 
   // Each backend answers for itself: webapi refusing must not hide what the
   // catalog said, and the other way round.
-  // Signals are asked for only in a browser; a disabled query stays pending.
   const webapiError = stats.error ?? chats.error ?? signals.error;
   const loading =
     catalog.isPending ||
-    (!webapiError &&
-      (stats.isPending || chats.isPending || (inBrowser && signals.isPending)));
+    (!webapiError && (stats.isPending || chats.isPending || signals.isPending));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
     chats: chats.data ?? [],
-    profilesToReview: inBrowser ? catalog.data?.counts.profiles_to_review : undefined,
+    profilesToReview: catalog.data?.counts.profiles_to_review,
     requestsUnanswered: catalog.data?.counts.unanswered ?? 0,
   });
   const approved = chats.data?.filter(
@@ -170,24 +172,22 @@ function Summary() {
 
   // Each wave and proposal on a row of its own, above the queues, as the
   // Сигналы screen puts them.
-  const waiting = inBrowser
-    ? [
-        ...(signals.data?.waves ?? []).map((wave) => (
-          <WaveRow
-            key={`wave-${wave.id}`}
-            wave={wave}
-            onClick={() => open('/console/signals')}
-          />
-        )),
-        ...(signals.data?.pending_actions ?? []).map((proposal) => (
-          <ProposalRow
-            key={`proposal-${proposal.id}`}
-            proposal={proposal}
-            onClick={() => open('/console/signals')}
-          />
-        )),
-      ]
-    : [];
+  const waiting = [
+    ...(signals.data?.waves ?? []).map((wave) => (
+      <WaveRow
+        key={`wave-${wave.id}`}
+        wave={wave}
+        onClick={() => open('/console/signals')}
+      />
+    )),
+    ...(signals.data?.pending_actions ?? []).map((proposal) => (
+      <ProposalRow
+        key={`proposal-${proposal.id}`}
+        proposal={proposal}
+        onClick={() => open('/console/signals')}
+      />
+    )),
+  ];
 
   const updated = (
     <div style={{ marginTop: 6 }}>
@@ -271,7 +271,7 @@ function Summary() {
               retry={() => {
                 void stats.refetch();
                 void chats.refetch();
-                if (inBrowser) void signals.refetch();
+                void signals.refetch();
               }}
             />
           ) : null}
@@ -293,6 +293,15 @@ function Summary() {
     </>
   );
 
+  const bots = (
+    <Bots
+      audience={audience.data}
+      error={audience.error}
+      retry={() => void audience.refetch()}
+      ready={system.data?.publish_bot_ready}
+    />
+  );
+
   if (inBrowser) {
     return (
       <>
@@ -301,14 +310,7 @@ function Summary() {
         <div className={css.grid}>
           <div>{needs}</div>
           <div className={css.column}>
-            <section className={css.card}>
-              <Bots
-                audience={audience.data}
-                error={audience.error}
-                retry={() => void audience.refetch()}
-                ready={system.data?.publish_bot_ready}
-              />
-            </section>
+            <section className={css.card}>{bots}</section>
             {stats.data ? (
               <section className={css.card}>
                 <Label aside={<Trans>сутки</Trans>}>
@@ -331,6 +333,8 @@ function Summary() {
 
       {needs}
 
+      {bots}
+
       {stats.data ? (
         <>
           <Label aside={<Trans>сутки</Trans>}>
@@ -346,11 +350,24 @@ function Summary() {
       <Rows>
         <Row
           leading={
+            <Tile tone={1}>
+              <BellIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Сигналы</Trans>}
+          hint={<Trans>набеги заявок и предложенные баны</Trans>}
+          badge={counts.signals || undefined}
+          trailing={<Chevron />}
+          onClick={() => open('/console/signals')}
+        />
+        <Row
+          leading={
             <Tile tone={3}>
               <ChatIcon size={19} />
             </Tile>
           }
           title={<Trans>Чаты</Trans>}
+          badge={counts.chats || undefined}
           hint={
             chats.data ? (
               <Trans>
@@ -389,6 +406,7 @@ function Summary() {
           }
           title={<Trans>Каталог</Trans>}
           hint={<Trans>анкеты, заявки, поиски без ответа</Trans>}
+          badge={counts.catalog || undefined}
           trailing={<Chevron />}
           onClick={() => open('/console/catalog')}
         />
@@ -425,6 +443,7 @@ function Summary() {
             </Tile>
           }
           title={<Trans>Реклама</Trans>}
+          badge={counts.spam || undefined}
           hint={
             stats.data ? (
               <Trans>
