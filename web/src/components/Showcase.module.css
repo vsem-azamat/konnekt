@@ -1,12 +1,13 @@
 /* The paid places under «Документы и жизнь»: one big card over a pair on a
-   phone, the big one beside the pair on a wide screen (H2). An open place is
-   drawn lower than a taken one (E1), so the cards stay what the eye lands on. */
+   phone, three equal tiles in a row from 720px, where a big card beside the
+   pair never lined up with the grid around it. An open place is drawn lower
+   than a taken one (E1), so the cards stay what the eye lands on. */
 
 .hero {
   display: grid;
   gap: 10px;
-  /* Each card its own height: a photo stretched to the pair's would leave
-     16:9 and crop the partner's picture at the sides. */
+  /* Each place its own height: stretched to a card's, an open place would
+     be as tall as the card and no longer lower (E1). */
   align-items: start;
 }
 
@@ -21,12 +22,17 @@
   min-width: 0;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .hero {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .pair {
-    grid-template-columns: 1fr;
+    display: contents;
+  }
+  /* A card alone, the other places shown as rows: two thirds, not a third
+     with empty space beside it. */
+  .hero > :only-child {
+    grid-column: span 2;
   }
 }
 
@@ -134,13 +140,24 @@
   white-space: nowrap;
 }
 
-.main .title {
-  font-size: 17px;
+/* Only on a phone, where the first place is bigger. In a row of equal tiles
+   it is no louder than the others. */
+@media (max-width: 719px) {
+  .main .title {
+    font-size: 17px;
+  }
+  .main .line {
+    -webkit-line-clamp: 3;
+    font-size: 13.5px;
+  }
 }
 
-.main .line {
-  -webkit-line-clamp: 3;
-  font-size: 13.5px;
+@media (min-width: 720px) {
+  .main .meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
 }
 
 /* E1: nobody has taken the place yet. */
@@ -154,7 +171,14 @@
   place-items: center;
   aspect-ratio: 32 / 9;
   width: 100%;
-  background: var(--surface);
+}
+
+/* A third of the row at 32:9 would be a tall empty frame round a small icon. */
+@media (min-width: 720px) {
+  .openCover {
+    aspect-ratio: auto;
+    height: 64px;
+  }
 }
 
 .invite {

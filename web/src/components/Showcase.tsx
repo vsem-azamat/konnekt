@@ -15,7 +15,7 @@ import css from './Showcase.module.css';
 
 /**
  * «Документы и жизнь» with its paid places: the first big, the next two as a
- * pair under it (beside it on a wide screen), then the shelf's other services
+ * pair under it (three equal tiles from 720px), then the shelf's other services
  * as rows. Drawn only when `shelf()` says there is something to draw.
  */
 export function Showcase({
