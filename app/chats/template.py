@@ -32,7 +32,7 @@ DEFAULT_EMOJI = "🎓"
 _EMOJI_MAX_CODEPOINTS = 8
 _NOT_KEPT = frozenset({"📢", "📩"})
 _RETIRED = re.compile(
-    r"(?:@|t\.me/)(?:konnekt_cz|konnekt_net|czech_media|czechopen|work_azamat|konnekt_moder_bot|student_cz_bot)\b",
+    r"(?:@|t\.me/)(?:konnekt_cz|konnekt_net|czech_media|czechopen|work_azamat|konnekt_moder_bot|student_cz_bot|czechmedia_bot)\b",
     re.IGNORECASE,
 )
 _LEADING_SYMBOLS = re.compile(r"^[^\w@\s]+")
