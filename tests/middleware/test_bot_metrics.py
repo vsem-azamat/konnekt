@@ -113,6 +113,32 @@ async def test_the_queues_are_counted_from_the_database(session) -> None:
     assert PendingAction  # the third queue is read from the same place
 
 
+async def test_greetings_past_their_time_are_counted_once_each(session) -> None:
+    """A greeting is one message however many joiners extended it; the last join decides."""
+    import datetime
+
+    from app.core.time import utc_now
+    from app.db.models import WelcomeGreeting
+
+    now = utc_now()
+    ago, ahead = now - datetime.timedelta(minutes=5), now + datetime.timedelta(minutes=5)
+    session.add_all(
+        [
+            WelcomeGreeting(-1001, 10, ago),
+            WelcomeGreeting(-1001, 10, ago),  # a second joiner, the same message
+            WelcomeGreeting(-1002, 20, ago),
+            WelcomeGreeting(-1002, 21, ago),
+            WelcomeGreeting(-1002, 21, ahead),  # a later joiner keeps it up
+            WelcomeGreeting(-1003, 30, ahead),
+        ]
+    )
+    await session.commit()
+
+    await bot_metrics.refresh_queue_depths(session)
+
+    assert sample("bot_queue_depth", queue="welcome_overdue") == 2
+
+
 async def test_the_scrape_app_is_closed_by_the_token_and_serves_one_path(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.observability, "metrics_secret", SecretStr("s3cret-value"))
     app = bot_metrics.build_metrics_app()

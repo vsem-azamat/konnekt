@@ -159,6 +159,17 @@ async def sweep(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = N
         await db.commit()
 
 
+async def overdue(db: AsyncSession, *, now: datetime.datetime | None = None) -> int:
+    """Greetings `sweep` should have deleted by now; above zero for long, it is not getting through."""
+    now = now or utc_now()
+    due = (
+        select(WelcomeGreeting.chat_id)
+        .group_by(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
+        .having(func.max(WelcomeGreeting.delete_at) <= now)
+    )
+    return await db.scalar(select(func.count()).select_from(due.subquery())) or 0
+
+
 def _name(user: User) -> str:
     return user.mention_html(user.first_name)
 
