@@ -599,6 +599,11 @@ async def test_the_sweep_loop_expires_refreshes_and_forgets(monkeypatch) -> None
     monkeypatch.setattr(service, "remind", remind)
     monkeypatch.setattr(service.waves, "refresh_alerts", refresh)
     monkeypatch.setattr(service, "forget_old", forget)
+
+    async def sweep_greetings(*_: object, **__: object) -> None:
+        calls.append("greetings")
+
+    monkeypatch.setattr(service.welcome, "sweep", sweep_greetings)
     session_maker = MagicMock()
     session_maker.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
     session_maker.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -606,7 +611,7 @@ async def test_the_sweep_loop_expires_refreshes_and_forgets(monkeypatch) -> None
     with pytest.raises(asyncio.CancelledError):
         await service.run_sweep(session_maker, MagicMock(), interval_seconds=0)
 
-    assert calls == ["expire", "remind", "refresh", "forget"]
+    assert calls == ["expire", "remind", "greetings", "refresh", "forget"]
 
 
 # --- the reminder ------------------------------------------------------------
