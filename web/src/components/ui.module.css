@@ -1740,8 +1740,8 @@
   transform: rotate(90deg);
 }
 
-/* Variant B of «Предложить услугу» under the results: a filled card with a
-   real button, louder than the dashed request row above it. */
+/* «Предложить услугу» under the results: a filled card with a real button,
+   louder than the dashed request row above it. */
 .offerCard {
   display: flex;
   flex-direction: column;

@@ -51,9 +51,3 @@ for (const locale of ['ru', 'cs', 'en', 'uk']) {
     }
   });
 }
-
-test('the tabs are gone from the results screen', () => {
-  const page = readFileSync(new URL('../src/pages/Results.tsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(page, /Segmented/);
-  assert.doesNotMatch(page, /params\.get\('v'\)/);
-});

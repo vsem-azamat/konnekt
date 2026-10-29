@@ -3039,6 +3039,10 @@ msgstr "Na tuhle poptávku jsi už odpovídal"
 msgid "Вернуть в каталог может только администратор"
 msgstr "Zpět do katalogu ho může vrátit jen administrátor"
 
+#: src/pages/Results.tsx
+msgid "Поиск по имени или вузу"
+msgstr "Hledat podle jména nebo školy"
+
 #: src/pages/Ads.tsx
 msgid "Что не размещаем"
 msgstr "Co nezveřejňujeme"

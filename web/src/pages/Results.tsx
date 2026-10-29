@@ -41,20 +41,6 @@ export default function ResultsPage() {
   const [sort, setSort] = useState<SearchSort>('relevance');
   const [sorting, setSorting] = useState(false);
   const [needle, setNeedle] = useState('');
-  // The service this list was opened for, handed to «Предложить услугу» so the
-  // tile is already ticked there.
-  const service = params.get('service');
-  const offer = () =>
-    navigate('/offer', { state: { picked: service ? [service] : [], from: 'results' } });
-  // Somebody who already offers this is on the list, and «добавь себя» would
-  // be asking them to do what they did.
-  const mine = useQuery({
-    queryKey: ['my-helper'],
-    queryFn: ({ signal }) => api.getMyHelper(signal),
-  });
-  const offersThis =
-    service !== null &&
-    (mine.data?.offers ?? []).some((offer) => offer.service_type === service);
   // Opened straight away when the search screen sent somebody here because it
   // found nobody: the button there said «Оставить заявку», and landing on an
   // empty list with the sheet still shut would be that promise unkept.
@@ -73,6 +59,32 @@ export default function ResultsPage() {
   // The same reading of the query string the search screen used to count and
   // preview this list, so the number it showed is the number that arrives here.
   const { filters, isError: filtersFailed } = useSearchFilters(params);
+
+  // The service this list is for, handed to «Предложить услугу» so the tile is
+  // already ticked there. By id: a tile sends its code, but /ask sends the id
+  // of the service it read from the query, and both end up here.
+  const serviceId = filters?.service_type_id ?? null;
+  const types = useQuery({
+    queryKey: ['service-types'],
+    queryFn: ({ signal }) => api.getServiceTypes(signal),
+    staleTime: 60 * 60 * 1000,
+  });
+  const serviceCode = types.data?.find((type) => type.id === serviceId)?.code;
+  const offer = () =>
+    navigate('/offer', {
+      state: { picked: serviceCode ? [serviceCode] : [], from: 'results' },
+    });
+  // Somebody who already offers this is on the list, and «добавь себя» would
+  // be asking them to do what they did. Not drawn until that is known, or a
+  // helper sees it flash in and out.
+  const mine = useQuery({
+    queryKey: ['my-helper'],
+    queryFn: ({ signal }) => api.getMyHelper(signal),
+  });
+  const offersThis =
+    serviceId !== null &&
+    (mine.data?.offers ?? []).some((offer) => offer.service_type_id === serviceId);
+  const inviting = (mine.isSuccess || mine.isError) && !offersThis;
 
   // Nothing to filter on and only a guess to go by. There is no list to show
   // above the guess then, and running the search anyway would count the whole
@@ -106,7 +118,9 @@ export default function ResultsPage() {
     // the subject and nothing else. A query that named a school and a budget
     // means them in this list too.
     queryFn: ({ signal }) =>
-      api.search({ ...filters, subject_id: guess ?? undefined, sort }, signal),
+      // As many as the list itself loads: the top group is where the two
+      // overlap, so a shorter page here would send its 21st person to «Также».
+      api.search({ ...filters, subject_id: guess ?? undefined, sort, limit: 50 }, signal),
     enabled: guess !== null && filters !== null,
   });
 
@@ -228,7 +242,7 @@ export default function ResultsPage() {
               body={<Trans>Никто пока не предлагает то, что ты ищешь.</Trans>}
             />
             <AskInstead onClick={() => setAsking(true)} found={0} />
-            {offersThis ? null : <OfferYourself onClick={offer} />}
+            {inviting ? <OfferYourself onClick={offer} /> : null}
           </>
         ) : (
           <>
@@ -238,6 +252,9 @@ export default function ResultsPage() {
               <div className={ui.field} style={{ marginTop: 4 }}>
                 <SearchIcon size={18} className={ui.fieldIcon} />
                 <input
+                  type="search"
+                  enterKeyHint="search"
+                  aria-label={t`Поиск по имени или вузу`}
                   value={needle}
                   onChange={(event) => setNeedle(event.target.value)}
                   placeholder={t`Имя или вуз`}
@@ -251,6 +268,7 @@ export default function ResultsPage() {
                 <button
                   type="button"
                   className={`${ui.sortButton} ${ui.pressable}`}
+                  aria-haspopup="dialog"
                   onClick={() => setSorting(true)}
                 >
                   <SortName sort={sort} />
@@ -273,7 +291,7 @@ export default function ResultsPage() {
             </Label>
             {/* Why these are first. Two unexplained groups is worse than one
                 list: the reader is owed the guess that reordered them. */}
-            {split && alsoProps.named ? (
+            {split && closest.length > 0 && alsoProps.named ? (
               <Sub>
                 <Trans>Сверху — кто ведёт «{alsoProps.named}»</Trans>
               </Sub>
@@ -310,7 +328,7 @@ export default function ResultsPage() {
                 thing, and the second one is the whole other half of the
                 product. */}
             <AskInstead onClick={() => setAsking(true)} found={data.total} />
-            {offersThis ? null : <OfferYourself onClick={offer} />}
+            {inviting ? <OfferYourself onClick={offer} /> : null}
           </>
         )}
       </Screen>

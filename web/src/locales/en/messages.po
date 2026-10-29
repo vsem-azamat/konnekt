@@ -3039,6 +3039,10 @@ msgstr "You have already answered this request"
 msgid "Вернуть в каталог может только администратор"
 msgstr "Only an administrator can put it back in the catalog"
 
+#: src/pages/Results.tsx
+msgid "Поиск по имени или вузу"
+msgstr "Search by name or university"
+
 #: src/pages/Ads.tsx
 msgid "Что не размещаем"
 msgstr "What we do not place"
