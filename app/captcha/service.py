@@ -420,7 +420,7 @@ async def answer(
     if row.attempts_left > 0:
         CAPTCHA_EVENTS.labels(event="retry").inc()
     if row.attempts_left <= 0 and row.in_chat:
-        await _remove(bot, db, row, now, JoinCaptcha.STATUS_FAILED, challenge.removed_failed_text(title))
+        await _remove(bot, db, row, now, expired=False)
         logger.info("captcha_failed", chat_id=row.chat_id, user_id=row.user_id)
         return Outcome.FAILED
     if row.attempts_left <= 0:
@@ -498,7 +498,14 @@ async def waits_in_chat(db: AsyncSession, chat_id: int, user_id: int) -> bool:
 
 
 async def let_go(
-    bot: Bot, db: AsyncSession, chat_id: int, user_id: int, *, unmute: bool, now: datetime.datetime | None = None
+    bot: Bot,
+    db: AsyncSession,
+    chat_id: int,
+    user_id: int,
+    *,
+    unmute: bool,
+    since: datetime.datetime,
+    now: datetime.datetime | None = None,
 ) -> None:
     """Close the captcha in the chat of somebody who left, was removed, or was unmuted by an admin.
 
@@ -508,7 +515,9 @@ async def let_go(
     muted with nothing left to lift it. Never for a ban, which it would undo.
 
     The bot's own removals and unmutes hold the row while they act, so this
-    waits for them and finds it settled.
+    waits for them and finds it settled. Only captchas from before `since`,
+    when the change happened: handled late, a leave must not close the
+    captcha of the request that followed it.
     """
     now = now or utc_now()
     rows = (
@@ -519,6 +528,7 @@ async def let_go(
                 JoinCaptcha.user_id == user_id,
                 JoinCaptcha.in_chat,
                 JoinCaptcha.status == JoinCaptcha.STATUS_PENDING,
+                JoinCaptcha.created_at <= since,
             )
             .with_for_update()
         )
@@ -557,16 +567,28 @@ async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Ch
             await welcome.remember(db, chat.id, message_id, lifetime)
 
 
-async def _remove(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, status: str, text: str) -> None:
+async def _remove(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, *, expired: bool) -> None:
     """Out of tries or out of time: out of the chat, and off the card."""
-    if problem := await in_chat.remove(bot, row):
-        chat = await db.get(Chat, row.chat_id)
-        title = _title(chat) if chat else str(row.chat_id)
+    chat = await db.get(Chat, row.chat_id)
+    title = _title(chat) if chat else str(row.chat_id)
+    removal = await in_chat.remove(bot, row)
+    if removal is not in_chat.Removal.DONE:
+        problem = {
+            in_chat.Removal.STILL_IN: "не смог убрать из чата: он(а) остаётся в чате без права писать",
+            in_chat.Removal.BANNED: "убрал из чата, но не смог снять бан: вступить снова не выйдет, пока бан не снимут",
+        }[removal]
         await report(
             bot,
             f"Капча в {html.escape(title)}: {row.user_id} не прошёл(а) проверку, бот {problem}. "
             "Проверьте права бота в чате.",
         )
+    status = JoinCaptcha.STATUS_EXPIRED if expired else JoinCaptcha.STATUS_FAILED
+    text = challenge.removed_text(
+        title,
+        expired=expired,
+        removed=removal is not in_chat.Removal.STILL_IN,
+        may_return=removal is in_chat.Removal.DONE,
+    )
     await _close(bot, db, row, status, now, text)
     await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
 
@@ -656,7 +678,7 @@ async def expire_stale(bot: Bot, db: AsyncSession, *, now: datetime.datetime | N
         title = _title(chat) if chat else str(row.chat_id)
         if row.in_chat:
             if _still_checks(chat):
-                await _remove(bot, db, row, now, JoinCaptcha.STATUS_EXPIRED, challenge.removed_expired_text(title))
+                await _remove(bot, db, row, now, expired=True)
             else:
                 await _release(bot, db, row, now, title)
             settled += 1

@@ -86,7 +86,9 @@ async def user_left(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> Non
     """Left or removed: a captcha in the chat waiting on them has nobody to ask."""
     logger.info("user_left", chat_id=event.chat.id, user_id=event.new_chat_member.user.id)
     banned = event.new_chat_member.status == ChatMemberStatus.KICKED
-    await captcha.let_go(bot, db, event.chat.id, event.new_chat_member.user.id, unmute=not banned)
+    await captcha.let_go(
+        bot, db, event.chat.id, event.new_chat_member.user.id, unmute=not banned, since=_naive_utc(event.date)
+    )
 
 
 @router.chat_member(
@@ -98,7 +100,14 @@ async def user_unmuted(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> 
     The captcha's own unmute, after a pass, holds the row while it acts, so
     this finds it settled.
     """
-    await captcha.let_go(bot, db, event.chat.id, event.new_chat_member.user.id, unmute=False)
+    await captcha.let_go(
+        bot, db, event.chat.id, event.new_chat_member.user.id, unmute=False, since=_naive_utc(event.date)
+    )
+
+
+def _naive_utc(moment: datetime.datetime) -> datetime.datetime:
+    """Telegram's time of an update, as the naive UTC the database keeps."""
+    return moment.astimezone(datetime.UTC).replace(tzinfo=None)
 
 
 def _may_invite(member: ChatMemberUnion) -> bool:

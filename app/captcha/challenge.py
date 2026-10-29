@@ -191,14 +191,13 @@ def unmuted_text(chat_title: str, link: str | None) -> str:
     return f"✅ Готово, теперь можно писать в {where}!"
 
 
-def removed_failed_text(chat_title: str) -> str:
-    return f"Проверка для <b>{html.escape(chat_title)}</b> не пройдена, бот убрал тебя из чата. Можно вступить ещё раз."
-
-
-def removed_expired_text(chat_title: str) -> str:
-    return (
-        f"Время на проверку в <b>{html.escape(chat_title)}</b> вышло, бот убрал тебя из чата. Можно вступить ещё раз."
-    )
+def removed_text(chat_title: str, *, expired: bool, removed: bool, may_return: bool) -> str:
+    """Out of tries or time; `removed` and `may_return` say how far the removal got."""
+    title = html.escape(chat_title)
+    why = f"Время на проверку в <b>{title}</b> вышло" if expired else f"Проверка для <b>{title}</b> не пройдена"
+    if not removed:
+        return f"{why}: писать в чате пока нельзя, дальше решат админы чата."
+    return f"{why}, бот убрал тебя из чата." + (" Можно вступить ещё раз." if may_return else "")
 
 
 def no_longer_needed_text(chat_title: str) -> str:

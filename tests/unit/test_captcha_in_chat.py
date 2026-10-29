@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.methods import RestrictChatMember
 from aiogram.types import (
     Chat,
@@ -106,6 +106,7 @@ def _no_intro_media(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.telegram, "intro_video", "")
     monkeypatch.setattr(settings.telegram, "intro_video_cover", "")
     welcome.forget()
+    in_chat._not_before.clear()
 
 
 @pytest.fixture
@@ -421,17 +422,31 @@ async def test_a_chat_that_stops_checking_lets_its_muted_write(session: AsyncSes
 
 async def test_a_card_that_could_not_go_up_is_tried_again_with_its_mentions(session: AsyncSession, bot) -> None:
     await _seed(session)
-    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Too Many Requests")
-
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: chat write forbidden")
     await _let_in(session, bot)
     [row] = await _rows(session)
     assert row.announced_at is None
-
     bot.send_message.side_effect = None
     bot.send_message.return_value = MagicMock(message_id=555)
+    bot.send_message.reset_mock()
+
+    # Not at every sweep: a window later.
     await in_chat.announce_due(bot, session, utc_now())
+    bot.send_message.assert_not_awaited()
+    await in_chat.announce_due(bot, session, utc_now() + BATCH)
 
     assert "tg://user?id=4242" in bot.send_message.await_args.kwargs["text"]
+
+
+async def test_flood_control_on_a_card_is_waited_out(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    bot.send_message.side_effect = TelegramRetryAfter(method=MagicMock(), message="Too Many Requests", retry_after=120)
+    await _let_in(session, bot)
+    bot.send_message.reset_mock()
+
+    await in_chat.announce_due(bot, session, utc_now() + datetime.timedelta(seconds=90))
+
+    bot.send_message.assert_not_awaited()
 
 
 async def test_the_popup_speaks_of_the_chat_not_a_request(session: AsyncSession, bot) -> None:
@@ -566,3 +581,33 @@ async def test_each_transition_reaches_one_handler(transition: str) -> None:
     update = _update(1, old, new)
     matched = [h.callback for h in events.router.chat_member.handlers if (await h.check(update))[0]]
     assert matched == ([expected] if expected else [])
+
+
+async def test_a_leave_handled_late_leaves_the_next_request_alone(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    await _let_in(session, bot)
+    left_at = datetime.datetime.now(datetime.UTC)
+    await user_left(_update(4242, _muted(4242), _muted(4242, is_member=False)), bot, session)
+    await _let_in(session, bot)
+    bot.restrict_chat_member.reset_mock()
+
+    # The same leave again, as if its update had only now been handled.
+    late = _update(4242, _muted(4242), _muted(4242, is_member=False)).model_copy(update={"date": left_at})
+    await user_left(late, bot, session)
+
+    assert [r.status for r in await _rows(session)] == [JoinCaptcha.STATUS_GONE, JoinCaptcha.STATUS_PENDING]
+    bot.restrict_chat_member.assert_not_awaited()
+
+
+async def test_a_refused_removal_is_not_called_one(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    row = await _let_in(session, bot)
+    await _ask(session, bot)
+    bot.ban_chat_member.side_effect = TelegramBadRequest(method=MagicMock(), message="Bad Request: not enough rights")
+
+    await service.expire_stale(bot, session, now=row.expires_at + datetime.timedelta(seconds=1))
+
+    [told] = [c.kwargs["text"] for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == 4242]
+    assert told == "Время на проверку в <b>ČVUT FIT</b> вышло: писать в чате пока нельзя, дальше решат админы чата."
+    [report] = _sent(bot, settings.admin.default_report_chat_id)
+    assert "остаётся в чате без права писать" in report["text"]

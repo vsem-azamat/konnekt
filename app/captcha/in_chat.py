@@ -19,12 +19,13 @@ The service decides; this module does the chat's half in Telegram.
 """
 
 import datetime
+import enum
 import html
 import math
 from collections.abc import Sequence
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from aiogram.types import ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User
 from sqlalchemy import Select, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,6 +44,9 @@ logger = get_logger("captcha.in_chat")
 # Every permission there is, wider than a moderator's mute: nothing they could
 # post, react with or change, including what Telegram adds later.
 MUTED = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, False))
+# When a chat's card may be tried again after Telegram refused one. This
+# process's alone: after a restart the next sweep simply tries.
+_not_before: dict[int, datetime.datetime] = {}
 # Named so when Telegram will not say who it is.
 _UNNAMED = "новичок"
 
@@ -70,19 +74,27 @@ async def unmute(bot: Bot, row: JoinCaptcha) -> bool:
     return True
 
 
-async def remove(bot: Bot, row: JoinCaptcha) -> str | None:
-    """Out of the chat with whatever they posted, and free to join again; what went wrong, if anything."""
+class Removal(enum.Enum):
+    DONE = "done"
+    # The ban was refused: still in the chat, still muted.
+    STILL_IN = "still_in"
+    # Banned, but the ban was not lifted: they cannot join again until somebody lifts it.
+    BANNED = "banned"
+
+
+async def remove(bot: Bot, row: JoinCaptcha) -> Removal:
+    """Out of the chat with whatever they posted, and free to join again; how far it got."""
     try:
         await with_retry(lambda: bot.ban_chat_member(chat_id=row.chat_id, user_id=row.user_id, revoke_messages=True))
     except TelegramAPIError as err:
         logger.warning("captcha_not_removed", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
-        return "не смог убрать из чата: он(а) остаётся в чате без права писать"
+        return Removal.STILL_IN
     try:
         await with_retry(lambda: bot.unban_chat_member(chat_id=row.chat_id, user_id=row.user_id, only_if_banned=True))
     except TelegramAPIError as err:
         logger.warning("captcha_not_unbanned", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
-        return "убрал из чата, но не смог снять бан: вступить снова не выйдет, пока бан не снимут"
-    return None
+        return Removal.BANNED
+    return Removal.DONE
 
 
 async def member(bot: Bot, row: JoinCaptcha) -> User | None:
@@ -100,6 +112,8 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     Decided and claimed under the chat's lock, posted after it: a card may wait
     out flood control, and every admission to the chat would wait with it.
     """
+    if now < _not_before.get(chat_id, now):
+        return
     await lock_chat(db, chat_id)
     waiting = (await db.scalars(_waiting(chat_id).order_by(JoinCaptcha.created_at).with_for_update())).all()
     new = [row for row in waiting if row.announced_at is None]
@@ -128,8 +142,12 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     try:
         sent = await with_retry(lambda: bot.send_message(chat_id=chat_id, text=body, reply_markup=markup))
     except TelegramAPIError as err:
-        # Unclaimed, so the sweep tries again: carried into a later card by
-        # name alone, they would never be notified at all.
+        # Unclaimed, so a later sweep tries again: carried into a later card by
+        # name alone, they would never be notified at all. Not before Telegram
+        # says, or a window from now: asking a chat under flood control again
+        # and again only lengthens it.
+        wait = err.retry_after if isinstance(err, TelegramRetryAfter) else settings.captcha.card_batch_seconds
+        _not_before[chat_id] = now + datetime.timedelta(seconds=wait)
         await db.execute(
             update(JoinCaptcha)
             .where(JoinCaptcha.id.in_([row.id for row in new]), JoinCaptcha.announced_at == now)
