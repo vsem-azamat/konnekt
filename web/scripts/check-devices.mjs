@@ -916,8 +916,12 @@ try {
         const own = [
           `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
         ];
-        await lines.run(own, () => checkProfile(browser, base, profile));
-        console.log(own.join('\n'));
+        try {
+          await lines.run(own, () => checkProfile(browser, base, profile));
+        } finally {
+          // Also when it threw: what it checked before is the way to the cause.
+          console.log(own.join('\n'));
+        }
       }
     }),
   );
