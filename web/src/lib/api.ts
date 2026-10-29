@@ -111,16 +111,6 @@ export class UnauthorizedError extends ApiError {
   }
 }
 
-/** Listeners notified once per 401, so the shell can prompt for a reload. */
-const unauthorizedListeners = new Set<(error: UnauthorizedError) => void>();
-
-export function onUnauthorized(
-  listener: (error: UnauthorizedError) => void,
-): VoidFunction {
-  unauthorizedListeners.add(listener);
-  return () => unauthorizedListeners.delete(listener);
-}
-
 /**
  * The raw initData, or nothing outside Telegram and without the dev mock. The
  * one place that decides what "no initData" means.
@@ -197,11 +187,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     // Through webapi a 401 is the browser's session gone, which the console
     // answers by signing in again (browser.ts, `endsSession`).
     if (response.status === 401 && !call.initData) throw new SessionEndedError();
-    if (response.status === 401) {
-      const error = new UnauthorizedError(payload);
-      for (const listener of unauthorizedListeners) listener(error);
-      throw error;
-    }
+    if (response.status === 401) throw new UnauthorizedError(payload);
     throw new ApiError(response.status, payload, detailOf(payload));
   }
 

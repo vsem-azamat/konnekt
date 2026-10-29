@@ -200,7 +200,6 @@ msgid "Проверь связь и попробуй ещё раз."
 msgstr "Проверь связь и попробуй ещё раз."
 
 #: src/components/Incoming.tsx
-#: src/components/Phrase.tsx
 #: src/components/RequestSheet.tsx
 #: src/lib/workFormat.tsx
 msgid "Онлайн"
@@ -1660,7 +1659,6 @@ msgstr "без @username · id {id}"
 msgid "Сообщения по дням недели и часам; больше всего: {busiest}"
 msgstr "Сообщения по дням недели и часам; больше всего: {busiest}"
 
-#: src/components/Phrase.tsx
 #: src/lib/workFormat.tsx
 msgid "Очно"
 msgstr "Очно"
@@ -2011,10 +2009,6 @@ msgstr "Ссылка"
 #: src/console/pages/Chats.tsx
 msgid "Скрыты"
 msgstr "Скрыты"
-
-#: src/components/Phrase.tsx
-msgid "Онлайн и очно"
-msgstr "Онлайн и очно"
 
 #: src/pages/Request.tsx
 msgid "Заявка"
