@@ -2,6 +2,13 @@ name: Tests
 
 on:
   workflow_call:
+    inputs:
+      tested:
+        # Lanes the merged pull request's run already passed on this tree
+        # (scripts/tested_lanes.sh); the deploy leaves them out.
+        description: Lanes to leave out, space-separated
+        type: string
+        default: ""
   pull_request:
     branches: [ main ]
     # ready_for_review: a draft runs no lane until it is marked ready.
@@ -22,6 +29,8 @@ jobs:
     outputs:
       python: ${{ steps.lanes.outputs.python }}
       web: ${{ steps.lanes.outputs.web }}
+      catalog: ${{ steps.lanes.outputs.catalog }}
+      tree: ${{ steps.tree.outputs.tree }}
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,6 +44,7 @@ jobs:
       id: lanes
       env:
         DRAFT: ${{ github.event.pull_request.draft }}
+        TESTED: ${{ inputs.tested }}
       run: |
         if [ "$DRAFT" = true ]; then
           lanes=$(printf 'python=false\nweb=false\ncatalog=false')
@@ -43,6 +53,9 @@ jobs:
         else
           lanes=$(printf 'python=true\nweb=true\ncatalog=true')
         fi
+        for lane in $TESTED; do
+          lanes=$(sed "s/^$lane=true\$/$lane=false/" <<<"$lanes")
+        done
         echo "$lanes"
         # Anything else leaves a step's condition empty, and the step skipped.
         names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
@@ -51,6 +64,10 @@ jobs:
           exit 1
         fi
         echo "$lanes" >> "$GITHUB_OUTPUT"
+
+    - name: The tree this run tests
+      id: tree
+      run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
 
   # Reads no lane, and runs beside the others so a failure here stops none of them.
   routes:
@@ -300,6 +317,42 @@ jobs:
           esac
         done
 
+  # What a pull request's run proved, for the deploy after its merge: the tree
+  # it tested, and each lane that ran and passed on it. A lane it left out, or
+  # one that failed, is false, and the deploy runs it (scripts/tested_lanes.sh).
+  tested:
+    needs: [changes, python, web, catalog]
+    if: always() && github.event_name == 'pull_request' && needs.changes.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Record the tree and the lanes that passed on it
+      env:
+        TREE: ${{ needs.changes.outputs.tree }}
+        PYTHON: ${{ needs.python.result }}
+        WEB: ${{ needs.web.result }}
+        CATALOG_LANE: ${{ needs.changes.outputs.catalog }}
+        CATALOG: ${{ needs.catalog.result }}
+      run: |
+        passed() { [ "$1" = success ] && echo true || echo false; }
+        # The catalog job runs whatever its lane; its steps are what skip.
+        catalog=false
+        [ "$CATALOG_LANE" != true ] || catalog=$(passed "$CATALOG")
+        {
+          echo "tree=$TREE"
+          echo "python=$(passed "$PYTHON")"
+          echo "web=$(passed "$WEB")"
+          echo "catalog=$catalog"
+        } > tested.txt
+        cat tested.txt
+
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: tested
+        path: tested.txt
+        retention-days: 30
+
   # The catalog (catalog/): its own Python project, lockfile and database.
   # A separate job because nothing is shared with the bot's but the runner.
   catalog:
@@ -348,6 +401,7 @@ jobs:
       id: lanes
       env:
         DRAFT: ${{ github.event.pull_request.draft }}
+        TESTED: ${{ inputs.tested }}
       run: |
         if [ "$DRAFT" = true ]; then
           lanes=$(printf 'python=false\nweb=false\ncatalog=false')
@@ -356,6 +410,9 @@ jobs:
         else
           lanes=$(printf 'python=true\nweb=true\ncatalog=true')
         fi
+        for lane in $TESTED; do
+          lanes=$(sed "s/^$lane=true\$/$lane=false/" <<<"$lanes")
+        done
         echo "$lanes"
         # Anything else leaves a step's condition empty, and the step skipped.
         names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
