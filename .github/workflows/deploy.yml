@@ -35,6 +35,7 @@ jobs:
     needs: test
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -100,6 +101,8 @@ jobs:
     # A dispatch skips the build, and a skipped need would skip this too.
     if: ${{ !cancelled() && (needs.build-and-push.result == 'success' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
+    # Above the SSH session's own 30 minutes, so that one ends first and says why.
+    timeout-minutes: 40
 
     steps:
       # The compose file of the release being deployed, not of main's head.

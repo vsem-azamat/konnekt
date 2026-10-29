@@ -15,8 +15,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  # Which lanes the change touches, for the jobs below.
+  changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      python: ${{ steps.lanes.outputs.python }}
+      web: ${{ steps.lanes.outputs.web }}
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        # A pull request's merge commit and main under it: what it changes.
+        fetch-depth: 2
+
+    # A pull request runs only the jobs its change can break; main, and so
+    # the deploy, runs all of them. The hooks read the same script.
+    - name: Lanes this change touches
+      id: lanes
+      env:
+        DRAFT: ${{ github.event.pull_request.draft }}
+      run: |
+        if [ "$DRAFT" = true ]; then
+          lanes=$(printf 'python=false\nweb=false\ncatalog=false')
+        elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          lanes=$(.githooks/lanes HEAD^1 HEAD)
+        else
+          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
+        fi
+        echo "$lanes"
+        # Anything else leaves a step's condition empty, and the step skipped.
+        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
+        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
+          echo "lanes printed something other than the three lanes" >&2
+          exit 1
+        fi
+        echo "$lanes" >> "$GITHUB_OUTPUT"
+
+  # Reads no lane, and runs beside the others so a failure here stops none of them.
+  routes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Each path goes to the backend or build that owns it
+      run: |
+        set -euo pipefail
+        docker run --rm -e ADMIN_HOST=admin.example.test \
+          -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
+          caddy:2.11.2-alpine caddy adapt --config /etc/caddy/Caddyfile \
+          | python3 docker/check-routes.py
+
+  python:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -42,81 +98,39 @@ jobs:
       MODERATOR_BOT_TOKEN: "test_token"
       ADMIN_SUPER_ADMINS: "123456789"
 
-    # Matrix kept (even though single-versioned) so the required-status-check
-    # rule `test (3.12)` keeps matching.
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        # A pull request's merge commit and main under it: what it changes.
-        fetch-depth: 2
-
-    # A pull request runs only the steps its change can break; main, and so
-    # the deploy, runs all of them. The hooks read the same script. The job
-    # itself always runs: branch protection waits for it by name.
-    - name: Lanes this change touches
-      id: lanes
-      env:
-        DRAFT: ${{ github.event.pull_request.draft }}
-      run: |
-        if [ "$DRAFT" = true ]; then
-          lanes=$(printf 'python=false\nweb=false\ncatalog=false')
-        elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-          lanes=$(.githooks/lanes HEAD^1 HEAD)
-        else
-          lanes=$(printf 'python=true\nweb=true\ncatalog=true')
-        fi
-        echo "$lanes"
-        # Anything else leaves a step's condition empty, and the step skipped.
-        names=$(grep -xE '(python|web|catalog)=(true|false)' <<<"$lanes" | cut -d= -f1 | sort | paste -sd, -)
-        if [ "$names" != catalog,python,web ] || [ "$(wc -l <<<"$lanes")" -ne 3 ]; then
-          echo "lanes printed something other than the three lanes" >&2
-          exit 1
-        fi
-        echo "$lanes" >> "$GITHUB_OUTPUT"
-
-    - name: Set up Python ${{ matrix.python-version }}
-      if: steps.lanes.outputs.python == 'true'
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      if: steps.lanes.outputs.python == 'true'
       uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       with:
         version: "0.11.33"
+        # The patch release the image runs (Dockerfile); uv fetches it, where
+        # "3.12" took the runner's own 3.12.3.
+        python-version: "3.12.13"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
 
     - name: Install dependencies
-      if: steps.lanes.outputs.python == 'true'
       run: uv sync --dev
 
     # The deploy script runs in the deploy user's login shell, zsh, and the
     # deploy tests run it there too.
     - name: Install zsh
-      if: steps.lanes.outputs.python == 'true'
       run: sudo apt-get install -y --no-install-recommends zsh
 
     - name: Lint + format check (ruff)
-      if: steps.lanes.outputs.python == 'true'
       run: |
         uv run ruff check app tests scripts
         uv run ruff format --check app tests scripts
 
     - name: Type check (ty)
-      if: steps.lanes.outputs.python == 'true'
       run: uv run ty check app tests
 
     # The tests build their schema with create_all, so only this proves the
     # migration history: production applies it on every deploy. A database of
     # its own, so the tests' schema and this one never meet.
     - name: Migrations apply, and agree with the models
-      if: steps.lanes.outputs.python == 'true'
       env:
         DB_NAME: migrations_check
         PGPASSWORD: ${{ env.DB_PASSWORD }}
@@ -131,13 +145,11 @@ jobs:
     # separately AND the full run was repeated with --cov, duplicating
     # ~1.5 min of work.
     - name: Pytest with coverage
-      if: steps.lanes.outputs.python == 'true'
       # The floor lives in pyproject.toml ([tool.coverage.report] fail_under).
       run: uv run pytest --cov=app --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-      if: success() && steps.lanes.outputs.python == 'true'
       with:
         files: ./coverage.xml
         flags: unittests
@@ -146,13 +158,22 @@ jobs:
 
     - name: Upload coverage reports as artifact
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-      if: always() && steps.lanes.outputs.python == 'true'
+      if: always()
       with:
         name: coverage-reports
         path: htmlcov/
 
+  # The Mini App. Nothing it checks waits on the Python above, so it runs beside it.
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
     - name: Set up Node.js
-      if: steps.lanes.outputs.web == 'true'
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: "24.15.0"
@@ -160,26 +181,21 @@ jobs:
     # Corepack picks the pnpm the Mini App's package.json names (11), which is
     # why each step below runs in web/.
     - name: Set up pnpm
-      if: steps.lanes.outputs.web == 'true'
       run: corepack enable
 
     - name: Install web dependencies
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm install --frozen-lockfile
 
     - name: Lint web
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm lint
 
     - name: Type check web
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm typecheck
 
     - name: Test web
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm test
 
@@ -188,7 +204,6 @@ jobs:
     # catalogs, so extract first and fail when that changes them. Never
     # --clean: it drops the obsolete entries the catalogs keep on purpose.
     - name: Every web message is translated
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: |
         pnpm exec lingui extract
@@ -204,7 +219,6 @@ jobs:
     # document, catalog/openapi.json, which the catalog job checks against the
     # API itself. Regenerating must change nothing.
     - name: The web client matches the catalog API's contract
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: |
         pnpm api:generate
@@ -216,7 +230,6 @@ jobs:
         fi
 
     - name: Build web
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm build
 
@@ -226,7 +239,6 @@ jobs:
     # The browser is kept between runs, keyed by the Playwright that wants it;
     # the install below then only adds the system libraries it needs.
     - name: Find the Playwright version
-      if: steps.lanes.outputs.web == 'true'
       id: playwright
       working-directory: web
       run: |
@@ -235,35 +247,64 @@ jobs:
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name: Cache the browser for the layout check
-      if: steps.lanes.outputs.web == 'true'
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright
         key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
     - name: Install the browser for the layout check
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       run: pnpm exec playwright install --with-deps chromium
 
     - name: The Mini App lays out inside what Telegram shows
-      if: steps.lanes.outputs.web == 'true'
       working-directory: web
       timeout-minutes: 10
       run: pnpm check:devices
 
-    - name: Each path goes to the backend or build that owns it
+  # The check branch protection requires, by this name (`test (3.12)`; the
+  # matrix is kept for the name alone). It always runs, so it always reports:
+  # a lane skipped because the change cannot break it passes, and one that
+  # failed, was cancelled or never ran fails it. A draft fails it too: a draft
+  # runs no lane, and its green would stand for the ready run's until that
+  # run's lanes finish and this job reports again.
+  test:
+    needs: [changes, routes, python, web, catalog]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+    - name: Every lane this change touches passed
+      env:
+        RESULTS: ${{ join(needs.*.result, ' ') }}
+        DRAFT: ${{ github.event.pull_request.draft }}
       run: |
-        set -euo pipefail
-        docker run --rm -e ADMIN_HOST=admin.example.test \
-          -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
-          caddy:2.11.2-alpine caddy adapt --config /etc/caddy/Caddyfile \
-          | python3 docker/check-routes.py
+        echo "changes, routes, python, web, catalog: $RESULTS"
+        if [ "$DRAFT" = true ]; then
+          echo "a draft runs no lane; mark it ready for review" >&2
+          exit 1
+        fi
+        # One result per job above, or the expression read something else.
+        set -- $RESULTS
+        if [ $# -ne 5 ]; then
+          echo "expected 5 results, got $#" >&2
+          exit 1
+        fi
+        for result in "$@"; do
+          case "$result" in
+            success | skipped) ;;
+            *) echo "a lane ended $result" >&2; exit 1 ;;
+          esac
+        done
 
   # The catalog (catalog/): its own Python project, lockfile and database.
   # A separate job because nothing is shared with the bot's but the runner.
   catalog:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: catalog
@@ -302,7 +343,7 @@ jobs:
         # A pull request's merge commit and main under it: what it changes.
         fetch-depth: 2
 
-    # As in the test job.
+    # As in the changes job.
     - name: Lanes this change touches
       id: lanes
       env:
@@ -369,7 +410,7 @@ jobs:
       run: uv run pytest -q
 
     # catalog/openapi.json is what web/ generates its client from, and the
-    # test job checks that client against it. Declared at import time, so no
+    # web job checks that client against it. Declared at import time, so no
     # database and no server.
     - name: The committed OpenAPI document matches the API
       if: steps.lanes.outputs.catalog == 'true'
