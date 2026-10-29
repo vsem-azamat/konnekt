@@ -139,6 +139,20 @@ async def test_greetings_past_their_time_are_counted_once_each(session) -> None:
     assert sample("bot_queue_depth", queue="welcome_overdue") == 2
 
 
+async def test_a_greeting_is_overdue_from_the_moment_the_sweep_would_take_it(session) -> None:
+    import datetime
+
+    from app.chats import welcome
+    from app.db.models import WelcomeGreeting
+
+    at = datetime.datetime(2026, 10, 29, 12, 0)
+    session.add(WelcomeGreeting(-1001, 10, at))
+    await session.commit()
+
+    assert await welcome.overdue(session, now=at - datetime.timedelta(seconds=1)) == 0
+    assert await welcome.overdue(session, now=at) == 1
+
+
 async def test_the_scrape_app_is_closed_by_the_token_and_serves_one_path(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.observability, "metrics_secret", SecretStr("s3cret-value"))
     app = bot_metrics.build_metrics_app()
