@@ -1239,6 +1239,10 @@ msgstr "Tady se spravují chaty a hlídá katalog."
 msgid "по вузам и факультетам"
 msgstr "podle škol a fakult"
 
+#: src/lib/offerHints.ts
+msgid "Чешский B2"
+msgstr "Čeština B2"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Слишком длинно для каталога."
 msgstr "Pro katalog příliš dlouhé."
@@ -1325,6 +1329,10 @@ msgstr "Odmítnout"
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
 msgstr "Profil je skrytý — služby se uloží, ale v katalogu nebudou. Viditelnost zapneš v profilu."
+
+#: src/lib/offerHints.ts
+msgid "Чешский B1"
+msgstr "Čeština B1"
 
 #: src/pages/Request.tsx
 msgid "Отказать"
@@ -1442,6 +1450,10 @@ msgstr "Vidí tě ve vyhledávání a můžou ti napsat."
 msgid "Только наблюдает"
 msgstr "Jen sleduje"
 
+#: src/lib/offerHints.ts
+msgid "Немецкий"
+msgstr "Němčina"
+
 #: src/console/pages/Chat.tsx
 msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
 msgstr "Třetí řádek uvítání, pod „добро пожаловать“ a řádkem o Konnektu. Může zůstat prázdný."
@@ -1554,6 +1566,10 @@ msgstr "Ochrana"
 #: src/console/SpamSplit.tsx
 msgid "ссылка"
 msgstr "odkaz"
+
+#: src/pages/OfferPrices.tsx
+msgid "Язык, например чешский"
+msgstr "Jazyk, třeba čeština"
 
 #: src/console/pages/Chat.tsx
 msgid "Модерирует"
@@ -3172,6 +3188,10 @@ msgstr "Na tenhle dotaz tu zatím nikdo není"
 msgid "Закрыта"
 msgstr "Uzavřena"
 
+#: src/lib/offerHints.ts
+msgid "Английский"
+msgstr "Angličtina"
+
 #. placeholder {0}: formatMoney(price.amount)
 #: src/pages/Helper.tsx
 msgid "Написать · {0} Kč"
@@ -3361,6 +3381,10 @@ msgstr "Jak to děláš"
 msgid "Ничего не нашлось."
 msgstr "Nic nenalezeno."
 
+#: src/pages/OfferPrices.tsx
+msgid "договоримся"
+msgstr "domluvíme se"
+
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Poznámka nad kartou"
@@ -3384,6 +3408,10 @@ msgstr "Není o škole"
 #: src/pages/Ask.tsx
 msgid "курсовая работа"
 msgstr "seminární práce"
+
+#: src/lib/offerHints.ts
+msgid "Статистика"
+msgstr "Statistika"
 
 #: src/pages/Landing.tsx
 msgid "Вступительные экзамены"
@@ -3989,6 +4017,10 @@ msgstr "Klepněte a zkuste to znovu"
 #: src/pages/Mine.tsx
 msgid "Открытые · {0}"
 msgstr "Otevřené · {0}"
+
+#: src/lib/offerHints.ts
+msgid "Python"
+msgstr "Python"
 
 #: src/components/Phrase.tsx
 msgid "Разобраться заранее"

@@ -149,3 +149,55 @@ export function addAxis(
   const added = { ...blank, ...serviceAnswers(rows, service), ...named };
   return [...rows, { ...added, key: keyOf(added) }];
 }
+
+/**
+ * A price chip, applied to one service's rows.
+ *
+ * One price per row, as the field is: a tutor who charges 500 for calculus
+ * and 700 for physics keeps both. So a chip writes to every row only while
+ * they agree (or are all still empty, the first time somebody prices the
+ * service) and otherwise only to the rows that have no price yet.
+ */
+export function applyPriceChip(
+  rows: Draft[],
+  serviceTypeId: number,
+  price: string,
+  unit: PriceUnit,
+): Draft[] {
+  const mine = rows.filter((row) => row.service_type_id === serviceTypeId);
+  const agree = mine.every(
+    (row) => row.price === mine[0]?.price && row.unit === mine[0]?.unit,
+  );
+  return rows.map((row) =>
+    row.service_type_id === serviceTypeId && (agree || row.price === '')
+      ? { ...row, price, unit }
+      : row,
+  );
+}
+
+/**
+ * Whether a chip reads as chosen: only when every row of the service says
+ * it. «договоримся» (`price` empty) is chosen while nothing is priced, which
+ * is what the screen promises an empty field means.
+ */
+export function priceChipOn(
+  rows: Draft[],
+  serviceTypeId: number,
+  price: string,
+  unit: PriceUnit,
+): boolean {
+  const mine = rows.filter((row) => row.service_type_id === serviceTypeId);
+  if (mine.length === 0) return false;
+  if (price === '') return mine.every((row) => row.price === '');
+  return mine.every((row) => row.price === price && row.unit === unit);
+}
+
+/**
+ * A price typed after «договоримся»: back to a unit a number can be per.
+ * Otherwise the card would read «600 Kč договорная».
+ */
+export function typedPrice(row: Draft, price: string, unit: PriceUnit): Draft {
+  return price !== '' && row.unit === 'negotiable'
+    ? { ...row, price, unit }
+    : { ...row, price };
+}

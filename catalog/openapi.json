@@ -5389,6 +5389,30 @@
             },
             "type": "array",
             "title": "Options"
+          },
+          "price_hints": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Price Hints"
+          },
+          "price_hint_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject_hints": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectHintOut"
+            },
+            "type": "array",
+            "title": "Subject Hints"
           }
         },
         "type": "object",
@@ -5402,7 +5426,10 @@
           "requires_institution",
           "tone",
           "default_price_unit",
-          "options"
+          "options",
+          "price_hints",
+          "price_hint_unit",
+          "subject_hints"
         ],
         "title": "ServiceTypeOut"
       },
@@ -5423,6 +5450,30 @@
           "value"
         ],
         "title": "Stat"
+      },
+      "SubjectHintOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "title": "SubjectHintOut",
+        "description": "A subject offered as a chip on the prices screen."
       },
       "SubjectOut": {
         "properties": {

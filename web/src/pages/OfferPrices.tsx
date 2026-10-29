@@ -12,6 +12,7 @@ import {
   Chips,
   ChipView,
   Empty,
+  formatMoney,
   Hint,
   Label,
   Screen,
@@ -24,10 +25,21 @@ import {
 } from '@/components/Ui';
 import { hapticSelection, hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
+import type { SubjectHintOut } from '@/lib/generated/types.gen';
 import { groupRuns } from '@/lib/groups';
 import { afterHelperSaved } from '@/lib/helperSaved';
 import { asInput } from '@/lib/myServices';
-import { type Axis, addAxis, type Draft, dropRow, keyOf } from '@/lib/offerRows';
+import { useSubjectLabel } from '@/lib/offerHints';
+import {
+  type Axis,
+  addAxis,
+  applyPriceChip,
+  type Draft,
+  dropRow,
+  keyOf,
+  priceChipOn,
+  typedPrice,
+} from '@/lib/offerRows';
 import { splitNote } from '@/lib/subjectNote';
 import { TURNAROUNDS, TurnaroundLabel } from '@/lib/turnaround';
 import type {
@@ -314,7 +326,21 @@ export default function OfferPricesPage() {
                             onDrop={(row) => removeAxis(row, 'subject')}
                             removeLabel={t`Убрать`}
                           />
+                          <SubjectHintChips
+                            hints={type.subject_hints.filter(
+                              (hint) =>
+                                !mineHere.some((row) => row.subject_id === hint.id),
+                            )}
+                            onPick={(hint) =>
+                              attach(type, 'subject', { id: hint.id, name: hint.name })
+                            }
+                          />
                           <SubjectSearch
+                            placeholder={
+                              type.code === 'language_tutoring'
+                                ? t`Язык, например чешский`
+                                : undefined
+                            }
                             onPick={(subject) => addSubject(type, subject)}
                             taken={new Set(mineHere.map((row) => row.subject_id))}
                           />
@@ -395,7 +421,13 @@ export default function OfferPricesPage() {
                           onPrice={(price) =>
                             setRows((current) =>
                               current.map((other) =>
-                                other.key === row.key ? { ...other, price } : other,
+                                other.key === row.key
+                                  ? typedPrice(
+                                      other,
+                                      price,
+                                      type.default_price_unit ?? 'hour',
+                                    )
+                                  : other,
                               ),
                             )
                           }
@@ -408,6 +440,18 @@ export default function OfferPricesPage() {
                           }
                         />
                       ))}
+                      {type.price_hints.length > 0 && type.price_hint_unit ? (
+                        <PriceHintChips
+                          amounts={type.price_hints}
+                          unit={type.price_hint_unit}
+                          isOn={(price, unit) => priceChipOn(rows, type.id, price, unit)}
+                          onPick={(price, unit) =>
+                            setRows((current) =>
+                              applyPriceChip(current, type.id, price, unit),
+                            )
+                          }
+                        />
+                      ) : null}
                       {/* Only a written work is asked when. A lesson happens
                           when the two of them agree, and an errand takes as
                           long as the office queue — asking either would be
@@ -700,4 +744,72 @@ function toOffer(row: Draft): OfferInput {
     note: row.note.trim() || null,
     turnaround_days: row.turnaround_days,
   };
+}
+
+/**
+ * The most asked subjects as chips, so the common ones need no keyboard. Which
+ * ones is the catalog's (services/offer_hints.py); the label is ours, short
+ * where the catalog's name is long.
+ */
+function SubjectHintChips({
+  hints,
+  onPick,
+}: {
+  hints: SubjectHintOut[];
+  onPick: (hint: SubjectHintOut) => void;
+}) {
+  const label = useSubjectLabel();
+  if (hints.length === 0) return null;
+  return (
+    <Chips>
+      {hints.map((hint) => (
+        <ChipView key={hint.id} onClick={() => onPick(hint)}>
+          + {label(hint)}
+        </ChipView>
+      ))}
+    </Chips>
+  );
+}
+
+/**
+ * A few prices and «договоримся», one tap each, written into the field above,
+ * which stays editable. Which rows a tap writes to and when a chip reads as
+ * chosen are `applyPriceChip` and `priceChipOn`, tested in offerRows.
+ */
+function PriceHintChips({
+  amounts,
+  unit,
+  isOn,
+  onPick,
+}: {
+  amounts: number[];
+  unit: PriceUnit;
+  isOn: (price: string, unit: PriceUnit) => boolean;
+  onPick: (price: string, unit: PriceUnit) => void;
+}) {
+  const negotiable = isOn('', 'negotiable');
+  return (
+    <Chips>
+      {amounts.map((amount) => {
+        const on = isOn(String(amount), unit);
+        return (
+          <ChipView
+            key={amount}
+            active={on}
+            pressed={on}
+            onClick={() => onPick(String(amount), unit)}
+          >
+            {formatMoney(amount)} Kč
+          </ChipView>
+        );
+      })}
+      <ChipView
+        active={negotiable}
+        pressed={negotiable}
+        onClick={() => onPick('', 'negotiable')}
+      >
+        <Trans>договоримся</Trans>
+      </ChipView>
+    </Chips>
+  );
 }
