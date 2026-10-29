@@ -146,8 +146,8 @@ msgid "То, чем ты занимаешься"
 msgstr "To, co děláš"
 
 #: src/pages/Results.tsx
-msgid "Свободны"
-msgstr "Volní"
+#~ msgid "Свободны"
+#~ msgstr "Volní"
 
 #: src/console/BanSheet.tsx
 msgid "Одобренных чатов нет: банить пока негде."
@@ -285,6 +285,10 @@ msgstr "např. vhodné pro prodloužení víza"
 #: src/console/Charts.tsx
 msgid "Участников посчитали меньше двух раз: линии пока нет."
 msgstr "Členové byli spočítáni méně než dvakrát: křivka zatím není."
+
+#: src/pages/Results.tsx
+msgid "у кого есть окна, и кто быстрее отвечает"
+msgstr "kdo má volné termíny a kdo odpovídá rychleji"
 
 #: src/components/TabBar.tsx
 msgid "Помощь"
@@ -570,6 +574,7 @@ msgstr "mohou dostat zprávu"
 
 #: src/pages/Home.tsx
 #: src/pages/Profile.tsx
+#: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Umíš něco, co ostatní potřebují?"
 
@@ -723,6 +728,10 @@ msgstr "Spravují jiní"
 msgid "другие {0}"
 msgstr "ostatní {0}"
 
+#: src/pages/Results.tsx
+msgid "Есть свободное время"
+msgstr "Má volný čas"
+
 #. placeholder {0}: search.times
 #: src/console/pages/Catalog.tsx
 msgid "{0, plural, one {# раз} few {# раза} many {# раз} other {# раза}}"
@@ -863,6 +872,7 @@ msgstr "Počet"
 #~ msgid "{name} забанен не везде"
 #~ msgstr "{name} není zabanován všude"
 
+#: src/components/EmptyServiceSheet.tsx
 #: src/pages/Ask.tsx
 msgid "Оставить заявку"
 msgstr "Zadat poptávku"
@@ -957,6 +967,10 @@ msgstr "fakulty, koleje, obecné"
 #: src/console/pages/Signals.tsx
 msgid "начался {started} · последний всплеск {hoursAgo} ч назад"
 msgstr "začal {started} · poslední nával před {hoursAgo} h"
+
+#: src/pages/Results.tsx
+msgid "Имя или вуз"
+msgstr "Jméno nebo škola"
 
 #: src/pages/AdsChats.tsx
 msgid "Пост выходит, вы получаете ссылки на него."
@@ -1634,6 +1648,10 @@ msgstr "V katalogu"
 msgid "Активные"
 msgstr "Aktivní"
 
+#: src/components/EmptyServiceSheet.tsx
+msgid "Здесь пока никого"
+msgstr "Zatím tu nikdo není"
+
 #: src/console/pages/Audience.tsx
 msgid "8 недель"
 msgstr "8 týdnů"
@@ -1977,6 +1995,12 @@ msgstr "Bot začne v tomto chatu odpovídat na příkazy a mazat zprávy. Pokud 
 msgid "Загружаем анкету…"
 msgstr "Načítáme profil…"
 
+#. placeholder {0}: closest.length + rest.length
+#. placeholder {1}: data.results.length
+#: src/pages/Results.tsx
+msgid "Нашлось {0} среди первых {1}"
+msgstr "Nalezeno {0} mezi prvními {1}"
+
 #: src/console/pages/Spam.tsx
 msgid "Что поймал детектор. Разобранное уходит из очереди."
 msgstr "Co zachytil detektor. Vyřízené z fronty odchází."
@@ -2059,8 +2083,8 @@ msgid "Не больше четырёх букв."
 msgstr "Nejvýše čtyři písmena."
 
 #: src/pages/Results.tsx
-msgid "Кто может помочь"
-msgstr "Kdo může pomoct"
+#~ msgid "Кто может помочь"
+#~ msgstr "Kdo může pomoct"
 
 #: src/components/ChatRow.tsx
 msgid "с темами"
@@ -2283,6 +2307,10 @@ msgstr "Přihlášení vypršelo: otevřete aplikaci znovu."
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "V katalogu není vidět. Profil můžeš upravovat a změny se uloží, ale zpět do katalogu ho může vrátit jen administrátor."
 
+#: src/components/EmptyServiceSheet.tsx
+msgid "Твоя анкета будет здесь первой."
+msgstr "Tvůj profil tu bude první."
+
 #: src/pages/AdsChats.tsx
 msgid "Отвечаем, в каких чатах это уместно и сколько стоит."
 msgstr "Odpovíme, ve kterých chatech se to hodí a kolik to stojí."
@@ -2398,6 +2426,10 @@ msgstr "externí"
 msgid "Пт"
 msgstr "Pá"
 
+#: src/pages/Results.tsx
+msgid "Подходят лучше"
+msgstr "Nejlépe sedí"
+
 #: src/console/FailureText.tsx
 msgid "Сервер отказал: главного администратора забанить нельзя."
 msgstr "Server odmítl: hlavního administrátora nelze zabanovat."
@@ -2425,7 +2457,6 @@ msgstr "Pro smazání napište <0>{word}</0> jako potvrzení."
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Summary.tsx
 #: src/pages/Ask.tsx
-#: src/pages/Results.tsx
 msgid "всего {0}"
 msgstr "celkem {0}"
 
@@ -2511,7 +2542,9 @@ msgstr "{count, plural, one {ještě # chat: {names}} few {ještě # chaty: {nam
 msgid "Больше {perMinute} заявок в минуту. Капча на паузе: новым людям бот не пишет, в чат никто не вошёл."
 msgstr "Víc než {perMinute} žádostí za minutu. Captcha je pozastavená: bot novým lidem nepíše, do chatu nikdo nevstoupil."
 
+#: src/components/EmptyServiceSheet.tsx
 #: src/pages/Profile.tsx
+#: src/pages/Results.tsx
 msgid "Предложить услугу"
 msgstr "Nabídnout službu"
 
@@ -2546,12 +2579,14 @@ msgstr "Reklama"
 
 #: src/components/AppHeader.tsx
 #: src/components/ChatRow.tsx
+#: src/components/EmptyServiceSheet.tsx
 #: src/components/Incoming.tsx
 #: src/components/RequestSheet.tsx
 #: src/components/ServiceSheet.tsx
 #: src/components/TabBar.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
+#: src/pages/Results.tsx
 msgid "Закрыть"
 msgstr "Zavřít"
 
@@ -2741,6 +2776,10 @@ msgstr "Nejsem bot"
 #: src/components/TabBar.tsx
 msgid "Разместить"
 msgstr "Přidat"
+
+#: src/pages/Results.tsx
+msgid "Сначала показывать"
+msgstr "Nejdřív ukázat"
 
 #: src/pages/OfferPrices.tsx
 msgid "Договоримся"
@@ -2945,6 +2984,10 @@ msgstr "Tohle už vyřídil jiný moderátor."
 msgid "упоминание"
 msgstr "zmínka"
 
+#: src/pages/Results.tsx
+msgid "по цене, от меньшей"
+msgstr "podle ceny, od nejnižší"
+
 #: src/console/pages/System.tsx
 msgid "Где выполнен вход"
 msgstr "Kde jste přihlášeni"
@@ -2962,6 +3005,10 @@ msgstr "Práce"
 #: src/console/pages/Spam.tsx
 msgid "Чат"
 msgstr "Chat"
+
+#: src/pages/Results.tsx
+msgid "твой вуз и предмет, потом кто больше занимался"
+msgstr "tvoje škola a předmět, pak kdo učil víc"
 
 #: src/components/RequestSheet.tsx
 msgid "+ бюджет"
@@ -3027,6 +3074,10 @@ msgstr "Na tuhle poptávku jsi už odpovídal"
 #: src/pages/MyHelperAbout.tsx
 msgid "Вернуть в каталог может только администратор"
 msgstr "Zpět do katalogu ho může vrátit jen administrátor"
+
+#: src/pages/Results.tsx
+msgid "Поиск по имени или вузу"
+msgstr "Hledat podle jména nebo školy"
 
 #: src/pages/Ads.tsx
 msgid "Что не размещаем"
@@ -3420,6 +3471,10 @@ msgstr "Nepodařilo se to spočítat"
 msgid "нужна ссылка t.me"
 msgstr "potřebuje odkaz t.me"
 
+#: src/pages/Results.tsx
+msgid "Добавь себя в этот список — студенты напишут тебе сами."
+msgstr "Přidej se do tohoto seznamu — studenti ti napíšou sami."
+
 #: src/console/pages/Spam.tsx
 msgid "Вчера"
 msgstr "Včera"
@@ -3538,6 +3593,11 @@ msgstr "Za týden žádné nové profily."
 msgid "Тебя видят студенты. Выключатель скрывает одну услугу."
 msgstr "Studenti tě vidí. Přepínač skryje jednu službu."
 
+#. placeholder {0}: data.total
+#: src/pages/Results.tsx
+msgid "Кто может помочь · {0}"
+msgstr "Kdo může pomoct · {0}"
+
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx
 msgid "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
@@ -3587,6 +3647,11 @@ msgstr "Captcha, uvítání a černá listina tu přestanou fungovat."
 #: src/console/pages/Chat.tsx
 msgid "Включить модерацию?"
 msgstr "Zapnout moderaci?"
+
+#. placeholder {0}: closest.length + rest.length
+#: src/pages/Results.tsx
+msgid "Нашлось {0}"
+msgstr "Nalezeno: {0}"
 
 #. placeholder {0}: num(p.deals)
 #: src/components/Phrase.tsx
@@ -3822,8 +3887,8 @@ msgid "Не удалось загрузить охват"
 msgstr "Dosah se nepodařilo načíst"
 
 #: src/pages/Results.tsx
-msgid "Подходят"
-msgstr "Vyhovují"
+#~ msgid "Подходят"
+#~ msgstr "Vyhovují"
 
 #. placeholder {0}: chat.member_count
 #. placeholder {0}: wave.member_count
