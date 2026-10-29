@@ -903,8 +903,10 @@ async function checkProfile(browser, base, profile) {
 // Each profile has contexts of its own, so several share one browser. Most of
 // a check is waiting for the page to settle; the waits above are sized for a
 // busy machine, and DEVICE_WORKERS=1 runs them one by one as before.
-const workers = Number(process.env.DEVICE_WORKERS) || Math.min(4, availableParallelism());
+const asked = Math.floor(Number(process.env.DEVICE_WORKERS));
+const workers = asked >= 1 ? asked : Math.min(4, availableParallelism());
 
+let checked = 0;
 const { base, stop } = await serve();
 let browser;
 try {
@@ -917,7 +919,15 @@ try {
           `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
         ];
         try {
-          await lines.run(own, () => checkProfile(browser, base, profile));
+          await lines.run(own, async () => {
+            try {
+              await checkProfile(browser, base, profile);
+            } catch (error) {
+              // This profile fails; the others finish, and the summary names it.
+              fail(profile, `threw: ${String(error?.message ?? error).split('\n')[0]}`);
+            }
+          });
+          checked += 1;
         } finally {
           // Also when it threw: what it checked before is the way to the cause.
           console.log(own.join('\n'));
@@ -930,6 +940,9 @@ try {
   stop();
 }
 
+if (checked !== PROFILES.length) {
+  failures.push(`checked ${checked} of ${PROFILES.length} profiles`);
+}
 if (failures.length) {
   console.error(`\n${failures.length} layout failure(s):\n  ${failures.join('\n  ')}`);
   process.exit(1);
