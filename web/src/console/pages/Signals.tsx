@@ -116,7 +116,7 @@ function SignalsBody() {
           title={<Trans>Чаты на проверке</Trans>}
           hint={<Trans>бот в них есть, но они не одобрены</Trans>}
           trailing={<Count>{count}</Count>}
-          onClick={() => navigate('/console/chats?status=discovered')}
+          onClick={() => navigate('/console/chats?tab=decide')}
         />
       ),
     },

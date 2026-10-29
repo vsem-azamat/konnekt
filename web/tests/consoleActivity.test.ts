@@ -77,6 +77,7 @@ function chat(id: number, title: string, parent: number | null = null): ConsoleC
     join_by_request: null,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
+    bot_absent_at: null,
   };
 }
 

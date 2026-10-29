@@ -25,12 +25,14 @@ import { useBrowserConsole } from '@/console/browserContext';
 import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
+  type ChatTab,
   type ConsoleSection,
+  catalogPlace,
   chatGuards,
   consoleSections,
-  isListed,
-  type StatusFilter,
-  statusCounts,
+  listedCount,
+  tabCounts,
+  tabOf,
 } from '@/console/chats';
 import { ChatFace } from '@/console/Faces';
 import { FailureText } from '@/console/FailureText';
@@ -38,17 +40,19 @@ import { consoleChanges, consoleChatsQuery, consoleStatsQuery } from '@/console/
 import { type ConsoleChat, ConsoleError, type MemberDelta } from '@/console/session';
 import { hapticSelection } from '@/hooks/useTelegram';
 
-const FILTERS: StatusFilter[] = [
-  'all',
-  'discovered',
-  'approved',
-  'observed',
-  'external',
-  'disabled',
-];
+// The question first that asks something of the admin, «all» last.
+const TABS: ChatTab[] = ['decide', 'listed', 'hidden', 'off', 'all'];
 
-function isFilter(value: string | null): value is StatusFilter {
-  return FILTERS.includes(value as StatusFilter);
+function isTab(value: string | null): value is ChatTab {
+  return TABS.includes(value as ChatTab);
+}
+
+/** How a listed chat is there: the bot moderates it, watches it, or is not in it. */
+const MODES = ['approved', 'observed', 'external'] as const;
+type ListedMode = (typeof MODES)[number];
+
+function isMode(value: string | null): value is ListedMode {
+  return MODES.includes(value as ListedMode);
 }
 
 /**
@@ -71,8 +75,11 @@ function ChatList() {
   const navigate = useNavigate();
   const inBrowser = useBrowserConsole();
   const [params, setParams] = useSearchParams();
-  const status = params.get('status');
-  const filter: StatusFilter = isFilter(status) ? status : 'all';
+  const tabParam = params.get('tab');
+  const tab: ChatTab = isTab(tabParam) ? tabParam : 'all';
+  const modeParam = params.get('mode');
+  const mode: ListedMode | null =
+    tab === 'listed' && isMode(modeParam) ? modeParam : null;
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const { data, isPending, error, refetch } = useQuery(consoleChatsQuery);
@@ -92,42 +99,83 @@ function ChatList() {
     );
   }
 
-  const counts = statusCounts(data);
-  const sections = consoleSections(data, filter, query);
-  const label: Record<StatusFilter, string> = {
+  const counts = tabCounts(data);
+  const modeCount = (key: ListedMode) =>
+    data.filter((chat) => tabOf(chat) === 'listed' && chat.resource_status === key)
+      .length;
+  const listed = listedCount(data);
+  const total = data.length;
+  const sections = consoleSections(
+    data,
+    query,
+    (chat) =>
+      (tab === 'all' || tabOf(chat) === tab) &&
+      (mode === null || chat.resource_status === mode),
+  );
+  const label: Record<ChatTab, string> = {
+    decide: t`Нужно решение`,
+    listed: t`В каталоге`,
+    hidden: t`Скрыты`,
+    off: t`Отключены`,
     all: t`Все`,
-    discovered: t`На проверке`,
-    approved: t`Одобрены`,
-    observed: t`Наблюдаем`,
-    external: t`Внешние`,
-    disabled: t`Откл.`,
+  };
+  const modeLabel: Record<ListedMode, string> = {
+    approved: t`Модерирует`,
+    observed: t`Наблюдает`,
+    external: t`Только ссылка`,
+  };
+  // Replaced, not pushed: a tab is a view of this screen, and back should
+  // leave the screen rather than step through tabs.
+  const show = (next: ChatTab, nextMode: ListedMode | null = null) => {
+    hapticSelection();
+    const search: Record<string, string> = {};
+    if (next !== 'all') search.tab = next;
+    if (nextMode) search.mode = nextMode;
+    setParams(search, { replace: true });
   };
 
   return (
     <>
-      {/* Chips, not a segmented control: four labels with counts do not fit
+      <div style={{ marginTop: 6 }}>
+        <Sub>
+          <Trans>
+            В каталоге {listed} из {total}
+          </Trans>
+        </Sub>
+      </div>
+      {/* Chips, not a segmented control: five labels with counts do not fit
           one row of equal segments on a phone. */}
       <div style={{ marginTop: 14 }}>
         <Chips>
           {/* The chosen one stays, even at zero, so the page says what it shows. */}
-          {FILTERS.filter(
-            (key) => key === 'all' || key === filter || counts[key] > 0,
-          ).map((key) => (
-            <ChipView
-              key={key}
-              active={key === filter}
-              onClick={() => {
-                hapticSelection();
-                // Replaced, not pushed: a filter is a view of this screen, and
-                // back should leave the screen rather than step through filters.
-                setParams(key === 'all' ? {} : { status: key }, { replace: true });
-              }}
-            >
-              {label[key]} {counts[key]}
-            </ChipView>
-          ))}
+          {TABS.filter((key) => key === 'all' || key === tab || counts[key] > 0).map(
+            (key) => (
+              <ChipView key={key} active={key === tab} onClick={() => show(key)}>
+                {label[key]} {/* What waits for the admin is the one count in colour. */}
+                <span className={key === 'decide' ? table.due : undefined}>
+                  {counts[key]}
+                </span>
+              </ChipView>
+            ),
+          )}
         </Chips>
       </div>
+      {tab === 'listed' ? (
+        <div style={{ marginTop: 8 }}>
+          <Chips>
+            {MODES.filter((key) => modeCount(key) > 0).map((key) => (
+              <ChipView
+                key={key}
+                ghost
+                active={key === mode}
+                onClick={() => show('listed', key === mode ? null : key)}
+              >
+                {modeLabel[key]} {modeCount(key)}
+              </ChipView>
+            ))}
+          </Chips>
+        </div>
+      ) : null}
       {/* In a browser the search and the button share a row; stretched to
           the table's width they were a phone's controls. */}
       <div className={inBrowser ? table.toolbar : undefined}>
@@ -206,7 +254,7 @@ function sectionKey(section: ConsoleSection): string {
 
 function SectionName({ section }: { section: ConsoleSection }) {
   return section.key === 'review' ? (
-    <Trans>На проверке</Trans>
+    <Trans>Нужно решение</Trans>
   ) : section.key === 'rest' ? (
     <Trans>Остальные</Trans>
   ) : (
@@ -229,6 +277,40 @@ function useGuardText(): (chat: ConsoleChat) => string | null {
 }
 
 /**
+ * What the bot does in a chat, and whether students see it, in words: the two
+ * things the console is asked about a chat, where the status names neither.
+ */
+function useChatWords() {
+  const { t } = useLingui();
+  const mode = (chat: ConsoleChat): string => {
+    const word = {
+      approved: t`модерирует`,
+      observed: t`наблюдает`,
+      external: t`только ссылка`,
+      discovered: t`ждёт решения`,
+      disabled: t`отключён`,
+    }[chat.resource_status];
+    // A chat without the bot has nothing to moderate or watch any more.
+    return chat.bot_absent_at && chat.resource_status !== 'external'
+      ? `${word} · ${t`бот вышел`}`
+      : word;
+  };
+  const place = (chat: ConsoleChat): string => {
+    switch (catalogPlace(chat)) {
+      case 'listed':
+        return t`в каталоге`;
+      case 'no_link':
+        return t`не в каталоге · нет ссылки`;
+      case 'no_title':
+        return t`не в каталоге · нет названия`;
+      default:
+        return t`не в каталоге`;
+    }
+  };
+  return { mode, place };
+}
+
+/**
  * Every chat in one table, its sections as rows between them. The member
  * moves come from the summary's numbers, which count approved chats only;
  * a chat they miss, or a failed fetch, shows a dash.
@@ -237,7 +319,7 @@ function useGuardText(): (chat: ConsoleChat) => string | null {
 const COLUMNS = 6;
 
 function ChatTable({ sections }: { sections: ConsoleSection[] }) {
-  const { t, i18n } = useLingui();
+  const { i18n } = useLingui();
   const guardText = useGuardText();
   const navigate = useNavigate();
   const stats = useQuery(consoleStatsQuery);
@@ -247,12 +329,13 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
   const count = (n: number | null | undefined) => (n == null ? '—' : i18n.number(n));
   const move = (n: number | null | undefined) =>
     n == null ? '—' : signed(n, (abs) => i18n.number(abs));
-  const status: Record<ConsoleChat['resource_status'], [string, string | undefined]> = {
-    approved: [t`одобрен`, table.good],
-    discovered: [t`на проверке`, table.warn],
-    observed: [t`наблюдаем`, undefined],
-    external: [t`внешний`, undefined],
-    disabled: [t`отключён`, undefined],
+  const words = useChatWords();
+  const tone: Record<ConsoleChat['resource_status'], string | undefined> = {
+    approved: table.good,
+    discovered: table.warn,
+    observed: undefined,
+    external: undefined,
+    disabled: undefined,
   };
 
   return (
@@ -264,7 +347,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
               <Trans>Чат</Trans>
             </th>
             <th>
-              <Trans>Статус</Trans>
+              <Trans>Бот</Trans>
             </th>
             <th className={table.num}>
               <Trans>Участники</Trans>
@@ -289,16 +372,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
             </tr>
             {section.chats.map((chat) => {
               const title = chat.title ?? String(chat.id);
-              const [word, tone] = status[chat.resource_status];
               const moved = moves.get(chat.id);
-              const listed =
-                chat.resource_status === 'approved' ||
-                chat.resource_status === 'observed' ||
-                chat.resource_status === 'external'
-                  ? isListed(chat)
-                    ? t`на сайте`
-                    : t`не на сайте`
-                  : null;
               const to = `/console/chats/${chat.id}`;
               return (
                 // The whole row opens the chat; the link in it is the way for
@@ -326,13 +400,17 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
                         <Link to={to} onClick={(event) => event.stopPropagation()}>
                           {title}
                         </Link>
-                        {listed ? <small>{listed}</small> : null}
+                        <small className={placeClass(chat)}>{words.place(chat)}</small>
                       </span>
                     </span>
                   </td>
                   <td>
-                    <span className={[table.pill, tone].filter(Boolean).join(' ')}>
-                      {word}
+                    <span
+                      className={[table.pill, tone[chat.resource_status]]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {words.mode(chat)}
                     </span>
                   </td>
                   <td className={table.num}>{count(chat.member_count)}</td>
@@ -349,6 +427,16 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
   );
 }
 
+/**
+ * How loud the catalogue label is: a chat decided on that students still do
+ * not see is the surprise worth noticing, in the warm colour of a decision due.
+ */
+function placeClass(chat: ConsoleChat): string | undefined {
+  const place = catalogPlace(chat);
+  if (place === 'listed') return undefined;
+  return place === 'no_link' || place === 'no_title' ? table.hidden : table.off;
+}
+
 function tileTone(chat: ConsoleChat): number {
   return chat.resource_status === 'discovered'
     ? 1
@@ -358,33 +446,29 @@ function tileTone(chat: ConsoleChat): number {
 }
 
 function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
-  const { t, i18n } = useLingui();
+  const { i18n } = useLingui();
   const guardText = useGuardText();
+  const words = useChatWords();
   const title = chat.title ?? String(chat.id);
-  // Protection runs only where the bot is approved; elsewhere the status is
-  // the thing to know.
-  const facts =
-    chat.resource_status === 'approved'
-      ? [
-          chat.member_count !== null ? i18n.number(chat.member_count) : null,
-          guardText(chat),
-          isListed(chat) ? t`на сайте` : t`не на сайте`,
-        ]
-      : chat.resource_status === 'observed' || chat.resource_status === 'external'
-        ? [
-            chat.member_count !== null ? i18n.number(chat.member_count) : null,
-            chat.resource_status === 'observed' ? t`наблюдаем` : t`внешний`,
-            isListed(chat) ? t`на сайте` : t`не на сайте`,
-          ]
-        : [
-            chat.member_count !== null ? i18n.number(chat.member_count) : null,
-            chat.resource_status === 'discovered' ? t`на проверке` : t`отключён`,
-          ];
   return (
     <Row
       leading={<ChatFace chat={chat} size={34} tone={tileTone(chat)} />}
       title={title}
-      hint={facts.filter(Boolean).join(' · ')}
+      // Whether students see it first: on a phone the end of the line is cut.
+      hint={
+        <>
+          <span className={placeClass(chat)}>{words.place(chat)}</span>
+          {[
+            words.mode(chat),
+            chat.member_count !== null ? i18n.number(chat.member_count) : null,
+            // Protection runs only where the bot moderates.
+            guardText(chat),
+          ]
+            .filter(Boolean)
+            .map((fact) => ` · ${fact}`)
+            .join('')}
+        </>
+      }
       trailing={<Chevron />}
       onClick={onOpen}
     />

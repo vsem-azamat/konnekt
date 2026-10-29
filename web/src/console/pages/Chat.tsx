@@ -246,7 +246,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
     navigate(`/console/chats/${id}`);
   };
 
-  return (
+  const head = (
     <>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
         <ChatFace chat={{ id: chat.id, title: chat.title }} size={56} />
@@ -267,16 +267,22 @@ function ChatScreen({ chatId }: { chatId: number }) {
             </>
           ) : null}
           {approved ? (
-            <Trans>одобрен</Trans>
+            <Trans>бот модерирует</Trans>
           ) : chat.resource_status === 'observed' ? (
-            <Trans>наблюдаем</Trans>
+            <Trans>бот наблюдает</Trans>
           ) : chat.resource_status === 'external' ? (
-            <Trans>внешний</Trans>
+            <Trans>только ссылка, бота нет</Trans>
           ) : chat.resource_status === 'discovered' ? (
-            <Trans>на проверке</Trans>
+            <Trans>ждёт решения</Trans>
           ) : (
             <Trans>отключён</Trans>
           )}
+          {chat.bot_absent_at && chat.resource_status !== 'external' ? (
+            <>
+              {' · '}
+              <Trans>бот вышел</Trans>
+            </>
+          ) : null}
           {chat.public_link ? (
             <>
               {' · '}
@@ -300,7 +306,34 @@ function ChatScreen({ chatId }: { chatId: number }) {
           </Hint>
         </div>
       ) : null}
+    </>
+  );
+  // The bot is no longer in a chat nobody decided on: there is nothing to
+  // list, protect or watch, only switching it off. The rest would be settings
+  // that change nothing and a promise of approval that cannot come.
+  if (chat.resource_status === 'discovered' && chat.bot_absent_at) {
+    return (
+      <>
+        {head}
+        <div style={{ marginTop: 16 }}>
+          <Hint>
+            <Trans>
+              Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить.
+            </Trans>
+          </Hint>
+          <Actions>
+            <Action onClick={() => save({ resource_status: 'disabled' })} disabled={busy}>
+              <Trans>Отключить</Trans>
+            </Action>
+          </Actions>
+        </div>
+      </>
+    );
+  }
 
+  return (
+    <>
+      {head}
       {chat.resource_status === 'discovered' ? (
         <div style={{ marginTop: 16 }}>
           <Actions>
