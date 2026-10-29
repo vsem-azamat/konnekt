@@ -16,7 +16,7 @@ and a partner selling insurance are different listings with different rules,
 and both are useful. `offers` holds the first, `placements` the second, and
 nothing merges them.
 
-Three different kinds of listing, three different sets of rules. The schema
+Two different kinds of listing, two different sets of rules. The schema
 keeps them apart rather than forcing them into one shape.
 
 ## Three axes, one intersection
@@ -505,7 +505,7 @@ they return.
 - Every NOT NULL column with a default has a `server_default`. Python-side
   defaults only fire through the ORM, and the legacy import runs raw SQL.
 - Native Postgres enums, created with `values_callable` so the stored values are
-  the enum *values* (`rent`), not the member names (`RENT`).
+  the enum *values* (`cpc`), not the member names (`CPC`).
 - Explicit constraint naming convention in `db/base.py`, otherwise Alembic
   generates unnamed indexes that later migrations cannot drop.
 - Flexible per-type attributes go in `attrs` JSONB with a GIN index. Anything
