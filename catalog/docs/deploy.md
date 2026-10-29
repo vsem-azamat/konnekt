@@ -98,8 +98,7 @@ deploy, then deploying from there; its data is the same volume, and its last dum
 the bot service receives its updates by polling. Telegram gives a token one
 consumer. A `setWebhook` from anywhere stops that polling, and a second
 `getUpdates` makes the two pollers fail each other with `409 Conflict`. The
-catalog never does either. The legacy bot polls, so never run it with this
-token. See [legacy-bot.md](legacy-bot.md).
+catalog never does either, and nothing else may poll with this token.
 
 **More than one Uvicorn worker.** The connection pool is per process, and the
 `--workers 1` pin in the Dockerfile is what makes `db_pool_size` and
