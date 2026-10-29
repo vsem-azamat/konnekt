@@ -19,6 +19,7 @@ from prometheus_client import Counter, Gauge, Histogram
 from sqlalchemy import func, select
 from starlette.responses import PlainTextResponse, Response
 
+from app.chats import bot_rights
 from app.core import metrics
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -102,13 +103,17 @@ async def refresh_queue_depths(session: AsyncSession) -> None:
 
 
 async def run_queue_depths(session_maker: async_sessionmaker[AsyncSession], interval_seconds: int = 30) -> None:
-    """Keep the queue gauges current for as long as the bot runs; nothing to do while nobody scrapes."""
+    """Keep the gauges read from the database current for as long as the bot runs.
+
+    The queues, and the chats where the bot lacks a right. Nothing to do while nobody scrapes.
+    """
     if not metrics.enabled():
         return
     while True:
         try:
             async with session_maker() as session:
                 await refresh_queue_depths(session)
+                await bot_rights.refresh_gauge(session)
             await asyncio.sleep(interval_seconds)
         except asyncio.CancelledError:
             raise

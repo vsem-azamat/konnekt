@@ -767,6 +767,43 @@ class ChatMemberSnapshot(Base):
             self.captured_at = captured_at
 
 
+class ChatBotRights(Base):
+    """What the moderator bot is in one chat now, as Telegram last said.
+
+    Written only by `app/chats/bot_rights.py`, from the bot's own membership
+    updates and from the daily check. `rights` is every true-or-false field of
+    Telegram's member object, under Telegram's names. `changed_at` is when
+    the status or a right last changed; `known_at` when it was last confirmed,
+    so an update older than that changes nothing.
+    """
+
+    __tablename__ = "chat_bot_rights"
+
+    chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    status: Mapped[str] = mapped_column(String(16))
+    rights: Mapped[dict[str, bool]] = mapped_column(JSON)
+    changed_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    known_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+
+
+class ChatBotRightsChange(Base):
+    """One change of the bot's status or rights in a chat, kept for good.
+
+    The state it changed to; the state before is the previous row. `changed_by`
+    is who Telegram says made it, None when the daily check found it.
+    """
+
+    __tablename__ = "chat_bot_rights_changes"
+    __table_args__ = (Index("ix_chat_bot_rights_changes_chat_id_changed_at", "chat_id", "changed_at"),)
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(16))
+    rights: Mapped[dict[str, bool]] = mapped_column(JSON)
+    changed_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    changed_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+
+
 class SpamPing(Base):
     """A single ad-detection event.
 

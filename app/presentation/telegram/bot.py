@@ -33,6 +33,7 @@ from app.presentation.telegram.middlewares import (
     ApprovedChatGateMiddleware,
     AudienceMiddleware,
     BlacklistMiddleware,
+    ChatStateMiddleware,
     DependenciesMiddleware,
     HandlerNameMiddleware,
     HistoryMiddleware,
@@ -114,6 +115,8 @@ def build_dispatcher(bot: Bot, session_maker: async_sessionmaker[AsyncSession]) 
     dp.update.outer_middleware(AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT))
     dp.update.middleware(DependenciesMiddleware(session_pool=session_maker, bot=bot))
     dp.update.middleware(ManagedChatsMiddleware())
+    # Before the approval gate: what the bot is in a chat is worth knowing before anybody approves it.
+    dp.update.middleware(ChatStateMiddleware())
     dp.update.middleware(HistoryMiddleware())
     dp.update.middleware(ApprovedChatGateMiddleware())
     # Outer, so they see every message and membership change: an inner
@@ -253,6 +256,11 @@ async def _serve() -> None:
     from app.chats.invite_links import run_sync_loop as run_invite_link_sync
 
     tasks.append(run_invite_link_sync(session_maker=session_maker, bot=main_bot))
+
+    # What the bot may do in each chat, asked again for any chat no update has confirmed lately.
+    from app.chats.bot_rights import run_check_loop as run_bot_rights_check
+
+    tasks.append(run_bot_rights_check(session_maker=session_maker, bot=main_bot))
 
     # A stalled poller ends the process, so the container restarts it.
     tasks.append(heartbeat.watch())
