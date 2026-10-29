@@ -105,6 +105,10 @@ export const router = createBrowserRouter([
           },
           { path: 'console/spam', lazy: screen(() => import('@/console/pages/Spam')) },
           {
+            path: 'console/signals',
+            lazy: screen(() => import('@/console/pages/Signals')),
+          },
+          {
             path: 'console/blacklist',
             lazy: screen(() => import('@/console/pages/Blacklist')),
           },

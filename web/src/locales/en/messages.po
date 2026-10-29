@@ -519,6 +519,10 @@ msgstr "Wed"
 msgid "не указан: стоит в «Общее»"
 msgstr "not set: listed under “General”"
 
+#: src/console/pages/Summary.tsx
+msgid "набеги заявок и предложенные баны"
+msgstr "join raids and proposed bans"
+
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
 msgstr "The chat will be turned off. You can bring its mode back right here."
@@ -1815,6 +1819,11 @@ msgstr "My services"
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
 msgstr "Students of Czech universities, in the chats and in this app. We clean the chats of spam every day, so other people's ads do not drown out your post."
 
+#. placeholder {0}: n(count)
+#: src/console/pages/Summary.tsx
+msgid "заблокировали {0}"
+msgstr "{0} blocked it"
+
 #: src/components/TabBar.tsx
 msgid "опиши задачу — придут отклики"
 msgstr "describe the task and replies will come"
@@ -1963,6 +1972,7 @@ msgstr "Ads in the last day"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Signals.tsx
+#: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Signals"
 

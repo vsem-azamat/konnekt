@@ -429,6 +429,13 @@
   white-space: nowrap;
 }
 
+/* For a row whose ends are what it says: a chat's name, a deadline. */
+.rowWrap .rowName,
+.rowWrap .rowHint {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .rowTrailing {
   margin-left: auto;
   flex: none;

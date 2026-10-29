@@ -283,7 +283,6 @@ export type AttentionKey = 'ads' | 'review' | 'profiles' | 'requests';
 
 /**
  * What needs a look, in the order the summary lists it; zero is not news.
- * New profiles are the browser's: the Mini App's summary leaves them out.
  */
 export function attention(input: {
   adsUnreviewed: number;

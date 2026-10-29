@@ -4,6 +4,7 @@ import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   BagIcon,
+  BellIcon,
   BlockIcon,
   ChatIcon,
   DocumentIcon,
@@ -39,11 +40,13 @@ import {
   consoleSignalsQuery,
   consoleStatsQuery,
   consoleSystemQuery,
+  everyMinute,
 } from '@/console/queries';
 import css from '@/console/Summary.module.css';
 import { type AttentionKey, attention, type BusyChat } from '@/console/session';
 import {
   elapsed,
+  menuCounts,
   minutesUntil,
   type PendingActionSignal,
   type WaveSignal,
@@ -69,21 +72,20 @@ function Summary() {
   const navigate = useNavigate();
   const { i18n } = useLingui();
   // Read again every minute while it is open: it says how fresh it is.
-  // Not after a failure: a stale sign-in would be sent again every minute.
-  const stats = useQuery({
-    ...consoleStatsQuery,
-    refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
-  });
+  const stats = useQuery({ ...consoleStatsQuery, refetchInterval: everyMinute });
   const chats = useQuery(consoleChatsQuery);
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
-  // The browser's summary also lists the waves and the proposals, and says
-  // whether the console's bot can act; the menu reads the signals already.
+  // The waves and the proposals, and whether the console's bot can act: the
+  // same in both layouts. A browser's menu reads the signals too.
   const inBrowser = useBrowserConsole();
-  const signals = useQuery({ ...consoleSignalsQuery, enabled: inBrowser });
-  const system = useQuery({ ...consoleSystemQuery, enabled: inBrowser });
+  // Polled here too: the Mini App has no menu to keep it fresh.
+  const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: everyMinute });
+  const system = useQuery(consoleSystemQuery);
+  // What the browser's menu counts, on the summary's sections in the Mini App.
+  const counts = menuCounts(signals.data, catalog.data?.counts);
 
   const open = (path: string) => {
     hapticSelection();
@@ -92,16 +94,14 @@ function Summary() {
 
   // Each backend answers for itself: webapi refusing must not hide what the
   // catalog said, and the other way round.
-  // Signals are asked for only in a browser; a disabled query stays pending.
   const webapiError = stats.error ?? chats.error ?? signals.error;
   const loading =
     catalog.isPending ||
-    (!webapiError &&
-      (stats.isPending || chats.isPending || (inBrowser && signals.isPending)));
+    (!webapiError && (stats.isPending || chats.isPending || signals.isPending));
   const items = attention({
     adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
     chats: chats.data ?? [],
-    profilesToReview: inBrowser ? catalog.data?.counts.profiles_to_review : undefined,
+    profilesToReview: catalog.data?.counts.profiles_to_review,
     requestsUnanswered: catalog.data?.counts.unanswered ?? 0,
   });
   const approved = chats.data?.filter(
@@ -170,24 +170,22 @@ function Summary() {
 
   // Each wave and proposal on a row of its own, above the queues, as the
   // Сигналы screen puts them.
-  const waiting = inBrowser
-    ? [
-        ...(signals.data?.waves ?? []).map((wave) => (
-          <WaveRow
-            key={`wave-${wave.id}`}
-            wave={wave}
-            onClick={() => open('/console/signals')}
-          />
-        )),
-        ...(signals.data?.pending_actions ?? []).map((proposal) => (
-          <ProposalRow
-            key={`proposal-${proposal.id}`}
-            proposal={proposal}
-            onClick={() => open('/console/signals')}
-          />
-        )),
-      ]
-    : [];
+  const waiting = [
+    ...(signals.data?.waves ?? []).map((wave) => (
+      <WaveRow
+        key={`wave-${wave.id}`}
+        wave={wave}
+        onClick={() => open('/console/signals')}
+      />
+    )),
+    ...(signals.data?.pending_actions ?? []).map((proposal) => (
+      <ProposalRow
+        key={`proposal-${proposal.id}`}
+        proposal={proposal}
+        onClick={() => open('/console/signals')}
+      />
+    )),
+  ];
 
   const updated = (
     <div style={{ marginTop: 6 }}>
@@ -271,7 +269,7 @@ function Summary() {
               retry={() => {
                 void stats.refetch();
                 void chats.refetch();
-                if (inBrowser) void signals.refetch();
+                void signals.refetch();
               }}
             />
           ) : null}
@@ -293,6 +291,16 @@ function Summary() {
     </>
   );
 
+  const bots = (
+    <Bots
+      audience={audience.data}
+      error={audience.error}
+      retry={() => void audience.refetch()}
+      ready={system.data?.publish_bot_ready}
+      table={inBrowser}
+    />
+  );
+
   if (inBrowser) {
     return (
       <>
@@ -301,14 +309,7 @@ function Summary() {
         <div className={css.grid}>
           <div>{needs}</div>
           <div className={css.column}>
-            <section className={css.card}>
-              <Bots
-                audience={audience.data}
-                error={audience.error}
-                retry={() => void audience.refetch()}
-                ready={system.data?.publish_bot_ready}
-              />
-            </section>
+            <section className={css.card}>{bots}</section>
             {stats.data ? (
               <section className={css.card}>
                 <Label aside={<Trans>сутки</Trans>}>
@@ -331,6 +332,8 @@ function Summary() {
 
       {needs}
 
+      {bots}
+
       {stats.data ? (
         <>
           <Label aside={<Trans>сутки</Trans>}>
@@ -344,6 +347,17 @@ function Summary() {
         <Trans>Разделы</Trans>
       </Label>
       <Rows>
+        <Row
+          leading={
+            <Tile tone={1}>
+              <BellIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Сигналы</Trans>}
+          hint={<Trans>набеги заявок и предложенные баны</Trans>}
+          trailing={<Waiting count={counts.signals} />}
+          onClick={() => open('/console/signals')}
+        />
         <Row
           leading={
             <Tile tone={3}>
@@ -367,7 +381,7 @@ function Summary() {
               <Trans>иерархия, защита, модерация</Trans>
             )
           }
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.chats} />}
           onClick={() => open('/console/chats')}
         />
         <Row
@@ -389,7 +403,7 @@ function Summary() {
           }
           title={<Trans>Каталог</Trans>}
           hint={<Trans>анкеты, заявки, поиски без ответа</Trans>}
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.catalog} />}
           onClick={() => open('/console/catalog')}
         />
         <Row
@@ -435,7 +449,7 @@ function Summary() {
               <Trans>что поймал детектор</Trans>
             )
           }
-          trailing={<Chevron />}
+          trailing={<Waiting count={counts.spam} />}
           onClick={() => open('/console/spam')}
         />
         <Row
@@ -473,6 +487,16 @@ function Summary() {
           onClick={() => open('/console/system')}
         />
       </Rows>
+    </>
+  );
+}
+
+/** A section's row ends in what waits there, as a browser's menu counts it. */
+function Waiting({ count }: { count: number }) {
+  return (
+    <>
+      {count ? <Count>{count}</Count> : null}
+      <Chevron />
     </>
   );
 }
@@ -586,6 +610,7 @@ function WaveRow({ wave, onClick }: { wave: WaveSignal; onClick: () => void }) {
           <PeopleIcon size={19} />
         </Tile>
       }
+      wrap
       title={<Trans>Набег на {title}</Trans>}
       hint={
         surge.unit === 'now' ? (
@@ -636,6 +661,7 @@ function ProposalRow({
           <BlockIcon size={19} />
         </Tile>
       }
+      wrap
       title={
         proposal.action === 'blacklist' ? (
           <Trans>Чёрный список: {who}</Trans>
@@ -668,11 +694,14 @@ function Bots({
   error,
   retry,
   ready,
+  table: asTable,
 }: {
   audience: AudienceSummary | undefined;
   error: Error | null;
   retry: () => void;
   ready: boolean | undefined;
+  /** A table beside the queues in a browser; rows on a phone's width. */
+  table: boolean;
 }) {
   const { i18n } = useLingui();
   const n = (value: number) => i18n.number(value);
@@ -689,7 +718,9 @@ function Bots({
       >
         <Trans>Боты</Trans>
       </Label>
-      {audience ? (
+      {audience && !asTable ? (
+        <BotRows audience={audience} />
+      ) : audience ? (
         <div className={css.tableWrap}>
           <table className={css.table}>
             <thead>
@@ -765,6 +796,61 @@ function Bots({
         <SkeletonRows count={2} />
       )}
     </>
+  );
+}
+
+/** The bots table as rows: who each bot is, the number, and what it counts. */
+function BotRows({ audience }: { audience: AudienceSummary }) {
+  const { i18n } = useLingui();
+  const n = (value: number) => i18n.number(value);
+  // Kept whole on its line: «заблокировали» alone above «1» reads as nothing.
+  const blocked = (count: number) => (
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <Trans>заблокировали {n(count)}</Trans>
+    </span>
+  );
+  return (
+    <Rows>
+      <Row
+        wrap
+        title={<Trans>Основной бот</Trans>}
+        hint={
+          <>
+            <Trans>бот и Mini App</Trans>
+            <br />
+            <Trans>могут получить сообщение</Trans> · {blocked(audience.reach.blocked)}
+          </>
+        }
+        trailing={<Count>{n(audience.reach.reachable)}</Count>}
+      />
+      <Row
+        wrap
+        title={<Trans>Бот связи</Trans>}
+        hint={
+          <>
+            <Trans>«Написать нам» и реклама</Trans>
+            <br />
+            <Trans>
+              первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
+            </Trans>{' '}
+            · {blocked(audience.contact_bot_blocked)}
+          </>
+        }
+        trailing={<Count>{n(audience.first_touch.contact_bot ?? 0)}</Count>}
+      />
+      <Row
+        wrap
+        title={<Trans>Старые боты</Trans>}
+        hint={
+          <>
+            <Trans>переехавшие подписчики</Trans>
+            <br />
+            <Trans>первых касаний</Trans>
+          </>
+        }
+        trailing={<Count>{n(audience.first_touch.moved_bot ?? 0)}</Count>}
+      />
+    </Rows>
   );
 }
 
