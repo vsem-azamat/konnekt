@@ -186,7 +186,10 @@ Telegram takes a restriction for somebody who is not a member yet (checked
 29.10 on the test group). That approval is a join to Telegram, so the join
 handler must not greet them or treat it as an admin letting them in; they
 are greeted when they pass. Removing them on failure or expiry is a ban
-with their messages, lifted at once, so they may ask again.
+with their messages, lifted at once, so they may ask again. A mute outlives
+leaving (Telegram keeps them `restricted`, not a member), so whoever leaves
+muted is unmuted as they go: otherwise the next way in — trust, a catalog
+pass, «Пускать всех» — would let them in muted with nothing to lift it.
 
 ## Approval
 

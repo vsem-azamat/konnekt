@@ -26,7 +26,7 @@ from collections.abc import Sequence
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import challenge
@@ -36,14 +36,13 @@ from app.captcha.telegram import with_retry
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models import Chat, JoinCaptcha
+from app.moderation.mute_permissions import UNMUTED
 
 logger = get_logger("captcha.in_chat")
 
-# Every permission there is, so one Telegram adds is not left open by omission.
-# Nothing they could post, react with or change.
+# Every permission there is, wider than a moderator's mute: nothing they could
+# post, react with or change, including what Telegram adds later.
 MUTED = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, False))
-# An exception that allows everything is no exception: the chat's own defaults apply again.
-UNMUTED = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
 # Named so when Telegram will not say who it is.
 _UNNAMED = "новичок"
 
@@ -58,6 +57,7 @@ async def mute(bot: Bot, row: JoinCaptcha) -> None:
 
 
 async def unmute(bot: Bot, row: JoinCaptcha) -> bool:
+    """Lift the mute. For somebody who has left, that drops the restriction Telegram keeps for them."""
     try:
         await with_retry(
             lambda: bot.restrict_chat_member(
@@ -70,15 +70,19 @@ async def unmute(bot: Bot, row: JoinCaptcha) -> bool:
     return True
 
 
-async def remove(bot: Bot, row: JoinCaptcha) -> bool:
-    """Out of the chat with whatever they posted, and free to join again."""
+async def remove(bot: Bot, row: JoinCaptcha) -> str | None:
+    """Out of the chat with whatever they posted, and free to join again; what went wrong, if anything."""
     try:
         await with_retry(lambda: bot.ban_chat_member(chat_id=row.chat_id, user_id=row.user_id, revoke_messages=True))
-        await with_retry(lambda: bot.unban_chat_member(chat_id=row.chat_id, user_id=row.user_id, only_if_banned=True))
     except TelegramAPIError as err:
         logger.warning("captcha_not_removed", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
-        return False
-    return True
+        return "не смог убрать из чата: он(а) остаётся в чате без права писать"
+    try:
+        await with_retry(lambda: bot.unban_chat_member(chat_id=row.chat_id, user_id=row.user_id, only_if_banned=True))
+    except TelegramAPIError as err:
+        logger.warning("captcha_not_unbanned", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
+        return "убрал из чата, но не смог снять бан: вступить снова не выйдет, пока бан не снимут"
+    return None
 
 
 async def member(bot: Bot, row: JoinCaptcha) -> User | None:
@@ -93,9 +97,11 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     """Put up a card naming whoever was let in since the last one, unless the last went up too recently.
 
     The sweep calls this too, for the newcomers a recent card made wait.
+    Decided and claimed under the chat's lock, posted after it: a card may wait
+    out flood control, and every admission to the chat would wait with it.
     """
     await lock_chat(db, chat_id)
-    waiting = (await db.scalars(_waiting(chat_id).order_by(JoinCaptcha.created_at))).all()
+    waiting = (await db.scalars(_waiting(chat_id).order_by(JoinCaptcha.created_at).with_for_update())).all()
     new = [row for row in waiting if row.announced_at is None]
     if not new:
         await db.rollback()
@@ -106,8 +112,11 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     if last is not None and now - last < datetime.timedelta(seconds=settings.captcha.card_batch_seconds):
         await db.rollback()
         return
+    for row in new:
+        row.announced_at = now
+    await db.commit()
 
-    carried = [row for row in waiting if row.announced_at is not None]
+    carried = [row for row in waiting if row not in new]
     earlier = {row.card_message_id for row in carried if row.card_message_id is not None}
     names = await _first_names(bot, chat_id, waiting)
     body = challenge.card_text(
@@ -116,23 +125,33 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
         settings.captcha.answer_minutes,
     )
     markup = await _markup(bot)
-    # Tried for this window whatever comes of it: a chat the bot cannot post
-    # in would otherwise be asked again at every sweep.
-    for row in new:
-        row.announced_at = now
     try:
         sent = await with_retry(lambda: bot.send_message(chat_id=chat_id, text=body, reply_markup=markup))
     except TelegramAPIError as err:
+        # Unclaimed, so the sweep tries again: carried into a later card by
+        # name alone, they would never be notified at all.
+        await db.execute(
+            update(JoinCaptcha)
+            .where(JoinCaptcha.id.in_([row.id for row in new]), JoinCaptcha.announced_at == now)
+            .values(announced_at=None)
+        )
         await db.commit()
         logger.warning("captcha_card_not_sent", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return
-    for row in waiting:
+    rows = (
+        await db.scalars(select(JoinCaptcha).where(JoinCaptcha.id.in_([row.id for row in waiting])).with_for_update())
+    ).all()
+    for row in rows:
         row.card_message_id = sent.message_id
+    settled_meanwhile = any(row.status != JoinCaptcha.STATUS_PENDING for row in rows)
     await db.commit()
     CAPTCHA_EVENTS.labels(event="card").inc()
     logger.info("captcha_card_sent", chat_id=chat_id, named=len(new), carried=len(carried))
     for message_id in earlier:
         await _delete(bot, chat_id, message_id)
+    # Somebody passed or left while it was being posted: named on it all the same.
+    if settled_meanwhile:
+        await refresh(bot, db, chat_id, sent.message_id)
 
 
 async def announce_due(bot: Bot, db: AsyncSession, now: datetime.datetime) -> None:
@@ -162,6 +181,8 @@ async def refresh(bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int
             select(JoinCaptcha).where(JoinCaptcha.chat_id == chat_id, JoinCaptcha.card_message_id == card_message_id)
         )
     ).all()
+    # Read only; not held open across the calls to Telegram below.
+    await db.commit()
     waiting = [row for row in rows if row.status == JoinCaptcha.STATUS_PENDING]
     if not waiting:
         await _delete(bot, chat_id, card_message_id)
@@ -228,7 +249,7 @@ async def ask(bot: Bot, db: AsyncSession, user_id: int, now: datetime.datetime) 
     return asked
 
 
-def _waiting(chat_id: int):  # noqa: ANN202 - a Select of JoinCaptcha
+def _waiting(chat_id: int) -> Select[tuple[JoinCaptcha]]:
     return select(JoinCaptcha).where(
         JoinCaptcha.chat_id == chat_id, JoinCaptcha.in_chat, JoinCaptcha.status == JoinCaptcha.STATUS_PENDING
     )

@@ -29,6 +29,12 @@ _REPLIES = {
     service.Outcome.CLOSED: "Эта проверка уже закрыта",
     service.Outcome.GONE: "Заявку рассмотрят админы чата",
 }
+# Asked in the chat there is no request any more: they are in it, muted.
+_REPLIES_IN_CHAT = {
+    **_REPLIES,
+    service.Outcome.FAILED: "Проверка не пройдена",
+    service.Outcome.GONE: "Проверка больше не нужна",
+}
 
 
 @router.message(F.chat.type == "private", CommandStart(deep_link=True, magic=F.args == challenge.START_PAYLOAD))
@@ -47,11 +53,12 @@ async def captcha_pick(callback: types.CallbackQuery, callback_data: CaptchaPick
     outcome = await service.answer(
         bot, db, challenge_id=callback_data.challenge_id, user_id=callback.from_user.id, pick=callback_data.pick
     )
-    if outcome is service.Outcome.RETRY and (row := await db.get(JoinCaptcha, callback_data.challenge_id)):
+    row = await db.get(JoinCaptcha, callback_data.challenge_id)
+    if outcome is service.Outcome.RETRY and row:
         # Not an alert: it goes by itself and the board stays usable under it.
         await callback.answer(challenge.retry_hint(row.answer, row.attempts_left))
         return
-    await callback.answer(_REPLIES[outcome])
+    await callback.answer((_REPLIES_IN_CHAT if row and row.in_chat else _REPLIES)[outcome])
 
 
 @router.callback_query(WaveDecision.filter(), flags=_ANSWERS_ITSELF)

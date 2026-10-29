@@ -458,8 +458,9 @@ async def admitted(
                 JoinCaptcha.chat_id == chat_id,
                 JoinCaptcha.user_id == user_id,
                 JoinCaptcha.status.in_((JoinCaptcha.STATUS_PENDING, JoinCaptcha.STATUS_HELD)),
-                # Asked in the chat, they join the moment the bot approves: that join settles nothing.
-                JoinCaptcha.in_chat.is_(False),
+                # Asked in the chat, they join the moment the bot approves: that join
+                # settles nothing. A held request was never muted, so it is as any other.
+                or_(JoinCaptcha.in_chat.is_(False), JoinCaptcha.status == JoinCaptcha.STATUS_HELD),
             )
             # Not skip_locked: the join arrives once, and a row skipped
             # while a wrong tap or a reminder held it would stay open.
@@ -497,12 +498,17 @@ async def waits_in_chat(db: AsyncSession, chat_id: int, user_id: int) -> bool:
 
 
 async def let_go(
-    bot: Bot, db: AsyncSession, chat_id: int, user_id: int, *, now: datetime.datetime | None = None
+    bot: Bot, db: AsyncSession, chat_id: int, user_id: int, *, unmute: bool, now: datetime.datetime | None = None
 ) -> None:
     """Close the captcha in the chat of somebody who left, was removed, or was unmuted by an admin.
 
     Whatever happened is the admins' decision or the person's own; the bot
-    only stops asking. Its own removals and unmutes find the row settled already.
+    only stops asking. `unmute` lifts the mute of somebody who left: Telegram
+    keeps it after they go, and whatever lets them in next would let them in
+    muted with nothing left to lift it. Never for a ban, which it would undo.
+
+    The bot's own removals and unmutes hold the row while they act, so this
+    waits for them and finds it settled.
     """
     now = now or utc_now()
     rows = (
@@ -523,6 +529,8 @@ async def let_go(
     chat = await db.get(Chat, chat_id)
     title = _title(chat) if chat else str(chat_id)
     for row in rows:
+        if unmute:
+            await in_chat.unmute(bot, row)
         await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.no_longer_needed_text(title))
         await in_chat.refresh(bot, db, chat_id, row.card_message_id)
     logger.info("captcha_in_chat_let_go", chat_id=chat_id, user_id=user_id, count=len(rows))
@@ -551,13 +559,13 @@ async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Ch
 
 async def _remove(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, status: str, text: str) -> None:
     """Out of tries or out of time: out of the chat, and off the card."""
-    if not await in_chat.remove(bot, row):
+    if problem := await in_chat.remove(bot, row):
         chat = await db.get(Chat, row.chat_id)
         title = _title(chat) if chat else str(row.chat_id)
         await report(
             bot,
-            f"Капча в {html.escape(title)}: бот не смог убрать {row.user_id}, не прошедшего проверку. "
-            "Он остаётся в чате без права писать. Проверьте права бота в чате.",
+            f"Капча в {html.escape(title)}: {row.user_id} не прошёл(а) проверку, бот {problem}. "
+            "Проверьте права бота в чате.",
         )
     await _close(bot, db, row, status, now, text)
     await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)

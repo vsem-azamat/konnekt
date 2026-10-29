@@ -17,6 +17,7 @@ from aiogram.methods import RestrictChatMember
 from aiogram.types import (
     Chat,
     ChatJoinRequest,
+    ChatMemberBanned,
     ChatMemberLeft,
     ChatMemberMember,
     ChatMemberRestricted,
@@ -25,12 +26,15 @@ from aiogram.types import (
     User,
 )
 from app.captcha import in_chat, service
+from app.captcha.challenge import CaptchaPick
 from app.chats import welcome
 from app.core.config import settings
 from app.core.time import utc_now
 from app.db.models import Chat as DbChat
 from app.db.models import JoinCaptcha, WelcomeGreeting
-from app.presentation.telegram.handlers.captcha import captcha_start
+from app.moderation.mute_permissions import UNMUTED
+from app.presentation.telegram.handlers import events
+from app.presentation.telegram.handlers.captcha import captcha_pick, captcha_start
 from app.presentation.telegram.handlers.events import join_requested, user_joined, user_left, user_unmuted
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,6 +72,9 @@ def _muted(user_id: int, *, is_member: bool = True) -> ChatMemberRestricted:
             **dict.fromkeys(ChatPermissions.model_fields, False),
         }
     )
+
+
+_NEVER = datetime.datetime.fromtimestamp(0, datetime.UTC)
 
 
 def _update(user_id: int, old, new, *, by: int | None = None) -> ChatMemberUpdated:
@@ -412,6 +419,33 @@ async def test_a_chat_that_stops_checking_lets_its_muted_write(session: AsyncSes
     assert row.status == JoinCaptcha.STATUS_GONE
 
 
+async def test_a_card_that_could_not_go_up_is_tried_again_with_its_mentions(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    bot.send_message.side_effect = TelegramBadRequest(method=MagicMock(), message="Too Many Requests")
+
+    await _let_in(session, bot)
+    [row] = await _rows(session)
+    assert row.announced_at is None
+
+    bot.send_message.side_effect = None
+    bot.send_message.return_value = MagicMock(message_id=555)
+    await in_chat.announce_due(bot, session, utc_now())
+
+    assert "tg://user?id=4242" in bot.send_message.await_args.kwargs["text"]
+
+
+async def test_the_popup_speaks_of_the_chat_not_a_request(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    row = await _let_in(session, bot)
+    await _ask(session, bot)
+    callback = MagicMock(from_user=_user(4242), answer=AsyncMock())
+
+    for _ in range(2):
+        await captcha_pick(callback, CaptchaPick(challenge_id=row.id, pick=_wrong(row)), bot, session)
+
+    callback.answer.assert_awaited_with("Проверка не пройдена")
+
+
 # --- membership updates -------------------------------------------------------
 
 
@@ -428,35 +462,107 @@ async def test_the_join_the_approval_makes_is_neither_greeted_nor_settled(sessio
     assert row.status == JoinCaptcha.STATUS_PENDING
 
 
-async def test_leaving_closes_their_captcha_and_card(session: AsyncSession, bot) -> None:
+async def test_leaving_closes_their_captcha_and_lifts_the_mute_telegram_keeps(session: AsyncSession, bot) -> None:
     await _seed(session)
     row = await _let_in(session, bot)
+    card = row.card_message_id
+    bot.restrict_chat_member.reset_mock()
+
+    # Telegram's own shape for a muted member who leaves: still restricted, no longer a member.
+    await user_left(_update(4242, _muted(4242), _muted(4242, is_member=False)), bot, session)
+
+    [row] = await _rows(session)
+    assert row.status == JoinCaptcha.STATUS_GONE
+    assert bot.restrict_chat_member.await_args.kwargs["permissions"] == UNMUTED
+    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=card)
+
+
+async def test_an_admins_ban_is_not_undone(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    await _let_in(session, bot)
+    bot.restrict_chat_member.reset_mock()
+
+    banned = ChatMemberBanned(user=_user(4242), status=ChatMemberStatus.KICKED, until_date=_NEVER)
+    await user_left(_update(4242, _muted(4242), banned, by=777), bot, session)
+
+    [row] = await _rows(session)
+    assert row.status == JoinCaptcha.STATUS_GONE
+    bot.restrict_chat_member.assert_not_awaited()
+
+
+@pytest.mark.parametrize("by", [777, BOT_ID], ids=["by hand", "through the bot"])
+async def test_an_admin_unmuting_them_settles_it(session: AsyncSession, bot, by: int) -> None:
+    """`/unmute` and the control plane's unmute act as the bot: still an admin's decision."""
+    await _seed(session)
+    await _let_in(session, bot)
+
+    member = ChatMemberMember(user=_user(4242), status=ChatMemberStatus.MEMBER)
+    await user_unmuted(_update(4242, _muted(4242), member, by=by), bot, session)
+
+    [row] = await _rows(session)
+    assert row.status == JoinCaptcha.STATUS_GONE
+    await service.expire_stale(bot, session, now=row.expires_at + datetime.timedelta(seconds=1))
+    bot.ban_chat_member.assert_not_awaited()
+
+
+async def test_a_held_request_let_in_by_hand_is_settled(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    session.add(
+        JoinCaptcha(
+            chat_id=CHAT_ID,
+            user_id=4242,
+            user_chat_id=4242,
+            status=JoinCaptcha.STATUS_HELD,
+            answer="🍕",
+            options=["🍕"],
+            attempts_left=2,
+            created_at=utc_now(),
+            expires_at=utc_now() + datetime.timedelta(days=1),
+            in_chat=True,
+        )
+    )
+    await session.commit()
 
     left = ChatMemberLeft(user=_user(4242), status=ChatMemberStatus.LEFT)
-    await user_left(_update(4242, _muted(4242), left), bot, session)
-
-    [row] = await _rows(session)
-    assert row.status == JoinCaptcha.STATUS_GONE
-    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=row.card_message_id)
-
-
-async def test_an_admin_unmuting_them_settles_it(session: AsyncSession, bot) -> None:
-    await _seed(session)
-    await _let_in(session, bot)
-
     member = ChatMemberMember(user=_user(4242), status=ChatMemberStatus.MEMBER)
-    await user_unmuted(_update(4242, _muted(4242), member, by=777), bot, session)
+    await user_joined(_update(4242, left, member, by=777), bot, session)
 
     [row] = await _rows(session)
     assert row.status == JoinCaptcha.STATUS_GONE
 
 
-async def test_the_bots_own_unmute_is_not_an_admins(session: AsyncSession, bot) -> None:
-    await _seed(session)
-    await _let_in(session, bot)
+# Which handler each transition reaches, through the real filters: aiogram
+# gives a chat_member update to the first that matches.
+_TRANSITIONS = {
+    "the mute before joining": (
+        ChatMemberLeft(user=_user(1), status=ChatMemberStatus.LEFT),
+        _muted(1, is_member=False),
+        None,
+    ),
+    "the approval": (_muted(1, is_member=False), _muted(1), user_joined),
+    "an unmute": (_muted(1), ChatMemberMember(user=_user(1), status=ChatMemberStatus.MEMBER), user_unmuted),
+    "a removal": (
+        _muted(1),
+        ChatMemberBanned(user=_user(1), status=ChatMemberStatus.KICKED, until_date=_NEVER),
+        user_left,
+    ),
+    "leaving muted": (_muted(1), _muted(1, is_member=False), user_left),
+    "the unban after a removal": (
+        ChatMemberBanned(user=_user(1), status=ChatMemberStatus.KICKED, until_date=_NEVER),
+        ChatMemberLeft(user=_user(1), status=ChatMemberStatus.LEFT),
+        None,
+    ),
+    "lifting the mute of one who left": (
+        _muted(1, is_member=False),
+        ChatMemberLeft(user=_user(1), status=ChatMemberStatus.LEFT),
+        None,
+    ),
+}
 
-    member = ChatMemberMember(user=_user(4242), status=ChatMemberStatus.MEMBER)
-    await user_unmuted(_update(4242, _muted(4242), member, by=BOT_ID), bot, session)
 
-    [row] = await _rows(session)
-    assert row.status == JoinCaptcha.STATUS_PENDING
+@pytest.mark.parametrize("transition", _TRANSITIONS)
+async def test_each_transition_reaches_one_handler(transition: str) -> None:
+    old, new, expected = _TRANSITIONS[transition]
+    update = _update(1, old, new)
+    matched = [h.callback for h in events.router.chat_member.handlers if (await h.check(update))[0]]
+    assert matched == ([expected] if expected else [])
