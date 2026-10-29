@@ -32,6 +32,12 @@
   stroke-opacity: 0.45;
 }
 
+/* After .ink and .ring, so it wins over both: a heading or a cross. */
+.heavy {
+  stroke-width: 2.8;
+  stroke-opacity: 1;
+}
+
 .mark,
 .cut {
   stroke: none;

@@ -167,14 +167,21 @@
   background: color-mix(in srgb, var(--tone-bg) 55%, transparent);
 }
 
-/* The same height at every width: lower than a card's 16:9 photo, and
-   high enough for the drawing to read. */
+/* Lower than a card's 16:9 photo beside it, and high enough for the
+   drawing to read. In the phone's pair the photo is ~90px on a 360px
+   screen, so the band there is lower still. */
 .openCover {
   display: grid;
   place-items: center;
   height: 96px;
   padding: 8px 0;
   box-sizing: border-box;
+}
+
+@media (max-width: 719px) {
+  .pair .openCover {
+    height: 72px;
+  }
 }
 
 .invite {

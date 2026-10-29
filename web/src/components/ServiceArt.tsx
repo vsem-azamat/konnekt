@@ -9,27 +9,28 @@
 import css from './ServiceArt.module.css';
 
 const ART: Record<string, React.ReactNode> = {
+  // Drawn left of centre; moved over so it sits where the others do.
   bank_letter: (
-    <>
+    <g transform="translate(10 0)">
       <rect className={css.body} x="42" y="11" width="44" height="55" rx="3" />
       <rect className={css.body} x="32" y="6" width="46" height="58" rx="3" />
-      <path className={css.ink} d="M38 15h16" strokeWidth="3" />
+      <path className={`${css.ink} ${css.heavy}`} d="M38 15h16" />
       <rect className={css.mark} x="66" y="11" width="6" height="6" rx="1.5" />
       <path className={css.ink} d="M38 26h22M64 26h8M38 33h18M64 33h8M38 40h24M64 40h8" />
       <path className={css.ink} d="M38 49h34" />
-      <path className={css.ink} d="M60 55h12" strokeWidth="3" />
+      <path className={`${css.ink} ${css.heavy}`} d="M60 55h12" />
       <circle className={css.body} cx="18" cy="52" r="9" />
       <circle className={css.ink} cx="18" cy="52" r="5" />
       <circle className={css.ring} cx="76" cy="53" r="9" />
       <circle className={css.ring} cx="76" cy="53" r="5.5" strokeDasharray="2 2" />
-    </>
+    </g>
   ),
   insurance: (
     <>
       <rect className={css.body} x="22" y="14" width="64" height="42" rx="5" />
       <path className={css.mark} d="M22 24v-5a5 5 0 0 1 5-5h54a5 5 0 0 1 5 5v5z" />
       <circle className={css.ink} cx="36" cy="39" r="8" />
-      <path className={css.ring} d="M36 35v8M32 39h8" strokeWidth="2.6" />
+      <path className={`${css.ring} ${css.heavy}`} d="M36 35v8M32 39h8" />
       <path className={css.ink} d="M50 34h26M50 40h22M50 46h14" />
       <path
         className={css.body}
@@ -107,7 +108,7 @@ const ART: Record<string, React.ReactNode> = {
 
 /** Whether `code` has a drawing; a service added later keeps its icon. */
 export function hasArt(code: string) {
-  return code in ART;
+  return Object.hasOwn(ART, code);
 }
 
 export function ServiceArt({ code }: { code: string }) {
