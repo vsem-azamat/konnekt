@@ -146,7 +146,7 @@ class TestUserRepositoryIntegration:
         assert saved_user.username is None
         assert saved_user.first_name is None
         assert saved_user.last_name is None
-        assert saved_user.is_verified is True  # Default
+        assert saved_user.verify is True  # Default
         assert saved_user.is_blocked is False  # Default
 
     async def test_save_user_with_none_values(self, user_repository: UserRepository):
@@ -193,7 +193,7 @@ class TestUserRepositoryIntegration:
         # Retrieve and verify
         retrieved_user = await user_repository.get_by_id(user.id)
         assert retrieved_user is not None
-        assert retrieved_user.is_verified is False
+        assert retrieved_user.verify is False
         assert retrieved_user.is_blocked is True
 
 

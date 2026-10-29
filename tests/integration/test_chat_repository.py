@@ -333,7 +333,7 @@ class TestChatRepositoryLegacy:
         """Test legacy merge_chat and get_chat methods."""
         repo = ChatRepository(session)
         await repo.merge_chat(1, title="Test", is_forum=True)
-        chat = await repo.get_chat(1)
+        chat = await repo.get_by_id(1)
         assert chat is not None
         assert chat.title == "Test"
         assert chat.is_forum is True

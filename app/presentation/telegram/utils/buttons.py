@@ -5,16 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.repositories import ChatLinkRepository
 
 
-async def get_contacts_buttons() -> InlineKeyboardBuilder:
-    builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(text="Dev", url="https://t.me/vsem_azamat"),
-        InlineKeyboardButton(text="GitHub", url="https://github.com/vsem-azamat/moderator-bot"),
-    )
-    builder.adjust(1)
-    return builder
-
-
 async def get_chat_buttons(db: AsyncSession) -> InlineKeyboardBuilder:
     builder = InlineKeyboardBuilder()
     chat_links_repo = ChatLinkRepository(db)

@@ -22,7 +22,7 @@ class ChatRepository:
 
     async def save(self, chat: Chat) -> Chat:
         """Save chat."""
-        chat_model = await self._get_chat_model(chat.id)
+        chat_model = await self.get_by_id(chat.id)
         if chat_model:
             chat_model.title = chat.title
             chat_model.resource_status = chat.resource_status
@@ -47,16 +47,6 @@ class ChatRepository:
         await self.db.commit()
         await self.db.refresh(chat_model)
         return chat_model
-
-    async def _get_chat_model(self, chat_id: int) -> Chat | None:
-        """Get chat model by ID."""
-        result = await self.db.execute(select(Chat).filter(Chat.id == chat_id))
-        return result.scalars().first()
-
-    # Legacy methods for backward compatibility
-    async def get_chat(self, id_tg_chat: int) -> Chat | None:
-        """Get chat model by ID."""
-        return await self._get_chat_model(id_tg_chat)
 
     async def get_chats(self) -> list[Chat]:
         """Get all chats as models."""

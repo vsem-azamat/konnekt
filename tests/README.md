@@ -102,9 +102,9 @@ async def test_async_function():
 ### Error Testing
 
 ```python
-async def test_user_not_found_raises_exception(user_service):
+async def test_unblocking_an_unknown_user_raises(user_repository):
     with pytest.raises(UserNotFoundException) as exc_info:
-        await user_service.get_user_by_id(999999)
+        await user_repository.remove_from_blacklist(999999)
     assert exc_info.value.user_id == 999999
 ```
 

@@ -88,7 +88,7 @@ class TestDeactivation:
         await repo.grant(MODERATOR, HOME)
 
         admin = await session.get(Admin, MODERATOR)
-        admin.deactivate()
+        admin.state = False
         await session.commit()
 
         assert await repo.is_admin_in(MODERATOR, HOME) is False

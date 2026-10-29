@@ -333,9 +333,7 @@ async def test_moderation_history_counts_what_the_bot_recorded(mcp_session) -> N
 
     async with mcp_session() as session:
         session.add(Message(chat_id=MANAGED_CHAT_ID, user_id=USER_ID, message_id=1, message="hi"))
-        spam = Message(chat_id=MANAGED_CHAT_ID, user_id=USER_ID, message_id=2, message="buy now")
-        spam.mark_as_spam()
-        session.add(spam)
+        session.add(Message(chat_id=MANAGED_CHAT_ID, user_id=USER_ID, message_id=2, message="buy now", spam=True))
         session.add(SpamPing(chat_id=MANAGED_CHAT_ID, user_id=USER_ID, message_id=2, kind="link", matches=["t.me/x"]))
         session.add(
             PendingAction(

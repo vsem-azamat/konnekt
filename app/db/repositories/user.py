@@ -40,7 +40,7 @@ class UserRepository:
         await self.db.commit()
 
     async def save(self, user: User) -> User:
-        user_model = await self._get_user_model(user.id)
+        user_model = await self.get_by_id(user.id)
         if user_model:
             user_model.username = user.username
             user_model.first_name = user.first_name
@@ -82,17 +82,8 @@ class UserRepository:
 
         return result.scalars().first()
 
-    async def _get_user_model(self, user_id: int) -> User | None:
-        result = await self.db.execute(select(User).filter(User.id == user_id))
-        return result.scalars().first()
-
-    # Legacy methods for backward compatibility
-    async def get_user(self, id_tg: int) -> User | None:
-        result = await self.db.execute(select(User).filter(User.id == id_tg))
-        return result.scalars().first()
-
     async def add_to_blacklist(self, id_tg: int) -> None:
-        user = await self.get_user(id_tg)
+        user = await self.get_by_id(id_tg)
         if user:
             await self.db.execute(update(User).where(User.id == id_tg).values(blocked=True))
         else:
@@ -100,7 +91,7 @@ class UserRepository:
         await self.db.commit()
 
     async def remove_from_blacklist(self, id_tg: int) -> None:
-        user = await self.get_user(id_tg)
+        user = await self.get_by_id(id_tg)
         if user:
             await self.db.execute(update(User).where(User.id == id_tg).values(blocked=False))
             await self.db.commit()
