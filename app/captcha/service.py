@@ -385,8 +385,9 @@ async def admitted(
 
     Their request is settled, so the captcha is the admins' decision now. Left
     open, it would remind them to answer from inside the chat, and a late tap
-    would try to settle a request that is gone. A row the captcha is settling
-    itself is locked by that tap and left to it.
+    would try to settle a request that is gone. A row somebody holds — a tap
+    mid-approve, a reminder being sent — is waited for, then read again: one
+    the tap settled is left as it settled it.
     """
     now = now or utc_now()
     rows = (
@@ -397,7 +398,9 @@ async def admitted(
                 JoinCaptcha.user_id == user_id,
                 JoinCaptcha.status.in_((JoinCaptcha.STATUS_PENDING, JoinCaptcha.STATUS_HELD)),
             )
-            .with_for_update(skip_locked=True)
+            # Not skip_locked: the join arrives once, and a row skipped
+            # while a wrong tap or a reminder held it would stay open.
+            .with_for_update()
         )
     ).all()
     if not rows:

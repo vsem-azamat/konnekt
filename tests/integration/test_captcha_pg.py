@@ -226,3 +226,49 @@ async def test_someone_who_passed_elsewhere_gets_in_through_a_burst(pg_session_m
     assert statuses[trusted] == JoinCaptcha.STATUS_TRUSTED
     assert statuses[stale] == JoinCaptcha.STATUS_HELD
     bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=trusted)
+
+
+async def _join(maker, bot) -> None:
+    async with maker() as session:
+        await service.admitted(bot, session, CHAT_ID, 4242)
+
+
+async def test_a_join_during_the_approving_tap_leaves_it_passed(pg_session_maker, bot, chat) -> None:
+    """Passing approves the request, and Telegram reports that join while the tap still holds the row."""
+    row = await _pending(pg_session_maker, bot)
+
+    async def join() -> None:
+        await asyncio.sleep(0.05)  # the tap holds the row by now, mid-approve
+        await _join(pg_session_maker, bot)
+
+    outcome, _ = await asyncio.gather(_tap(pg_session_maker, bot, row), join())
+
+    assert outcome is service.Outcome.PASSED
+    async with pg_session_maker() as session:
+        settled = await session.get(JoinCaptcha, row.id)
+        assert settled is not None
+        assert settled.status == JoinCaptcha.STATUS_PASSED
+    texts = [c.kwargs["text"] for c in bot.edit_message_text.await_args_list]
+    assert not any("уже рассмотрели" in t for t in texts)
+
+
+async def test_a_join_while_a_reminder_is_sent_still_closes_the_captcha(pg_session_maker, bot, chat) -> None:
+    """The join comes once: waiting out the reminder's lock, not skipping it, is what closes the row."""
+    row = await _pending(pg_session_maker, bot)
+    due = row.created_at + datetime.timedelta(minutes=settings.captcha.remind_after_minutes, seconds=10)
+    bot.send_message = _slow(0.2)
+
+    async def reminder() -> None:
+        async with pg_session_maker() as session:
+            await service.remind(bot, session, now=due)
+
+    async def join() -> None:
+        await asyncio.sleep(0.05)  # the reminder holds the row by now, mid-send
+        await _join(pg_session_maker, bot)
+
+    await asyncio.gather(reminder(), join())
+
+    async with pg_session_maker() as session:
+        closed = await session.get(JoinCaptcha, row.id)
+        assert closed is not None
+        assert closed.status == JoinCaptcha.STATUS_GONE

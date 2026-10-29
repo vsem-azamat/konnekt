@@ -937,3 +937,19 @@ async def test_a_join_after_passing_leaves_the_captcha_passed(session: AsyncSess
     await session.refresh(challenge)
     assert challenge.status == JoinCaptcha.STATUS_PASSED
     bot.edit_message_text.assert_not_awaited()
+
+
+async def test_a_join_closes_a_held_request_too(session: AsyncSession, bot) -> None:
+    """The bot never approves a held one, so a join means the chat's admins let them in."""
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    challenge.status, challenge.message_id = JoinCaptcha.STATUS_HELD, None
+    await session.commit()
+    bot.edit_message_text.reset_mock()
+
+    await service.admitted(bot, session, CHAT_ID, USER_ID)
+
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
+    bot.edit_message_text.assert_not_awaited()
