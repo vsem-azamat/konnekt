@@ -789,8 +789,8 @@ class SpamPing(Base):
     """A single ad-detection event.
 
     Persisted by the moderator middleware whenever a message contains
-    t.me / telegram.me / @username patterns not present in the configured
-    whitelist. Powers the home "Spam pings" tile and the per-chat feed
+    t.me / telegram.me / @username patterns that are not ours or a
+    classmate's (app/moderation/ad_detector_service.py). Powers the home "Spam pings" tile and the per-chat feed
     on /chats/:id.
     """
 

@@ -48,7 +48,7 @@ async def _catalog(db: AsyncSession) -> list[str]:
 
 
 async def _without_classmates(
-    db: AsyncSession, signals: list[AdSignal], *, chat_id: int, user_id: int, flagged: set[str]
+    db: AsyncSession, signals: list[AdSignal], *, chat_id: int, user_id: int, message_id: int, flagged: set[str]
 ) -> list[AdSignal]:
     """Drop mentions of people, other than the sender, who have written in this chat.
 
@@ -57,8 +57,11 @@ async def _without_classmates(
     stranger advertises themselves. Nor is anyone a moderator has turned
     away: their spam and their block do not make them a classmate.
 
-    A mention this message was already flagged for stays flagged: someone
-    writing in the chat later does not take back an ad, nor its answer.
+    Only what was written before this message counts, and a mention this
+    message was already flagged for stays flagged: someone writing in the
+    chat later does not take back an ad, nor its answer. What this does not
+    stop is a second account that writes in the chat first and is advertised
+    after; that was the accepted price of quiet tagging (#415).
     """
     handles = [
         sig.canonical.removeprefix("@") for sig in signals if sig.kind == "mention" and sig.canonical not in flagged
@@ -72,7 +75,12 @@ async def _without_classmates(
                 User.id != user_id,
                 User.blocked.is_(False),
                 select(Message.id)
-                .where(Message.chat_id == chat_id, Message.user_id == User.id, Message.spam.is_(False))
+                .where(
+                    Message.chat_id == chat_id,
+                    Message.user_id == User.id,
+                    Message.message_id < message_id,
+                    Message.spam.is_(False),
+                )
                 .exists(),
             )
         )
@@ -114,7 +122,9 @@ async def record_ad_signals(
     if signals:
         signals = extract_ad_signals(text, whitelist=_configured() + await _catalog(db))
     flagged = {match for ping in earlier.values() for match in ping.matches}
-    signals = await _without_classmates(db, signals, chat_id=chat_id, user_id=user_id, flagged=flagged)
+    signals = await _without_classmates(
+        db, signals, chat_id=chat_id, user_id=user_id, message_id=message_id, flagged=flagged
+    )
     snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars) if text else None
     by_kind: dict[str, list[str]] = {}
     for sig in signals:

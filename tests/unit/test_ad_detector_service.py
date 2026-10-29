@@ -140,3 +140,18 @@ async def test_a_link_to_a_discovered_chat_is_still_flagged(session: AsyncSessio
     await session.commit()
 
     assert await _record(session, "все подробности https://t.me/rabota_cz") == {"t.me/rabota_cz"}
+
+
+@pytest.mark.usefixtures("classmate")
+async def test_an_ad_edited_out_and_back_in_is_flagged_again(session: AsyncSession) -> None:
+    await record_ad_signals(session, chat_id=CHAT, user_id=SENDER, message_id=100, text="Кастинг, пишите @puppet_b")
+    session.add(User(id=5, username="puppet_b"))
+    session.add(Message(chat_id=CHAT, user_id=5, message_id=101, message="hi"))
+    await session.commit()
+    await record_ad_signals(session, chat_id=CHAT, user_id=SENDER, message_id=100, text="Кастинг", replace=True)
+
+    rows = await record_ad_signals(
+        session, chat_id=CHAT, user_id=SENDER, message_id=100, text="Кастинг, пишите @puppet_b", replace=True
+    )
+
+    assert [row.matches for row in rows] == [["@puppet_b"]]
