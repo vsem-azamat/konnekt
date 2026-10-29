@@ -136,7 +136,7 @@ async def test_the_middleware_records_the_member_and_both_people(session) -> Non
     assert await ChatStateMiddleware()(handler, _chat_member_update(), {"db": session}) == "handled"
 
     row = await session.get(ChatMember, (CHAT_ID, JAN.id))
-    assert (row.status, row.known_at) == ("member", T0)
+    assert (row.status, row.known_at, row.update_id) == ("member", T0, 1)
     jan = await session.get(DbUser, JAN.id)
     assert (jan.username, jan.language_code, jan.is_premium) == ("jans", "cs", True)
     assert await session.get(DbUser, OWNER.id) is not None
@@ -189,6 +189,17 @@ async def test_in_the_same_second_the_later_update_wins_whatever_order_they_arri
     admitted = _restricted()
 
     await members.record(session, CHAT_ID, admitted, at=T0, update_id=11)
+    await members.record(session, CHAT_ID, muted, at=T0, update_id=10)
+
+    row = await session.get(ChatMember, (CHAT_ID, JAN.id))
+    assert (row.rights["is_member"], row.update_id) == (True, 11)
+
+
+async def test_in_the_same_second_updates_in_order_end_on_the_later_and_a_replay_changes_nothing(session) -> None:
+    muted = ChatMemberRestricted.model_validate({"user": JAN, "is_member": False, "until_date": 0, **_PERMISSIONS})
+
+    await members.record(session, CHAT_ID, muted, at=T0, update_id=10)
+    await members.record(session, CHAT_ID, _restricted(), at=T0, update_id=11)
     await members.record(session, CHAT_ID, muted, at=T0, update_id=10)
 
     row = await session.get(ChatMember, (CHAT_ID, JAN.id))
@@ -272,3 +283,22 @@ async def test_a_failure_to_record_rolls_back_and_passes_the_update_on(session, 
 
     assert await ChatStateMiddleware()(handler, _chat_member_update(), {"db": session}) == "handled"
     assert not session.in_transaction()
+
+
+async def test_flood_control_on_one_administrator_ends_the_chats_check(session_maker) -> None:
+    from aiogram.exceptions import TelegramRetryAfter
+
+    first, second = User(id=8, is_bot=False, first_name="A"), User(id=10, is_bot=False, first_name="B")
+    async with session_maker() as session:
+        for user in (first, second):
+            await members.record(session, CHAT_ID, _admin(user), at=T0)
+    bot = _bot(admins=[], members_by_id={})
+    bot.get_chat_member = AsyncMock(
+        side_effect=TelegramRetryAfter(method=MagicMock(), message="flood", retry_after=600)
+    )
+
+    with pytest.raises(TelegramRetryAfter):
+        await members.check_administrators(
+            session_maker=session_maker, bot=bot, chat_id=CHAT_ID, at=T0 + datetime.timedelta(days=1)
+        )
+    assert bot.get_chat_member.await_count == 1
