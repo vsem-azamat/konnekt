@@ -46,7 +46,9 @@
  * `pnpm build` first. BASE=<url> measures a server that is already running.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { spawn } from 'node:child_process';
+import { availableParallelism } from 'node:os';
 import { chromium } from 'playwright';
 
 import { VIEWPORTS } from './lib/stack.mjs';
@@ -422,12 +424,21 @@ function measureTop() {
 
 // ── running it ──────────────────────────────────────────────────────────
 
+// Profiles run side by side, so each one's lines are kept until it is done
+// and printed together, under its name.
+const lines = new AsyncLocalStorage();
+const say = (line) => {
+  const own = lines.getStore();
+  if (own) own.push(line);
+  else console.log(line);
+};
+
 const failures = [];
 const fail = (profile, what) => {
   failures.push(`${profile.name}: ${what}`);
-  console.log(`  FAIL ${what}`);
+  say(`  FAIL ${what}`);
 };
-const ok = (what) => console.log(`  ok   ${what}`);
+const ok = (what) => say(`  ok   ${what}`);
 
 async function serve() {
   if (process.env.BASE) return { base: process.env.BASE, stop: () => {} };
@@ -875,26 +886,41 @@ async function shown(page, profile, text) {
   return box !== null && box.y >= 0 && box.y + box.height <= visibleBottom(profile);
 }
 
+async function checkProfile(browser, base, profile) {
+  for (const list of LISTS) await checkList(browser, base, profile, list);
+  await checkNavigation(browser, base, profile);
+  await checkReturn(browser, base, profile);
+  await checkFailed(browser, base, profile);
+  if (profile.platform === 'android') {
+    await checkRestore(browser, base, profile);
+  } else {
+    await checkBottomButton(browser, base, profile);
+    if (profile.keyboard) await checkKeyboard(browser, base, profile);
+    if (profile.pan) await checkKeyboard(browser, base, profile, profile.pan);
+  }
+}
+
+// Each profile has contexts of its own, so several share one browser. Most of
+// a check is waiting for the page to settle; the waits above are sized for a
+// busy machine, and DEVICE_WORKERS=1 runs them one by one as before.
+const workers = Number(process.env.DEVICE_WORKERS) || Math.min(4, availableParallelism());
+
 const { base, stop } = await serve();
 let browser;
 try {
   browser = await chromium.launch();
-  for (const profile of PROFILES) {
-    console.log(
-      `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
-    );
-    for (const list of LISTS) await checkList(browser, base, profile, list);
-    await checkNavigation(browser, base, profile);
-    await checkReturn(browser, base, profile);
-    await checkFailed(browser, base, profile);
-    if (profile.platform === 'android') {
-      await checkRestore(browser, base, profile);
-    } else {
-      await checkBottomButton(browser, base, profile);
-      if (profile.keyboard) await checkKeyboard(browser, base, profile);
-      if (profile.pan) await checkKeyboard(browser, base, profile, profile.pan);
-    }
-  }
+  const queue = [...PROFILES];
+  await Promise.all(
+    Array.from({ length: workers }, async () => {
+      for (let profile = queue.shift(); profile; profile = queue.shift()) {
+        const own = [
+          `\n${profile.name} (${profile.width}×${profile.height}, Telegram ${profile.tg}px)`,
+        ];
+        await lines.run(own, () => checkProfile(browser, base, profile));
+        console.log(own.join('\n'));
+      }
+    }),
+  );
 } finally {
   await browser?.close();
   stop();
