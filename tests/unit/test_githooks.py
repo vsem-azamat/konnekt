@@ -108,7 +108,7 @@ def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
     lanes = {name for name, job in workflow["jobs"].items() if "if" in job and "changes" in str(job["if"])}
 
     assert lanes == {"python", "web"}
-    assert set(workflow["jobs"]["test"]["needs"]) == {"changes", *lanes}
+    assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", *lanes}
 
 
 @pytest.mark.parametrize("results", ["success success success", "success skipped skipped", "success success skipped"])

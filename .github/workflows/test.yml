@@ -15,8 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Which lanes the change touches, for the jobs below; and the one check that
-  # reads no lane.
+  # Which lanes the change touches, for the jobs below.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -52,6 +51,14 @@ jobs:
           exit 1
         fi
         echo "$lanes" >> "$GITHUB_OUTPUT"
+
+  # Reads no lane, and runs beside the others so a failure here stops none of them.
+  routes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Each path goes to the backend or build that owns it
       run: |
@@ -263,7 +270,7 @@ jobs:
   # a lane skipped because the change cannot break it passes, and one that
   # failed, was cancelled or never ran fails it.
   test:
-    needs: [changes, python, web]
+    needs: [changes, routes, python, web]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -276,7 +283,7 @@ jobs:
       env:
         RESULTS: ${{ join(needs.*.result, ' ') }}
       run: |
-        echo "changes, python, web: $RESULTS"
+        echo "changes, routes, python, web: $RESULTS"
         for result in $RESULTS; do
           case "$result" in
             success | skipped) ;;
