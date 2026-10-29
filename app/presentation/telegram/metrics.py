@@ -19,7 +19,7 @@ from prometheus_client import Counter, Gauge, Histogram
 from sqlalchemy import func, select
 from starlette.responses import PlainTextResponse, Response
 
-from app.chats import bot_rights
+from app.chats import bot_rights, welcome
 from app.core import metrics
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -90,7 +90,8 @@ class ApiCallMetrics(BaseRequestMiddleware):
 
 
 async def refresh_queue_depths(session: AsyncSession) -> None:
-    """One read of what is waiting: captchas for an answer or a decision, proposals for a press."""
+    """One read of what is waiting: captchas for an answer or a decision, proposals for a press,
+    greetings past their time."""
     captchas = dict(
         (await session.execute(select(JoinCaptcha.status, func.count()).group_by(JoinCaptcha.status))).tuples().all()
     )
@@ -100,6 +101,7 @@ async def refresh_queue_depths(session: AsyncSession) -> None:
         select(func.count()).select_from(PendingAction).where(PendingAction.status == "pending")
     )
     QUEUE_DEPTH.labels(queue="pending_actions").set(pending or 0)
+    QUEUE_DEPTH.labels(queue="welcome_overdue").set(await welcome.overdue(session))
 
 
 async def run_queue_depths(session_maker: async_sessionmaker[AsyncSession], interval_seconds: int = 30) -> None:

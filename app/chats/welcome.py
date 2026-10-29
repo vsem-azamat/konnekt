@@ -27,7 +27,7 @@ from aiogram.exceptions import (
     TelegramNotFound,
 )
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
-from sqlalchemy import delete, func, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import intro
@@ -122,16 +122,7 @@ async def sweep(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = N
     the 48 hours a bot may delete its own message in, nothing is tried at all.
     """
     now = now or utc_now()
-    last = func.max(WelcomeGreeting.delete_at)
-    due = (
-        await db.execute(
-            select(WelcomeGreeting.chat_id, WelcomeGreeting.message_id, last)
-            .group_by(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
-            .having(last <= now)
-            .order_by(last)
-            .limit(SWEEP_BATCH)
-        )
-    ).all()
+    due = (await db.execute(_due(now).order_by(_last_join).limit(SWEEP_BATCH))).all()
     for chat_id, message_id, delete_at in due:
         if now - delete_at < DELETABLE_FOR:
             try:
@@ -157,6 +148,24 @@ async def sweep(bot: Bot, db: AsyncSession, *, now: datetime.datetime | None = N
             delete(WelcomeGreeting).where(WelcomeGreeting.chat_id == chat_id, WelcomeGreeting.message_id == message_id)
         )
         await db.commit()
+
+
+async def overdue(db: AsyncSession, *, now: datetime.datetime | None = None) -> int:
+    """Greetings `sweep` should have deleted by now; above zero for long, it is not getting through."""
+    due = _due(now or utc_now()).subquery()
+    return await db.scalar(select(func.count()).select_from(due)) or 0
+
+
+# A greeting is one message however many joiners extended it; the last join decides.
+_last_join = func.max(WelcomeGreeting.delete_at)
+
+
+def _due(now: datetime.datetime) -> Select[tuple[int, int, datetime.datetime]]:
+    return (
+        select(WelcomeGreeting.chat_id, WelcomeGreeting.message_id, _last_join)
+        .group_by(WelcomeGreeting.chat_id, WelcomeGreeting.message_id)
+        .having(_last_join <= now)
+    )
 
 
 def _name(user: User) -> str:
