@@ -3,7 +3,7 @@
 New nullable or defaulted columns only, so the previous release runs unchanged beside it.
 
 Revision ID: c7e2a9f41d03
-Revises: b6e1f4a8c203
+Revises: b5d1e8f3a2c7
 Create Date: 2026-10-29
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "c7e2a9f41d03"
-down_revision: str | None = "b6e1f4a8c203"
+down_revision: str | None = "b5d1e8f3a2c7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
