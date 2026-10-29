@@ -1,138 +1,70 @@
-<h1 align="center">Supervisor Telegram</h1>
-
 <p align="center">
-  <em>Moderation and admin tooling for Telegram communities</em>
+  <img src="docs/readme/hero.jpg" alt="Konnekt: university chats and study help for students in Czechia, inside Telegram" width="100%">
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/status-alpha-orange" alt="Alpha">
-  <img src="https://img.shields.io/badge/python-3.12+-blue?logo=python&logoColor=white" alt="Python 3.12+">
-  <img src="https://img.shields.io/badge/aiogram-3.30-blue?logo=telegram" alt="aiogram 3.30">
-  <img src="https://img.shields.io/badge/PostgreSQL-18-blue?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
-</p>
+# Konnekt
 
----
+Konnekt is a Telegram Mini App for students in Czechia. It started as a network
+of university chats. The long-term plan is a platform for student life, and the
+first piece of it is one narrow, in-demand niche: study help, meaning tutors,
+exam prep and the paperwork of studying here. Students find a chat or a person,
+see the price in Kč, and write to them in Telegram. A moderator bot keeps the
+chats clean, and admins run everything from one console.
 
-> **Alpha** — actively developed, core features working in production but APIs and architecture may change.
+## In the Mini App
 
-Supervisor Telegram keeps a set of group chats moderated and gives the people
-who run them somewhere to work from. It was built for educational chat
-communities in the Czech Republic and still reflects that: many chats, few
-admins, and the same handful of problems arriving every day.
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/readme/app-ask.png" alt="Ask in your own words" width="250"><br><sub>Ask in your own words</sub></td>
+    <td align="center" width="33%"><img src="docs/readme/app-tutors.png" alt="Tutors with prices" width="250"><br><sub>Tutors with prices in Kč</sub></td>
+    <td align="center" width="33%"><img src="docs/readme/app-request.png" alt="Leave a request" width="250"><br><sub>Or leave a request</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/readme/app-chats.png" alt="University chats" width="250"><br><sub>Every university chat</sub></td>
+    <td align="center"><img src="docs/readme/app-uni.png" alt="One university's chats" width="250"><br><sub>A university, chat by chat</sub></td>
+    <td align="center"><img src="docs/readme/app-offer.png" alt="Offer your help" width="250"><br><sub>Offer your own help</sub></td>
+  </tr>
+</table>
 
-The deployed system is **one Telegram identity**, a moderator bot that enforces
-rules and answers admin commands; everything it knows comes from the Bot API and
-the messages it records. Admin work happens through bot commands, an
-authenticated web UI, and an MCP control plane an external agent runtime can
-drive.
+## In the console
 
-Decisions that remove a person stay with a human. Nothing in this system bans on
-its own judgement.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/console-summary.png" alt="Console overview" width="100%"><br><sub>Overview: what needs an admin today</sub></td>
+    <td width="50%"><img src="docs/readme/console-chats.png" alt="Console chats" width="100%"><br><sub>Chats: which ones students can see</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/console-chat.png" alt="A chat's settings" width="100%"><br><sub>A chat: captcha, welcome, catalog link</sub></td>
+    <td><img src="docs/readme/console-partners.png" alt="Partners" width="100%"><br><sub>Partners: their cards, views and clicks</sub></td>
+  </tr>
+</table>
 
-See [`docs/product/`](docs/product/) for who it serves and what is deliberately
-out of scope.
+## What is in this repository
 
-## System Architecture
+| Part | What it does | Where |
+| --- | --- | --- |
+| Moderator bot | Join captcha, blacklist, ad detector, welcomes | `app/` |
+| Web API | The chat directory and the console | `app/webapi/` |
+| Catalog API | Tutors, services, requests; its own database | `catalog/` |
+| Mini App and console | React 19, one app for students and admins | `web/` |
 
-```mermaid
-graph TB
-    subgraph Telegram["Telegram"]
-        Users["👥 Community Members"]
-        Admins["👮 Admins"]
-    end
+Removing a person always stays with a human: the bot can propose a ban, and a
+super admin confirms it or it expires.
 
-    subgraph System["Supervisor"]
-        ModBot["🤖 Moderator Bot<br/><i>commands, welcomes,<br/>join checks, blacklist</i>"]
-        MCP["🔌 MCP Control Plane<br/><i>served by the bot process</i><br/>reads, bounded writes, proposals"]
-        WebUI["📱 Mini App<br/><i>public screens,<br/>console for super admins</i>"]
-    end
-
-    PG[("PostgreSQL 18")]
-
-    Users -->|messages| ModBot
-    Users -->|/report| ModBot
-    Users -->|join request → Mini App check| ModBot
-    Admins -->|moderation commands| ModBot
-    Admins -->|console, signed in from Telegram| WebUI
-    Admins -->|via external agent runtime| MCP
-    MCP -->|ban proposals await confirmation| ModBot
-    ModBot --> PG
-    WebUI --> PG
-    MCP --> PG
-```
-
-## MCP Control Plane
-
-Day-to-day admin work happens through moderator-bot commands and the
-authenticated web UI. Alongside them, the bot process can serve an **MCP
-endpoint** so an agent runtime living outside this repository drives the same
-admin surface from whatever chat the operator already uses.
-
-The boundary is what a leaked token can do, not which tools exist: reads never
-reach outside the chats this deployment manages, and writes are reversible or
-self-expiring. Removing a person is never carried out by a tool call at all; a
-ban is *proposed*, and a super admin confirms it in the moderator bot or it
-expires having done nothing. The plane stays closed unless `MCP_TOKEN` is set,
-and it is not published to the internet. The rules it rests on are in
-[`docs/invariants.md`](docs/invariants.md).
-
-## Tech Stack
-
-| Layer | Technologies |
-|---|---|
-| **Bot Framework** | aiogram 3.30 (Bot API) |
-| **Database** | PostgreSQL 18, SQLAlchemy 2.x async, Alembic |
-| **Web API** | FastAPI, session cookies from a verified Telegram Mini App `initData` |
-| **Web UI** | One Telegram Mini App: React 19, Vite, Lingui (`web/`) |
-| **Control plane** | MCP over HTTP (FastMCP), bearer-token auth, served by the bot process |
-| **Architecture** | Feature-based modular packages, service locator DI |
-| **Quality** | ruff, ty (Astral type checker), pytest, git hooks (`.githooks/`), structlog |
-| **Infrastructure** | Docker multi-stage, uv package manager |
-
-> Structure is deliberately not mirrored here — read `app/` for it, and
-> [`docs/invariants.md`](docs/invariants.md) for the rules the code cannot state.
-
-## Quick Start
-
-Production is configured through GitHub secrets and variables and keeps no
-`.env` — see [production credentials](docs/deployment/production-credentials.md).
-The file below is for working locally.
+## Run it locally
 
 ```bash
-# Clone and configure
-git clone https://github.com/vsem-azamat/supervisor-telegram.git
-cd supervisor-telegram
-cp .env.example .env  # fill in MODERATOR_BOT_TOKEN, DB_*, ADMIN_SUPER_ADMINS
-
-# Local development
-uv sync --dev
-uv run alembic upgrade head
-uv run -m app.presentation.telegram
-
-# The Mini App against a local webapi (see web/README.md)
-uv run uvicorn app.webapi.main:app --host 127.0.0.1 --port 8787
-pnpm --dir web dev
+cp .env.example .env            # MODERATOR_BOT_TOKEN, DB_*, ADMIN_SUPER_ADMINS
+uv sync --dev && uv run alembic upgrade head
+uv run -m app.presentation.telegram                          # the bot
+uv run uvicorn app.webapi.main:app --port 8787               # the web API
+make -C catalog setup && make -C catalog api                 # the catalog API
+pnpm --dir web install && pnpm --dir web dev                 # the Mini App
 ```
 
-## Security
+Production deploys from GitHub through the workflow; see
+[`docs/deployment/`](docs/deployment/). How we work is in
+[`AGENTS.md`](AGENTS.md), and the rules the code cannot state are in
+[`docs/invariants.md`](docs/invariants.md).
 
-- **Approval gate** — the bot records what it sees in an unapproved chat but
-  takes no public action there.
-- **Global blacklist middleware** — TTL-cached, bans a listed user again on
-  sight across every managed chat.
-- **Mini App join checks** — the applicant is bound to the join request at issue
-  time, so holding the link is not the same as being the person it was for.
-- **Confirmed removals** — bans and blacklist entries proposed by the control
-  plane wait for a super admin's press, or expire.
-
-## License
-
-MIT
-
-## Documentation
-
-- [`AGENTS.md`](AGENTS.md) — the working contract.
-- [`docs/invariants.md`](docs/invariants.md) — rules the code cannot state for
-  itself. Behaviour is pinned by tests, not prose.
-- [`docs/deployment/`](docs/deployment/) — operational runbooks.
-- [`docs/product/`](docs/product/) — what this is for and who it serves.
+MIT licensed.
