@@ -28,6 +28,7 @@ import {
   adminCatalogQuery,
   consoleChanges,
   consoleSignalsQuery,
+  everyMinute,
 } from '@/console/queries';
 import css from '@/console/Signals.module.css';
 import { utc } from '@/console/session';
@@ -44,7 +45,7 @@ import {
 /**
  * What waits for an admin's decision: the waves and the proposed bans the bot
  * asks about in the report chat and in private, then the console's queues.
- * The browser's only; the menu and the bell count from the same answer.
+ * In a browser the menu and the bell count from the same answer.
  */
 export default function ConsoleSignalsPage() {
   return (
@@ -66,8 +67,8 @@ function SignalsBody() {
   // The minutes on the cards move on their own; an answer that came back the
   // same would not render them again.
   const now = useNow(30_000);
-  // The shell reads both every minute; this screen shares its answers.
-  const signals = useQuery(consoleSignalsQuery);
+  // Every minute while open: a browser's shell reads it too, the Mini App has none.
+  const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: everyMinute });
   const catalog = useQuery(adminCatalogQuery);
   // A refused press closes its card like a decision does; why stays here,
   // after the card has gone, until it is put away.

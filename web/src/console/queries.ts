@@ -78,6 +78,13 @@ export const consoleSignalsQuery = {
   retryOnMount: false,
 };
 
+/**
+ * Read again every minute while a screen is open, not after a failure: a
+ * stale sign-in would be sent again every minute.
+ */
+export const everyMinute = (query: { state: { status: string } }) =>
+  query.state.status === 'error' ? false : 60_000;
+
 export const consoleStatsQuery = {
   queryKey: ['console', 'stats'] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>

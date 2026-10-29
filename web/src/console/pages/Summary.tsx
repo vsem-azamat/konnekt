@@ -40,6 +40,7 @@ import {
   consoleSignalsQuery,
   consoleStatsQuery,
   consoleSystemQuery,
+  everyMinute,
 } from '@/console/queries';
 import css from '@/console/Summary.module.css';
 import { type AttentionKey, attention, type BusyChat } from '@/console/session';
@@ -71,11 +72,7 @@ function Summary() {
   const navigate = useNavigate();
   const { i18n } = useLingui();
   // Read again every minute while it is open: it says how fresh it is.
-  // Not after a failure: a stale sign-in would be sent again every minute.
-  const stats = useQuery({
-    ...consoleStatsQuery,
-    refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
-  });
+  const stats = useQuery({ ...consoleStatsQuery, refetchInterval: everyMinute });
   const chats = useQuery(consoleChatsQuery);
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
@@ -84,7 +81,8 @@ function Summary() {
   // The waves and the proposals, and whether the console's bot can act: the
   // same in both layouts. A browser's menu reads the signals too.
   const inBrowser = useBrowserConsole();
-  const signals = useQuery(consoleSignalsQuery);
+  // Polled here too: the Mini App has no menu to keep it fresh.
+  const signals = useQuery({ ...consoleSignalsQuery, refetchInterval: everyMinute });
   const system = useQuery(consoleSystemQuery);
   // What the browser's menu counts, on the summary's sections in the Mini App.
   const counts = menuCounts(signals.data, catalog.data?.counts);
