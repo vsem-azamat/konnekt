@@ -293,6 +293,50 @@ async def test_helper_page_404s_for_a_draft(client, session):
     assert response.status_code == 404
 
 
+async def test_a_profile_does_not_show_a_rating(client, helper_factory, session):
+    """Hidden until lessons go through the catalog: nobody can leave a review
+    yet, so a number here would be one we made up. The field stays for later."""
+    from students_cz.db.models import HelperProfile
+
+    helper = await helper_factory(tg_id=91003, deals=8)
+    profile = await session.get(HelperProfile, helper.id)
+    profile.rating = 4.9
+    await session.flush()
+
+    body = (
+        await client.get(f"/api/v1/helpers/{helper.id}", headers=auth_header(90113))
+    ).json()
+
+    assert [stat["code"] for stat in body["stats"]] == ["stat.deals"]
+
+
+async def test_a_rating_nobody_sees_does_not_order_the_list(
+    client, helper_factory, session
+):
+    from sqlalchemy import select
+
+    from students_cz.db.models import HelperProfile, Subject
+
+    unrated = await helper_factory(tg_id=91004, first_name="Unrated", deals=5)
+    rated = await helper_factory(tg_id=91005, first_name="Rated", deals=5)
+    (await session.get(HelperProfile, rated.id)).rating = 5.0
+    await session.flush()
+    subject = await session.scalar(
+        select(Subject).where(Subject.slug == "matematicka-analyza")
+    )
+
+    body = (
+        await client.get(
+            "/api/v1/search",
+            params={"subject_id": subject.id},
+            headers=auth_header(90114),
+        )
+    ).json()
+
+    ids = [r["user_id"] for r in body["results"]]
+    assert ids.index(unrated.id) < ids.index(rated.id)
+
+
 async def test_creating_a_request_reads_the_text(client):
     """The form is one field; everything else comes out of the sentence."""
     response = await client.post(

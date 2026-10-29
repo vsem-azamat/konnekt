@@ -139,8 +139,6 @@ export function StatLabel({
           other="занятия через нас"
         />
       );
-    case 'stat.rating':
-      return <Trans>оценка</Trans>;
     case 'stat.years':
       return (
         <Plural

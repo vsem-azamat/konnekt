@@ -137,8 +137,8 @@ msgid "срок вышел {0}"
 msgstr "срок вышел {0}"
 
 #: src/components/Phrase.tsx
-msgid "оценка"
-msgstr "оценка"
+#~ msgid "оценка"
+#~ msgstr "оценка"
 
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
