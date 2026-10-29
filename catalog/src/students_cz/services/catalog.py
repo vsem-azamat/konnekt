@@ -399,7 +399,8 @@ async def search(
         stmt = stmt.order_by(
             institution_hit,
             HelperProfile.deals_count.desc(),
-            HelperProfile.rating.desc().nulls_last(),
+            # Not by rating: ratings are hidden until lessons go through the
+            # catalog (docs/data-model.md), and a hidden number must not rank.
             Offer.id,
         )
 
@@ -569,8 +570,6 @@ async def helper_detail(
     stats: list[Stat] = []
     if helper.deals_count:
         stats.append(Stat(code="stat.deals", value=str(helper.deals_count)))
-    if helper.rating is not None:
-        stats.append(Stat(code="stat.rating", value=f"{float(helper.rating):.1f}"))
     if helper.published_at:
         years = (datetime.now(UTC) - helper.published_at).days // 365
         stats.append(

@@ -504,6 +504,11 @@ truth. `contacts` is what they are computed from: we do not host conversations â
 those happen in Telegram â€” but we record that a contact was made and when it was
 answered, so response times are measured rather than self-reported.
 
+`rating` and `reviews_count` are kept and recomputed, but the product does not
+show them, and the catalog does not rank by them, until real lessons go through
+the catalog: nobody can leave a review yet, so any number there is not one a
+student gave. The API still carries `rating` and `reviews` for when they return.
+
 ## Conventions
 
 - Every NOT NULL column with a default has a `server_default`. Python-side
