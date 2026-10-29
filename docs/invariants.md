@@ -194,8 +194,7 @@ not ours, because its rules are not ours either. That mark is the whole of the
 consent question: an unmarked listing would vouch for a room we do not run.
 `observed` is a chat of ours where another bot of ours is in charge: ours to
 list and unmarked, never ours to act in, since a second bot answering there
-competes with the one already running it. @chat_ntk was the case until
-29.10.2026; its own bot no longer runs it, and it is approved now. Neither
+competes with the one already running it. Neither
 is reach: nobody buying a post can be sold a room our posts do not go to. The
 price of that honesty is accepted: a group's chat count on the ads page can be
 smaller than in the catalogue, which shows which of its chats are not
