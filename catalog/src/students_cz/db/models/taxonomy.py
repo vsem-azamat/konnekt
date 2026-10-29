@@ -187,7 +187,6 @@ class Institution(IdMixin, TimestampMixin, Base):
     )
     city: Mapped[str | None] = mapped_column(String(96))
     site_url: Mapped[str | None] = mapped_column(String(512))
-    logo_url: Mapped[str | None] = mapped_column(String(512))
     sort: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )
@@ -354,12 +353,6 @@ class ItemCategory(IdMixin, TimestampMixin, Base):
     __tablename__ = "item_categories"
 
     code: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    allows_rent: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=text("true")
-    )
-    allows_sale: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=text("true")
-    )
     sort: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )

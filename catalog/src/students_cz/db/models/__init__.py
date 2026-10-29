@@ -7,8 +7,7 @@ modules, or migrations will silently miss tables.
 
 from students_cz.db.base import Base
 from students_cz.db.models.catalog import Offer
-from students_cz.db.models.goods import Item, Material
-from students_cz.db.models.ops import ModerationReview, SearchQuery, UserEvent
+from students_cz.db.models.ops import SearchQuery, UserEvent
 from students_cz.db.models.partners import (
     Partner,
     PartnerOffer,
@@ -55,13 +54,10 @@ __all__ = [
     "HelperProfile",
     "Institution",
     "InstitutionI18n",
-    "Item",
     "ItemCategory",
     "ItemCategoryI18n",
     "Language",
     "LanguageI18n",
-    "Material",
-    "ModerationReview",
     "Offer",
     "Partner",
     "PartnerOffer",

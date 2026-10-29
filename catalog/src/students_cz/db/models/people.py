@@ -6,14 +6,13 @@ is a role you take on by having a :class:`HelperProfile`. The legacy schema had
 made "a tutor who is also looking for a tutor" unrepresentable.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
-    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -186,9 +185,6 @@ class HelperProfile(TimestampMixin, Base):
         Integer, nullable=False, default=0, server_default=text("0")
     )
     rating: Mapped[float | None] = mapped_column(Numeric(2, 1))
-    reviews_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, server_default=text("0")
-    )
 
     user: Mapped[User] = relationship(back_populates="helper")
     offers: Mapped[list["Offer"]] = relationship(
@@ -268,7 +264,6 @@ class WeeklyAvailability(IdMixin, Base):
     weekday: Mapped[int] = mapped_column(Integer, nullable=False)  # 0 = Monday
     start_minute: Mapped[int] = mapped_column(Integer, nullable=False)
     end_minute: Mapped[int] = mapped_column(Integer, nullable=False)
-    valid_until: Mapped[date | None] = mapped_column(Date)
 
     __table_args__ = (
         CheckConstraint("weekday BETWEEN 0 AND 6", name="weekday_range"),
@@ -296,11 +291,6 @@ class UserEducation(IdMixin, Base):
     institution_id: Mapped[int] = mapped_column(
         ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    is_current: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=text("true")
-    )
-    started_year: Mapped[int | None] = mapped_column(Integer)
-    finished_year: Mapped[int | None] = mapped_column(Integer)
     attrs: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
 
 
