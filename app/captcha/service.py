@@ -378,6 +378,46 @@ async def answer(
     return Outcome.RETRY
 
 
+async def admitted(
+    bot: Bot, db: AsyncSession, chat_id: int, user_id: int, *, now: datetime.datetime | None = None
+) -> None:
+    """Close the captcha of somebody who is in the chat already: an admin let them in by hand.
+
+    Their request is settled, so the captcha is the admins' decision now. Left
+    open, it would remind them to answer from inside the chat, and a late tap
+    would try to settle a request that is gone. A row somebody holds — a tap
+    mid-approve, a reminder being sent — is waited for, then read again: one
+    the tap settled is left as it settled it.
+    """
+    now = now or utc_now()
+    rows = (
+        await db.scalars(
+            select(JoinCaptcha)
+            .where(
+                JoinCaptcha.chat_id == chat_id,
+                JoinCaptcha.user_id == user_id,
+                JoinCaptcha.status.in_((JoinCaptcha.STATUS_PENDING, JoinCaptcha.STATUS_HELD)),
+            )
+            # Not skip_locked: the join arrives once, and a row skipped
+            # while a wrong tap or a reminder held it would stay open.
+            .with_for_update()
+        )
+    ).all()
+    if not rows:
+        await db.rollback()
+        return
+    chat = await db.get(Chat, chat_id)
+    title = _title(chat) if chat else str(chat_id)
+    for row in rows:
+        row.status = JoinCaptcha.STATUS_GONE
+        row.resolved_at = now
+    await db.commit()
+    for row in rows:
+        CAPTCHA_EVENTS.labels(event=JoinCaptcha.STATUS_GONE).inc()
+        await _edit(bot, row, challenge.gone_text(title), None)
+    logger.info("captcha_admitted_by_hand", chat_id=chat_id, user_id=user_id, count=len(rows))
+
+
 async def _introduce(bot: Bot, row: JoinCaptcha, now: datetime.datetime) -> None:
     """Konnekt in the private chat, before the approval settles the request and closes it.
 

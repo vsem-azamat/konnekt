@@ -288,9 +288,10 @@ async def undecided(db: AsyncSession, now: datetime.datetime) -> list[tuple[Join
     """Waves nobody pressed a button on that still hold requests, newest first, with how many.
 
     Held requests never close by themselves: Telegram keeps a join request
-    until somebody answers it, and nothing tells the bot when a chat's own
-    admins did. So a wave stops waiting for the report chat a day after its
-    last burst; by then the requests are the chat admins' to settle.
+    until somebody answers it, and the bot hears of a chat's own admins only
+    when they let somebody in (`service.admitted`), never when they decline.
+    So a wave stops waiting for the report chat a day after its last burst;
+    by then the requests are the chat admins' to settle.
     """
     held = func.count(JoinCaptcha.id).label("held")
     rows = await db.execute(

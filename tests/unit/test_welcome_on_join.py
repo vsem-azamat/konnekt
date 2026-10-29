@@ -7,7 +7,7 @@ whoever joins while the last one is still up is added to it by an edit.
 """
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -19,6 +19,7 @@ from app.core import intro
 from app.core.config import settings
 from app.db.models import Chat as DbChat
 from app.presentation.telegram.handlers.events import user_joined
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.unit
@@ -472,3 +473,29 @@ async def test_a_text_that_breaks_the_caption_is_not_blamed_on_the_video(
     assert bot.send_video.await_count == 2
     bot.send_message.assert_not_awaited()
     assert bot.send_video.await_args.kwargs["caption"].endswith("\n\na &lt; b")
+
+
+async def test_a_captcha_closed_by_the_join_still_greets(session: AsyncSession, bot, timers) -> None:
+    """Let in by an admin while their captcha waited: the captcha closes and the greeting follows."""
+    from app.db.models import JoinCaptcha
+
+    await _seed(session, is_welcome_enabled=True)
+    session.add(
+        JoinCaptcha(
+            chat_id=CHAT_ID,
+            user_id=4242,
+            user_chat_id=4242,
+            answer="cat",
+            options=["cat", "dog"],
+            attempts_left=2,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+            expires_at=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1),
+            status=JoinCaptcha.STATUS_PENDING,
+        )
+    )
+    await session.commit()
+
+    await user_joined(_join(), bot, session)
+
+    assert (await session.scalar(select(JoinCaptcha.status))) == JoinCaptcha.STATUS_GONE
+    bot.send_message.assert_awaited_once()
