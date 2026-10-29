@@ -52,7 +52,8 @@ def _lanes(*paths: str) -> set[str]:
         (["alembic/versions/x.py"], {"python"}),
         (["docker-compose.yaml"], {"python"}),
         (["docker/Caddyfile"], {"python"}),
-        (["web/package.json"], {"web"}),
+        # tests/unit/test_deploy_config.py reads its packageManager.
+        (["web/package.json"], {"python", "web"}),
         (["web/tests/a.test.ts"], {"web"}),
         # tests/unit/test_web_split.py reads the Mini App's sources.
         (["web/src/pages/Ads.tsx"], {"python", "web"}),
@@ -63,6 +64,9 @@ def _lanes(*paths: str) -> set[str]:
         (["catalog/openapi.json"], {"catalog", "web"}),
         # Both projects must lock the same aiogram, which a root test checks.
         (["catalog/uv.lock"], {"catalog", "python"}),
+        # And the tool versions of these.
+        (["catalog/Dockerfile"], {"catalog", "python"}),
+        (["catalog/compose.dev.yml"], {"catalog", "python"}),
         (["docs/invariants.md", "README.md", "web/README.md", "catalog/docs/x.md"], set()),
         # A change to the checks themselves runs all of them.
         ([".github/workflows/test.yml"], {"python", "web", "catalog"}),
@@ -100,20 +104,26 @@ def test_the_required_check_always_runs() -> None:
 def _gate(results: str, draft: str = "false") -> int:
     """The required check's step, given what the jobs it waits on ended as."""
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
-    (step,) = workflow["jobs"]["test"]["steps"]
+    (step,) = [
+        step
+        for step in workflow["jobs"]["test"]["steps"]
+        if step.get("name") == "Every lane this change touches passed"
+    ]
     env = {**_outside_git(), "RESULTS": results, "DRAFT": draft}
     return _run("bash", "-e", "-c", step["run"], env=env).returncode
 
 
 def test_the_required_check_waits_on_every_lane_of_the_bots() -> None:
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
-    lanes = {
-        name for name, job in workflow["jobs"].items() if str(job.get("if", "")).startswith("needs.changes.outputs.")
-    }
+    lanes = {name for name, job in workflow["jobs"].items() if "if" in job and "changes" in str(job["if"])}
 
     assert lanes == {"python", "web"}
     assert set(workflow["jobs"]["test"]["needs"]) == {"changes", "routes", "catalog", *lanes}
-    (step,) = workflow["jobs"]["test"]["steps"]
+    (step,) = [
+        step
+        for step in workflow["jobs"]["test"]["steps"]
+        if step.get("name") == "Every lane this change touches passed"
+    ]
     assert step["env"]["RESULTS"] == "${{ join(needs.*.result, ' ') }}"
 
 
@@ -529,10 +539,15 @@ def test_the_deploy_leaves_out_the_lanes_already_passed_on_its_tree(repo: Path, 
     assert sorted(output.split()) == ["catalog=false", "python=false", "web=true"]
 
 
+def _record_steps() -> list[dict[str, Any]]:
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
+    steps = workflow["jobs"]["test"]["steps"]
+    return [step for step in steps if "tested" in str(step.get("run", "")) or "tested" in str(step.get("with", ""))]
+
+
 def _record(**env: str) -> str:
     """The pull request run's record of what it proved, as its step writes it."""
-    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())
-    (step,) = [step for step in workflow["jobs"]["tested"]["steps"] if "run" in step]
+    (step,) = [step for step in _record_steps() if "run" in step]
     with tempfile.TemporaryDirectory() as tmp:
         _run("bash", "-e", "-c", step["run"], cwd=tmp, env={**_outside_git(), **env}, check=True)
         return (Path(tmp) / "tested.txt").read_text()
@@ -557,9 +572,23 @@ def test_the_record_does_not_count_a_catalog_whose_steps_all_skipped() -> None:
     assert record.split()[-1] == "catalog=false"
 
 
-def test_only_a_pull_requests_run_records() -> None:
-    """The deploy's own run is not a pull request's, and its record would be read by nothing."""
-    job = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["tested"]
+def test_the_record_is_written_before_the_required_check_reports() -> None:
+    """A merge as soon as the check is green must find it, and only a pull request's run records."""
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "test.yml").read_text())["jobs"]["test"]["steps"]
+    names = [step.get("name") or step.get("uses") for step in steps]
+    record = _record_steps()
 
-    assert "github.event_name == 'pull_request'" in job["if"]
-    assert set(job["needs"]) == {"changes", "python", "web", "catalog"}
+    assert len(record) == 2
+    assert all("github.event_name == 'pull_request'" in step["if"] for step in record)
+    assert names.index("Every lane this change touches passed") > max(steps.index(step) for step in record)
+    (upload,) = [step for step in record if "uses" in step]
+    assert upload["continue-on-error"] is True
+
+
+def test_the_deploy_reads_the_record_the_pull_request_wrote() -> None:
+    """The artifact's name and file are shared by the upload and scripts/tested_lanes.sh."""
+    (upload,) = [step for step in _record_steps() if "uses" in step]
+    script = (ROOT / "scripts" / "tested_lanes.sh").read_text()
+
+    assert f"-n {upload['with']['name']} " in script
+    assert f'/{upload["with"]["path"]}"' in script

@@ -3,10 +3,13 @@ import { test } from 'node:test';
 
 import {
   addAxis,
+  applyPriceChip,
   type Draft,
   dropRow,
   keyOf,
+  priceChipOn,
   serviceAnswers,
+  typedPrice,
 } from '../src/lib/offerRows.ts';
 
 /** A row of the service the tests use, with everything filled in. */
@@ -197,4 +200,54 @@ test('every row of a service keeps a key of its own through both moves', () => {
   rows = dropRow(rows, second, 'institution');
   assert.equal(new Set(rows.map((r) => r.key)).size, rows.length);
   for (const candidate of rows) assert.equal(candidate.key, keyOf(candidate));
+});
+
+test('a price chip prices every row of the service while they agree', () => {
+  const rows = [row({ price: '' }), row({ key: '7:13:null', subject_id: 13, price: '' })];
+  const after = applyPriceChip(rows, 7, '400', 'hour');
+  assert.deepEqual(
+    after.map((r) => r.price),
+    ['400', '400'],
+  );
+});
+
+test('a price chip leaves a subject that has its own price alone', () => {
+  // Calculus at 500, physics at 700: the chip must not erase the 700.
+  const rows = [
+    row({ price: '500' }),
+    row({ key: '7:13:null', subject_id: 13, price: '700' }),
+    row({ key: '7:14:null', subject_id: 14, price: '' }),
+    row({ key: '8:1:null', service_type_id: 8, subject_id: 1, price: '900' }),
+  ];
+  const after = applyPriceChip(rows, 7, '400', 'hour');
+  assert.deepEqual(
+    after.map((r) => r.price),
+    ['500', '700', '400', '900'],
+  );
+});
+
+test('a price chip reads as chosen only when every row of the service says it', () => {
+  const two = [
+    row({ price: '500' }),
+    row({ key: '7:13:null', subject_id: 13, price: '700' }),
+  ];
+  assert.equal(priceChipOn(two, 7, '500', 'hour'), false);
+  assert.equal(priceChipOn([row({ price: '500' })], 7, '500', 'hour'), true);
+  assert.equal(
+    priceChipOn([row({ price: '500', unit: 'lesson' })], 7, '500', 'hour'),
+    false,
+  );
+});
+
+test('«договоримся» is chosen while nothing is priced, as the screen promises', () => {
+  assert.equal(priceChipOn([row({ price: '' })], 7, '', 'negotiable'), true);
+  assert.equal(priceChipOn([row({ price: '500' })], 7, '', 'negotiable'), false);
+});
+
+test('a number typed after «договоримся» goes back to a unit it can be per', () => {
+  assert.deepEqual(
+    typedPrice(row({ price: '', unit: 'negotiable' }), '600', 'hour'),
+    row({ price: '600', unit: 'hour' }),
+  );
+  assert.equal(typedPrice(row({ unit: 'lesson' }), '600', 'hour').unit, 'lesson');
 });

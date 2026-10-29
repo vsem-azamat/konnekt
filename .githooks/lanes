@@ -22,10 +22,12 @@ while IFS= read -r path; do
     docs/*) ;;
     # Root tests read these: test_web_split the sources, test_deploy_config
     # the workspace file, and both projects must lock the same aiogram.
-    web/src/* | web/pnpm-workspace.yaml) python=true web=true ;;
+    web/src/* | web/pnpm-workspace.yaml | web/package.json) python=true web=true ;;
     web/*) web=true ;;
     catalog/openapi.json) catalog=true web=true ;;
     catalog/uv.lock) catalog=true python=true ;;
+    # test_deploy_config.py reads the tool versions in these.
+    catalog/Dockerfile | catalog/compose.dev.yml) catalog=true python=true ;;
     catalog/*) catalog=true ;;
     *) python=true ;;
   esac

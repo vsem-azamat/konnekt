@@ -145,3 +145,10 @@ def test_a_record_naming_unknown_lanes_is_not_trusted(gh: Path) -> None:
     (gh / "run_11").write_text(f"tree={TREE}\npython=true\nweb=true\ncatalog=true\nrm -rf=true\n")
 
     assert _lanes(gh) == (0, "lanes=")
+
+
+def test_a_record_with_a_value_other_than_true_or_false_is_not_trusted(gh: Path) -> None:
+    _merged_pull_request(gh, runs=[11])
+    (gh / "run_11").write_text(f"tree={TREE}\npython=yes\nweb=true\ncatalog=true\n")
+
+    assert _lanes(gh) == (0, "lanes=")

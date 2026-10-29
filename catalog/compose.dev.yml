@@ -7,7 +7,7 @@ services:
     # pgvector's image rather than the plain one: semantic search over free-text
     # queries is on the roadmap, and having the extension present from day one
     # costs nothing. It is not enabled yet — see docs/data-model.md.
-    image: pgvector/pgvector:pg18
+    image: pgvector/pgvector:0.8.6-pg18-bookworm
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-students_cz}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-students_cz}

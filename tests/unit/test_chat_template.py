@@ -110,6 +110,8 @@ def test_text_without_a_retired_link_is_left_exactly_as_it_is() -> None:
         # The bots Konnekt moved away from (#245).
         "Бот: @konnekt_moder_bot",
         "Каталог: https://t.me/Student_CZ_bot",
+        # The old contact bot, retired 2026-10-29.
+        "Связь с админкой: @CzechMedia_bot",
     ],
 )
 def test_every_retired_link_goes_in_any_form(line: str) -> None:

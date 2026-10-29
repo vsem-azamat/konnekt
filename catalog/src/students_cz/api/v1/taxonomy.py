@@ -32,6 +32,7 @@ from students_cz.schemas import (
 from students_cz.services.catalog import tone_for
 from students_cz.services.lookup import find_subjects
 from students_cz.services.naming import translated
+from students_cz.services.offer_hints import hints_for, unit_for
 
 router = APIRouter()
 
@@ -74,6 +75,7 @@ async def service_types(
             )
         )
     ).all()
+    hints = await hints_for(session, rows, lang)
     return [
         ServiceTypeOut(
             id=r.id,
@@ -100,6 +102,9 @@ async def service_types(
                 for option in sorted(r.options, key=lambda o: o.sort)
                 if option.is_active
             ],
+            price_hints=hints.get(r.id, ([], []))[0],
+            price_hint_unit=unit_for(r.form_shape.value) if r.id in hints else None,
+            subject_hints=hints.get(r.id, ([], []))[1],
         )
         for index, r in enumerate(rows)
     ]

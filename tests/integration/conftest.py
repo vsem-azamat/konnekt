@@ -34,7 +34,7 @@ def pg_container():
     """Start a PostgreSQL container for the test session."""
     from testcontainers.postgres import PostgresContainer
 
-    with PostgresContainer("postgres:18-trixie", driver="asyncpg") as pg:
+    with PostgresContainer("pgvector/pgvector:0.8.6-pg18-bookworm", driver="asyncpg") as pg:
         yield pg
 
 

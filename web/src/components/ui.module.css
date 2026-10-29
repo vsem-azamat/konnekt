@@ -1718,6 +1718,49 @@
   font-size: 12.5px;
 }
 
+/* What the results are ordered by, in the heading over them: a word and a
+   chevron that opens the choice, where the tabs used to be. 36 px tall to
+   press, though it reads as text. */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 36px;
+  margin: -12px -6px -12px 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 600;
+}
+
+.sortChevron {
+  transform: rotate(90deg);
+}
+
+/* «Предложить услугу» under the results: a filled card with a real button,
+   louder than the dashed request row above it. */
+.offerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 14px 14px 12px;
+  border-radius: var(--r-card);
+  background: var(--good-soft);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.offerCard b {
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 680;
+}
+
 /* An on/off control, saved when flipped. Drawn with the rest of the kit, so
    it takes the same tokens in both themes. */
 .switch {
@@ -2112,11 +2155,37 @@
 /* A hit in the ads queue: who and where, what they wrote, and the answers.
    The top part opens the hit; the answers sit below it, not inside it. */
 .pingCard {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 12px;
+  max-width: 960px;
   padding: 12px 14px;
   border-radius: var(--r-card);
   background: var(--surface);
+}
+
+/* The author's face, beside everything else. */
+.pingCardFace {
+  padding-top: 2px;
+}
+
+.pingCardMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The answers take the card's whole width, under the face too: beside it,
+   three of them do not fit a phone's line. */
+.pingCard > .actions {
+  grid-column: 1 / -1;
+}
+
+/* In a wide window the answers sit at the card's lower right, after the text. */
+@media (min-width: 720px) {
+  .pingCard .actions {
+    justify-content: flex-end;
+  }
 }
 
 .pingCard .actions {
@@ -2157,6 +2226,55 @@
   color: var(--ink-soft);
 }
 
+/* Name and handle on one line; a long one is cut, not wrapped. */
+.pingCardWho {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pingCardWho b {
+  font-size: 14.5px;
+}
+
+.pingCardHandle {
+  color: var(--muted);
+}
+
+/* Where it was written: the chat's face and name. */
+.pingCardChat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pingCardChat > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pingCardKindNarrow {
+  margin-left: auto;
+  flex: none;
+}
+
+@media (max-width: 719px) {
+  .pingCardKindWide {
+    display: none;
+  }
+}
+
+@media (min-width: 720px) {
+  .pingCardKindNarrow {
+    display: none;
+  }
+}
+
 .pingCardTop b {
   color: var(--ink);
 }
@@ -2183,13 +2301,22 @@
   font-size: 14.5px;
   line-height: 1.35;
   overflow-wrap: anywhere;
+  /* The author's line breaks are part of how an ad reads. */
+  white-space: pre-wrap;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+@media (min-width: 720px) {
+  .pingCardText {
+    -webkit-line-clamp: 6;
+  }
+}
+
 .pingCardVerdict {
+  grid-column: 1 / -1;
   margin-top: 6px;
   font-size: 13px;
   font-weight: 600;
