@@ -5,8 +5,9 @@ import { useNavigate } from 'react-router';
 
 import { iconForService } from '@/components/icons';
 import { ServiceGroupLabel } from '@/components/Phrase';
+import { hasArt, ServiceArt } from '@/components/ServiceArt';
 import { Sheet } from '@/components/Sheet';
-import { Action, Actions, Label, Row, Rows, Tile } from '@/components/Ui';
+import { Action, Actions, Label, Row, Rows, Tile, toneVars } from '@/components/Ui';
 import { showcasePhoto } from '@/lib/api';
 import { handleOf, type Place, priceFrom, type Shelf } from '@/lib/showcase';
 import type { HomeSection, ShowcaseCard } from '@/lib/types';
@@ -132,12 +133,17 @@ function OpenPlace({
       <button
         type="button"
         className={`${css.card} ${css.open}${main ? ` ${css.main}` : ''}`}
+        style={toneVars(section.tone)}
         onClick={() => setOpen(true)}
       >
         <span className={css.openCover}>
-          <Tile tone={section.tone}>
-            <Icon size={22} />
-          </Tile>
+          {hasArt(section.code) ? (
+            <ServiceArt code={section.code} />
+          ) : (
+            <Tile tone={section.tone}>
+              <Icon size={22} />
+            </Tile>
+          )}
         </span>
         <span className={css.body}>
           <span className={css.title}>{section.name}</span>

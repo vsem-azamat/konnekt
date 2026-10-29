@@ -1,0 +1,52 @@
+/* Colours come from the place's --tone-bg/--tone-fg and the theme's
+   surface; nothing new. */
+
+.art {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  color: var(--tone-fg);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.body {
+  fill: var(--tone-bg);
+  stroke-width: 2;
+}
+
+.ink {
+  stroke-width: 1.8;
+  stroke-opacity: 0.55;
+}
+
+.ring {
+  stroke-width: 2;
+}
+
+.dots {
+  stroke-width: 3.2;
+  stroke-opacity: 0.45;
+}
+
+/* After .ink and .ring, so it wins over both: a heading or a cross. */
+.heavy {
+  stroke-width: 2.8;
+  stroke-opacity: 1;
+}
+
+.mark,
+.cut {
+  stroke: none;
+}
+
+.mark {
+  fill: currentColor;
+}
+
+.cut {
+  fill: var(--surface);
+}

@@ -25,6 +25,15 @@ function toneStyle(tone: number): React.CSSProperties {
   };
 }
 
+/** A tone as `--tone-bg` and `--tone-fg`, for a block that colours several parts. */
+export function toneVars(tone: number): React.CSSProperties {
+  const index = ((tone % TONES) + TONES) % TONES;
+  return {
+    '--tone-bg': `var(--tone-${index}-bg)`,
+    '--tone-fg': `var(--tone-${index}-fg)`,
+  } as React.CSSProperties;
+}
+
 // ── layout ──────────────────────────────────────────────────────────────
 
 export function Screen({ children }: { children: ReactNode }) {
