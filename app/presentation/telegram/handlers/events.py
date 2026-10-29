@@ -52,6 +52,8 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     """
     joined = event.new_chat_member.user
     logger.info("user_joined", chat_id=event.chat.id, user_id=joined.id)
+    # Let in by an admin while their captcha waited: it is settled now.
+    await captcha.admitted(bot, db, event.chat.id, joined.id)
 
     chat = await db.scalar(select(Chat).where(Chat.id == event.chat.id))
     if chat is None or not chat.is_welcome_enabled:

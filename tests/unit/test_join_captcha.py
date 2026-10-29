@@ -864,3 +864,76 @@ def test_a_long_time_is_said_in_hours_and_a_short_one_in_minutes() -> None:
 def test_the_reminder_agrees_with_an_answer_in_the_plural() -> None:
     assert challenge_module.reminder_text("📚", 3) == "⏳ Ещё 3 минуты — <b>КНИГИ</b> ждут в сообщении выше."
     assert "<b>КОШКА</b> ждёт" in challenge_module.reminder_text("🐱", 3)
+
+
+# --- let in by an admin while the captcha waits ------------------------------
+
+
+def _joined(user_id: int = USER_ID):
+    from aiogram.enums import ChatMemberStatus
+    from aiogram.types import ChatMemberLeft, ChatMemberMember, ChatMemberUpdated
+
+    user = User(id=user_id, is_bot=False, first_name="Applicant")
+    return ChatMemberUpdated(
+        chat=Chat(id=CHAT_ID, type="supergroup", title="ČVUT FIT"),
+        from_user=User(id=1, is_bot=False, first_name="Admin"),
+        date=datetime.datetime.now(datetime.UTC),
+        old_chat_member=ChatMemberLeft(user=user, status=ChatMemberStatus.LEFT),
+        new_chat_member=ChatMemberMember(user=user, status=ChatMemberStatus.MEMBER),
+    )
+
+
+async def test_a_join_by_an_admins_hand_closes_the_waiting_captcha(session: AsyncSession, bot) -> None:
+    """No reminder follows them inside, and the message says who decided."""
+    from app.presentation.telegram.handlers.events import user_joined
+
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+
+    await user_joined(_joined(), bot, session)
+
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_GONE
+    edit = bot.edit_message_text.await_args.kwargs
+    assert (edit["chat_id"], edit["message_id"]) == (USER_ID, 77)
+    assert edit["text"] == "Заявку в <b>ČVUT FIT</b> уже рассмотрели админы чата."
+    assert edit["reply_markup"] is None
+
+    bot.send_message.reset_mock()
+    await service.remind(bot, session, now=challenge.created_at + REMIND_AFTER + datetime.timedelta(seconds=10))
+    bot.send_message.assert_not_awaited()
+
+    late = await service.answer(
+        bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=challenge.options.index(challenge.answer)
+    )
+    assert late is service.Outcome.CLOSED
+    bot.approve_chat_join_request.assert_not_awaited()
+
+
+async def test_a_join_closes_only_that_persons_captcha_in_that_chat(session: AsyncSession, bot) -> None:
+    await _seed_chat(session)
+    await join_requested(_request(USER_ID), bot, session)
+    await join_requested(_request(USER_ID + 1), bot, session)
+
+    await service.admitted(bot, session, CHAT_ID, USER_ID)
+
+    rows = {row.user_id: row.status for row in (await session.scalars(select(JoinCaptcha))).all()}
+    assert rows == {USER_ID: JoinCaptcha.STATUS_GONE, USER_ID + 1: JoinCaptcha.STATUS_PENDING}
+
+
+async def test_a_join_after_passing_leaves_the_captcha_passed(session: AsyncSession, bot) -> None:
+    """Passing approves the request, and Telegram reports that join too."""
+    await _seed_chat(session)
+    await join_requested(_request(), bot, session)
+    challenge = await _only_challenge(session)
+    await service.answer(
+        bot, session, challenge_id=challenge.id, user_id=USER_ID, pick=challenge.options.index(challenge.answer)
+    )
+    bot.edit_message_text.reset_mock()
+
+    await service.admitted(bot, session, CHAT_ID, USER_ID)
+
+    await session.refresh(challenge)
+    assert challenge.status == JoinCaptcha.STATUS_PASSED
+    bot.edit_message_text.assert_not_awaited()
