@@ -160,25 +160,21 @@
   }
 }
 
-/* E1: nobody has taken the place yet. */
+/* E1: nobody has taken the place yet. Dashed and tinted in the service's own
+   tone, with a drawing of the service where a card has its photo. */
 .open {
-  border: 1.5px dashed var(--hairline);
-  background: transparent;
+  border: 1.5px dashed color-mix(in srgb, var(--tone-fg) 45%, transparent);
+  background: color-mix(in srgb, var(--tone-bg) 55%, transparent);
 }
 
+/* The same height at every width: lower than a card's 16:9 photo, and
+   high enough for the drawing to read. */
 .openCover {
   display: grid;
   place-items: center;
-  aspect-ratio: 32 / 9;
-  width: 100%;
-}
-
-/* A third of the row at 32:9 would be a tall empty frame round a small icon. */
-@media (min-width: 720px) {
-  .openCover {
-    aspect-ratio: auto;
-    height: 64px;
-  }
+  height: 96px;
+  padding: 8px 0;
+  box-sizing: border-box;
 }
 
 .invite {
