@@ -228,3 +228,20 @@ async def test_refresh_returns_404_for_unknown_chat(client_factory) -> None:
     async with make() as client:
         resp = await client.post("/api/chats/-9999/refresh")
     assert resp.status_code == 404
+
+
+async def test_refresh_keeps_the_rest_of_telegrams_answer(client_factory, db_session_maker) -> None:
+    """The button goes through the same writer as the daily pass, so what no update announces is taken too."""
+    make, bot_holder = client_factory
+    bot_holder["bot"].get_chat.return_value.description = "Правила в закрепе"
+    async with db_session_maker() as s:
+        s.add(Chat(id=-7003, title="C"))
+        await s.commit()
+
+    async with make() as client:
+        resp = await client.post("/api/chats/-7003/refresh")
+
+    assert resp.status_code == 200
+    async with db_session_maker() as s:
+        chat = (await s.execute(select(Chat).where(Chat.id == -7003))).scalar_one()
+    assert chat.description == "Правила в закрепе"

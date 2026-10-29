@@ -110,3 +110,14 @@ async def test_an_ordinary_message_does_not_reach_it() -> None:
     matched, _ = await _handler().check(_service_message(text="hi"))
 
     assert not matched
+
+
+async def test_the_notice_takes_the_rest_of_the_answer_too(session) -> None:
+    await _chat(session)
+    bot = _bot()
+    bot.get_chat.return_value.description = "Правила в закрепе"
+
+    await chat_photo_changed(_Notice(), bot, session)
+
+    chat = await session.get(Chat, CHAT_ID)
+    assert chat.description == "Правила в закрепе"

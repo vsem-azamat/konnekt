@@ -104,7 +104,8 @@ class ChatMetadata:
     permissions: dict[str, bool] | None = None
     has_protected_content: bool = False
     has_hidden_members: bool = False
-    has_aggressive_anti_spam_enabled: bool = False
+    # True, or None: Telegram tells only an administrator, and leaves it out when off.
+    has_aggressive_anti_spam_enabled: bool | None = None
     message_auto_delete_time: int | None = None
     linked_chat_id: int | None = None
 
@@ -180,7 +181,10 @@ def _metadata_of(chat: ChatFullInfo) -> ChatMetadata:
         permissions=_permissions(getattr(chat, "permissions", None)),
         has_protected_content=getattr(chat, "has_protected_content", None) is True,
         has_hidden_members=getattr(chat, "has_hidden_members", None) is True,
-        has_aggressive_anti_spam_enabled=getattr(chat, "has_aggressive_anti_spam_enabled", None) is True,
+        # Shown to administrators only, so its absence is not "off".
+        has_aggressive_anti_spam_enabled=True
+        if getattr(chat, "has_aggressive_anti_spam_enabled", None) is True
+        else None,
         message_auto_delete_time=_number(getattr(chat, "message_auto_delete_time", None)),
         linked_chat_id=_number(getattr(chat, "linked_chat_id", None)),
     )

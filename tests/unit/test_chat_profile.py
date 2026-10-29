@@ -34,6 +34,7 @@ def _info(**overrides) -> ChatFullInfo:
             "permissions": {"can_send_messages": True, "can_invite_users": False},
             "has_protected_content": True,
             "has_hidden_members": True,
+            "has_aggressive_anti_spam_enabled": True,
             "message_auto_delete_time": 86400,
             "linked_chat_id": -1009,
             "accent_color_id": 0,
@@ -67,7 +68,7 @@ async def test_everything_telegram_said_is_kept(session) -> None:
     assert (chat.has_protected_content, chat.has_hidden_members, chat.has_aggressive_anti_spam_enabled) == (
         True,
         True,
-        False,
+        True,
     )
     assert (chat.message_auto_delete_time, chat.linked_chat_id) == (86400, -1009)
 
@@ -87,6 +88,18 @@ async def test_a_setting_switched_off_is_recorded_as_off(session) -> None:
         None,
         False,
     )
+
+
+async def test_anti_spam_left_out_is_unknown_not_off(session) -> None:
+    """Telegram tells only an administrator; a bot removed or demoted would otherwise record it as off."""
+    chat = Chat(id=CHAT_ID, title="ČVUT FIT")
+    chat.has_aggressive_anti_spam_enabled = True
+    session.add(chat)
+
+    info = _info(has_aggressive_anti_spam_enabled=None)
+    await profile.apply(session=session, bot=AsyncMock(), chat=chat, metadata=_metadata_of(info))
+
+    assert chat.has_aggressive_anti_spam_enabled is None
 
 
 async def test_an_empty_title_and_the_admins_settings_are_left_alone(session) -> None:
