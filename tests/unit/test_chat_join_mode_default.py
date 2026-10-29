@@ -34,3 +34,10 @@ async def test_a_known_chat_keeps_its_mode(session: AsyncSession) -> None:
     await session.refresh(chat)
     assert chat.join_mode == Chat.JOIN_CAPTCHA
     assert chat.title == "Renamed"
+
+
+async def test_the_old_column_follows_the_mode_for_a_rollback(session: AsyncSession) -> None:
+    chat = Chat(id=-100, title="Known", join_mode=Chat.JOIN_CAPTCHA)
+    assert chat._legacy_captcha is True
+    chat.join_mode = Chat.JOIN_OPEN
+    assert chat._legacy_captcha is False

@@ -32,11 +32,14 @@ was right, and the models moved.
 
 ## Tables this repository does not own
 
-The production database still holds tables from features that have left: the
-content pipeline's, the moderation agent's, the cost ledger's. They are not
-dropped — they hold data that may still be wanted when that work moves to its
-own repository — and `alembic/env.py` filters them out of autogenerate, so
-`alembic revision --autogenerate` will not propose deleting them.
+Production carried eight tables from features that had left: the content
+pipeline's, the moderation agent's and the cost ledger's. `b6e1f4a8c203` dropped
+them on 2026-10-29. The five that held rows were exported first, as a data-only
+`pg_dump` and a CSV per table, to `~/data-archive/supervisor-telegram-2026-10-29/`
+on the server and to Azamat's `~/Media/konnekt-requests/2026-10-29/data-archive/`.
+
+`alembic/env.py` still keeps unmapped tables out of autogenerate, so a table
+somebody adds by hand is never proposed for deletion.
 
 ## Exposure
 

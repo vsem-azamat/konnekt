@@ -74,3 +74,20 @@ def test_it_downgrades_to_the_empty_tables(database) -> None:  # noqa: F811
     assert _tables(database) >= _TABLES
     with database.connect() as conn:
         assert conn.execute(sa.text("SELECT count(*) FROM channel_posts")).scalar() == 0
+
+
+def test_with_pgvector_the_embedding_comes_back_too(database) -> None:  # noqa: F811
+    """Production has the extension; a database without it gets the table less that one column."""
+    with database.begin() as conn:
+        conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS vector"))
+    command.upgrade(_alembic(), "head")
+    command.downgrade(_alembic(), _BEFORE)
+    with database.connect() as conn:
+        column = conn.execute(
+            sa.text(
+                "SELECT udt_name FROM information_schema.columns WHERE table_name = 'channel_posts' AND column_name = 'embedding'"
+            )
+        ).scalar()
+        index = conn.execute(sa.text("SELECT to_regclass('ix_channel_posts_embedding')")).scalar()
+    assert column == "vector"
+    assert index is not None
