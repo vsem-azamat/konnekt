@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.models import SpamPing
-from app.moderation.ad_detector import extract_ad_signals
+from app.db.models import Chat, Message, SpamPing, User
+from app.moderation.ad_detector import AdSignal, extract_ad_signals
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +26,43 @@ def _truncate(text: str, limit: int) -> str:
     if len(text) <= limit:
         return text
     return text[: max(0, limit - 1)].rstrip() + "…"
+
+
+async def _ours(db: AsyncSession) -> list[str]:
+    """Handles that are never an ad: the configured ones, the ads bot, every chat with a public link.
+
+    A chat's link is a username or an invite; either way the detector's
+    whitelist reduces it to what a link or mention of that chat matches.
+    """
+    ours = list(settings.moderation.ad_detector_whitelist)
+    if settings.ads_bot.contact_username:
+        ours.append(settings.ads_bot.contact_username)
+    ours.extend(link for link in await db.scalars(select(Chat.public_link)) if link)
+    return ours
+
+
+async def _without_classmates(
+    db: AsyncSession, signals: list[AdSignal], *, chat_id: int, user_id: int
+) -> list[AdSignal]:
+    """Drop mentions of people, other than the sender, who have written in this chat.
+
+    Students tag each other; an ad sends readers to someone they have not
+    met. The sender is not exempt: a message naming its own author is how a
+    stranger advertises themselves.
+    """
+    handles = [sig.canonical.removeprefix("@") for sig in signals if sig.kind == "mention"]
+    if not handles:
+        return signals
+    classmates = set(
+        await db.scalars(
+            select(func.lower(User.username)).where(
+                func.lower(User.username).in_(handles),
+                User.id != user_id,
+                select(Message.id).where(Message.chat_id == chat_id, Message.user_id == User.id).exists(),
+            )
+        )
+    )
+    return [sig for sig in signals if sig.kind != "mention" or sig.canonical.removeprefix("@") not in classmates]
 
 
 async def record_ad_signals(
@@ -45,7 +82,8 @@ async def record_ad_signals(
     """
     if not settings.moderation.ad_detector_enabled:
         return []
-    signals = extract_ad_signals(text, whitelist=settings.moderation.ad_detector_whitelist) if text else []
+    signals = extract_ad_signals(text, whitelist=await _ours(db)) if text else []
+    signals = await _without_classmates(db, signals, chat_id=chat_id, user_id=user_id)
     snippet = _truncate(text, settings.moderation.ad_detector_snippet_chars) if text else None
     by_kind: dict[str, list[str]] = {}
     for sig in signals:
