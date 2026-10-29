@@ -19,7 +19,7 @@ from app.core.exceptions import NotAPersonError, ProtectedUserError, UserNotFoun
 from app.db.models import User
 from app.moderation import audit
 from app.moderation.blacklist import add_to_blacklist, approved_chat_ids, remove_from_blacklist
-from app.people.photos import photo_of
+from app.people.photos import PhotoUnknownError, photo_of
 from app.webapi.deps import get_publish_bot, get_session, require_super_admin
 from app.webapi.schemas import BlockedUserRead, UserBlockRequest, UserBlockResponse
 
@@ -118,7 +118,11 @@ async def user_photo(
     _admin_id: Annotated[int, Depends(require_super_admin)],
 ) -> Response:
     """A person's photo for the console's faces; 404 is their letters."""
-    content = await photo_of(session, bot, user_id)
+    try:
+        content = await photo_of(session, bot, user_id)
+    except PhotoUnknownError:
+        # Letters for now, and asked again on the next look rather than in an hour.
+        return Response(status_code=404, headers={"Cache-Control": "no-store"})
     await session.commit()
     if content is None:
         return Response(status_code=404, headers={"Cache-Control": NO_PHOTO_CACHE})

@@ -85,7 +85,9 @@ keying the address by chat, would leave every browser and Telegram WebView
 showing the old photo with nothing to invalidate it. A Telegram file URL or file
 id must never reach a client instead: the URL carries the bot token. The bytes
 live in the database because the bot writes them and the web API, a different
-container, reads them.
+container, reads them. The console's faces (`/api/chats/<id>/photo`,
+`/api/users/<id>/photo`) are keyed by id, which is safe only because they are
+admin-only and cached `private` for a day: never make them `immutable`.
 
 **A Mini App secret is `hmac(key="WebAppData", msg=bot_token)`.** The other
 derivation anyone reaches for, `sha256(bot_token)`, belonged to the Login

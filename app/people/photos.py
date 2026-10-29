@@ -2,8 +2,8 @@
 
 Asked of Telegram the first time the console shows someone and kept in
 `user_photos` for a week, an empty answer included. A failed question is not
-kept, so the next look asks again; until then the console shows the person's
-letters, as it does for someone without a photo.
+kept, here or in the browser, so the next look asks again; until then the
+console shows the person's letters, as it does for someone without a photo.
 """
 
 from __future__ import annotations
@@ -38,17 +38,28 @@ SMALL = 160
 _asking = asyncio.Semaphore(4)
 
 
+class PhotoUnknownError(Exception):
+    """Telegram could not be asked and nothing is kept: no answer either way."""
+
+
 async def photo_of(session: AsyncSession, bot: Bot, user_id: int) -> bytes | None:
-    """The person's photo as a JPEG, or None for their letters. Caller commits."""
+    """The person's photo as a JPEG, or None when they have none. Caller commits.
+
+    Raises PhotoUnknownError when Telegram could not be asked and there is no
+    earlier answer to fall back on.
+    """
     stored = await session.get(UserPhoto, user_id)
     if stored is not None and utc_now() - stored.fetched_at < FRESH_FOR:
         return stored.content
+    # Not holding a connection through a queue and a flood wait: a page of new
+    # faces would take the whole pool and stall every other request.
+    await session.commit()
     async with _asking:
         try:
             answer = await ask(lambda: bot.get_user_profile_photos(user_id, limit=1))
         except TelegramAPIError as err:
             logger.warning("user_photo_failed", user_id=user_id, error_type=type(err).__name__)
-            return stored.content if stored is not None else None
+            return _earlier(stored)
         size = _small(answer.photos[0]) if answer.photos else None
         if size is None:
             await _keep(session, user_id, unique_id=None, content=None)
@@ -58,9 +69,16 @@ async def photo_of(session: AsyncSession, bot: Bot, user_id: int) -> bytes | Non
             return stored.content
         content = await download_small_jpeg(bot, size.file_id)
     if content is None:
-        return stored.content if stored is not None else None
+        return _earlier(stored)
     await _keep(session, user_id, unique_id=size.file_unique_id, content=content)
     return content
+
+
+def _earlier(stored: UserPhoto | None) -> bytes | None:
+    """What was known before a failed question, a stale answer being better than none."""
+    if stored is None:
+        raise PhotoUnknownError
+    return stored.content
 
 
 def _small(sizes: list[PhotoSize]) -> PhotoSize | None:

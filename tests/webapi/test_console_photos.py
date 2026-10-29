@@ -145,6 +145,17 @@ class TestAPersonsPhoto:
 
         assert first.status_code == second.status_code == 404
         assert holder["bot"].get_user_profile_photos.await_count == 2
+        # Nor by the browser: an hour of letters for a passing flood wait.
+        assert first.headers["cache-control"] == "no-store"
+
+    async def test_no_photo_may_be_remembered_by_the_browser(self, client_factory) -> None:
+        make, holder = client_factory
+        holder["bot"] = _bot(photos=[])
+
+        async with make() as client:
+            resp = await client.get(f"/api/users/{PERSON}/photo")
+
+        assert resp.headers["cache-control"].startswith("private, max-age=")
 
     async def test_an_old_answer_is_asked_again(self, client_factory, db_session_maker) -> None:
         make, holder = client_factory
@@ -173,6 +184,7 @@ class TestAPersonsPhoto:
             resp = await client.get(f"/api/users/{PERSON}/photo")
 
         assert resp.status_code == 404
+        assert resp.headers["cache-control"] == "no-store"
 
 
 class TestOnlyForAnAdmin:
