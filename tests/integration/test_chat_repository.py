@@ -326,11 +326,10 @@ class TestChatRepositoryEdgeCases:
 
 
 @pytest.mark.integration
-class TestChatRepositoryLegacy:
-    """Tests for legacy backward-compatible methods."""
+class TestChatRepositoryMerge:
+    """merge_chat creates the row get_by_id reads back."""
 
-    async def test_legacy_merge_and_get_chat(self, session):
-        """Test legacy merge_chat and get_chat methods."""
+    async def test_merge_chat_then_get_by_id(self, session):
         repo = ChatRepository(session)
         await repo.merge_chat(1, title="Test", is_forum=True)
         chat = await repo.get_by_id(1)

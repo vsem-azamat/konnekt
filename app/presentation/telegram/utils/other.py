@@ -33,37 +33,6 @@ def get_user_mention(user: types.User) -> str:
     return user.mention_html()
 
 
-def _strip_chat_id_prefix(chat_id: int) -> str:
-    """Strip the -100 prefix from supergroup/channel IDs for t.me/c/ links."""
-    s = str(chat_id)
-    if s.startswith("-100"):
-        return s[4:]
-    return s.lstrip("-")
-
-
-def get_message_link(tg_object: types.Message) -> str:
-    """Generate a direct link to a message."""
-    chat = tg_object.chat
-
-    if chat.username:  # Public chat or channel
-        return f"https://t.me/{chat.username}/{tg_object.message_id}"
-
-    if chat.type in ["group", "supergroup"]:  # Private group without username
-        return f"https://t.me/c/{_strip_chat_id_prefix(chat.id)}/{tg_object.message_id}"
-
-    # Private 1-on-1 chat
-    return f"https://t.me/{chat.id}/{tg_object.message_id}"
-
-
-def get_chat_link(tg_object: types.Message | types.Chat) -> str:
-    """Return a direct link to a chat."""
-    chat = tg_object.chat if isinstance(tg_object, types.Message) else tg_object
-
-    if chat.username:
-        return f"https://t.me/{chat.username}"
-    return f"https://t.me/c/{_strip_chat_id_prefix(chat.id)}"
-
-
 _MUTE_COMMAND = re.compile(r"[!/]mute(?:@\w+)?(?:\s+(?P<time>\d+)\s*(?P<unit>[mhdw])?)?", re.IGNORECASE)
 
 
