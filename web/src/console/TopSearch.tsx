@@ -197,10 +197,10 @@ function Group({
 function Entry({ found, onOpen }: { found: Found; onOpen: () => void }) {
   const { t } = useLingui();
   const status: Record<string, string> = {
-    approved: t`одобрен`,
-    discovered: t`на проверке`,
-    observed: t`наблюдаем`,
-    external: t`внешний`,
+    approved: t`модерирует`,
+    discovered: t`ждёт решения`,
+    observed: t`наблюдает`,
+    external: t`только ссылка`,
     disabled: t`отключён`,
   };
   let name: string;

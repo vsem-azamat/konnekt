@@ -23,6 +23,7 @@ import { parentChoices } from '@/console/activity';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
 import { type BanOutcome, banOutcome } from '@/console/ban';
 import { Heatmap, MemberTrend } from '@/console/Charts';
+import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import { isListed } from '@/console/chats';
 import { ChatFace, PersonFace } from '@/console/Faces';
@@ -308,6 +309,37 @@ function ChatScreen({ chatId }: { chatId: number }) {
       ) : null}
     </>
   );
+  const refreshRow = (
+    <div style={{ marginTop: 16 }}>
+      <Rows>
+        <Row
+          title={
+            refresh.isPending ? (
+              <Trans>Обновляем…</Trans>
+            ) : (
+              <Trans>Обновить из Telegram</Trans>
+            )
+          }
+          hint={
+            refreshed ? (
+              <Trans>Обновлено</Trans>
+            ) : (
+              <Trans>название, фото и число участников</Trans>
+            )
+          }
+          onClick={
+            busy
+              ? undefined
+              : () => {
+                  hapticSelection();
+                  refresh.mutate();
+                }
+          }
+        />
+      </Rows>
+    </div>
+  );
+
   // The bot is no longer in a chat nobody decided on: there is nothing to
   // list, protect or watch, only switching it off. The rest would be settings
   // that change nothing and a promise of approval that cannot come.
@@ -318,15 +350,28 @@ function ChatScreen({ chatId }: { chatId: number }) {
         <div style={{ marginTop: 16 }}>
           <Hint>
             <Trans>
-              Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить.
+              Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить. Если
+              бота вернули, обновите чат из Telegram.
             </Trans>
           </Hint>
-          <Actions>
-            <Action onClick={() => save({ resource_status: 'disabled' })} disabled={busy}>
-              <Trans>Отключить</Trans>
-            </Action>
-          </Actions>
+          {/* The header hides an error behind an open sheet; none is drawn here. */}
+          {error && sheet ? (
+            <Hint>
+              <FailureText error={error} />
+            </Hint>
+          ) : null}
+          <div style={{ maxWidth: 320 }}>
+            <Actions>
+              <Action
+                onClick={() => save({ resource_status: 'disabled' })}
+                disabled={busy}
+              >
+                <Trans>Отключить</Trans>
+              </Action>
+            </Actions>
+          </div>
         </div>
+        {refreshRow}
       </>
     );
   }
@@ -401,19 +446,24 @@ function ChatScreen({ chatId }: { chatId: number }) {
       )}
 
       <Label>
-        <Trans>На публичной вкладке</Trans>
+        <Trans>В каталоге</Trans>
       </Label>
       <Rows>
         <Row
+          // Named as the list names it, and as warm when decided on but unseen.
           title={
             listed ? (
-              <Trans>Показан в «Чатах»</Trans>
+              <Trans>В каталоге</Trans>
             ) : chat.public_link && !decided ? (
-              <Trans>Не виден: чат не одобрен</Trans>
+              <Trans>Не в каталоге · чат не решён</Trans>
             ) : chat.public_link ? (
-              <Trans>Не виден: у чата нет названия</Trans>
+              <span className={table.hidden}>
+                <Trans>Не в каталоге · нет названия</Trans>
+              </span>
             ) : (
-              <Trans>Не показан</Trans>
+              <span className={decided ? table.hidden : undefined}>
+                <Trans>Не в каталоге · нет ссылки t.me</Trans>
+              </span>
             )
           }
           hint={
@@ -421,15 +471,13 @@ function ChatScreen({ chatId }: { chatId: number }) {
               <Trans>появится после одобрения</Trans>
             ) : chat.public_link && !listed ? (
               <Trans>обновите его из Telegram</Trans>
-            ) : chat.public_link ? null : (
-              <Trans>нужна ссылка t.me</Trans>
-            )
+            ) : null
           }
           trailing={
             <Switch
               checked={Boolean(chat.public_link)}
               busy={busy}
-              label={t`На публичной вкладке`}
+              label={t`В каталоге`}
               onChange={(on) => open({ kind: on ? 'publish' : 'unpublish' })}
             />
           }
@@ -675,34 +723,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
         </Hint>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <Rows>
-          <Row
-            title={
-              refresh.isPending ? (
-                <Trans>Обновляем…</Trans>
-              ) : (
-                <Trans>Обновить из Telegram</Trans>
-              )
-            }
-            hint={
-              refreshed ? (
-                <Trans>Обновлено</Trans>
-              ) : (
-                <Trans>название, фото и число участников</Trans>
-              )
-            }
-            onClick={
-              busy
-                ? undefined
-                : () => {
-                    hapticSelection();
-                    refresh.mutate();
-                  }
-            }
-          />
-        </Rows>
-      </div>
+      {refreshRow}
 
       {decided ? (
         <div style={{ marginTop: 16 }}>

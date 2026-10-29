@@ -163,10 +163,10 @@ function ChatList() {
       {tab === 'listed' ? (
         <div style={{ marginTop: 8 }}>
           <Chips>
-            {MODES.filter((key) => modeCount(key) > 0).map((key) => (
+            {/* The chosen one stays at zero, so the page says what it filters by. */}
+            {MODES.filter((key) => modeCount(key) > 0 || key === mode).map((key) => (
               <ChipView
                 key={key}
-                ghost
                 active={key === mode}
                 onClick={() => show('listed', key === mode ? null : key)}
               >

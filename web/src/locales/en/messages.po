@@ -129,8 +129,8 @@ msgid "Пардубице"
 msgstr "Pardubice"
 
 #: src/console/pages/Chat.tsx
-msgid "На публичной вкладке"
-msgstr "On the public tab"
+#~ msgid "На публичной вкладке"
+#~ msgstr "On the public tab"
 
 #. placeholder {0}: formatDay( request.deadline_on ?? localDay(request.expires_at ?? ''), locale, )
 #: src/pages/Mine.tsx
@@ -243,6 +243,10 @@ msgstr "Disable the chat?"
 #: src/console/pages/Signals.tsx
 msgid "Ждут решения: {0}."
 msgstr "Awaiting a decision: {0}."
+
+#: src/console/pages/Chat.tsx
+msgid "Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить. Если бота вернули, обновите чат из Telegram."
+msgstr "The bot is no longer in this chat. The only decision left is to switch it off. If the bot was added back, refresh the chat from Telegram."
 
 #: src/console/pages/System.tsx
 msgid "вкл."
@@ -922,8 +926,8 @@ msgid "Дальше · {0}"
 msgstr "Next · {0}"
 
 #: src/console/TopSearch.tsx
-msgid "одобрен"
-msgstr "approved"
+#~ msgid "одобрен"
+#~ msgstr "approved"
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "История"
@@ -965,6 +969,7 @@ msgstr "Chat, person, @username or id"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "ждёт решения"
 msgstr "awaiting a decision"
 
@@ -998,8 +1003,8 @@ msgid "Впервые: {0}"
 msgstr "First time: {0}"
 
 #: src/console/pages/Chat.tsx
-msgid "Показан в «Чатах»"
-msgstr "Shown in «Chats»"
+#~ msgid "Показан в «Чатах»"
+#~ msgstr "Shown in «Chats»"
 
 #: src/console/pages/Summary.tsx
 msgid "переехавшие подписчики"
@@ -1686,6 +1691,7 @@ msgid "за штуку"
 msgstr "per item"
 
 #: src/components/OwnerStatusCard.tsx
+#: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
 #: src/pages/MyHelperAbout.tsx
 msgid "В каталоге"
@@ -1897,6 +1903,10 @@ msgstr "That did not work. Try again."
 #: src/console/pages/Partners.tsx
 msgid "в профиле"
 msgstr "in the profile"
+
+#: src/console/pages/Chat.tsx
+msgid "Не в каталоге · нет названия"
+msgstr "Not in the catalog · no title"
 
 #: src/console/pages/Chat.tsx
 msgid "Бот будет только записывать историю: ничего не пишет и ни на что не отвечает. В каталоге чат показан как наш."
@@ -2350,8 +2360,12 @@ msgid "Люди"
 msgstr "People"
 
 #: src/console/pages/Chat.tsx
-msgid "Не виден: чат не одобрен"
-msgstr "Not visible: the chat is not approved"
+msgid "Не в каталоге · чат не решён"
+msgstr "Not in the catalog · no decision yet"
+
+#: src/console/pages/Chat.tsx
+#~ msgid "Не виден: чат не одобрен"
+#~ msgstr "Not visible: the chat is not approved"
 
 #: src/pages/Landing.tsx
 msgid "Кто поможет с учёбой в Чехии"
@@ -2469,6 +2483,7 @@ msgstr "Tick everything you can do. Prices come on the next screen."
 #~ msgstr "Didn't get that. Try naming a subject — \"calculus\", \"čeština B2\", \"physics\"."
 
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "наблюдает"
 msgstr "watches"
 
@@ -2488,8 +2503,8 @@ msgid "30 дней"
 msgstr "30 days"
 
 #: src/console/TopSearch.tsx
-msgid "внешний"
-msgstr "external"
+#~ msgid "внешний"
+#~ msgstr "external"
 
 #: src/console/Charts.tsx
 msgid "Пт"
@@ -2832,8 +2847,8 @@ msgid "Пара слов о себе — что берёшь и чего не б
 msgstr "A couple of words about you — what you take on and what you do not"
 
 #: src/console/pages/Chat.tsx
-msgid "Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить."
-msgstr "The bot is no longer in this chat. The only decision left is to switch it off."
+#~ msgid "Бота в этом чате уже нет. Решать здесь нечего, кроме как отключить."
+#~ msgstr "The bot is no longer in this chat. The only decision left is to switch it off."
 
 #~ msgid "Здесь появятся заявки со всего каталога. Те, что по твоим предметам, будут выше."
 #~ msgstr "Requests from the whole catalog appear here. The ones in your subjects come first."
@@ -2903,6 +2918,7 @@ msgid "Могу на этой неделе"
 msgstr "I can this week"
 
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "только ссылка"
 msgstr "link only"
 
@@ -2928,6 +2944,7 @@ msgid "Каталог не принял карточку: проверьте с�
 msgstr "The catalog refused the card: check the link and the length of the fields."
 
 #: src/console/pages/Chats.tsx
+#: src/console/TopSearch.tsx
 msgid "модерирует"
 msgstr "moderates"
 
@@ -3346,8 +3363,8 @@ msgid "Консоль только для администраторов"
 msgstr "The console is for administrators only"
 
 #: src/console/pages/Chat.tsx
-msgid "Не виден: у чата нет названия"
-msgstr "Not visible: the chat has no title"
+#~ msgid "Не виден: у чата нет названия"
+#~ msgstr "Not visible: the chat has no title"
 
 #: src/components/Place.tsx
 msgid "общежитие"
@@ -3458,6 +3475,10 @@ msgstr "Nothing found."
 #: src/pages/OfferPrices.tsx
 msgid "договоримся"
 msgstr "we will agree"
+
+#: src/console/pages/Chat.tsx
+msgid "Не в каталоге · нет ссылки t.me"
+msgstr "Not in the catalog · no t.me link"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
@@ -3570,8 +3591,8 @@ msgid "Не получилось посчитать"
 msgstr "Could not count that"
 
 #: src/console/pages/Chat.tsx
-msgid "нужна ссылка t.me"
-msgstr "needs a t.me link"
+#~ msgid "нужна ссылка t.me"
+#~ msgstr "needs a t.me link"
 
 #: src/pages/Results.tsx
 msgid "Добавь себя в этот список — студенты напишут тебе сами."
@@ -3621,8 +3642,8 @@ msgid "Выйти"
 msgstr "Sign out"
 
 #: src/console/TopSearch.tsx
-msgid "на проверке"
-msgstr "awaiting review"
+#~ msgid "на проверке"
+#~ msgstr "awaiting review"
 
 #: src/console/pages/Chats.tsx
 msgid "Это аккаунт человека, а не чат или канал."
@@ -3633,8 +3654,8 @@ msgid "Забанить {name}?"
 msgstr "Ban {name}?"
 
 #: src/console/pages/Chat.tsx
-msgid "Не показан"
-msgstr "Not shown"
+#~ msgid "Не показан"
+#~ msgstr "Not shown"
 
 #: src/console/Login.tsx
 msgid "Этого аккаунта нет среди администраторов. Войдите другим аккаунтом Telegram или попросите владельца добавить вас."
@@ -3771,8 +3792,8 @@ msgid "например: от 8 900 Kč"
 msgstr "e.g. from 8,900 Kč"
 
 #: src/console/TopSearch.tsx
-msgid "наблюдаем"
-msgstr "watched"
+#~ msgid "наблюдаем"
+#~ msgstr "watched"
 
 #: src/console/pages/Summary.tsx
 msgid "Требует внимания"
