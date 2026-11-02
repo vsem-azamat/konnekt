@@ -1,0 +1,108 @@
+/*
+ * The page for someone who is not in Telegram yet.
+ *
+ * One screen, no scroll: everything is sized against the viewport rather than
+ * against a fixed type scale, so a 568-pixel-tall phone and a desktop window
+ * both get the whole thing at once. There is exactly one thing to do here.
+ *
+ * A browser too old to understand `safe` drops that declaration entirely and
+ * lays the content out from the top, which is the same thing the keyword buys
+ * on a short screen — so there is nothing to fall back to.
+ */
+
+.page {
+  min-height: 100dvh;
+  display: grid;
+  /* `safe` is the whole trick. Centred content that outgrows its box overflows
+     in both directions, and the half above the top edge cannot be scrolled to
+     — so on a 320-pixel-tall viewport (a small phone in landscape, or any
+     phone at 200% zoom) the only button on the page would be unreachable.
+     `safe center` falls back to top alignment exactly then, and the page
+     scrolls instead. On every ordinary screen it centres and does not. */
+  align-content: safe center;
+  justify-items: start;
+  gap: clamp(14px, 3.2vh, 22px);
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.headline {
+  margin: 0;
+  font-size: clamp(28px, 7.2vw, 40px);
+  line-height: 1.08;
+  font-weight: 730;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.sub {
+  margin: 0;
+  font-size: clamp(14px, 3.6vw, 16px);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 30ch;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  padding: 6px 11px;
+  border-radius: var(--r-chip);
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 15.5px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: transform 120ms ease;
+}
+
+.cta:active {
+  transform: scale(0.985);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.foot {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 34ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}

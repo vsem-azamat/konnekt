@@ -9,8 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:site": "astro dev --root site",
-    "build": "tsc -b && vite build && astro build --root site",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -33,7 +32,6 @@
     "react-router": "^8.4.0"
   },
   "devDependencies": {
-    "@astrojs/sitemap": "3.7.4",
     "@biomejs/biome": "^2.5.15",
     "@hey-api/openapi-ts": "^0.99.0",
     "@lingui/babel-plugin-lingui-macro": "^6.10.0",
@@ -45,12 +43,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "astro": "7.4.0",
     "eruda": "^3.4.3",
     "playwright": "^1.64.1",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
-    "vite-plugin-mkcert": "^2.1.0",
-    "yaml": "2.9.1"
+    "vite-plugin-mkcert": "^2.1.0"
   }
 }

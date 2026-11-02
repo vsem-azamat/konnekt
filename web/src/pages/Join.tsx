@@ -209,7 +209,7 @@ function WayOn() {
             <Trans>репетиторы, подготовка к вступительным экзаменам, нострификация</Trans>
           }
           trailing={<Chevron />}
-          onClick={() => navigate('/home')}
+          onClick={() => navigate('/')}
         />
       </Rows>
     </div>

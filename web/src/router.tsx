@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter } from 'react-router';
 import { RouteError } from '@/components/RouteError';
 import { TabsLayout } from '@/components/TabsLayout';
 import { lazyScreen as screen } from '@/lib/lazyScreen';
@@ -37,10 +37,6 @@ import Root from '@/Root';
  *
  * The console's screens are lazy: only admins open them, and everyone else
  * would download them with the first screen.
- *
- * The first screen is /home: the root of the domain is the public site's
- * landing page (site/, docker/Caddyfile). Inside the app the root still leads
- * home, for the dev server and for anything that names it.
  */
 export const router = createBrowserRouter([
   {
@@ -56,8 +52,7 @@ export const router = createBrowserRouter([
           {
             element: <TabsLayout />,
             children: [
-              { index: true, element: <Navigate to="/home" replace /> },
-              { path: 'home', element: <HomePage /> },
+              { index: true, element: <HomePage /> },
               { path: 'chats', element: <ChatsPage /> },
               { path: 'chats/:group', element: <ChatSectionPage /> },
               { path: 'results', element: <ResultsPage /> },
