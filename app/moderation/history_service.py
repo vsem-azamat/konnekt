@@ -35,7 +35,13 @@ async def save_message(db: AsyncSession, message: types.Message, *, edited: bool
 async def merge_user(db: AsyncSession, user: types.User) -> None:
     # Only profile fields: never overwrite blocked / verify.
     await get_user_repository(db).upsert_profile(
-        user.id, username=user.username, first_name=user.first_name, last_name=user.last_name
+        user.id,
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        language_code=user.language_code,
+        # Telegram leaves it out when it is not so.
+        is_premium=bool(user.is_premium),
     )
 
 

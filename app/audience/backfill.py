@@ -25,7 +25,10 @@ Three sources, each only as good as what it kept:
   is not in the audience already is taken for a private contact and labelled
   ``ESTIMATE`` as their source; the bot is not marked as able to write to
   them until they write again. Group messages are kept 180 days, so someone
-  who only wrote in a group before that is among the estimate.
+  who only wrote in a group before that is among the estimate. Only people
+  recorded before ``ESTIMATE_BEFORE``: from then on ``users`` also holds
+  everybody a membership update, a join request or a button names, and an
+  estimate would take them all for private contacts.
 
 Committed every `BATCH` people, so live traffic writing the same rows never
 waits on the whole run. Replayed events never pull a time back, add to a
@@ -61,6 +64,9 @@ if TYPE_CHECKING:
 logger = get_logger("audience.backfill")
 
 ESTIMATE = "backfill:dm_estimate"
+# Shortly before the release that began recording people who never wrote
+# (chat members, applicants, admins): anybody newer is not a guess to make.
+ESTIMATE_BEFORE = datetime.datetime(2026, 10, 29, 16, 30)
 BATCH = 200
 
 
@@ -127,6 +133,7 @@ async def from_bot_users(session_maker: async_sessionmaker[AsyncSession]) -> int
             await db.execute(
                 select(User.id, User.username, User.first_name, User.last_name, User.created_at).where(
                     User.id > 0,
+                    User.created_at < ESTIMATE_BEFORE,
                     User.blocked.is_(False),
                     User.id.not_in(select(Message.user_id).where(Message.chat_id < 0)),
                     User.id.not_in(select(SpamPing.user_id)),
