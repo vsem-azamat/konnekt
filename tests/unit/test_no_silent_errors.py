@@ -18,6 +18,7 @@ LEVELS = {"debug", "info", "warning", "error", "exception", "critical"}
 DELIBERATE = {
     # logging's own contract: a handler that fails hands the record to handleError.
     ("core/alerts.py", "emit"),
+    ("core/error_tracking.py", "emit"),
     # A failing alert send logs its class at warning, so it cannot alert about itself.
     ("core/alerts.py", "_run"),
     # About the audience, whose ids and names stay out of the logs: a database

@@ -29,10 +29,10 @@ logger = logging.getLogger(_LOGGER_NAME)
 
 # uvicorn's error logger does not propagate to the root, and it is where an
 # unhandled exception in a route is reported.
-_ALSO_WATCHED = ("uvicorn.error",)
+WATCHED_LOGGERS = ("uvicorn.error",)
 
 
-def _event_of(record: logging.LogRecord) -> str:
+def event_of(record: logging.LogRecord) -> str:
     """What happened, without the data it happened to."""
     # Set by app.core.logging on every structlog line, whichever renderer.
     name = getattr(record, "structlog_event", None)
@@ -53,11 +53,6 @@ def _event_of(record: logging.LogRecord) -> str:
     return name
 
 
-def _is_noise(record: logging.LogRecord) -> bool:
-    """Telegram's transient 5xx and timeouts; a real stall is the watchdog's to report."""
-    return record.name == "aiogram.dispatcher" and str(record.msg).startswith("Failed to fetch updates")
-
-
 class AlertHandler(logging.Handler):
     """Queues error records from this process and sends them to the report chat."""
 
@@ -75,7 +70,7 @@ class AlertHandler(logging.Handler):
         """Begin watching this process's errors; call `stop` to end."""
         self._loop = asyncio.get_running_loop()
         self._queue = asyncio.Queue(self._max_queued)
-        for name in ("", *_ALSO_WATCHED):
+        for name in ("", *WATCHED_LOGGERS):
             logging.getLogger(name).addHandler(self)
         self._task = asyncio.create_task(self._run(send))
 
@@ -92,7 +87,7 @@ class AlertHandler(logging.Handler):
         if self._task is not None:
             self._task.cancel()
             await asyncio.gather(self._task, return_exceptions=True)
-        for name in ("", *_ALSO_WATCHED):
+        for name in ("", *WATCHED_LOGGERS):
             logging.getLogger(name).removeHandler(self)
 
     async def _run(self, send: Callable[[str], Awaitable[object]]) -> None:
@@ -110,10 +105,10 @@ class AlertHandler(logging.Handler):
                 self._queue.task_done()
 
     def emit(self, record: logging.LogRecord) -> None:
-        if self._loop is None or record.name == _LOGGER_NAME or _is_noise(record):
+        if self._loop is None or record.name == _LOGGER_NAME:
             return
         try:
-            event = _event_of(record)
+            event = event_of(record)
             self._loop.call_soon_threadsafe(self._enqueue, f"{record.name}: {event}")
         except Exception:
             self.handleError(record)
