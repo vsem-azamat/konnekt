@@ -57,11 +57,11 @@ const QUEUES: Record<
  */
 export function QueueRow({
   queue,
-  now = new Date(),
+  now,
   onOpen,
 }: {
   queue: Queue;
-  now?: Date;
+  now: Date;
   onOpen: (path: string) => void;
 }) {
   const { path, tile, title, hint } = QUEUES[queue.key];
@@ -72,7 +72,7 @@ export function QueueRow({
       hint={
         queue.since ? (
           <>
-            <Waited since={queue.since} now={now} /> · {hint}
+            <Waited since={queue.since} alone={queue.count === 1} now={now} /> · {hint}
           </>
         ) : (
           hint
@@ -84,13 +84,16 @@ export function QueueRow({
   );
 }
 
-function Waited({ since, now }: { since: string; now: Date }) {
+/** «ждут до N»: the oldest waits N, the others less; one alone just waits. */
+function Waited({ since, alone, now }: { since: string; alone: boolean; now: Date }) {
   const wait = waited(since, now);
-  if (wait.unit === 'fresh') return <Trans>дольше всех ждёт меньше часа</Trans>;
+  if (wait.unit === 'fresh') {
+    return alone ? <Trans>ждёт меньше часа</Trans> : <Trans>ждут меньше часа</Trans>;
+  }
   if (wait.unit === 'hours') {
-    return (
+    return alone ? (
       <Trans>
-        дольше всех ждёт{' '}
+        ждёт{' '}
         <Plural
           value={wait.count}
           one="# час"
@@ -99,12 +102,28 @@ function Waited({ since, now }: { since: string; now: Date }) {
           other="# часа"
         />
       </Trans>
+    ) : (
+      <Trans>
+        ждут до{' '}
+        <Plural
+          value={wait.count}
+          one="# часа"
+          few="# часов"
+          many="# часов"
+          other="# часа"
+        />
+      </Trans>
     );
   }
-  return (
+  return alone ? (
     <Trans>
-      дольше всех ждёт{' '}
+      ждёт{' '}
       <Plural value={wait.count} one="# день" few="# дня" many="# дней" other="# дня" />
+    </Trans>
+  ) : (
+    <Trans>
+      ждут до{' '}
+      <Plural value={wait.count} one="# дня" few="# дней" many="# дней" other="# дня" />
     </Trans>
   );
 }

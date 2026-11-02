@@ -45,6 +45,7 @@ import {
 import css from '@/console/Summary.module.css';
 import type { BusyChat, HomeStats } from '@/console/session';
 import { elapsed, menuCounts, queues, type WaveSignal } from '@/console/signals';
+import { useNow } from '@/console/useNow';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -92,6 +93,8 @@ function Summary() {
     catalog.isPending ||
     (!webapiError && (stats.isPending || chats.isPending || signals.isPending));
   const items = queues(signals.data, catalog.data?.counts);
+  // The waits move on their own; a refresh that failed would freeze them.
+  const now = useNow(30_000);
   const approved = chats.data?.filter(
     (chat) => chat.resource_status === 'approved',
   ).length;
@@ -133,9 +136,11 @@ function Summary() {
                 <Trans>Реклама за сутки</Trans>
               </span>
               <b>{stats.data.spam_pings.count_24h}</b>
-              <small>
-                <Trans>{stats.data.spam_pings.unreviewed} всего не разобрано</Trans>
-              </small>
+              {signals.data ? (
+                <small>
+                  <Trans>{signals.data.queues.ads_unreviewed} всего не разобрано</Trans>
+                </small>
+              ) : null}
             </div>
           ) : null}
           {catalog.data ? (
@@ -192,7 +197,7 @@ function Summary() {
             <Rows>
               {waiting}
               {items.map((queue) => (
-                <QueueRow key={queue.key} queue={queue} onOpen={open} />
+                <QueueRow key={queue.key} queue={queue} now={now} onOpen={open} />
               ))}
             </Rows>
           ) : !webapiError && !catalog.error ? (

@@ -453,8 +453,6 @@ class SpamPingsSummary(BaseModel):
 
     count_24h: int
     count_7d: int
-    # Hits nobody answered yet, of any age: the console's ads queue.
-    unreviewed: int = 0
     recent: list[SpamPingRead] = []
 
 

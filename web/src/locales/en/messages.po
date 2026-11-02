@@ -439,10 +439,6 @@ msgstr "What the bot does in the chat"
 msgid "Kč"
 msgstr "Kč"
 
-#: src/console/QueueRow.tsx
-msgid "дольше всех ждёт меньше часа"
-msgstr "oldest waiting under an hour"
-
 #: src/console/pages/Signals.tsx
 #~ msgid "В чёрный список"
 #~ msgstr "Blacklist"
@@ -623,6 +619,10 @@ msgstr "These aren't our services. We take a commission from the partner, nothin
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Shown to whoever needs it right now, not to everyone."
 
+#: src/console/QueueRow.tsx
+msgid "ждёт меньше часа"
+msgstr "waiting under an hour"
+
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
 msgstr "{name} will see your response on their request and can message you on Telegram."
@@ -727,11 +727,6 @@ msgstr "The bot is in the chat but not an admin · since {0}"
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
 msgstr "The link must lead to a Telegram chat: https://t.me/…"
-
-#. placeholder {0}: wait.count
-#: src/console/QueueRow.tsx
-msgid "дольше всех ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
-msgstr "oldest waiting {0, plural, one {# day} other {# days}}"
 
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
@@ -1331,6 +1326,11 @@ msgstr "Cancel"
 #: src/components/OwnerStatusCard.tsx
 msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
 msgstr "Only you can see it for now. «In the catalog» is already chosen below: tap «Save» and your profile will show up in search."
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
+msgstr "waiting up to {0, plural, one {# hour} other {# hours}}"
 
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
@@ -2719,6 +2719,10 @@ msgstr "let it write and did not block it; {opted} more unsubscribed from news"
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Tick everything you can do. Prices come on the next screen."
 
+#: src/console/QueueRow.tsx
+msgid "ждут меньше часа"
+msgstr "waiting under an hour"
+
 #: src/console/pages/Chats.tsx
 #: src/console/TopSearch.tsx
 msgid "наблюдает"
@@ -3296,6 +3300,11 @@ msgstr "This person has no @username — there is no way to write to them"
 msgid "Бот для действий из консоли"
 msgstr "The bot for console actions"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+msgstr "waiting {0, plural, one {# hour} other {# hours}}"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не запускали"
 msgstr "never started"
@@ -3847,6 +3856,11 @@ msgstr "App language"
 #~ msgid "Новые по неделям"
 #~ msgstr "New by week"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+msgstr "waiting {0, plural, one {# day} other {# days}}"
+
 #: src/console/BanSheet.tsx
 msgid "Подтверждение"
 msgstr "Confirmation"
@@ -3992,6 +4006,11 @@ msgstr "same as the parent"
 #: src/console/pages/Chat.tsx
 msgid "Не указан"
 msgstr "Not set"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# дня} few {# дней} many {# дней} other {# дня}}"
+msgstr "waiting up to {0, plural, one {# day} other {# days}}"
 
 #: src/console/pages/Summary.tsx
 msgid "Аудитория подробно"
@@ -4163,7 +4182,7 @@ msgstr "Message to the author"
 msgid "Где её видно"
 msgstr "Where it appears"
 
-#. placeholder {0}: stats.data.spam_pings.unreviewed
+#. placeholder {0}: signals.data.queues.ads_unreviewed
 #: src/console/pages/Summary.tsx
 msgid "{0} всего не разобрано"
 msgstr "{0} to review in all"
@@ -4263,11 +4282,6 @@ msgstr "Couldn't load the chats"
 #: src/pages/Landing.tsx
 #~ msgid "Репетиторы"
 #~ msgstr "Tutors"
-
-#. placeholder {0}: wait.count
-#: src/console/QueueRow.tsx
-msgid "дольше всех ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
-msgstr "oldest waiting {0, plural, one {# hour} other {# hours}}"
 
 #: src/console/pages/Chat.tsx
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."

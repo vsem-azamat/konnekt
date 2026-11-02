@@ -1,6 +1,6 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PeopleIcon } from '@/components/icons';
 import {
@@ -33,6 +33,7 @@ import {
   type Signals,
   type WaveSignal,
 } from '@/console/signals';
+import { useNow } from '@/console/useNow';
 
 /**
  * What waits for an admin's decision: the waves the bot asks about in the
@@ -339,14 +340,4 @@ function forget(
   queryClient.setQueryData<Signals>(consoleSignalsQuery.queryKey, (old) =>
     old ? { ...old, waves: old.waves.filter((wave) => wave.id !== decided.wave) } : old,
   );
-}
-
-/** The time now, read again every `ms` while the screen is open. */
-function useNow(ms: number): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), ms);
-    return () => clearInterval(timer);
-  }, [ms]);
-  return now;
 }
