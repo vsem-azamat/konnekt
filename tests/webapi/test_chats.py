@@ -86,6 +86,12 @@ async def test_the_list_tells_the_bot_gone_by_the_rule_the_chat_page_uses(client
     assert body == {"Kicked": True, "Back": False, "Refused": True, "Here": False}
     assert detail["bot_gone"] is True
 
+    async with client_factory() as client:
+        saved = (await client.patch("/api/chats/-1001", json={"title": "Kicked"})).json()
+
+    # A save answers with the list view, which the chat page takes as it is.
+    assert saved["bot_gone"] is True
+
 
 async def test_list_chats_returns_all(client_factory, db_session_maker) -> None:
     async with db_session_maker() as session:

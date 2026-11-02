@@ -502,7 +502,7 @@ msgstr "Předmět"
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
 msgid "бота нет в чате"
-msgstr "bot v chatu není"
+msgstr "bot není v chatu"
 
 #: src/pages/Helper.tsx
 msgid "Как проходит"

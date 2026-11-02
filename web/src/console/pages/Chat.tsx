@@ -135,6 +135,8 @@ function ChatScreen({ chatId }: { chatId: number }) {
       chatDetailQuery(chatId).queryKey,
       (old) => (old ? { ...old, ...changed } : old),
     );
+    // The answer's bot_gone is newer than the bot section's rights: ask for those too.
+    void queryClient.invalidateQueries({ queryKey: chatDetailQuery(chatId).queryKey });
     void queryClient.invalidateQueries({ queryKey: consoleChatsQuery.queryKey });
     void queryClient.invalidateQueries({ queryKey: consoleSignalsQuery.queryKey });
   };
@@ -216,7 +218,6 @@ function ChatScreen({ chatId }: { chatId: number }) {
     update.mutate(change, { onSuccess: after });
   };
   const approved = chat.resource_status === 'approved';
-  // The same rule the bot section below uses, so the header never says otherwise.
   // A decision was made about it, so the public tab may list it.
   const decided =
     chat.resource_status !== 'discovered' && chat.resource_status !== 'disabled';
