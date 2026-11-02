@@ -163,7 +163,7 @@ head, 135 institutions and 98 subjects.
 ## Checking on it
 
 ```sh
-curl https://konnekt.azamat.io/healthz                 # API and database
+curl https://konnekt.cz/healthz                         # API and database
 docker ps --filter name=supervisor-telegram-catalog
 docker logs -f supervisor-telegram-catalog-api
 ```
