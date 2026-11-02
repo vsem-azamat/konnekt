@@ -65,6 +65,8 @@ webapp/
 node_modules/
 web/node_modules/
 web/dist/
+web/site/dist/
+web/site/.astro/
 web/.vite/
 web/.env
 web/.env.*

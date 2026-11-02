@@ -147,6 +147,22 @@
 		redir * /console permanent
 	}
 
+	# The public site (web/site/): the landing page in each language, the
+	# guides, and what search engines read. Plain HTML built ahead of time; a
+	# page it does not have is a 404, never the app. A language prefix is a
+	# whole path segment, so /ukraine is still the app's.
+	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml
+	handle @site {
+		root * /srv/site
+		# Hashed assets for good; a page, which names them, never.
+		@hashed path /_astro/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@page not path /_astro/*
+		header @page Cache-Control "no-cache"
+		try_files {path} {path}/index.html =404
+		file_server
+	}
+
 	# The Mini App owns every other path, its client-side routes included.
 	# Hashed assets never change contents, so they are cached for good, but only
 	# when they exist: a missing one is a 404, never the page and never cached.
@@ -158,10 +174,12 @@
 	}
 
 	# index.html is the one file that names the current hashes, so a cached
-	# copy points at bundles the next deploy deleted.
+	# copy points at bundles the next deploy deleted. The app's screens are a
+	# person's own, or empty without Telegram: nothing for a search engine.
 	handle {
 		root * /srv/app
 		header Cache-Control "no-cache"
+		header X-Robots-Tag "noindex"
 		try_files {path} /index.html
 		file_server
 	}
@@ -180,9 +198,11 @@ http://{$ADMIN_HOST:admin.invalid} {
 	import access_log
 	encode zstd gzip
 
-	# Never framed: the console is not opened inside Telegram from here.
+	# Never framed: the console is not opened inside Telegram from here, and
+	# never indexed.
 	header {
 		Content-Security-Policy "frame-ancestors 'none'"
+		X-Robots-Tag "noindex"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Strict-Transport-Security "max-age=31536000"
