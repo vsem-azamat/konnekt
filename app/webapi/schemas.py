@@ -140,6 +140,8 @@ class ChatRead(BaseModel):
     member_count: int | None = None  # last recorded snapshot; None when never measured
     has_photo: bool = False
     last_synced_at: datetime.datetime | None = None
+    # With the captcha: the applicant is let in muted and asked from a card in the chat.
+    captcha_in_chat: bool = False
     # Since when Telegram says the bot is not in the chat; None while it is.
     bot_absent_at: datetime.datetime | None = None
     created_at: datetime.datetime
@@ -161,6 +163,7 @@ class ChatUpdate(BaseModel):
     # one. Ignored when join_mode is sent too.
     is_captcha_enabled: bool | None = None
     is_service_cleanup_enabled: bool | None = None
+    captcha_in_chat: bool | None = None
     time_delete: int | None = None
     parent_chat_id: int | None = None
     relation_notes: str | None = None
@@ -265,6 +268,41 @@ class ChatSender(BaseModel):
     blocked: bool
 
 
+class ChatPerson(BaseModel):
+    """Somebody the chat's records name, as the bot last saw them."""
+
+    user_id: int
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+
+
+class ChatBot(BaseModel):
+    """The bot in the chat as Telegram last said, with every right it named."""
+
+    status: str
+    rights: dict[str, bool]
+    changed_at: datetime.datetime
+    # When Telegram last confirmed it, by an update or the daily check.
+    known_at: datetime.datetime
+
+
+class BotChange(BaseModel):
+    """One change of the bot's status or rights; ``changed_by`` is None when the daily check found it."""
+
+    status: str
+    rights: dict[str, bool]
+    changed_at: datetime.datetime
+    changed_by: ChatPerson | None
+
+
+class ChatAdmin(ChatPerson):
+    """An owner or administrator of the chat."""
+
+    status: Literal["creator", "administrator"]
+    known_at: datetime.datetime
+
+
 class ChatDetail(ChatRead):
     """Full chat payload — adds heatmap grid + member-snapshot series + relationships."""
 
@@ -276,6 +314,10 @@ class ChatDetail(ChatRead):
     children: list[ChatNode] = []
     spam_pings: list[SpamPingRead] = []
     recent_senders: list[ChatSender] = []
+    # None until Telegram has been asked about the bot there.
+    bot: ChatBot | None = None
+    bot_history: list[BotChange] = []
+    admins: list[ChatAdmin] = []
 
 
 class UserBlockRequest(BaseModel):
