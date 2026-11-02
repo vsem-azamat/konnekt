@@ -29,6 +29,8 @@ function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): Conso
     join_by_request: null,
     is_welcome_enabled: false,
     is_service_cleanup_enabled: false,
+    captcha_in_chat: false,
+    kind: 'group',
     bot_absent_at: null,
     ...over,
   };

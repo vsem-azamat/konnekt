@@ -62,7 +62,7 @@ from app.webapi.schemas import (
     JoinMode,
     MemberSnapshotPoint,
 )
-from app.webapi.services import member_counts, public_answers
+from app.webapi.services import chat_state, member_counts, public_answers
 from app.webapi.services.spam_pings import read_pings
 
 logger = get_logger("webapi.routes.chats")
@@ -141,6 +141,7 @@ async def list_chats(
             member_count=counts.get(chat.id),
             has_photo=chat.photo_file_id is not None,
             last_synced_at=chat.last_synced_at,
+            captcha_in_chat=chat.captcha_in_chat,
             bot_absent_at=chat.bot_absent_at,
             created_at=chat.created_at,
         )
@@ -254,6 +255,7 @@ async def get_chat(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
         welcome_message=chat.welcome_message,
@@ -266,6 +268,9 @@ async def get_chat(
         children=children_nodes,
         spam_pings=spam_pings,
         recent_senders=recent_senders,
+        bot=await chat_state.bot(session, chat_id),
+        bot_history=await chat_state.history(session, chat_id),
+        admins=await chat_state.admins(session, chat_id),
     )
 
 
@@ -363,6 +368,7 @@ async def update_chat(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )
@@ -455,6 +461,7 @@ async def refresh_chat_from_telegram(
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )
@@ -583,6 +590,7 @@ def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
         member_count=member_count,
         has_photo=chat.photo_file_id is not None,
         last_synced_at=chat.last_synced_at,
+        captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
         created_at=chat.created_at,
     )

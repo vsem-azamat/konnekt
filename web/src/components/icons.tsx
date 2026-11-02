@@ -207,6 +207,13 @@ export const CheckIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const WarningIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10.3 4.2 2.9 17.4A2 2 0 0 0 4.6 20.4h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9.5v4.2M12 16.9h.01" />
+  </Svg>
+);
+
 export const LockIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect x="5" y="11" width="14" height="9" rx="2" />

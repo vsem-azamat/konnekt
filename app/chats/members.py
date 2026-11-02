@@ -31,11 +31,12 @@ from app.chats.metadata import ask
 from app.core.logging import get_logger
 from app.core.time import as_naive_utc
 from app.db.models import ChatMember
+from app.db.repositories.user import get_user_repository
 from app.db.upsert import insert_for
 
 if TYPE_CHECKING:
     from aiogram import Bot
-    from aiogram.types import ChatMemberUnion
+    from aiogram.types import ChatMemberUnion, User
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = get_logger("chats.members")
@@ -132,6 +133,7 @@ async def check_administrators(
     admins = await ask(lambda: bot.get_chat_administrators(chat_id))
     async with session_maker() as session:
         for admin in admins:
+            await _remember(session, admin.user)
             await record(session, chat_id, admin, at=at)
         listed = {admin.user.id for admin in admins} | {bot.id}
         stale = (
@@ -162,4 +164,19 @@ async def check_administrators(
             )
             continue
         async with session_maker() as session:
+            await _remember(session, member.user)
             await record(session, chat_id, member, at=at)
+
+
+async def _remember(db: AsyncSession, user: User) -> None:
+    """Keep the name of somebody the check found, who may never have written while the bot watched.
+
+    Telegram leaves out the language here, and Premium when it is not: what was known of them stays.
+    """
+    await get_user_repository(db).upsert_profile(
+        user.id,
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_premium=user.is_premium,
+    )

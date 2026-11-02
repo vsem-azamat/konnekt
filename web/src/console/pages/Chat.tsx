@@ -21,7 +21,9 @@ import {
 } from '@/components/Ui';
 import { parentChoices } from '@/console/activity';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
+import { AdminRows, BotHistorySheet, BotRows } from '@/console/BotInChat';
 import { type BanOutcome, banOutcome } from '@/console/ban';
+import { botStanding, isGone } from '@/console/botState';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
@@ -102,6 +104,7 @@ type Sheets =
   | { kind: 'institution' }
   | { kind: 'city' }
   | { kind: 'topic' }
+  | { kind: 'botHistory' }
   | null;
 
 function ChatScreen({ chatId }: { chatId: number }) {
@@ -214,6 +217,8 @@ function ChatScreen({ chatId }: { chatId: number }) {
     update.mutate(change, { onSuccess: after });
   };
   const approved = chat.resource_status === 'approved';
+  // The same rule the bot section below uses, so the header never says otherwise.
+  const botGone = isGone(botStanding(chat.bot, chat.bot_absent_at));
   // A decision was made about it, so the public tab may list it.
   const decided =
     chat.resource_status !== 'discovered' && chat.resource_status !== 'disabled';
@@ -278,7 +283,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
           ) : (
             <Trans>отключён</Trans>
           )}
-          {chat.bot_absent_at && chat.resource_status !== 'external' ? (
+          {botGone && chat.resource_status !== 'external' ? (
             <>
               {' · '}
               <Trans>бот вышел</Trans>
@@ -343,7 +348,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
   // The bot is no longer in a chat nobody decided on: there is nothing to
   // list, protect or watch, only switching it off. The rest would be settings
   // that change nothing and a promise of approval that cannot come.
-  if (chat.resource_status === 'discovered' && chat.bot_absent_at) {
+  if (chat.resource_status === 'discovered' && botGone) {
     return (
       <>
         {head}
@@ -445,6 +450,21 @@ function ChatScreen({ chatId }: { chatId: number }) {
         </>
       )}
 
+      {chat.resource_status !== 'external' && chat.kind === 'group' ? (
+        // Somebody else's chat has no bot of ours to report on, and the bot is
+        // asked about groups only: a channel answers no one about its members.
+        <>
+          <Label>
+            <Trans>Бот в чате</Trans>
+          </Label>
+          <BotRows chat={chat} onHistory={() => open({ kind: 'botHistory' })} />
+          <Label>
+            <Trans>Админы чата</Trans>
+          </Label>
+          <AdminRows admins={chat.admins} />
+        </>
+      ) : null}
+
       <Label>
         <Trans>В каталоге</Trans>
       </Label>
@@ -509,6 +529,33 @@ function ChatScreen({ chatId }: { chatId: number }) {
           busy={busy}
           onChange={(mode) => save({ join_mode: mode })}
         />
+        {chat.join_mode === 'captcha' ? (
+          <Row
+            wrap
+            title={<Trans>Капча в чате</Trans>}
+            hint={
+              chat.captcha_in_chat ? (
+                <Trans>
+                  Новичок входит без права писать и получает вопрос по кнопке в карточке.
+                  Не ответил — бот удалит его вместе с сообщениями.
+                </Trans>
+              ) : (
+                <Trans>
+                  Вопрос приходит только в личку. Многие его не замечают: Telegram пишет
+                  им «админ одобрит», и бота они не открывают.
+                </Trans>
+              )
+            }
+            trailing={
+              <Switch
+                checked={chat.captcha_in_chat}
+                busy={busy}
+                label={t`Капча в чате`}
+                onChange={(on) => save({ captcha_in_chat: on })}
+              />
+            }
+          />
+        ) : null}
         <Row
           title={<Trans>Приветствие</Trans>}
           trailing={
@@ -990,6 +1037,9 @@ function ChatScreen({ chatId }: { chatId: number }) {
           onPick={(city) => (city === chat.city ? close() : saveListing({ city }))}
           onClose={close}
         />
+      ) : null}
+      {sheet?.kind === 'botHistory' ? (
+        <BotHistorySheet history={chat.bot_history} onClose={close} />
       ) : null}
       {sheet?.kind === 'topic' ? (
         <ChoiceSheet

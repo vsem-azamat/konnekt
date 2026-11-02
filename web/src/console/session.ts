@@ -9,6 +9,7 @@
  */
 
 import type { Topic } from '../lib/chats.ts';
+import type { BotRights } from './botState.ts';
 
 /**
  * Why a console request failed, which decides what the screen says:
@@ -154,6 +155,10 @@ export interface ConsoleChat {
   join_by_request: boolean | null;
   is_welcome_enabled: boolean;
   is_service_cleanup_enabled: boolean;
+  /** With the captcha: the applicant is let in muted and asked from a card in the chat. */
+  captcha_in_chat: boolean;
+  /** A channel is somebody else's, listed only; the bot is asked about groups. */
+  kind: 'group' | 'channel';
   /** Since when Telegram says the bot is not in the chat; null while it is. */
   bot_absent_at: string | null;
 }
@@ -229,8 +234,40 @@ export interface SpamPing {
 /** «ad» is written by a ban, the other two in the console. */
 export type SpamVerdict = 'done' | 'not_ad' | 'ad';
 
+/** The bot in the chat as Telegram last said; `known_at` is when it was last confirmed. */
+export interface ChatBot extends BotRights {
+  changed_at: string;
+  known_at: string;
+}
+
+/** Somebody named in the chat's records, as the bot last saw them. */
+export interface ChatPerson {
+  user_id: number;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+/** One change of the bot's status or rights, newest first; `changed_by` is null for the daily check. */
+export interface BotChange extends BotRights {
+  /** Two changes can share a second: added and promoted at once. */
+  id: number;
+  changed_at: string;
+  changed_by: ChatPerson | null;
+}
+
+/** An owner or administrator of the chat; another bot among them shows here too. */
+export interface ChatAdmin extends ChatPerson {
+  status: 'creator' | 'administrator';
+  known_at: string;
+}
+
 export interface ConsoleChatDetail extends ConsoleChat {
   welcome_message: string | null;
+  /** Null until Telegram has been asked about the bot there. */
+  bot: ChatBot | null;
+  bot_history: BotChange[];
+  admins: ChatAdmin[];
   recent_senders: ChatSender[];
   heatmap: HeatmapCell[];
   member_snapshots: MemberSnapshot[];
@@ -246,6 +283,7 @@ export type ChatUpdate = Partial<
     | 'join_mode'
     | 'is_welcome_enabled'
     | 'is_service_cleanup_enabled'
+    | 'captcha_in_chat'
     | 'welcome_message'
     | 'parent_chat_id'
     | 'institution_code'
