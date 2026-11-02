@@ -465,7 +465,7 @@ async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) 
         "synced_at",
         "bot_status",
         "bot_missing_rights",
-        "bot_absent_since",
+        "member_count_at",
     }
     assert data["title"] == "Managed Chat"
     assert data["type"] == "supergroup"
@@ -478,22 +478,66 @@ async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) 
     assert data["bot_status"] == "administrator"
     assert data["bot_missing_rights"] == ["no_restrict", "no_invite"]
     assert data["preview_only"] is False
-    assert data["bot_absent_since"] is None
+    assert data["member_count_at"] is not None
 
 
-async def test_chat_info_says_when_the_bot_is_not_in_the_chat(mcp_session) -> None:
-    """A chat the bot was never added to after the move has a mark and no rights: its old count is history."""
+async def _chat_with(
+    session_maker, *, mark: datetime.datetime | None, status: str | None, known: datetime.datetime
+) -> None:
+    await _seed_chats(session_maker)
+    async with session_maker() as session:
+        (await session.get(Chat, MANAGED_CHAT_ID)).bot_absent_at = mark
+        if status is not None:
+            rights = {"can_delete_messages": True, "can_restrict_members": True, "can_invite_users": True}
+            session.add(
+                ChatBotRights(
+                    chat_id=MANAGED_CHAT_ID,
+                    status=status,
+                    rights=rights if status == "administrator" else {},
+                    changed_at=known,
+                    known_at=known,
+                )
+            )
+        await session.commit()
+
+
+MARK = datetime.datetime(2026, 11, 2, 7, 0)
+
+
+@pytest.mark.parametrize(
+    ("status", "known", "expected"),
+    [
+        # Never added after the bot moved: the hourly loop's mark, no rights.
+        (None, MARK, ("left", ["left"])),
+        # A kick whose update was lost: the mark is newer than the rights.
+        ("administrator", MARK - datetime.timedelta(hours=3), ("left", ["left"])),
+        # Removed, and the bot heard it.
+        ("kicked", MARK - datetime.timedelta(hours=3), ("kicked", ["left"])),
+        # Added back since the mark: its own update says so at once.
+        ("administrator", MARK + datetime.timedelta(hours=1), ("administrator", [])),
+    ],
+)
+async def test_chat_info_says_whether_the_bot_is_in_the_chat(mcp_session, status, known, expected) -> None:
+    """One answer, not a status and a verdict that disagree."""
+    await _chat_with(mcp_session, mark=MARK, status=status, known=known)
+
+    data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
+
+    assert (data["bot_status"], data["bot_missing_rights"]) == expected
+
+
+async def test_chat_info_says_how_old_the_count_is(mcp_session) -> None:
+    """A count of a chat the bot left long ago is history; the client is told when it was taken."""
     await _seed_chats(mcp_session)
-    absent = datetime.datetime(2026, 10, 20, 12, 0)
+    taken = datetime.datetime(2026, 9, 1, 12, 0)
     async with mcp_session() as session:
-        (await session.get(Chat, MANAGED_CHAT_ID)).bot_absent_at = absent
-        session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=900))
+        session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=900, captured_at=taken))
         await session.commit()
 
     data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
 
-    assert data["bot_absent_since"].startswith("2026-10-20T12:00")
-    assert data["bot_missing_rights"] == ["left"]
+    assert data["member_count"] == 900
+    assert data["member_count_at"].startswith("2026-09-01T12:00")
 
 
 async def test_chat_info_without_a_count_says_none_not_zero(mcp_session) -> None:
@@ -502,6 +546,7 @@ async def test_chat_info_without_a_count_says_none_not_zero(mcp_session) -> None
     data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
 
     assert data["member_count"] is None
+    assert data["member_count_at"] is None
     assert data["bot_status"] is None
 
 

@@ -193,7 +193,7 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
     @mcp.tool
     @_guarded
     async def get_chat_info(chat_id: int) -> dict[str, Any]:
-        """Get one chat's details as last recorded — title, type, member count, description, the bot's rights.
+        """Get one chat's details as last recorded — title, type, member count, description, the bot's standing.
 
         chat_id is the numeric Telegram ID from list_chats; chats absent from
         that list are refused. resource_status repeats the approval state, so
@@ -201,40 +201,56 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
 
         Nothing is asked of Telegram: the bot keeps all of this from its own
         updates and its hourly and daily checks. synced_at is when getChat last
-        answered; member_count is the newest hourly count, None when there is
-        none. bot_status is None for a chat the bot has not been asked about,
-        and bot_missing_rights names what keeps it from moderating there: "left"
-        when the bot is not in the chat, with bot_absent_since saying since when.
+        answered. member_count is the newest count and member_count_at when it
+        was taken; both None when there is none. bot_status is None for a chat
+        the bot has not been asked about, "left" or "kicked" when the bot is not
+        in the chat, and bot_missing_rights names what keeps it from moderating
+        there ("left" when it is not in the chat).
         """
-        from app.chats.bot_rights import is_absent, problems_of
-        from app.db.models import Chat, ChatBotRights
-        from app.webapi.services import member_counts
+        from sqlalchemy import select
+
+        from app.chats.bot_rights import GONE, is_absent, problems_of
+        from app.db.models import Chat, ChatBotRights, ChatMemberSnapshot
 
         async with session_maker()() as session:
             await managed_chat_id(session, chat_id)
             row = await session.get(Chat, chat_id)
             rights = await session.get(ChatBotRights, chat_id)
-            member_count = await member_counts.latest(session, chat_id)
+            newest = (
+                await session.execute(
+                    select(ChatMemberSnapshot.member_count, ChatMemberSnapshot.captured_at)
+                    .where(ChatMemberSnapshot.chat_id == chat_id)
+                    .order_by(ChatMemberSnapshot.captured_at.desc())
+                    .limit(1)
+                )
+            ).first()
         if row is None:
             raise ToolError("unknown_chat")
         absent = is_absent(row, rights)
+        # The verdict, not the last answer: a mark newer than the rights is a kick whose update was lost.
+        bot_status = (
+            (rights.status if rights and rights.status in GONE else "left")
+            if absent
+            else rights.status
+            if rights
+            else None
+        )
 
         return {
             "chat_id": row.id,
             "title": row.title or "",
             "type": row.chat_type or "",
             "username": row.username or "",
-            "member_count": member_count,
+            "member_count": newest.member_count if newest else None,
+            "member_count_at": newest.captured_at.isoformat() if newest else None,
             "description": row.description or "",
             "linked_chat_id": row.linked_chat_id,
             "resource_status": row.resource_status,
             # Not a Telegram id: the chat is known only by its invite link's page.
             "preview_only": row.is_preview_only,
             "synced_at": row.last_synced_at.isoformat() if row.last_synced_at else None,
-            "bot_status": rights.status if rights else None,
+            "bot_status": bot_status,
             "bot_missing_rights": ["left"] if absent else problems_of(rights.status, rights.rights) if rights else [],
-            # Since when the bot has not been in the chat; the count is from before.
-            "bot_absent_since": row.bot_absent_at.isoformat() if absent and row.bot_absent_at else None,
         }
 
     @mcp.tool
