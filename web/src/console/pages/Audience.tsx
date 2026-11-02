@@ -106,7 +106,7 @@ function useMetrics(): Record<Metric, { title: string; who: ReactNode }> {
         <Trans>
           Впервые дали основному боту писать им: нажали Start, написали ему или разрешили
           в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался
-          ботом раньше, засчитан в день первого визита после этой даты.
+          ботом раньше, засчитан в день, когда впервые дал писать после этой даты.
         </Trans>
       ),
     },
@@ -175,7 +175,8 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
 
   const delta = (metric: Metric) => {
     const total = data.totals[metric];
-    const from = day(comparableFrom(data.counted_since[metric], days));
+    // The answer's period: while the next one loads, `days` is already ahead of it.
+    const from = day(comparableFrom(data.counted_since[metric], data.days));
     return (
       <Delta
         now={total.now}
@@ -247,6 +248,8 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
         </div>
         <p className={css.who}>{metrics[picked].who}</p>
         <TrendBars
+          // A bar picked in one period may not exist in the next.
+          key={`${data.days}-${picked}`}
           now={barsOf(now, picked)}
           before={comparable(data, picked) ? barsOf(before, picked) : undefined}
           today={barsOf([data.today_point], picked)[0]}

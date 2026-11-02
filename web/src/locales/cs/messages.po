@@ -2888,6 +2888,10 @@ msgstr "Zablokovali bota"
 msgid "Удалять сообщения"
 msgstr "Mazat zprávy"
 
+#: src/console/pages/Audience.tsx
+msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день, когда впервые дал писать после этой даты."
+msgstr "Poprvé dovolili hlavnímu botovi psát jim: stiskli Start, napsali mu nebo to povolili v Mini App. Každý se počítá jednou. Zaznamenáváme od 20. 10.: kdo bota používal dřív, se počítá v den, kdy po tomto datu poprvé dovolil psát."
+
 #: src/console/Charts.tsx
 msgid "Вт"
 msgstr "Út"
@@ -3089,8 +3093,8 @@ msgid "Пара слов о себе — что берёшь и чего не б
 msgstr "Pár slov o tobě — co bereš a co ne"
 
 #: src/console/pages/Audience.tsx
-msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
-msgstr "Poprvé dovolili hlavnímu botovi psát jim: stiskli Start, napsali mu nebo to povolili v Mini App. Každý se počítá jednou. Zaznamenáváme od 20. 10.: kdo bota používal dřív, se počítá v den první návštěvy po tomto datu."
+#~ msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
+#~ msgstr "Poprvé dovolili hlavnímu botovi psát jim: stiskli Start, napsali mu nebo to povolili v Mini App. Každý se počítá jednou. Zaznamenáváme od 20. 10.: kdo bota používal dřív, se počítá v den první návštěvy po tomto datu."
 
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
