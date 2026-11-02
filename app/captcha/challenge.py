@@ -134,6 +134,9 @@ def passed_text(chat_title: str, link: str | None) -> str:
     return f"✅ Готово, ты в {where}!"
 
 
+# Where the button on «Готово» tells the app the visitor came from.
+APP_SOURCE = "captcha_passed"
+
 # Under the video after the captcha, with the button into the app.
 INTRO = "👋 Это Konnekt: чаты других факультетов и общежитий и люди, которые помогут с учёбой."
 

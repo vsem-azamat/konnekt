@@ -16,10 +16,12 @@ import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.methods import SendMessage
 from aiogram.types import Chat, ChatJoinRequest, User
+from app.audience import record
 from app.captcha import challenge as challenge_module
 from app.captcha import service
 from app.captcha.challenge import ATTEMPTS, EMOJI, OPTIONS
 from app.core.config import CaptchaSettings, settings
+from app.core.enums import Touchpoint
 from app.core.time import utc_now
 from app.db.models import Chat as DbChat
 from app.db.models import JoinCaptcha
@@ -38,6 +40,7 @@ WINDOW = datetime.timedelta(minutes=settings.captcha.answer_minutes)
 INSIDE_WINDOW = WINDOW - datetime.timedelta(minutes=1)
 PAST_WINDOW = WINDOW + datetime.timedelta(minutes=1)
 REMIND_AFTER = datetime.timedelta(minutes=settings.captcha.remind_after_minutes)
+BOT_USERNAME = "konnekt_test_bot"
 
 
 def _request(user_id: int = USER_ID) -> ChatJoinRequest:
@@ -74,6 +77,7 @@ def bot() -> MagicMock:
     tg_bot = MagicMock()
     sent = MagicMock()
     sent.message_id = 77
+    tg_bot.me = AsyncMock(return_value=User(id=1, is_bot=True, first_name="Konnekt", username=BOT_USERNAME))
     tg_bot.send_message = AsyncMock(return_value=sent)
     tg_bot.edit_message_text = AsyncMock()
     tg_bot.approve_chat_join_request = AsyncMock()
@@ -188,9 +192,17 @@ async def test_the_right_emoji_lets_the_applicant_in(session: AsyncSession, bot)
     assert edit["chat_id"] == USER_ID
     assert edit["message_id"] == 77
     assert edit["text"] == '✅ Готово, ты в <a href="https://t.me/cvut_fit">ČVUT FIT</a>!'
-    assert edit["reply_markup"] is None
     await session.refresh(challenge)
     assert challenge.status == JoinCaptcha.STATUS_PASSED
+
+
+async def test_the_note_that_they_are_in_carries_the_way_into_the_app(session: AsyncSession, bot) -> None:
+    """Telegram refuses the bot a message of its own here, but not an edit of the captcha."""
+    await _pass(session, bot)
+
+    [[button]] = bot.edit_message_text.await_args.kwargs["reply_markup"].inline_keyboard
+    assert button.text == "Открыть Konnekt 📱"
+    assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=captcha_passed"
 
 
 async def test_one_mistake_is_forgiven_and_the_message_stays_as_it_was(session: AsyncSession, bot) -> None:
@@ -442,7 +454,7 @@ async def test_a_wrong_tap_keeps_the_answer_the_message_names(session: AsyncSess
 
 @pytest.fixture
 def intro(bot, monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """What happened in order: the introduction, the approval, the edit."""
+    """What happened in order: the approval, the edit, the introduction."""
     steps: list[str] = []
     monkeypatch.setattr(settings.telegram, "intro_video", "video-file-id")
     monkeypatch.setattr(settings.webapi, "public_url", "https://konnekt.example")
@@ -466,11 +478,21 @@ async def _pass(session: AsyncSession, bot, *, after: datetime.timedelta = datet
     )
 
 
-async def test_passing_brings_the_konnekt_video_before_the_approval(session: AsyncSession, bot, intro) -> None:
-    """Telegram lets the bot write to an applicant only until the request is settled."""
+async def _started_the_bot(session: AsyncSession, *, then_blocked: bool = False) -> None:
+    at = utc_now() - datetime.timedelta(days=1)
+    await record.started(session, USER_ID, Touchpoint.MAIN_BOT, at=at)
+    if then_blocked:
+        await record.blocked(session, USER_ID, Touchpoint.MAIN_BOT, at=at + datetime.timedelta(hours=1))
+    await session.commit()
+
+
+async def test_someone_who_started_the_bot_gets_the_konnekt_video(session: AsyncSession, bot, intro) -> None:
+    await _started_the_bot(session)
+    sent_before = _events("intro_sent")
+
     await _pass(session, bot)
 
-    assert intro == ["video", "approve", "edit"]
+    assert intro == ["approve", "edit", "video"]
     sent = bot.send_video.await_args.kwargs
     assert sent["chat_id"] == USER_ID
     assert sent["video"] == "video-file-id"
@@ -478,10 +500,20 @@ async def test_passing_brings_the_konnekt_video_before_the_approval(session: Asy
     [[button]] = sent["reply_markup"].inline_keyboard
     assert button.text == "Открыть Konnekt 📱"
     assert button.web_app.url == "https://konnekt.example/chats"
+    assert _events("intro_sent") == sent_before + 1
+
+
+async def test_the_video_does_not_depend_on_how_long_the_answer_took(session: AsyncSession, bot, intro) -> None:
+    await _started_the_bot(session)
+
+    await _pass(session, bot, after=datetime.timedelta(minutes=6))
+
+    assert intro == ["approve", "edit", "video"]
 
 
 async def test_without_a_video_the_introduction_is_text(session: AsyncSession, bot, intro, monkeypatch) -> None:
     monkeypatch.setattr(settings.telegram, "intro_video", "")
+    await _started_the_bot(session)
 
     await _pass(session, bot)
 
@@ -490,20 +522,32 @@ async def test_without_a_video_the_introduction_is_text(session: AsyncSession, b
     assert texts[-1].startswith("👋 Это Konnekt")
 
 
-async def test_an_introduction_that_fails_does_not_hold_up_the_approval(session: AsyncSession, bot, intro) -> None:
+@pytest.mark.parametrize("then_blocked", [False, True], ids=["never-started", "blocked"])
+async def test_no_video_where_telegram_would_refuse_it(session: AsyncSession, bot, intro, then_blocked: bool) -> None:
+    """An open join request does not let the bot start a conversation: Telegram refused every such video."""
+    if then_blocked:
+        await _started_the_bot(session, then_blocked=True)
+    skipped_before = _events("intro_skipped")
+
+    await _pass(session, bot)
+
+    assert intro == ["approve", "edit"]
+    assert _events("intro_skipped") == skipped_before + 1
+
+
+async def test_an_introduction_that_fails_is_counted_and_lets_them_in_all_the_same(
+    session: AsyncSession, bot, intro
+) -> None:
+    await _started_the_bot(session)
     bot.send_video.side_effect = TelegramForbiddenError(method=MagicMock(), message="bot was blocked by the user")
+    refused_before = _events("intro_refused")
 
     await _pass(session, bot)
 
     bot.approve_chat_join_request.assert_awaited_once_with(chat_id=CHAT_ID, user_id=USER_ID)
     row = await _only_challenge(session)
     assert row.status == JoinCaptcha.STATUS_PASSED
-
-
-async def test_no_introduction_once_telegram_no_longer_lets_the_bot_write(session: AsyncSession, bot, intro) -> None:
-    await _pass(session, bot, after=datetime.timedelta(minutes=6))
-
-    assert intro == ["approve", "edit"]
+    assert _events("intro_refused") == refused_before + 1
 
 
 async def test_a_new_request_retires_the_old_captcha(session: AsyncSession, bot) -> None:

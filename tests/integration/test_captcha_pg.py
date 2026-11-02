@@ -46,6 +46,7 @@ def _slow(delay: float) -> AsyncMock:
 @pytest.fixture
 def bot() -> MagicMock:
     tg_bot = MagicMock()
+    tg_bot.me = AsyncMock(return_value=User(id=1, is_bot=True, first_name="Konnekt", username="konnekt_test_bot"))
     tg_bot.send_message = _slow(0.01)
     tg_bot.edit_message_text = _slow(0)
     tg_bot.approve_chat_join_request = _slow(0.2)

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aiogram.types import User
     from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["Person", "Touchpoint", "blocked", "opted_out", "seen", "started"]
+__all__ = ["Person", "Touchpoint", "blocked", "may_write", "opted_out", "seen", "started"]
 
 # A start or startapp payload that can be stored as where somebody came from:
 # what our own links carry. Anything else is somebody typing, and is not kept.
@@ -168,6 +168,12 @@ async def blocked(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: dateti
     """
     await _member(db, user_id, at)
     await _reach(db, user_id, bot, at=at, open_=False)
+
+
+async def may_write(db: AsyncSession, user_id: int, bot: Touchpoint) -> bool:
+    """Whether `bot` may start a conversation with `user_id`: they started it and have not blocked it since."""
+    reach = await db.get(AudienceReach, (user_id, bot))
+    return reach is not None and reach.started_at is not None and reach.blocked_at is None
 
 
 async def _member(db: AsyncSession, user_id: int, at: datetime.datetime) -> None:

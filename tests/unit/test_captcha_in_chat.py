@@ -358,7 +358,21 @@ async def test_a_pass_unmutes_deletes_the_card_and_greets(session: AsyncSession,
     assert (await session.scalars(select(WelcomeGreeting))).first() is not None
     [row] = await _rows(session)
     assert row.status == JoinCaptcha.STATUS_PASSED
-    assert "✅ Готово, теперь можно писать в" in bot.edit_message_text.await_args_list[0].kwargs["text"]
+    done = bot.edit_message_text.await_args_list[0].kwargs
+    assert "✅ Готово, теперь можно писать в" in done["text"]
+    [[button]] = done["reply_markup"].inline_keyboard
+    assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=captcha_passed"
+
+
+async def test_a_pass_brings_konnekt_to_the_private_chat_they_opened(session: AsyncSession, bot) -> None:
+    """They started the bot from the card, so the video may go even with nothing in the audience yet."""
+    await _seed(session)
+    row = await _let_in(session, bot)
+    await _ask(session, bot)
+
+    await service.answer(bot, session, challenge_id=row.id, user_id=4242, pick=_right(row))
+
+    assert _sent(bot, 4242)[-1]["text"].startswith("👋 Это Konnekt")
 
 
 async def test_a_pass_takes_one_name_off_a_shared_card(session: AsyncSession, bot) -> None:

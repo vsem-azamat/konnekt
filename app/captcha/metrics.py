@@ -5,7 +5,8 @@ from __future__ import annotations
 from prometheus_client import Counter
 
 # sent, reminded, held, undelivered, retry, muted and card (asked in the chat), and every status a captcha settles in
-# (passed, trusted, catalog, failed, expired, declined, gone). Never a chat or a person.
+# (passed, trusted, catalog, failed, expired, declined, gone). After a pass, Konnekt's video in the private chat:
+# intro_sent, intro_refused by Telegram, or intro_skipped where Telegram would refuse it. Never a chat or a person.
 CAPTCHA_EVENTS = Counter("captcha_events_total", "Join captcha outcomes", ["event"])
 
 # A series that first appears at 1 is invisible to `increase()`, so every one
@@ -25,5 +26,8 @@ for _event in (
     "expired",
     "declined",
     "gone",
+    "intro_sent",
+    "intro_refused",
+    "intro_skipped",
 ):
     CAPTCHA_EVENTS.labels(event=_event)

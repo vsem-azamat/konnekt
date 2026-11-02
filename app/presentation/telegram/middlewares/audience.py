@@ -89,6 +89,9 @@ class AudienceMiddleware(BaseMiddleware):
         if message and message.text and message.text.startswith("/start "):
             payload = message.text.removeprefix("/start ").strip()
             source = payload if SOURCE.fullmatch(payload) else None
+        # A press is a visit but not a start: the bot's message may be a join
+        # request's captcha, sent to someone who never opened the bot.
+        started = self.reach if message else None
         async with self.session_maker() as db:
-            await record.seen(db, Person.from_user(user), self.touchpoint, at=at, source=source, started=self.reach)
+            await record.seen(db, Person.from_user(user), self.touchpoint, at=at, source=source, started=started)
             await db.commit()
