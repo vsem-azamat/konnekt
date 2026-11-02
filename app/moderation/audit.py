@@ -3,7 +3,7 @@
 One function, called after an action succeeds. It exists as a separate module
 rather than a method on some service because the actions have no service in
 common: ``/ban`` calls the Bot API directly, the blacklist goes through its own
-module, and the control plane comes in from outside the bot entirely. What they
+module, and the console comes in through the web API. What they
 share is the sentence they produce — *who did what to whom, where, and how it
 was asked for* — so that is what is factored out.
 
@@ -38,8 +38,8 @@ async def record(
 ) -> None:
     """Write one line into the moderation record.
 
-    ``detail`` carries whatever the action itself cannot: a mute's duration, the
-    reason given for a proposal. It is free text and read by humans.
+    ``detail`` carries whatever the action itself cannot: a mute's duration, a
+    reason. It is free text and read by humans.
     """
     from app.db.models import ModerationEvent
 

@@ -172,7 +172,7 @@ async def test_the_blacklist_is_for_super_admins(db_session_maker) -> None:
 
 
 async def test_console_bans_and_unbans_are_on_the_record(client_factory, db_session_maker) -> None:
-    """Who did it and from where, like /banall and a confirmed proposal."""
+    """Who did it and from where, like /banall."""
     make, _bot = client_factory
     async with make() as client:
         assert (await client.post("/api/users/45/block", json={})).status_code == 200

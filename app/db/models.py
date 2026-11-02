@@ -18,7 +18,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
 from app.db.base import Base
 
@@ -469,65 +468,6 @@ class Message(Base):
         self.spam = spam
 
 
-class PendingAction(Base):
-    """A destructive action proposed from outside, awaiting an admin's press.
-
-    ``origin`` and ``initiator_id`` exist because a ban is an attributable act.
-    The MCP token identifies a runtime rather than a person, so the admin it
-    maps to is recorded here and carried into the decision log — otherwise the
-    audit trail says only that "the agent" banned someone.
-
-    ``params`` holds the arguments the action needs on execution (mute
-    duration, whether to revoke messages), which have nowhere to live between
-    proposal and confirmation otherwise.
-    """
-
-    __tablename__ = "pending_actions"
-    __table_args__ = (
-        Index("ix_pending_actions_status_expires_at", "status", "expires_at"),
-        # The columns are text, so the enums are re-stated here: this is where a
-        # value that skipped the type system would otherwise land.
-        sa.CheckConstraint("action IN ('ban', 'blacklist')", name="ck_pending_actions_action"),
-        sa.CheckConstraint("origin IN ('mcp')", name="ck_pending_actions_origin"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    origin: Mapped[str] = mapped_column(String(16))
-    initiator_id: Mapped[int] = mapped_column(BigInteger, index=True)
-    action: Mapped[str] = mapped_column(String(32))
-    chat_id: Mapped[int | None] = mapped_column(BigInteger, index=True, nullable=True)
-    target_user_id: Mapped[int] = mapped_column(BigInteger, index=True)
-    params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    reason: Mapped[str | None] = mapped_column(String, nullable=True)
-    admin_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    admin_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), default=PendingActionStatus.PENDING)
-    resolved_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
-    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now)
-
-    def __init__(
-        self,
-        origin: str,
-        initiator_id: int,
-        action: str,
-        target_user_id: int,
-        expires_at: datetime.datetime,
-        chat_id: int | None = None,
-        params: dict[str, Any] | None = None,
-        reason: str | None = None,
-    ) -> None:
-        self.origin = origin
-        self.initiator_id = initiator_id
-        self.action = action
-        self.target_user_id = target_user_id
-        self.expires_at = expires_at
-        self.chat_id = chat_id
-        self.params = params or {}
-        self.reason = reason
-
-
 class JoinCheck(Base):
     """A join request waiting for its applicant to pass the Mini App check.
 
@@ -967,7 +907,7 @@ class ModerationEvent(Base):
     __table_args__ = (
         Index("ix_moderation_events_target_user_id_created_at", "target_user_id", "created_at"),
         # Text columns, so the enums are restated where a value that skipped the
-        # type system would land — the same guard pending_actions carries.
+        # type system would land.
         sa.CheckConstraint(
             "action IN ('ban', 'unban', 'kick', 'mute', 'unmute', 'blacklist', 'unblacklist', "
             "'grant', 'revoke', 'delete', 'purge', 'pin', 'unpin')",

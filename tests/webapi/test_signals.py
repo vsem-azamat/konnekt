@@ -6,9 +6,8 @@ import datetime
 from typing import TYPE_CHECKING
 
 import pytest
-from app.core.enums import PendingActionStatus
 from app.core.time import utc_now
-from app.db.models import Chat, ChatMemberSnapshot, JoinCaptcha, JoinWave, PendingAction, SpamPing, User
+from app.db.models import Chat, ChatMemberSnapshot, JoinCaptcha, JoinWave, SpamPing
 from app.webapi.main import app
 from httpx import ASGITransport, AsyncClient
 
@@ -129,43 +128,6 @@ async def test_a_wave_quiet_for_longer_than_the_spell_is_no_longer_paused(client
     assert wave["member_count"] is None
 
 
-async def test_a_ban_proposed_through_mcp_waits_until_pressed_or_expired(client, db_session_maker) -> None:
-    now = utc_now()
-    async with db_session_maker() as session:
-        session.add(Chat(id=-100, title="Kolej"))
-        session.add(User(id=7000199, username="promo", first_name="Promo"))
-        open_ban = PendingAction(
-            origin="mcp",
-            initiator_id=1,
-            action="ban",
-            target_user_id=7000199,
-            chat_id=None,
-            reason="3 ads in an hour",
-            expires_at=now + datetime.timedelta(minutes=40),
-        )
-        expired = PendingAction(
-            origin="mcp", initiator_id=1, action="ban", target_user_id=2, expires_at=now - datetime.timedelta(minutes=1)
-        )
-        confirmed = PendingAction(
-            origin="mcp", initiator_id=1, action="blacklist", target_user_id=3, chat_id=-100, expires_at=now
-        )
-        confirmed.status = PendingActionStatus.CONFIRMED
-        session.add_all([open_ban, expired, confirmed])
-        await session.commit()
-        open_id = open_ban.id
-
-    body = await _signals(client)
-
-    assert [action["id"] for action in body["pending_actions"]] == [open_id]
-    action = body["pending_actions"][0]
-    assert action["action"] == "ban"
-    assert action["chat_id"] is None
-    assert action["target_user_id"] == 7000199
-    assert action["target_username"] == "promo"
-    assert action["target_name"] == "Promo"
-    assert action["reason"] == "3 ads in an hour"
-
-
 async def test_the_queues_count_unreviewed_ads_and_chats_under_review(client, db_session_maker) -> None:
     now = utc_now()
     async with db_session_maker() as session:
@@ -185,4 +147,4 @@ async def test_the_queues_count_unreviewed_ads_and_chats_under_review(client, db
 
     assert body["queues"] == {"ads_unreviewed": 1, "chats_in_review": 2}
     assert body["waves"] == []
-    assert body["pending_actions"] == []
+    assert "pending_actions" not in body

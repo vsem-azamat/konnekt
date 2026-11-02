@@ -244,8 +244,6 @@ async def test_every_retired_bot_leaves_the_signals_to_the_main_bot(monkeypatch)
     async def idle(*_args, **_kwargs):
         return None
 
-    monkeypatch.setattr("app.mcp.runner.run_mcp_server", idle)
-    monkeypatch.setattr("app.moderation.pending_actions.run_expiry_sweep", idle)
     monkeypatch.setattr("app.chats.snapshots.run_snapshot_loop", idle)
 
     await bot_module.main()

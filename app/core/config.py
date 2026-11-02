@@ -479,55 +479,6 @@ class ChatStateSettings(Settings):
     )
 
 
-class McpSettings(Settings):
-    """MCP server served by the bot process for external agent clients.
-
-    The MCP endpoint is a second admin control plane alongside the cookie-authed
-    web UI. The token is a shared secret presented as ``Authorization: Bearer``;
-    it is not a user session, and it is also the switch — no token, no endpoint.
-
-    It runs in the bot process rather than the web API because its moderation
-    tools need the bot whose dispatcher answers the confirmation buttons they
-    send — a proposal confirmed in a chat is answered by the identity that sent
-    it, and that identity lives here.
-    """
-
-    token: str = Field(default="", description="Bearer token required by MCP clients; unset disables the endpoint")
-    initiator_id: int = Field(
-        default=0,
-        description=(
-            "Telegram ID of the admin this token acts as. Defaults to the first super "
-            "admin, which is where confirmations go; set it only when the token should "
-            "answer to someone else on that list."
-        ),
-    )
-
-    # Not configurable. The compose port mapping hard-codes the container side,
-    # so a configurable port would bind the app to one number while the mapping
-    # forwarded another. The path is fixed for the same reason a URL is.
-    path: str = "/api/mcp"
-    host: str = "0.0.0.0"  # noqa: S104 — inside the container; the mapping is loopback-only
-    port: int = 8788
-
-    @property
-    def active(self) -> bool:
-        """True when there is a token to authenticate with.
-
-        Failing closed keeps a misconfigured deploy from exposing admin tooling
-        without authentication — and with no separate flag there is nothing that
-        can claim to be enabled while the door has no lock.
-        """
-        return bool(self.token)
-
-    model_config = SettingsConfigDict(
-        env_prefix="MCP_",
-        case_sensitive=False,
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-
 class ObservabilitySettings(Settings):
     """What Prometheus may read from this process.
 
@@ -537,7 +488,7 @@ class ObservabilitySettings(Settings):
 
     metrics_secret: SecretStr = Field(default=SecretStr(""), description="Bearer token for the metrics endpoints")
 
-    # Not configurable, like the MCP plane's: the compose port mapping hard-codes
+    # Not configurable: the compose port mapping hard-codes
     # the container side, and the bot is the one process with no web front.
     metrics_host: ClassVar[str] = "0.0.0.0"  # noqa: S104 — inside the container; the mapping is loopback-only
     metrics_port: ClassVar[int] = 8789
@@ -607,7 +558,6 @@ class AppSettings(Settings):
     captcha: CaptchaSettings = Field(default_factory=CaptchaSettings)
     webapi: WebApiSettings = Field(default_factory=WebApiSettings)
     chat_state: ChatStateSettings = Field(default_factory=ChatStateSettings)
-    mcp: McpSettings = Field(default_factory=McpSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     sentry: SentrySettings = Field(default_factory=SentrySettings)
 

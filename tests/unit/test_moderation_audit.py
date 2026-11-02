@@ -11,7 +11,6 @@ import pytest
 from app.core.enums import (
     ModerationEventAction,
     ModerationEventSource,
-    PendingActionOrigin,
 )
 from app.db.models import ModerationEvent
 from app.moderation import audit
@@ -82,14 +81,3 @@ async def test_a_failed_write_does_not_reach_the_caller() -> None:
     )
 
     assert broken.rolled_back is True
-
-
-def test_every_proposal_origin_can_be_recorded_as_a_source() -> None:
-    """Confirming a proposal records its origin verbatim, so the sets must line up."""
-    assert {origin.value for origin in PendingActionOrigin} <= {source.value for source in ModerationEventSource}
-
-
-def test_every_proposable_action_can_be_recorded() -> None:
-    from app.core.enums import ModerationAction
-
-    assert {action.value for action in ModerationAction} <= {event.value for event in ModerationEventAction}

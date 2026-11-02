@@ -10,28 +10,9 @@ So the flags are gone and activation is derived from what is configured.
 from __future__ import annotations
 
 import pytest
-from app.core.config import McpSettings, WebApiSettings
+from app.core.config import WebApiSettings
 
 pytestmark = pytest.mark.unit
-
-
-class TestMcp:
-    def test_a_token_switches_it_on(self) -> None:
-        assert McpSettings(token="t").active is True
-
-    def test_no_token_leaves_it_closed(self) -> None:
-        """Failing closed is the whole design; there is no second switch."""
-        assert McpSettings(token="").active is False
-
-    def test_the_path_and_port_are_not_configurable(self) -> None:
-        """The compose port mapping hard-codes the container side.
-
-        A configurable port bound the app to one number while the mapping
-        forwarded to another, which cannot work in any non-default combination.
-        """
-        settings = McpSettings(token="t")
-        assert settings.path == "/api/mcp"
-        assert settings.port == 8788
 
 
 class TestWebApi:

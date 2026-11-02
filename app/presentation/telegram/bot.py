@@ -1,8 +1,8 @@
 """Main entry point — the moderator bot and the services beside it.
 
 One Telegram identity, one dispatcher. Alongside its polling loop this process
-serves the MCP control plane, sweeps expired pending actions and records member
-counts — all of which need a long-lived bot, which is what this process is.
+sweeps unanswered captchas and records member counts — work that needs a
+long-lived bot, which is what this process is.
 """
 
 from __future__ import annotations
@@ -227,15 +227,6 @@ async def _serve() -> None:
             )
         )
 
-    # The MCP control plane runs here, not in the web API: its proposals send
-    # confirmation buttons, and Telegram answers a press to the identity that
-    # sent it, which is this process's bot. Returns at once when MCP is off.
-    from app.mcp.runner import run_mcp_server
-    from app.moderation.pending_actions import run_expiry_sweep
-
-    tasks.append(run_mcp_server())
-    tasks.append(run_expiry_sweep(session_maker))
-
     # Declines join captchas nobody answered, including those a restart left open.
     from app.captcha.service import run_sweep as run_captcha_sweep
 
@@ -334,7 +325,7 @@ async def _supervise(polling: Coroutine[Any, Any, None], services: list[Coroutin
     The poller ending, by SIGTERM or by failing, ends the process: waiting for
     every task kept it alive after a failed start, deaf and immune to SIGTERM,
     and made every deploy end in a kill. A service that returns is simply done
-    (the MCP plane returns at once when it is off); one that raises takes the
+    (metrics return at once when nobody scrapes); one that raises takes the
     process down with it, so a restart brings it back.
     """
     main = asyncio.ensure_future(polling)

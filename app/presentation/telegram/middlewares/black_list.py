@@ -32,9 +32,8 @@ async def _still_blocked(user_repo: "UserRepository", user_id: int) -> bool:
     """Confirm a cached id against its row before acting on it.
 
     The console unbans from the webapi process, whose reset of this cache cannot
-    reach the bot, and the MCP unblacklist tool does not reset it either. Without
-    the check a person let back in would be banned again on their first message
-    until the cache expired. Only ids already in the
+    reach the bot. Without the check a person let back in would be banned again
+    on their first message until the cache expired. Only ids already in the
     cache pay for the query, and those are few.
     """
     user = await user_repo.get_by_id(user_id)

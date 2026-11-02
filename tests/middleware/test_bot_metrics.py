@@ -80,7 +80,7 @@ async def test_the_pollers_pulse_is_its_age(tmp_path, monkeypatch: pytest.Monkey
 async def test_the_queues_are_counted_from_the_database(session) -> None:
     from app.core.time import utc_now
     from app.db.models import Chat as DbChat
-    from app.db.models import JoinCaptcha, PendingAction
+    from app.db.models import JoinCaptcha
 
     session.add(DbChat(id=-1001, title="t"))
     now = utc_now()
@@ -109,8 +109,6 @@ async def test_the_queues_are_counted_from_the_database(session) -> None:
 
     assert sample("bot_queue_depth", queue="captcha_pending") == 2
     assert sample("bot_queue_depth", queue="captcha_held") == 1
-    assert sample("bot_queue_depth", queue="pending_actions") == 0
-    assert PendingAction  # the third queue is read from the same place
 
 
 async def test_greetings_past_their_time_are_counted_once_each(session) -> None:
@@ -164,8 +162,8 @@ async def test_the_scrape_app_is_closed_by_the_token_and_serves_one_path(monkeyp
         ok = await client.get("/metrics", headers=auth)
         assert ok.status_code == 200
         assert "bot_updates_total" in ok.text
-        # Nothing else is served from here, the control plane's path included.
-        assert (await client.get("/api/mcp", headers=auth)).status_code == 404
+        # Nothing else is served from here.
+        assert (await client.get("/", headers=auth)).status_code == 404
         assert (await client.post("/metrics", headers=auth)).status_code == 405
 
 

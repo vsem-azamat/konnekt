@@ -1,7 +1,7 @@
 """The bot process lives exactly as long as its poller.
 
-Everything else in the process (the MCP plane, the expiry sweep, the snapshot
-loop) runs forever, so a process that waited for all of them outlived a poller
+Everything else in the process (the snapshot loop, the retention sweep, the
+invite link sync) runs forever, so a process that waited for all of them outlived a poller
 that had died at startup: alive, healthy-looking, deaf, and immune to SIGTERM.
 """
 
@@ -46,8 +46,6 @@ def services(monkeypatch) -> list[str]:
         return close
 
     monkeypatch.setattr(bot_module, "_start_alerts", no_alerts)
-    monkeypatch.setattr("app.mcp.runner.run_mcp_server", forever("mcp"))
-    monkeypatch.setattr("app.moderation.pending_actions.run_expiry_sweep", forever("sweep"))
     monkeypatch.setattr("app.chats.snapshots.run_snapshot_loop", forever("snapshots"))
     monkeypatch.setattr("app.chats.invite_links.run_sync_loop", forever("invite_links"))
     monkeypatch.setattr("app.moderation.history_service.run_history_retention", forever("retention"))
@@ -69,7 +67,7 @@ async def test_a_poller_that_dies_takes_the_process_down(monkeypatch, services) 
     with pytest.raises(ConnectionError):
         await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert sorted(services) == ["invite_links", "mcp", "retention", "snapshots", "sweep"]
+    assert sorted(services) == ["invite_links", "retention", "snapshots"]
 
 
 async def test_sigterm_ends_the_process_without_waiting_for_a_kill(monkeypatch, services) -> None:
@@ -82,11 +80,11 @@ async def test_sigterm_ends_the_process_without_waiting_for_a_kill(monkeypatch, 
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert sorted(services) == ["invite_links", "mcp", "retention", "snapshots", "sweep"]
+    assert sorted(services) == ["invite_links", "retention", "snapshots"]
 
 
 async def test_a_service_that_finishes_early_does_not_stop_the_bot(monkeypatch, services) -> None:
-    """run_mcp_server returns at once when the plane is off; that is not a shutdown."""
+    """The metrics server returns at once when nobody scrapes; that is not a shutdown."""
     polling_done = asyncio.Event()
 
     async def idle(*_args, **_kwargs):
@@ -96,7 +94,7 @@ async def test_a_service_that_finishes_early_does_not_stop_the_bot(monkeypatch, 
         await asyncio.sleep(0.05)
         polling_done.set()
 
-    monkeypatch.setattr("app.mcp.runner.run_mcp_server", idle)
+    monkeypatch.setattr("app.chats.snapshots.run_snapshot_loop", idle)
     monkeypatch.setattr(bot_module, "_run_polling", polling)
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
@@ -108,7 +106,7 @@ async def test_a_service_that_crashes_takes_the_process_down(monkeypatch, servic
     async def crashing(*_args, **_kwargs):
         raise RuntimeError("sweep broke")
 
-    monkeypatch.setattr("app.moderation.pending_actions.run_expiry_sweep", crashing)
+    monkeypatch.setattr("app.moderation.history_service.run_history_retention", crashing)
     monkeypatch.setattr(bot_module, "_run_polling", lambda *_a, **_k: asyncio.Event().wait())
 
     with pytest.raises(RuntimeError, match="sweep broke"):
@@ -126,7 +124,7 @@ async def test_shutdown_does_not_call_the_bot_api_close(monkeypatch) -> None:
 
 
 async def test_the_database_closes_after_everything_that_uses_it(monkeypatch, services) -> None:
-    """Closed in on_shutdown, it went before the sweep and the snapshot loop stopped."""
+    """Closed in on_shutdown, it went before the retention sweep and the snapshot loop stopped."""
     order: list[str] = []
 
     async def close_db() -> None:
@@ -140,7 +138,7 @@ async def test_the_database_closes_after_everything_that_uses_it(monkeypatch, se
 
     await asyncio.wait_for(bot_module.main(), timeout=5)
 
-    assert order == ["db after ['invite_links', 'mcp', 'retention', 'snapshots', 'sweep']"]
+    assert order == ["db after ['invite_links', 'retention', 'snapshots']"]
 
 
 async def test_a_retired_bot_failing_takes_down_neither_moderation_nor_the_others(monkeypatch, services) -> None:
