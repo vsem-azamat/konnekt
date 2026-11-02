@@ -61,7 +61,7 @@ export function Heatmap({ cells }: { cells: HeatmapCell[] }) {
 /** How the member count moved over the counts the bot took. */
 export function MemberTrend({ snapshots }: { snapshots: MemberSnapshot[] }) {
   const { i18n } = useLingui();
-  const trend = memberTrend(snapshots);
+  const trend = memberTrend(snapshots.map((snapshot) => snapshot.member_count));
   if (!trend) {
     return (
       <Hint>

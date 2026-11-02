@@ -14,14 +14,14 @@ from app.audience import trends, views
 from app.core.enums import Touchpoint
 from app.core.time import utc_now
 from app.webapi.deps import get_session
-from app.webapi.schemas import AudiencePage, AudiencePersonRead, AudienceStatus, AudienceSummary, AudienceTrends
+from app.webapi.schemas import AudienceOverview, AudiencePage, AudiencePersonRead, AudienceStatus, AudienceTrends
 
 router = APIRouter(prefix="/audience", tags=["audience"])
 
 
-@router.get("/summary", response_model=AudienceSummary)
-async def audience_summary(session: Annotated[AsyncSession, Depends(get_session)]) -> AudienceSummary:
-    return AudienceSummary.model_validate(await views.summary(session, now=utc_now()))
+@router.get("/overview", response_model=AudienceOverview)
+async def audience_overview(session: Annotated[AsyncSession, Depends(get_session)]) -> AudienceOverview:
+    return AudienceOverview.model_validate(await trends.overview(session, today=utc_now().date()))
 
 
 @router.get("/trends", response_model=AudienceTrends, response_model_by_alias=True)

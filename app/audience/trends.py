@@ -1,4 +1,4 @@
-"""The audience over time, for the console: four trends, the way from a chat to us, and where people came from.
+"""The audience over time, for the console: four trends, the way from a chat to us, where people came from, and the Overview's few numbers.
 
 Every number says who it counts (the console words it), and a day nothing was
 recorded for is None, never 0: "nobody came" and "we were not counting yet"
@@ -18,6 +18,7 @@ from app.audience.record import ESTIMATE
 from app.audience.views import _members
 from app.core.enums import Touchpoint
 from app.db.models import (
+    AdsTopic,
     AudienceDay,
     AudienceMember,
     AudienceReach,
@@ -49,6 +50,9 @@ STARTS_SINCE = datetime.date(2026, 10, 20)
 APP_SINCE = datetime.date(2026, 7, 26)
 # audience_days (alembic b8d4e1f6a2c7): blocks before it are known only while they stand.
 DAYS_SINCE = datetime.date(2026, 11, 2)
+
+# The Overview compares a week with the week before it.
+WEEK = 7
 
 # A request the bot let in: tapped the captcha, passed one elsewhere lately, or came from the catalog.
 _LET_IN = (JoinCaptcha.STATUS_PASSED, JoinCaptcha.STATUS_TRUSTED, JoinCaptcha.STATUS_CATALOG)
@@ -188,10 +192,12 @@ def _came() -> Any:
     a /start, any private message, or the Mini App's permission. Not only Start.
     """
     return union_all(
-        select(AudienceReach.user_id).where(
+        select(AudienceReach.user_id, AudienceReach.started_at.label("at")).where(
             AudienceReach.bot == Touchpoint.MAIN_BOT, AudienceReach.started_at.is_not(None)
         ),
-        select(AudienceTouch.user_id).where(AudienceTouch.touchpoint == Touchpoint.MINI_APP),
+        select(AudienceTouch.user_id, AudienceTouch.first_at.label("at")).where(
+            AudienceTouch.touchpoint == Touchpoint.MINI_APP
+        ),
     ).subquery()
 
 
@@ -301,4 +307,60 @@ async def _segments(db: AsyncSession) -> dict[str, list[dict[str, Any]]]:
         "chats": _fold([(str(chat_id), title or str(chat_id), people) for chat_id, title, people in chats]),
         "languages": _fold([(code, code, people) for code, people in languages]),
         "sources": _fold([(source, source, people) for source, people in sources]),
+    }
+
+
+async def overview(db: AsyncSession, *, today: datetime.date) -> dict[str, Any]:
+    """The console's Overview: who came to us, this week's newcomers against the week before, and each bot's reach.
+
+    "Came" is the Audience page's: gave the main bot leave to write or opened
+    the Mini App, so the backfill's guesses are out. Weeks are whole days to
+    yesterday, as the bars are; a week before the starts were recorded is not
+    compared, since everyone who used the bot earlier was dated to their first
+    start after it. A guess who writes to the bot later is in the total but in
+    no week: they were here before, whenever they come back.
+    """
+    came = _came()
+    first = select(came.c.user_id, func.min(came.c.at).label("at")).group_by(came.c.user_id).subquery()
+    # The source is never overwritten, so a guess stays one after they come.
+    guessed = select(AudienceMember.user_id).where(AudienceMember.source == ESTIMATE)
+
+    def midnight(day: datetime.date) -> datetime.datetime:
+        return datetime.datetime.combine(day, datetime.time())
+
+    async def came_between(start: datetime.date, end: datetime.date) -> int | None:
+        if start < STARTS_SINCE:
+            return None
+        new = (first.c.at >= midnight(start), first.c.at < midnight(end), first.c.user_id.not_in(guessed))
+        return await db.scalar(select(func.count()).where(*new)) or 0
+
+    week = datetime.timedelta(days=WEEK)
+    members = _members().subquery()
+    statuses: dict[str, int] = {}
+    for status, people in await db.execute(select(members.c.status, func.count()).group_by(members.c.status)):
+        statuses[status] = people
+
+    async def touched(touchpoint: Touchpoint) -> int:
+        return await db.scalar(select(func.count()).where(AudienceTouch.touchpoint == touchpoint)) or 0
+
+    return {
+        "came": {
+            "total": await db.scalar(select(func.count()).select_from(first)) or 0,
+            "now": await came_between(today - week, today),
+            "before": await came_between(today - 2 * week, today - week),
+            "compare_from": STARTS_SINCE + 2 * week,
+        },
+        "main_bot": {status: statuses.get(status, 0) for status in ("reachable", "blocked", "opted_out")},
+        "contact_bot": {
+            "wrote": await touched(Touchpoint.CONTACT_BOT),
+            "blocked": await db.scalar(
+                select(func.count()).where(
+                    AudienceReach.bot == Touchpoint.CONTACT_BOT, AudienceReach.blocked_at.is_not(None)
+                )
+            )
+            or 0,
+            # Each has a topic in the staff group, and one more if the desk moved groups.
+            "ads_conversations": await db.scalar(select(func.count(AdsTopic.user_id.distinct()))) or 0,
+        },
+        "moved_bot": await touched(Touchpoint.MOVED_BOT),
     }

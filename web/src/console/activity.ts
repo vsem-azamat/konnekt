@@ -1,6 +1,6 @@
 /** A chat's activity and its place in the list, apart from the screen. */
 
-import type { ConsoleChat, HeatmapCell, MemberDelta, MemberSnapshot } from './session.ts';
+import type { ConsoleChat, HeatmapCell, MemberDelta } from './session.ts';
 
 const WEEK_HOURS = 7 * 24;
 
@@ -78,10 +78,9 @@ export function signed(n: number, format: (n: number) => string): string {
  * far the count moved. Nothing to draw from fewer than two counts.
  */
 export function memberTrend(
-  snapshots: MemberSnapshot[],
+  counts: number[],
 ): { points: string; first: number; last: number; change: number } | null {
-  if (snapshots.length < 2) return null;
-  const counts = snapshots.map((snapshot) => snapshot.member_count);
+  if (counts.length < 2) return null;
   const low = Math.min(...counts);
   const high = Math.max(...counts);
   const step = 100 / (counts.length - 1);

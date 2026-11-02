@@ -100,6 +100,11 @@ export function barsOf(points: TrendPoint[], metric: Metric): Bar[] {
   return points.map((p) => ({ from: p.from, to: p.to, value: p[metric] }));
 }
 
+/** Whether at least half the bars were recorded: fewer make a sparkline a stray tick in a corner. */
+export function mostlyRecorded(bars: Bar[]): boolean {
+  return bars.filter((bar) => bar.value !== null).length * 2 >= bars.length;
+}
+
 /** Change against the period before, or null when either side was not counted. */
 export function change(
   now: number | null,

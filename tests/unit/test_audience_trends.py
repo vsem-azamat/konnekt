@@ -183,3 +183,53 @@ async def test_a_long_period_totals_every_recorded_day_though_its_first_week_is_
     first_bar = next(p for p in week["series"] if p["from"] <= trends.STARTS_SINCE <= p["to"])
     assert first_bar["starts"] is None
     assert week["totals"]["starts"]["now"] == month["totals"]["starts"]["now"] == 1
+
+
+async def test_the_overview_counts_who_came_by_the_week_without_the_guesses(session_maker, audience):
+    async with session_maker() as db:
+        await record.seen(db, Person(id=60, first_name="Today"), Touchpoint.MINI_APP, at=at(TODAY))
+        await record.seen(db, Person(id=61, first_name="Ads"), Touchpoint.CONTACT_BOT, at=at(ago(1)))
+        await record.seen(db, Person(id=62, first_name="Old"), Touchpoint.MOVED_BOT, at=at(ago(30)))
+        await db.commit()
+        answer = await trends.overview(db, today=TODAY)
+
+    # Jan started the bot three days ago; Anna nine days ago, in the week before.
+    # Today is apart, the contact bot and the old bots are not the main bot, and the guess never came.
+    assert answer["came"] == {
+        "total": 4,
+        "now": 1,
+        "before": 1,
+        "compare_from": trends.STARTS_SINCE + datetime.timedelta(days=14),
+    }
+    assert answer["main_bot"] == {"reachable": 1, "blocked": 1, "opted_out": 0}
+    assert answer["contact_bot"] == {"wrote": 1, "blocked": 0, "ads_conversations": 0}
+    assert answer["moved_bot"] == 1
+
+
+async def test_the_overview_compares_only_with_a_week_wholly_recorded(session_maker, audience):
+    async with session_maker() as db:
+        answer = await trends.overview(db, today=trends.STARTS_SINCE + datetime.timedelta(days=10))
+
+    assert answer["came"]["before"] is None
+
+
+async def test_a_guess_who_comes_back_is_in_the_total_but_new_in_no_week(session_maker, audience):
+    async with session_maker() as db:
+        await record.seen(db, GUESS, Touchpoint.MAIN_BOT, at=at(ago(2)), started=Touchpoint.MAIN_BOT)
+        await db.commit()
+        answer = await trends.overview(db, today=TODAY)
+
+    assert answer["came"]["total"] == 4
+    assert answer["came"]["now"] == 1, "Jan only: the guess was here before"
+
+
+async def test_the_week_before_is_compared_from_the_day_the_overview_says(session_maker):
+    since = trends.STARTS_SINCE
+    async with session_maker() as db:
+        early = await trends.overview(db, today=since + datetime.timedelta(days=13))
+        first = await trends.overview(db, today=since + datetime.timedelta(days=14))
+
+    assert early["came"]["before"] is None
+    assert first["came"]["before"] == 0
+    assert first["came"]["compare_from"] == since + datetime.timedelta(days=14)
+    assert first["main_bot"] == {"reachable": 0, "blocked": 0, "opted_out": 0}

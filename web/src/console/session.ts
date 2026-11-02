@@ -314,6 +314,8 @@ export interface MemberDelta {
 export interface HomeStats {
   chat_heatmap: BusyChat[];
   members_delta: MemberDelta[];
+  /** Members of the chats counted all week, a day apart from a week ago to now. */
+  members_week: number[];
   spam_pings: { count_24h: number; count_7d: number; unreviewed: number };
 }
 

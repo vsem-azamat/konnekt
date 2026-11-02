@@ -24,21 +24,18 @@ from app.webapi.services.spam_pings import count_unreviewed
 router = APIRouter(prefix="/stats", tags=["stats"])
 
 _DELTA_LOOKBACK_DAYS = 30
+_WEEK_DAYS = 7
 # The bot counts members hourly; a newest count older than this is not today's.
 _FRESH = datetime.timedelta(hours=2)
 _CHAT_HEATMAP_TOP_N = 8
 _SPAM_RECENT_LIMIT = 5
 
 
-async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) -> list[MembersDeltaEntry]:
-    """For every chat we run with a count: its newest count and how far it
-    moved over 24h and over 7 days.
+_Counts = dict[int, list[tuple[datetime.datetime, int, str | None]]]
 
-    Each window compares with the newest count taken at or before its start;
-    none taken that early leaves that window unknown. A chat whose newest
-    count is older than _FRESH stopped being counted, so neither window says
-    it moved. Counts older than _DELTA_LOOKBACK_DAYS are not read.
-    """
+
+async def _member_counts(session: AsyncSession, now: datetime.datetime) -> _Counts:
+    """Each chat we run with its counts of the last _DELTA_LOOKBACK_DAYS, oldest first."""
     lookback = now - datetime.timedelta(days=_DELTA_LOOKBACK_DAYS)
     rows = (
         await session.execute(
@@ -48,17 +45,32 @@ async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) 
             .order_by(ChatMemberSnapshot.captured_at.asc())
         )
     ).all()
-    by_chat: dict[int, list[tuple[datetime.datetime, int, str | None]]] = {}
+    by_chat: _Counts = {}
     for snap, title in rows:
         by_chat.setdefault(snap.chat_id, []).append((snap.captured_at, snap.member_count, title))
+    return by_chat
+
+
+def _baseline(points: list[tuple[datetime.datetime, int, str | None]], at: datetime.datetime) -> int | None:
+    """The newest count taken at or before `at`."""
+    return next((count for taken, count, _ in reversed(points) if taken <= at), None)
+
+
+def _members_delta(by_chat: _Counts, now: datetime.datetime) -> list[MembersDeltaEntry]:
+    """For every chat we run with a count: its newest count and how far it
+    moved over 24h and over 7 days.
+
+    Each window compares with the newest count taken at or before its start;
+    none taken that early leaves that window unknown. A chat whose newest
+    count is older than _FRESH stopped being counted, so neither window says
+    it moved. Counts older than _DELTA_LOOKBACK_DAYS are not read.
+    """
 
     def moved(points: list[tuple[datetime.datetime, int, str | None]], window: datetime.timedelta) -> int | None:
         newest_at, current, _ = points[-1]
         if newest_at < now - _FRESH:
             return None
-        start = now - window
-        # Newest first: the first count at or before the window's start.
-        baseline = next((count for at, count, _ in reversed(points[:-1]) if at <= start), None)
+        baseline = _baseline(points[:-1], now - window)
         return None if baseline is None else current - baseline
 
     return [
@@ -71,6 +83,28 @@ async def _compute_members_delta(session: AsyncSession, now: datetime.datetime) 
         )
         for chat_id, points in by_chat.items()
     ]
+
+
+def _members_week(by_chat: _Counts, now: datetime.datetime) -> list[int]:
+    """Members summed over the chats counted all week, a day at a time from
+    a week ago to now: the line under the week's change, and the same chats.
+
+    A chat counted for less than the week, or no longer counted, is left out
+    (and with none left there is no line); with it the line would jump where its counts begin or stop. A person in
+    two chats is in both sums, as in the change.
+    """
+    days = [now - datetime.timedelta(days=age) for age in reversed(range(_WEEK_DAYS + 1))]
+    week = [0] * len(days)
+    counted = False
+    for points in by_chat.values():
+        if points[-1][0] < now - _FRESH or _baseline(points[:-1], days[0]) is None:
+            continue
+        counted = True
+        for index, day in enumerate(days[:-1]):
+            week[index] += _baseline(points, day) or 0
+        week[-1] += points[-1][1]
+    # None counted is no line, not a flat one: flat reads as "no change".
+    return week if counted else []
 
 
 async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[ChatHeatmapSummary]:
@@ -120,8 +154,8 @@ async def home_stats(
     # --- The busiest chats of the last day, by hour ---
     chat_heatmap = await _busiest_chats(session, now)
 
-    # --- Members delta ---
-    members_delta = await _compute_members_delta(session, now)
+    # --- Members: the change and the week's line ---
+    counts = await _member_counts(session, now)
 
     # --- Spam pings: 24h / 7d counts + N most recent samples ---
     since_24h = now - datetime.timedelta(hours=24)
@@ -157,7 +191,8 @@ async def home_stats(
 
     return HomeStats(
         chat_heatmap=chat_heatmap,
-        members_delta=members_delta,
+        members_delta=_members_delta(counts, now),
+        members_week=_members_week(counts, now),
         spam_pings=SpamPingsSummary(
             count_24h=count_24h, count_7d=count_7d, unreviewed=await count_unreviewed(session), recent=recent
         ),

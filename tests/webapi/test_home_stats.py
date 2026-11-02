@@ -174,3 +174,23 @@ async def test_only_the_chats_we_run_are_counted(client_factory, db_session_make
     await _snapshots(db_session_maker, -1002, "discovered", [(2 * D, 100), (H, 900)])
 
     assert set(await _deltas(client_factory)) == {-1001}
+
+
+async def test_the_weeks_line_sums_the_chats_counted_all_week(client_factory, db_session_maker) -> None:
+    """A day at a time from a week ago, each the newest count by then. A chat
+    counted for less than a week is left out: it would rise from nothing."""
+    await _snapshots(db_session_maker, -1001, "approved", [(8 * D, 100), (3 * D + H, 130), (H, 150)])
+    await _snapshots(db_session_maker, -1002, "approved", [(10 * D, 50), (H, 60)])
+    await _snapshots(db_session_maker, -1003, "approved", [(2 * D, 900), (H, 950)])
+
+    async with client_factory() as client:
+        week = (await client.get("/api/stats/home")).json()["members_week"]
+
+    assert week == [150, 150, 150, 150, 180, 180, 180, 210]
+
+
+async def test_no_chat_counted_all_week_is_no_line_rather_than_a_flat_one(client_factory, db_session_maker) -> None:
+    await _snapshots(db_session_maker, -1001, "approved", [(2 * D, 100), (H, 110)])
+
+    async with client_factory() as client:
+        assert (await client.get("/api/stats/home")).json()["members_week"] == []

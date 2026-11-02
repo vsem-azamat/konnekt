@@ -25,19 +25,22 @@ export const PAGE_SIZE = 50;
 /** The source the backfill gives a private contact it could only estimate; see app/audience/backfill.py. */
 export const ESTIMATE_SOURCE = 'backfill:dm_estimate';
 
-export interface AudienceSummary {
-  total: number;
-  reach: Record<AudienceStatus, number>;
-  /** By the touchpoint each person used first. */
-  first_touch: Record<string, number>;
-  /** New people per seven days, oldest first, the last ending now. */
-  new_by_week: number[];
-  new_this_week: number;
-  languages: { code: string; count: number }[];
-  /** People who have written to the ads bot, which is also the contact bot. */
-  ads_conversations: number;
-  /** People who blocked the contact bot; the main bot's blocks are in reach. */
-  contact_bot_blocked: number;
+/** The audience on the Overview; see app/audience/trends.py's overview. */
+export interface AudienceOverview {
+  /** Gave the main bot leave to write or opened the Mini App: the Audience page's «пришли к нам». */
+  came: {
+    total: number;
+    /** The last seven whole days and the seven before; null where not wholly recorded. */
+    now: number | null;
+    before: number | null;
+    /** The first day a week can be compared with the one before, YYYY-MM-DD. */
+    compare_from: string;
+  };
+  main_bot: { reachable: number; blocked: number; opted_out: number };
+  /** Everyone who wrote to the contact bot, which is also the ads desk. */
+  contact_bot: { wrote: number; blocked: number; ads_conversations: number };
+  /** People who reached us through a retired bot. */
+  moved_bot: number;
 }
 
 export interface AudienceMember {
