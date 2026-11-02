@@ -1,6 +1,6 @@
 /**
- * The console's Audience screens, apart from the screens: webapi's shapes and
- * the arithmetic behind the summary's bars.
+ * The console's Audience screens, apart from the screens: webapi's shapes for
+ * the list and one person. The trends are in trends.ts.
  */
 
 export type AudienceStatus = 'reachable' | 'never_started' | 'blocked' | 'opted_out';
@@ -79,35 +79,6 @@ export interface AudienceFilters {
   q?: string;
   /** Only people first seen within this many days: the summary's window. */
   new_days?: number;
-}
-
-/** The statuses that have anyone in them, in the bar's order. */
-export function reachSegments(
-  reach: Record<AudienceStatus, number>,
-): { status: AudienceStatus; count: number }[] {
-  return STATUSES.map((status) => ({ status, count: reach[status] ?? 0 })).filter(
-    (segment) => segment.count > 0,
-  );
-}
-
-/** Rows for a bar list, largest first, each sized against the largest. */
-export function bars(
-  counts: Record<string, number>,
-): { key: string; count: number; share: number }[] {
-  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const largest = Math.max(1, ...rows.map(([, count]) => count));
-  return rows.map(([key, count]) => ({ key, count, share: count / largest }));
-}
-
-/** The first few languages, and how many people speak one of the rest. */
-export function topLanguages(
-  languages: { code: string; count: number }[],
-  shown: number,
-): { top: { code: string; count: number }[]; rest: number } {
-  return {
-    top: languages.slice(0, shown),
-    rest: languages.slice(shown).reduce((sum, language) => sum + language.count, 0),
-  };
 }
 
 export function audiencePath(filters: AudienceFilters, cursor: string | null): string {

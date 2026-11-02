@@ -185,3 +185,21 @@ async def test_a_cursor_that_names_nothing_is_refused(client, audience) -> None:
 )
 async def test_a_cursor_we_could_not_have_issued_is_refused(client, audience, cursor) -> None:
     assert (await client.get(f"/api/audience?cursor={cursor}")).status_code == 422
+
+
+async def test_the_trends_answer_in_bars_with_today_apart(client, audience) -> None:
+    response = await client.get("/api/audience/trends?days=7")
+    assert response.status_code == 200, response.text
+    answer = response.json()
+
+    assert answer["days"] == 7
+    assert len(answer["series"]) == 14
+    assert set(answer["series"][0]) == {"from", "to", "starts", "app_new", "joins", "blocks"}
+    assert answer["today_point"]["from"] == answer["today"]
+    assert answer["funnel"]["started_bot"] == 3
+    assert set(answer["totals"]) == {"starts", "app_new", "joins", "blocks"}
+
+
+@pytest.mark.parametrize("days", ["0", "14", "365", "week"])
+async def test_the_trends_take_only_the_periods_the_page_offers(client, days) -> None:
+    assert (await client.get(f"/api/audience/trends?days={days}")).status_code == 422

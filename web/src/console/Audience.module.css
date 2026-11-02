@@ -1,14 +1,8 @@
 /*
- * The audience in a browser (#288, layout A): the statuses in one line under
- * the total, where people came from beside the weeks. A window as narrow as
- * a phone stacks the two.
+ * The Audience page (9961, layout B): the period, four tiles that pick the
+ * big chart, then the funnel beside the segments. A window as narrow as a
+ * phone stacks them.
  */
-
-.page .legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 20px;
-}
 
 .grid {
   display: grid;
@@ -32,5 +26,431 @@
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* One hue for every bar, the period before as a tick on its bar; green only for growth that is good news. */
+
+.period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.period > [role='tablist'] {
+  flex: 0 0 auto;
+  min-width: 260px;
+}
+
+.period > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.chartTop {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chartTitle {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.big {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.who {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.delta {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.readout b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.readoutBefore {
+  margin-left: auto;
+}
+
+.bars {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 72px;
+  margin-top: 14px;
+  border-top: 1px dashed var(--hairline);
+}
+
+/* The scale: what the top of the chart stands for. */
+.max {
+  position: absolute;
+  right: 0;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars[data-tall] {
+  height: 160px;
+}
+
+.bar {
+  all: unset;
+  cursor: pointer;
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.bar > span {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--tone-3-fg);
+  opacity: 0.45;
+}
+
+.bar[data-picked] > span {
+  opacity: 1;
+}
+
+.bar[data-uncounted] > span {
+  opacity: 1;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--hairline) 0 3px,
+    transparent 3px 6px
+  );
+}
+
+/* Today, not over: an outline, apart from the whole days. */
+.bar[data-today] {
+  margin-left: 4px;
+}
+
+.bar[data-today] > span {
+  opacity: 1;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--tone-3-fg);
+  border-style: dashed;
+}
+
+/* The period before: a tick across its bar. */
+.bar > i {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ink-soft);
+  opacity: 0.55;
+}
+
+.bar:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.spark {
+  width: 100%;
+  height: 32px;
+  margin-top: 6px;
+}
+
+.spark polyline {
+  fill: none;
+  stroke: var(--tone-3-fg);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.tile {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px transparent;
+  min-width: 0;
+}
+
+.tile[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.tileHint {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tile > span:first-child {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.funnel {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stepHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stepTitle {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.stepCount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stepCount b {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepTrack {
+  height: 10px;
+  margin: 4px 0;
+  border-radius: 5px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.stepFill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--tone-3-fg);
+}
+
+.stepWho {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.overlap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.overlapBar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.overlapBar > [data-part='bot'] {
+  background: var(--tone-3-fg);
+  opacity: 0.4;
+}
+.overlapBar > [data-part='both'] {
+  background: var(--tone-3-fg);
+}
+.overlapBar > [data-part='app'] {
+  background: var(--tone-1-fg);
+}
+
+.overlapLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.overlapLegend > span::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: 1px;
+}
+.overlapLegend > [data-part='bot']::before {
+  background: var(--tone-3-fg);
+  opacity: 0.4;
+}
+.overlapLegend > [data-part='both']::before {
+  background: var(--tone-3-fg);
+}
+.overlapLegend > [data-part='app']::before {
+  background: var(--tone-1-fg);
+}
+
+.side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin-top: 4px;
+}
+
+.side > div {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.side b {
+  color: var(--ink);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.estimate {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--muted-soft);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.segments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(4rem, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  font-size: 14px;
+}
+
+.segment > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segment b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.segmentTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.segmentFill {
+  display: block;
+  height: 100%;
+  background: var(--tone-3-fg);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.note {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
