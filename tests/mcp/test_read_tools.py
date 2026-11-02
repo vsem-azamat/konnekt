@@ -531,7 +531,16 @@ async def test_chat_info_says_how_old_the_count_is(mcp_session) -> None:
     await _seed_chats(mcp_session)
     taken = datetime.datetime(2026, 9, 1, 12, 0)
     async with mcp_session() as session:
+        session.add(
+            ChatMemberSnapshot(
+                chat_id=MANAGED_CHAT_ID, member_count=870, captured_at=taken - datetime.timedelta(days=30)
+            )
+        )
         session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=900, captured_at=taken))
+        # Another chat's count, newer: not this chat's.
+        session.add(
+            ChatMemberSnapshot(chat_id=-100777, member_count=12, captured_at=taken + datetime.timedelta(days=1))
+        )
         await session.commit()
 
     data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})

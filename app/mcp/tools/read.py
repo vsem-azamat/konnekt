@@ -200,7 +200,7 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
         you can tell a moderated chat from a merely discovered one.
 
         Nothing is asked of Telegram: the bot keeps all of this from its own
-        updates and its hourly and daily checks. synced_at is when getChat last
+        updates and its hourly and daily checks. Times are UTC. synced_at is when getChat last
         answered. member_count is the newest count and member_count_at when it
         was taken; both None when there is none. bot_status is None for a chat
         the bot has not been asked about, "left" or "kicked" when the bot is not
