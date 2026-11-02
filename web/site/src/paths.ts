@@ -71,15 +71,18 @@ export function indexedLangs(
 }
 
 /**
- * Where the landing sends someone who opened it inside Telegram, or null.
+ * Where the site sends a Telegram launch that landed on it, or null.
  *
- * Telegram opens the Mini App at /chats and the like, never at the root, but a
- * button in an old message may still name the root. Telegram puts the launch
- * data in the fragment, and that is the one sign used: the app sends a
- * browser back here without it, so the two pages cannot bounce off each other.
+ * The app has its own host (`app`), but buttons already sent in Telegram name
+ * this one, and the catalog's notifications named its bare root. Telegram puts
+ * the launch data in the fragment, which the server never sees, so the page
+ * itself sends it on: to the app's first screen, fragment and all. A browser
+ * without it stays.
  */
-export function telegramHome(hash: string, search: string): string | null {
-  return hash.includes('tgWebAppData') ? `/home${search}${hash}` : null;
+export function telegramHome(hash: string, search: string, app: string): string | null {
+  return hash.includes('tgWebAppData')
+    ? `${app.replace(/\/+$/, '')}/home${search}${hash}`
+    : null;
 }
 
 export interface GuideEntry {

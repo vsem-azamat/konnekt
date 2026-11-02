@@ -7,10 +7,11 @@ import type { Lang } from '../paths.ts';
 import { COPY, ICON, PHONE, STATS, type Stat, VARIANT } from './data.ts';
 
 /**
- * Where «Открыть Konnekt» leads. The catalog redirects to the bot from the
- * token it runs with, so the bot's handle is not written into the site too.
+ * Where «Открыть Konnekt» leads: into the Mini App. The catalog redirects to
+ * the bot from the token it runs with (`?app` adds startapp), so the bot's
+ * handle is not written into the site too.
  */
-export const OPEN = '/api/v1/open';
+export const OPEN = '/api/v1/open?app=1';
 
 /** A number in the language's own grouping, with no line break inside it. */
 export function num(lang: Lang, n: number): string {

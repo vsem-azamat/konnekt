@@ -70,10 +70,11 @@ async function bootstrap(): Promise<void> {
     // landing page everywhere else; which host is which is the server's business.
     if (isBrowserConsolePath(window.location.pathname)) {
       await renderBrowserConsole();
-    } else if (window.location.pathname !== '/') {
-      // The site (site/, served by docker/Caddyfile) answers the root. Only the
-      // dev server, which does not serve it, gets here at the root, and stays.
-      window.location.replace('/');
+    } else {
+      // The public site (web/site/), on its own host. A build that names none,
+      // the dev server's, leaves the browser where it is.
+      const site = import.meta.env.VITE_SITE_URL;
+      if (site) window.location.replace(site);
     }
     return;
   }

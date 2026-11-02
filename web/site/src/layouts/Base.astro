@@ -44,8 +44,11 @@ const indexed = indexedLangs(path, langs, hidden);
 
 // The tested function itself, not a copy of its logic: it has to run before the
 // first paint, so inline, and it refers to nothing outside its arguments.
+// Where the app lives (the deploy's WEBAPI_PUBLIC_URL); the image build
+// refuses to run without it. The dev server falls back to the app's dev server.
+const app = process.env.APP_URL || 'https://localhost:5173';
 const handOff = `(() => {
-  const to = (${telegramHome})(location.hash, location.search);
+  const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)});
   if (to) location.replace(to);
 })();`;
 ---

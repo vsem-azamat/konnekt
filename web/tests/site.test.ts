@@ -38,15 +38,16 @@ test('a page with no Russian version has no default to point at', () => {
   ]);
 });
 
-test('the landing hands Telegram back to the app, launch data and all', () => {
+test('the site hands a Telegram launch on to the app, launch data and all', () => {
   const data = '#tgWebAppData=user%3D1&tgWebAppVersion=8.0';
-  assert.equal(telegramHome(data, ''), `/home${data}`);
-  assert.equal(telegramHome(data, '?x=1'), `/home?x=1${data}`);
+  const app = 'https://app.konnekt.cz';
+  assert.equal(telegramHome(data, '', app), `${app}/home${data}`);
+  assert.equal(telegramHome(data, '?x=1', `${app}/`), `${app}/home?x=1${data}`);
 });
 
-test('a browser stays on the landing', () => {
-  assert.equal(telegramHome('', ''), null);
-  assert.equal(telegramHome('#guides', '?q=1'), null);
+test('a browser stays on the site', () => {
+  assert.equal(telegramHome('', '', 'https://app.konnekt.cz'), null);
+  assert.equal(telegramHome('#guides', '?q=1', 'https://app.konnekt.cz'), null);
 });
 
 test('draft guides and an index with no published guide are kept out of search', () => {
