@@ -43,6 +43,7 @@ async def history(session: AsyncSession, chat_id: int) -> list[BotChange]:
     ).all()
     return [
         BotChange(
+            id=change.id,
             status=change.status,
             rights=change.rights,
             changed_at=change.changed_at,
@@ -53,7 +54,7 @@ async def history(session: AsyncSession, chat_id: int) -> list[BotChange]:
 
 
 async def admins(session: AsyncSession, chat_id: int) -> list[ChatAdmin]:
-    """The chat's owner and administrators, the owner first. Telegram lists no bots among them."""
+    """The chat's owner and administrators, the owner first, then by name, the nameless last."""
     rows = (
         await session.execute(
             select(ChatMember, User)
@@ -61,7 +62,7 @@ async def admins(session: AsyncSession, chat_id: int) -> list[ChatAdmin]:
             .where(ChatMember.chat_id == chat_id, ChatMember.status.in_(ADMINISTRATORS))
             .order_by(
                 case((ChatMember.status == "creator", 0), else_=1),
-                User.first_name,
+                User.first_name.asc().nulls_last(),
                 ChatMember.user_id,
             )
         )

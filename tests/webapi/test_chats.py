@@ -194,11 +194,13 @@ async def test_chat_detail_says_what_the_bot_is_in_the_chat_and_who_runs_it(clie
     lacking = {**full, "can_restrict_members": False}
     async with db_session_maker() as session:
         session.add(Chat(id=chat_id, title="D", captcha_in_chat=True))
+        session.add(Chat(id=-1099, title="Other"))
         session.add_all(
             [
                 User(id=7001, first_name="Tereza", last_name="Malá", username="tereza_mala"),
                 User(id=7004, first_name="Аня"),
                 User(id=7009, first_name="Somebody"),
+                User(id=7021, first_name="Bára"),
             ]
         )
         await session.flush()
@@ -221,6 +223,8 @@ async def test_chat_detail_says_what_the_bot_is_in_the_chat_and_who_runs_it(clie
                     changed_by=None,
                     changed_at=added - datetime.timedelta(minutes=2),
                 ),
+                # Another chat's history: not this chat's.
+                ChatBotRightsChange(chat_id=-1099, status="kicked", rights={}, changed_by=None, changed_at=cut),
             ]
         )
         session.add_all(
@@ -228,6 +232,17 @@ async def test_chat_detail_says_what_the_bot_is_in_the_chat_and_who_runs_it(clie
                 ChatMember(chat_id=chat_id, user_id=7001, status="creator", rights={}, changed_at=added, known_at=cut),
                 ChatMember(
                     chat_id=chat_id, user_id=7004, status="administrator", rights=full, changed_at=added, known_at=cut
+                ),
+                # Known to nobody by name yet: listed all the same.
+                ChatMember(
+                    chat_id=chat_id, user_id=7020, status="administrator", rights=full, changed_at=added, known_at=cut
+                ),
+                ChatMember(
+                    chat_id=chat_id, user_id=7021, status="administrator", rights=full, changed_at=added, known_at=cut
+                ),
+                # Another chat's admin: not this chat's.
+                ChatMember(
+                    chat_id=-1099, user_id=7009, status="administrator", rights=full, changed_at=added, known_at=cut
                 ),
                 # Not an admin, or no longer one: not listed.
                 ChatMember(chat_id=chat_id, user_id=7009, status="member", rights={}, changed_at=added, known_at=cut),
@@ -255,10 +270,13 @@ async def test_chat_detail_says_what_the_bot_is_in_the_chat_and_who_runs_it(clie
         "last_name": None,
     }
     assert body["bot_history"][2]["changed_by"] is None
-    # The owner first, then by name.
+    assert len({c["id"] for c in body["bot_history"]}) == 3
+    # The owner first, then by name, the nameless last.
     assert [(a["user_id"], a["status"], a["first_name"]) for a in body["admins"]] == [
         (7001, "creator", "Tereza"),
+        (7021, "administrator", "Bára"),
         (7004, "administrator", "Аня"),
+        (7020, "administrator", None),
     ]
 
 
@@ -283,5 +301,10 @@ async def test_the_captcha_in_the_chat_is_switched_from_the_console(client_facto
         off = (await client.patch("/api/chats/-1032", json={"captcha_in_chat": False})).json()
 
     assert (on["captcha_in_chat"], off["captcha_in_chat"]) == (True, False)
+    async with client_factory() as client:
+        await client.patch("/api/chats/-1032", json={"captcha_in_chat": True})
+        listed = {c["id"]: c for c in (await client.get("/api/chats")).json()}
+    # The list carries it too: the page merges list answers into what it shows.
+    assert listed[-1032]["captcha_in_chat"] is True
     async with db_session_maker() as session:
-        assert (await session.get(Chat, -1032)).captcha_in_chat is False
+        assert (await session.get(Chat, -1032)).captcha_in_chat is True

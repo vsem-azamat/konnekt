@@ -141,7 +141,7 @@ class ChatRead(BaseModel):
     has_photo: bool = False
     last_synced_at: datetime.datetime | None = None
     # With the captcha: the applicant is let in muted and asked from a card in the chat.
-    captcha_in_chat: bool = False
+    captcha_in_chat: bool
     # Since when Telegram says the bot is not in the chat; None while it is.
     bot_absent_at: datetime.datetime | None = None
     created_at: datetime.datetime
@@ -290,6 +290,8 @@ class ChatBot(BaseModel):
 class BotChange(BaseModel):
     """One change of the bot's status or rights; ``changed_by`` is None when the daily check found it."""
 
+    # Two changes can share a second: added and promoted at once.
+    id: int
     status: str
     rights: dict[str, bool]
     changed_at: datetime.datetime
@@ -297,7 +299,7 @@ class BotChange(BaseModel):
 
 
 class ChatAdmin(ChatPerson):
-    """An owner or administrator of the chat."""
+    """An owner or administrator of the chat; another bot among them shows here too."""
 
     status: Literal["creator", "administrator"]
     known_at: datetime.datetime
