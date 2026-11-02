@@ -27,7 +27,7 @@ import functools
 from typing import TYPE_CHECKING, Any
 
 from app.core.logging import get_logger
-from app.mcp.deps import ToolError, clamp, managed_chat_id, moderator_bot, session_maker
+from app.mcp.deps import ToolError, clamp, managed_chat_id, session_maker
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -193,41 +193,45 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
     @mcp.tool
     @_guarded
     async def get_chat_info(chat_id: int) -> dict[str, Any]:
-        """Get one chat's live details — title, type, member count, description.
+        """Get one chat's details as last recorded — title, type, member count, description, the bot's rights.
 
         chat_id is the numeric Telegram ID from list_chats; chats absent from
         that list are refused. resource_status repeats the approval state, so
         you can tell a moderated chat from a merely discovered one.
+
+        Nothing is asked of Telegram: the bot keeps all of this from its own
+        updates and its hourly and daily checks. synced_at is when getChat last
+        answered; member_count is the newest hourly count, None when there is
+        none. bot_status is None for a chat the bot has not been asked about,
+        and bot_missing_rights names what keeps it from moderating there.
         """
-        from app.db.models import Chat
+        from app.chats.bot_rights import problems_of
+        from app.db.models import Chat, ChatBotRights
+        from app.webapi.services.member_counts import latest_for
 
         async with session_maker()() as session:
             await managed_chat_id(session, chat_id)
             row = await session.get(Chat, chat_id)
-        if row is not None and row.is_preview_only:
-            # Not a Telegram id: the chat is known only by its invite link's page.
-            raise ToolError(
-                "preview_only", "Telegram does not answer about this chat; it is listed from its invite link."
-            )
+            rights = await session.get(ChatBotRights, chat_id)
+            member_count = (await latest_for(session, [chat_id])).get(chat_id)
+        if row is None:
+            raise ToolError("unknown_chat")
 
-        bot = moderator_bot()
-        chat = await bot.get_chat(chat_id=chat_id)
-        member_count = await bot.get_chat_member_count(chat_id=chat_id)
-
-        info: dict[str, Any] = {
-            "chat_id": chat.id,
-            "title": chat.title or "",
-            "type": chat.type,
-            "username": chat.username or "",
+        return {
+            "chat_id": row.id,
+            "title": row.title or "",
+            "type": row.chat_type or "",
+            "username": row.username or "",
             "member_count": member_count,
-            "description": chat.description or "",
-            # Both of these used to be fetched a second time through a user
-            # session. `getChat` had been carrying them all along.
-            "linked_chat_id": chat.linked_chat_id,
-            "resource_status": row.resource_status if row else "",
+            "description": row.description or "",
+            "linked_chat_id": row.linked_chat_id,
+            "resource_status": row.resource_status,
+            # Not a Telegram id: the chat is known only by its invite link's page.
+            "preview_only": row.is_preview_only,
+            "synced_at": row.last_synced_at.isoformat() if row.last_synced_at else None,
+            "bot_status": rights.status if rights else None,
+            "bot_missing_rights": problems_of(rights.status, rights.rights) if rights else [],
         }
-
-        return info
 
     @mcp.tool
     @_guarded
