@@ -1967,7 +1967,10 @@ export type UniversitiesApiV1UniversitiesGetData = {
     body?: never;
     path?: never;
     query?: {
-        lang?: UiLang;
+        /**
+         * Lang
+         */
+        lang?: UiLang | null;
     };
     url: '/api/v1/universities';
 };
