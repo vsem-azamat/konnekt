@@ -30,7 +30,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chats import previews, profile
+from app.chats import bot_rights, previews, profile
 from app.chats.invite_links import is_invite_link
 from app.chats.metadata import (
     BotNotInChatError,
@@ -42,7 +42,7 @@ from app.chats.metadata import (
 from app.chats.migration import follow_upgrade
 from app.core.logging import get_logger
 from app.core.time import utc_now
-from app.db.models import Chat, ChatAvatar, ChatMemberSnapshot, Message, User
+from app.db.models import Chat, ChatAvatar, ChatBotRights, ChatMemberSnapshot, Message, User
 from app.webapi.deps import (
     get_publish_bot,
     get_session,
@@ -120,33 +120,8 @@ async def list_chats(
 ) -> list[ChatRead]:
     chats = (await session.execute(select(Chat).order_by(Chat.title))).scalars().all()
     counts = await member_counts.latest_for(session, [chat.id for chat in chats])
-    return [
-        ChatRead(
-            id=chat.id,
-            title=chat.title,
-            resource_status=_resource_status(chat.resource_status),
-            is_forum=chat.is_forum,
-            kind=_kind(chat.kind),
-            is_welcome_enabled=chat.is_welcome_enabled,
-            is_captcha_enabled=chat.is_captcha_enabled,
-            join_mode=_join_mode(chat.join_mode),
-            join_by_request=chat.join_by_request,
-            is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
-            parent_chat_id=chat.parent_chat_id,
-            relation_notes=chat.relation_notes,
-            public_link=chat.public_link,
-            institution_code=chat.institution_code,
-            city=chat.city,
-            topic=_topic(chat.topic),
-            member_count=counts.get(chat.id),
-            has_photo=chat.photo_file_id is not None,
-            last_synced_at=chat.last_synced_at,
-            captcha_in_chat=chat.captcha_in_chat,
-            bot_absent_at=chat.bot_absent_at,
-            created_at=chat.created_at,
-        )
-        for chat in chats
-    ]
+    rights = {row.chat_id: row for row in (await session.execute(select(ChatBotRights))).scalars()}
+    return [_as_read(chat, member_count=counts.get(chat.id), rights=rights.get(chat.id)) for chat in chats]
 
 
 @router.get("/{chat_id}", response_model=ChatDetail)
@@ -235,6 +210,7 @@ async def get_chat(
         for r in senders_rows
     ]
 
+    rights = await session.get(ChatBotRights, chat_id)
     return ChatDetail(
         id=chat.id,
         title=chat.title,
@@ -257,6 +233,7 @@ async def get_chat(
         last_synced_at=chat.last_synced_at,
         captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
+        bot_gone=bot_rights.is_absent(chat, rights),
         created_at=chat.created_at,
         welcome_message=chat.welcome_message,
         time_delete=chat.time_delete,
@@ -348,30 +325,7 @@ async def update_chat(
     await session.refresh(chat)
 
     member_count = await member_counts.latest(session, chat.id)
-    return ChatRead(
-        id=chat.id,
-        title=chat.title,
-        resource_status=_resource_status(chat.resource_status),
-        is_forum=chat.is_forum,
-        kind=_kind(chat.kind),
-        is_welcome_enabled=chat.is_welcome_enabled,
-        is_captcha_enabled=chat.is_captcha_enabled,
-        join_mode=_join_mode(chat.join_mode),
-        join_by_request=chat.join_by_request,
-        is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
-        parent_chat_id=chat.parent_chat_id,
-        relation_notes=chat.relation_notes,
-        public_link=chat.public_link,
-        institution_code=chat.institution_code,
-        city=chat.city,
-        topic=_topic(chat.topic),
-        member_count=member_count,
-        has_photo=chat.photo_file_id is not None,
-        last_synced_at=chat.last_synced_at,
-        captcha_in_chat=chat.captcha_in_chat,
-        bot_absent_at=chat.bot_absent_at,
-        created_at=chat.created_at,
-    )
+    return _as_read(chat, member_count=member_count, rights=await session.get(ChatBotRights, chat.id))
 
 
 @router.post("/{chat_id}/refresh", response_model=ChatRead)
@@ -405,7 +359,7 @@ async def refresh_chat_from_telegram(
         member_count = preview.member_count if preview is not None else None
         if member_count is None:
             member_count = await member_counts.latest(session, chat.id)
-        return _as_read(chat, member_count=member_count)
+        return _as_read(chat, member_count=member_count, rights=await session.get(ChatBotRights, chat.id))
 
     metadata = await fetch_metadata(
         bot=bot, chat_id=chat_id, username=username_of(chat.public_link) if chat.public_link else None
@@ -441,30 +395,7 @@ async def refresh_chat_from_telegram(
 
     if member_count is None:
         member_count = await member_counts.latest(session, chat.id)
-    return ChatRead(
-        id=chat.id,
-        title=chat.title,
-        resource_status=_resource_status(chat.resource_status),
-        is_forum=chat.is_forum,
-        kind=_kind(chat.kind),
-        is_welcome_enabled=chat.is_welcome_enabled,
-        is_captcha_enabled=chat.is_captcha_enabled,
-        join_mode=_join_mode(chat.join_mode),
-        join_by_request=chat.join_by_request,
-        is_service_cleanup_enabled=chat.is_service_cleanup_enabled,
-        parent_chat_id=chat.parent_chat_id,
-        relation_notes=chat.relation_notes,
-        public_link=chat.public_link,
-        institution_code=chat.institution_code,
-        city=chat.city,
-        topic=_topic(chat.topic),
-        member_count=member_count,
-        has_photo=chat.photo_file_id is not None,
-        last_synced_at=chat.last_synced_at,
-        captcha_in_chat=chat.captcha_in_chat,
-        bot_absent_at=chat.bot_absent_at,
-        created_at=chat.created_at,
-    )
+    return _as_read(chat, member_count=member_count, rights=await session.get(ChatBotRights, chat.id))
 
 
 @router.post("/external", response_model=ChatRead, status_code=201)
@@ -523,7 +454,7 @@ async def add_external_chat(
         raise HTTPException(status_code=409, detail="already_known") from err
     public_answers.forget()
     await session.refresh(chat)
-    return _as_read(chat, member_count=None)
+    return _as_read(chat, member_count=None, rights=None)
 
 
 async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
@@ -566,10 +497,10 @@ async def _add_by_invite(session: AsyncSession, invite: str) -> ChatRead:
         await session.commit()
     public_answers.forget()
     await session.refresh(chat)
-    return _as_read(chat, member_count=preview.member_count)
+    return _as_read(chat, member_count=preview.member_count, rights=None)
 
 
-def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
+def _as_read(chat: Chat, *, member_count: int | None, rights: ChatBotRights | None) -> ChatRead:
     return ChatRead(
         id=chat.id,
         title=chat.title,
@@ -592,6 +523,7 @@ def _as_read(chat: Chat, *, member_count: int | None) -> ChatRead:
         last_synced_at=chat.last_synced_at,
         captcha_in_chat=chat.captcha_in_chat,
         bot_absent_at=chat.bot_absent_at,
+        bot_gone=bot_rights.is_absent(chat, rights),
         created_at=chat.created_at,
     )
 

@@ -291,8 +291,8 @@ function useChatWords() {
       disabled: t`отключён`,
     }[chat.resource_status];
     // A chat without the bot has nothing to moderate or watch any more.
-    return chat.bot_absent_at && chat.resource_status !== 'external'
-      ? `${word} · ${t`бот вышел`}`
+    return chat.bot_gone && chat.resource_status !== 'external'
+      ? `${word} · ${t`бота нет в чате`}`
       : word;
   };
   const place = (chat: ConsoleChat): string => {

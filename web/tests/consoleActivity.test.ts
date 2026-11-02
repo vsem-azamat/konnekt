@@ -80,6 +80,7 @@ function chat(id: number, title: string, parent: number | null = null): ConsoleC
     captcha_in_chat: false,
     kind: 'group',
     bot_absent_at: null,
+    bot_gone: false,
   };
 }
 

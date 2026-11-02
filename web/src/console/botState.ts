@@ -60,11 +60,6 @@ export function botStanding(
   return missingRights(bot).length ? 'lacking' : 'ok';
 }
 
-/** Whether the standing says the bot is not in the chat at all. */
-export function isGone(standing: Standing): boolean {
-  return standing === 'removed' || standing === 'left' || standing === 'absent';
-}
-
 /** The rights the bot uses that one change in the history gave and took. */
 export function rightsChange(
   before: BotRights | null,

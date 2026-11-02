@@ -499,6 +499,11 @@ msgstr "Nothing found. Try the abbreviation — ČVUT, VŠE, MUNI."
 msgid "Предмет"
 msgstr "Subject"
 
+#: src/console/pages/Chat.tsx
+#: src/console/pages/Chats.tsx
+msgid "бота нет в чате"
+msgstr "the bot is not in the chat"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "How it works"
@@ -3309,8 +3314,8 @@ msgstr "Nobody for this one yet"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
-msgid "бот вышел"
-msgstr "the bot left"
+#~ msgid "бот вышел"
+#~ msgstr "the bot left"
 
 #: src/pages/Mine.tsx
 msgid "Закрыта"

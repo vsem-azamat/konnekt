@@ -499,6 +499,11 @@ msgstr "Nic jsme nenašli. Zkus zkratku — ČVUT, VŠE, MUNI."
 msgid "Предмет"
 msgstr "Předmět"
 
+#: src/console/pages/Chat.tsx
+#: src/console/pages/Chats.tsx
+msgid "бота нет в чате"
+msgstr "bot není v chatu"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "Jak to probíhá"
@@ -3309,8 +3314,8 @@ msgstr "Na tenhle dotaz tu zatím nikdo není"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
-msgid "бот вышел"
-msgstr "bot odešel"
+#~ msgid "бот вышел"
+#~ msgstr "bot odešel"
 
 #: src/pages/Mine.tsx
 msgid "Закрыта"

@@ -161,6 +161,8 @@ export interface ConsoleChat {
   kind: 'group' | 'channel';
   /** Since when Telegram says the bot is not in the chat; null while it is. */
   bot_absent_at: string | null;
+  /** Whether the bot is not in the chat, by the rule the bot section on the chat page follows. */
+  bot_gone: boolean;
 }
 
 export interface ChatSender {
