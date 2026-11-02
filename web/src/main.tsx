@@ -43,7 +43,6 @@ import {
 import { followKeyboard } from '@/lib/keyboard';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
-import LandingPage from '@/pages/Landing';
 import { router } from '@/router';
 
 import './index.css';
@@ -56,14 +55,16 @@ import './index.css';
 async function bootstrap(): Promise<void> {
   // Before anything else, and in particular before the mock: outside Telegram
   // there is no account, no chat to notify and nothing to sign a request
-  // with, so the catalog cannot run. That is a landing page, not an error.
-  if (showLanding()) {
-    // A browser gets the console where it is meant to open and the landing
-    // page everywhere else; which host is which is the server's business.
+  // with, so the catalog cannot run. That is the public site, not an error.
+  if (inBrowser()) {
+    // A browser gets the console where it is meant to open and the site's
+    // landing page everywhere else; which host is which is the server's business.
     if (isBrowserConsolePath(window.location.pathname)) {
       await renderBrowserConsole();
-    } else {
-      await renderLanding();
+    } else if (window.location.pathname !== '/') {
+      // The site (site/, served by docker/Caddyfile) answers the root. Only the
+      // dev server, which does not serve it, gets here at the root, and stays.
+      window.location.replace('/');
     }
     return;
   }
@@ -203,44 +204,24 @@ function checkLayout(): void {
 /**
  * Is this a browser rather than Telegram?
  *
- * In development the answer is always no unless `?landing` says otherwise:
+ * In development the answer is always no unless `?browser` says otherwise:
  * the mock has not run yet at this point, so `isTMA()` would say "browser" to
  * every local session and the app would never start.
  *
  * That override is development-only on purpose. In production a browser
  * already lands here on its own, so honouring the parameter could achieve
- * exactly one thing — stranding somebody inside Telegram on a page whose only
- * button sends them to Telegram.
+ * exactly one thing — sending somebody inside Telegram out of the app.
  */
-function showLanding(): boolean {
+function inBrowser(): boolean {
   if (import.meta.env.DEV) {
     // Remembered for the tab, because the router drops the parameter on its
-    // first navigation; `?landing=0` forgets it.
-    const landing = new URLSearchParams(window.location.search).get('landing');
-    if (landing === '0') sessionStorage.removeItem('dev-browser');
-    else if (landing !== null) sessionStorage.setItem('dev-browser', '1');
+    // first navigation; `?browser=0` forgets it.
+    const browser = new URLSearchParams(window.location.search).get('browser');
+    if (browser === '0') sessionStorage.removeItem('dev-browser');
+    else if (browser !== null) sessionStorage.setItem('dev-browser', '1');
     return sessionStorage.getItem('dev-browser') === '1';
   }
   return !isTMA();
-}
-
-async function renderLanding(): Promise<void> {
-  // The same precedence the app itself uses, with the browser standing in for
-  // Telegram's `language_code`: a stored choice outranks it.
-  const locale = resolveLocale(navigator.language);
-  await activateLocale(locale);
-  document.documentElement.lang = locale;
-
-  const container = document.getElementById('root');
-  if (!container) throw new Error('#root is missing from index.html');
-
-  createRoot(container).render(
-    <StrictMode>
-      <I18nProvider i18n={i18n}>
-        <LandingPage />
-      </I18nProvider>
-    </StrictMode>,
-  );
 }
 
 /** Set once the console is rendered for a browser; see `queryCache` below. */

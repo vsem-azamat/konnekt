@@ -72,7 +72,7 @@ function System() {
     mutationFn: consoleChanges.signOut,
     // Out of the console: in Telegram it would sign straight back in; a browser
     // goes to the sign-in page.
-    onSuccess: () => window.location.assign(inBrowser ? '/login' : '/'),
+    onSuccess: () => window.location.assign(inBrowser ? '/login' : '/home'),
   });
   const dismiss = () => {
     closeSession.reset();

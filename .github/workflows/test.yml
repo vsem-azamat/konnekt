@@ -228,7 +228,9 @@ jobs:
       with:
         context: .
         target: webui
-        build-args: WEB_VERSION=${{ github.sha }}
+        build-args: |
+          WEB_VERSION=${{ github.sha }}
+          SITE_URL=${{ vars.WEBAPI_PUBLIC_URL }}
         push: false
         cache-from: type=gha,scope=webui
 

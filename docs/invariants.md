@@ -270,6 +270,15 @@ The web is one Mini App in `web/`. Its console is `web/src/console/`, for
 super admins; everything else is the public half. The old console's `/admin`
 addresses redirect into it (`docker/Caddyfile`).
 
+**The root of the domain is the public site's, not the Mini App's.** The site
+(`web/site/`, static pages for search engines) owns `/`, the language prefixes
+and `/guides`; the Mini App's first screen is `/home`. So nothing that opens
+the Mini App may name `/`: not BotFather's Mini App URL (it is `/chats`, and
+every `startapp` link goes there), not a bot button, not a navigation inside
+the app. A Mini App opened at `/` gets the landing page; its script passes a
+launch that carries `#tgWebAppData` on to `/home`, which is the safety net for
+old messages, not a door.
+
 **The public half calls nothing of ours but `/api/public/*`, and does not
 import the console.** Only `web/src/console/` may use webapi's session, so a
 public screen cannot make a console request by accident; the shell mounts

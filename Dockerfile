@@ -38,7 +38,12 @@ COPY web/ ./
 # failed.
 ARG WEB_VERSION=unknown
 ENV VITE_APP_VERSION=$WEB_VERSION
-RUN pnpm run build
+# Where the public site lives (WEBAPI_PUBLIC_URL), for its canonical links,
+# hreflang and sitemap, which must be absolute. See web/site/astro.config.ts.
+# Required: without it the pages would name localhost as their own address.
+ARG SITE_URL
+ENV SITE_URL=$SITE_URL
+RUN : "${SITE_URL:?pass --build-arg SITE_URL=<the site's https origin>}" && pnpm run build
 
 # Production stage
 FROM python:3.12.13-slim-trixie AS production
@@ -83,6 +88,8 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 # The Mini App, public screens and console alike; docker/Caddyfile routes the
 # API paths around it.
 COPY --from=web-build /app/web/dist /srv/app
+# The public site beside it: the landing page and the guides (web/site/).
+COPY --from=web-build /app/web/site/dist /srv/site
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD caddy validate --config /etc/caddy/Caddyfile >/dev/null || exit 1
