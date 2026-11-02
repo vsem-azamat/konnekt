@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.exceptions import TelegramNetworkError, TelegramRetryAfter
+from aiogram.types import ChatMemberAdministrator, User
 from app.chats.audit import ChatState, apply_template, audit_chats, inspect_chat
 from app.chats.metadata import ChatMetadata
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
@@ -26,6 +27,7 @@ from structlog.testing import capture_logs
 
 pytestmark = pytest.mark.asyncio
 
+BOT_ID = 5145935834
 CHAT_ID = -1001000000001
 SYNCED = datetime.datetime(2026, 11, 2, 8, 0)
 
@@ -99,6 +101,17 @@ def test_a_chat_the_hourly_loop_marked_absent_is_reported() -> None:
 
     assert state.reachable is False
     assert state.findings == ("bot is not in the chat",)
+
+
+def test_a_bot_added_back_since_the_hourly_loop_marked_the_chat_is_in_it() -> None:
+    """The bot's own update records its return at once; the mark waits for the next daily ask."""
+    row = _row()
+    row.bot_absent_at = SYNCED - datetime.timedelta(hours=1)
+
+    state = inspect_chat(row, _rights())
+
+    assert state.reachable is True
+    assert state.findings == ()
 
 
 def test_a_chat_getchat_never_answered_about_is_not_judged() -> None:
@@ -219,9 +232,18 @@ def _inspect(chat: Chat, rights: ChatBotRights | None = None) -> ChatState:
     return inspect_chat(chat, rights or _rights(), bot_username=BOT_USERNAME, parent=PARENT, university=True)
 
 
+def _admin_member(**overrides: bool) -> ChatMemberAdministrator:
+    bot_user = User(id=BOT_ID, is_bot=True, first_name="Konnekt")
+    return ChatMemberAdministrator.model_validate(
+        {"user": bot_user, "can_be_edited": False, **{**_full_rights(), **overrides}}
+    )
+
+
 def _bot() -> AsyncMock:
     bot = AsyncMock()
+    bot.id = BOT_ID
     bot.me.return_value = SimpleNamespace(username=BOT_USERNAME)
+    bot.get_chat_member.return_value = _admin_member()
     return bot
 
 
@@ -465,3 +487,32 @@ async def test_the_report_alone_never_asks_telegram(session_maker, telegram_now)
 
     bot.get_chat.assert_not_awaited()
     bot.set_chat_description.assert_not_awaited()
+
+
+async def test_after_apply_the_report_shows_what_was_written(session_maker, telegram_now) -> None:
+    """Telegram sends no update for a new description, and the row was just marked fresh."""
+    await _seed_cvut(session_maker)
+    telegram_now[-3] = ChatMetadata(title="ČVUT FIT", photo_file_id=None, description=DORMITORY_TEXT)
+    _, [applied] = await _audit(session_maker, apply=True, chat_ids={-3})
+
+    _, [after] = await _audit(session_maker, chat_ids={-3})
+
+    assert applied.applied == ("description set",)
+    assert after.description == applied.expected_description
+    assert after.findings == ()
+
+
+async def test_apply_asks_for_the_bots_rights_again_before_judging_them(session_maker, telegram_now) -> None:
+    """A promotion whose update was lost would otherwise keep the description as it is until the daily check."""
+    await _seed_cvut(session_maker)
+    async with session_maker() as session:
+        (await session.get(ChatBotRights, -3)).rights = {**_full_rights(), "can_change_info": False}
+        await session.commit()
+    telegram_now[-3] = ChatMetadata(title="ČVUT FIT", photo_file_id=None, description=DORMITORY_TEXT)
+
+    bot, [state] = await _audit(session_maker, apply=True, chat_ids={-3})
+
+    bot.get_chat_member.assert_awaited_once_with(-3, BOT_ID)
+    assert state.applied == ("description set",)
+    async with session_maker() as session:
+        assert (await session.get(ChatBotRights, -3)).rights["can_change_info"] is True

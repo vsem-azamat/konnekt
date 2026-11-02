@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Any, TextIO, cast
 from aiogram.exceptions import TelegramAPIError, TelegramNetworkError, TelegramRetryAfter
 from sqlalchemy import select
 
-from app.chats import profile
+from app.chats import bot_rights, profile
 from app.chats.bot_rights import GONE
 from app.chats.members import ADMINISTRATORS
 from app.chats.metadata import ask, fetch_metadata
@@ -154,7 +154,9 @@ def inspect_chat(
         synced_at=chat.last_synced_at,
         bot_status=rights.status if rights else None,
     )
-    if chat.bot_absent_at is not None or state.bot_status in GONE:
+    # The hourly loop's mark stands until its next daily ask; the bot's own update says it is back at once.
+    marked_absent = chat.bot_absent_at is not None and (rights is None or rights.known_at <= chat.bot_absent_at)
+    if marked_absent or state.bot_status in GONE:
         return dataclasses.replace(state, findings=("bot is not in the chat",))
     if chat.last_synced_at is None:
         return dataclasses.replace(state, findings=("not synced yet",))
@@ -231,12 +233,20 @@ async def apply_template(bot: Bot, state: ChatState) -> list[str]:
     return ["description set"]
 
 
-async def _resync(*, session_maker: async_sessionmaker[AsyncSession], bot: Bot, chat_id: int) -> Chat | None:
-    """Ask Telegram about the chat now and record the answer, so the description written is judged against
-    what is there rather than what was there at the last daily pass. None when Telegram would not say."""
+async def _resync(
+    *, session_maker: async_sessionmaker[AsyncSession], bot: Bot, chat_id: int
+) -> tuple[Chat, ChatBotRights | None] | None:
+    """Ask Telegram about the chat and the bot's rights there now, and record both, so the description
+    written is judged against what is there rather than what was at the last daily pass. None when
+    Telegram would not say."""
     metadata = await fetch_metadata(bot=bot, chat_id=chat_id)
     if metadata is None:
         return None
+    try:
+        await bot_rights.confirm(session_maker=session_maker, bot=bot, chat_id=chat_id)
+    except TelegramAPIError as err:
+        # The stored rights stand; a wrong guess is Telegram's to refuse.
+        logger.warning("audit_rights_not_confirmed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
     async with session_maker() as session:
         chat = await session.get(Chat, chat_id)
         if chat is None:
@@ -244,7 +254,18 @@ async def _resync(*, session_maker: async_sessionmaker[AsyncSession], bot: Bot, 
         if await profile.apply(session=session, bot=bot, chat=chat, metadata=metadata) != "failed":
             chat.last_synced_at = utc_now()
         await session.commit()
-        return chat
+        return chat, await session.get(ChatBotRights, chat_id)
+
+
+async def _remember_description(
+    *, session_maker: async_sessionmaker[AsyncSession], chat_id: int, description: str
+) -> None:
+    """Telegram sends nothing when a description changes, and the row was just marked fresh."""
+    async with session_maker() as session:
+        chat = await session.get(Chat, chat_id)
+        if chat is not None:
+            chat.description = description
+            await session.commit()
 
 
 async def audit_chats(
@@ -272,10 +293,10 @@ async def audit_chats(
     # Known only by an invite link: there is no id Telegram would answer about.
     chats = [chat for chat in chats if not chat.is_preview_only]
 
-    def inspect(chat: Chat) -> ChatState:
+    def inspect(chat: Chat, held: ChatBotRights | None) -> ChatState:
         return inspect_chat(
             chat,
-            rights.get(chat.id),
+            held,
             bot_username=bot_username,
             parent=by_id.get(chat.parent_chat_id) if chat.parent_chat_id else None,
             university=chat.id in mains or chat.parent_chat_id in mains,
@@ -284,7 +305,7 @@ async def audit_chats(
     states: list[ChatState] = []
     asked = 0
     for chat in chats:
-        state = inspect(chat)
+        state = inspect(chat, rights.get(chat.id))
         if apply and _off_template(state):
             if asked and pause_seconds:
                 await asyncio.sleep(pause_seconds)
@@ -293,8 +314,13 @@ async def audit_chats(
             if fresh is None:
                 state = dataclasses.replace(state, applied=("description not set: Telegram did not answer",))
             else:
-                state = inspect(fresh)
-                state = dataclasses.replace(state, applied=tuple(await apply_template(bot, state)))
+                state = inspect(*fresh)
+                applied = await apply_template(bot, state)
+                if applied == ["description set"] and state.expected_description is not None:
+                    await _remember_description(
+                        session_maker=session_maker, chat_id=chat.id, description=state.expected_description
+                    )
+                state = dataclasses.replace(state, applied=tuple(applied))
         states.append(state)
     return states
 
