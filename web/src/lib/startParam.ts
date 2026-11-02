@@ -1,3 +1,5 @@
+import { INSTITUTION_CODE } from './chats.ts';
+
 /**
  * Where a `startapp` link opens the app.
  *
@@ -16,7 +18,19 @@ const SCREENS: Record<string, string> = {
   offer: '/offer',
 };
 
+/**
+ * A university's chats, by its code: `uni-cvut`. The code and not the
+ * section's name, which has diacritics and spaces a start parameter may not
+ * hold; the section screen finds the name from the code.
+ */
+const UNIVERSITY = 'uni-';
+
 export function startRoute(param: string | undefined): StartRoute | null {
+  const university = param?.startsWith(UNIVERSITY)
+    ? param.slice(UNIVERSITY.length)
+    : undefined;
+  if (university && INSTITUTION_CODE.test(university))
+    return { path: `/chats/${university}`, state: { from: 'link' } };
   const path = param ? SCREENS[param] : undefined;
   return path ? { path, state: { from: 'link' } } : null;
 }

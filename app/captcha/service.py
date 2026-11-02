@@ -39,7 +39,7 @@ from app.captcha import challenge, in_chat, waves
 from app.captcha.locks import lock_chat
 from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import already_member, lacks_rights, report, request_gone, with_retry
-from app.chats import welcome
+from app.chats import faculty_list, welcome
 from app.core import intro
 from app.core.config import settings
 from app.core.enums import ModerationEventAction, Touchpoint
@@ -567,7 +567,10 @@ async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Ch
     # The join itself was not greeted: they could not have answered.
     if chat.is_welcome_enabled and (user := await in_chat.member(bot, row)):
         chat_text, lifetime = chat.welcome_message, chat.time_delete
-        message_id = await welcome.greet(bot, chat.id, user, chat_text=chat_text, lifetime=lifetime)
+        university = await faculty_list.university_of(db, chat) if settings.telegram.faculty_button else None
+        message_id = await welcome.greet(
+            bot, chat.id, user, chat_text=chat_text, lifetime=lifetime, university=university
+        )
         if message_id is not None:
             await welcome.remember(db, chat.id, message_id, lifetime)
 

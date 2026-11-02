@@ -452,10 +452,6 @@ msgstr "Captcha v chatu"
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Neprovedeno: hlavního administrátora nelze zabanovat."
 
-#: src/console/BotInChat.tsx
-msgid "Команда /pin не сработает."
-msgstr "Příkaz /pin nebude fungovat."
-
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "Tomuto filtru teď žádná poptávka neodpovídá"
@@ -2475,6 +2471,10 @@ msgstr "Za 7 dní"
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
 msgstr "Chaty ke schválení"
+
+#: src/console/BotInChat.tsx
+msgid "Команда /pin не сработает, и бот не закрепит список чатов факультетов."
+msgstr "Příkaz /pin nebude fungovat a bot nepřipne seznam chatů fakult."
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Скрыта администратором"

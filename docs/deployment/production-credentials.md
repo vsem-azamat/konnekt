@@ -57,6 +57,8 @@ What is public anyway. Printed in every public workflow log.
 | `MODERATOR_BOT_INTRO_VIDEO` | Optional. Konnekt's video, a file_id this bot received or an https URL: under the chat greeting and the note after the captcha, and in the /start album |
 | `MODERATOR_BOT_INTRO_VIDEO_COVER` | Optional. The video's cover, likewise; unset, its first frame |
 | `MODERATOR_BOT_INTRO_PHOTO` | Optional. The photo the /start album opens with, likewise |
+| `MODERATOR_BOT_FACULTY_LIST_CHATS` | Optional. Ids of university chats, comma-separated, where the bot pins the list of their faculties' chats and keeps it up to date; set only once the text was approved for that chat |
+| `MODERATOR_BOT_FACULTY_BUTTON` | Optional, `false` by default. `true` adds «🎓 Чаты факультетов» under the greeting in each university chat with chats under it |
 
 ## Features switch themselves on
 
@@ -69,6 +71,8 @@ and off otherwise:
 | Ads contact desk | `ADS_BOT_TOKEN` and `ADS_BOT_GROUP_ID` are set |
 | Video in the greetings | `MODERATOR_BOT_INTRO_VIDEO` is set |
 | /start album | `MODERATOR_BOT_INTRO_PHOTO`, `MODERATOR_BOT_INTRO_VIDEO` and `WEBAPI_PUBLIC_URL` are set |
+| Pinned faculty list | a chat's id is in `MODERATOR_BOT_FACULTY_LIST_CHATS` |
+| Faculties button in the greeting | `MODERATOR_BOT_FACULTY_BUTTON=true` |
 
 Everything the application does runs on the bot token. Titles, photos and
 member counts are Bot API calls; message history and search read the rows the

@@ -76,7 +76,7 @@ export const TOPICS: readonly Topic[] = [
 ];
 
 /** A catalog institution code, the shape supervisor stores. */
-const INSTITUTION_CODE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
+export const INSTITUTION_CODE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 
 /** Where a photo may come from: supervisor's own picture route, and nowhere else. */
 const AVATAR_PATH = /^\/api\/public\/avatars\/[A-Za-z0-9_-]{1,64}$/;
@@ -269,6 +269,19 @@ export function defaultCity(
   universityCity: string | null | undefined,
 ): string | null {
   return universityCity && choices.includes(universityCity) ? universityCity : null;
+}
+
+/**
+ * The section an address names: by its name from the directory, or by its
+ * university's code from a link in a chat (`uni-cvut`), which cannot carry a
+ * name with diacritics. By the code, the section the university's own chat
+ * leads, named like it, before any other that shares the code. A name that
+ * matches neither is kept, so the screen can say the group is gone.
+ */
+export function sectionName(chats: PublicChat[], named: string): string {
+  if (chats.some((chat) => chat.group === named)) return named;
+  const coded = chats.filter((chat) => chat.institution === named && chat.group);
+  return (coded.find((chat) => chat.title === chat.group) ?? coded[0])?.group ?? named;
 }
 
 /**

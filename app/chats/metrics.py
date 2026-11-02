@@ -6,6 +6,10 @@ from prometheus_client import Counter, Gauge
 
 # kept, created, replaced, username, transient, failed, and each problem the
 # bot cannot mend (no_invite_right, not_in_chat, create_failed).
+# posted, edited, unchanged, gone, empty, no_pin_right, no_university, not_approved, failed.
+FACULTY_LIST_EVENTS = Counter(
+    "faculty_list_events_total", "Outcomes of keeping a university chat's pinned faculty list", ["event"]
+)
 INVITE_LINK_EVENTS = Counter("invite_link_events_total", "Outcomes of checking a listed chat's link", ["event"])
 INVITE_LINK_PROBLEMS = Gauge("invite_link_problems", "Listed chats whose link the bot cannot mend", ["problem"])
 # left, not_admin, no_delete, no_restrict, no_invite, and unknown for an approved

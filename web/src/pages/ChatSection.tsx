@@ -17,7 +17,7 @@ import {
 } from '@/components/Ui';
 import { useReportEmpty } from '@/hooks/useReportEmpty';
 import { chatsQuery } from '@/lib/api';
-import { byOwner } from '@/lib/chats';
+import { byOwner, sectionName } from '@/lib/chats';
 
 /**
  * One group's chats: a university with its faculties and dorms.
@@ -28,10 +28,11 @@ import { byOwner } from '@/lib/chats';
  * showing an empty list.
  */
 export default function ChatSectionPage() {
-  const { group = '' } = useParams();
+  const { group: named = '' } = useParams();
 
   const { data, isPending, isError, refetch } = useQuery(chatsQuery);
 
+  const group = data ? sectionName(data, named) : named;
   // Straight from the data, not through the directory's entries: a group
   // that has shrunk to one chat is still a group somebody may have linked to.
   const chats = (data ?? []).filter((chat) => chat.group === group);
@@ -46,7 +47,8 @@ export default function ChatSectionPage() {
   return (
     <Screen>
       <AppHeader />
-      <Title>{group}</Title>
+      {/* Not the code from a link while the list is on its way. */}
+      <Title>{data ? group : null}</Title>
       {isPending ? (
         <SkeletonRows count={5} />
       ) : isError ? (

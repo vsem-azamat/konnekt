@@ -49,7 +49,7 @@ async def test_the_language_is_kept_when_left_out(pg_session) -> None:
 
 def test_it_upgrades_and_downgrades_cleanly(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), "head")
-    command.downgrade(_alembic(), "-1")
+    command.downgrade(_alembic(), "c7e2a9f41d03")
     with database.connect() as conn:
         inspector = sa.inspect(conn)
         assert not inspector.has_table("chat_members")

@@ -19,6 +19,7 @@ import {
   sectionAvatar,
   sectionHint,
   sectionMembers,
+  sectionName,
 } from '../src/lib/chats.ts';
 
 function chat(
@@ -575,4 +576,25 @@ test('a channel said to be ours is drawn as a group', () => {
     { title: 'Ours', link: 'https://t.me/ours', kind: 'channel' },
   ]);
   assert.equal(chat?.kind, 'group');
+});
+
+test('a section is found by its name, or by its university code from a chat link', () => {
+  const chats = [
+    { title: 'ČVUT', group: 'ČVUT', institution: 'cvut' },
+    { title: 'ČVUT FIT', group: 'ČVUT', institution: 'cvut' },
+  ] as PublicChat[];
+
+  assert.equal(sectionName(chats, 'ČVUT'), 'ČVUT');
+  assert.equal(sectionName(chats, 'cvut'), 'ČVUT');
+  // Neither: kept, so the screen says the group is gone.
+  assert.equal(sectionName(chats, 'vut'), 'vut');
+});
+
+test('by code, the section the university chat leads comes before another of the same code', () => {
+  const chats = [
+    { title: 'ČVUT Strahov', group: 'Strahov', institution: 'cvut' },
+    { title: 'ČVUT', group: 'ČVUT', institution: 'cvut' },
+  ] as PublicChat[];
+
+  assert.equal(sectionName(chats, 'cvut'), 'ČVUT');
 });

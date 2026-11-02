@@ -144,6 +144,71 @@ async def test_the_button_opens_konnekt_through_the_bot_link(session: AsyncSessi
     assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=welcome"
 
 
+async def _university_with_a_faculty(session: AsyncSession) -> None:
+    await _seed(session, is_welcome_enabled=True, institution_code="vut")
+    session.add(
+        DbChat(
+            id=CHAT_ID - 1,
+            title="VUT FEKT",
+            resource_status=DbChat.STATUS_APPROVED,
+            parent_chat_id=CHAT_ID,
+            public_link="https://t.me/+fekt",
+        )
+    )
+    await session.commit()
+
+
+async def test_a_university_chat_also_points_at_its_faculties(
+    session: AsyncSession, bot, timers, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings.telegram, "faculty_button", True)
+    await _university_with_a_faculty(session)
+
+    await user_joined(_join(), bot, session)
+
+    [[_open], [faculties]] = bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard
+    assert faculties.text == "🎓 Чаты факультетов"
+    assert faculties.url == f"https://t.me/{BOT_USERNAME}?startapp=uni-vut"
+
+
+async def test_the_faculties_button_waits_for_its_approval(
+    session: AsyncSession, bot, timers, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings.telegram, "faculty_button", False)
+    await _university_with_a_faculty(session)
+
+    await user_joined(_join(), bot, session)
+
+    assert len(bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard) == 1
+
+
+async def test_no_button_where_the_catalog_lists_no_faculty(
+    session: AsyncSession, bot, timers, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The button would open an empty section."""
+    monkeypatch.setattr(settings.telegram, "faculty_button", True)
+    await _seed(session, is_welcome_enabled=True, institution_code="vut")
+    session.add(
+        DbChat(id=CHAT_ID - 1, title="VUT FEKT", resource_status=DbChat.STATUS_APPROVED, parent_chat_id=CHAT_ID)
+    )
+    await session.commit()
+
+    await user_joined(_join(), bot, session)
+
+    assert len(bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard) == 1
+
+
+async def test_a_chat_with_no_chats_under_it_has_no_faculties_button(
+    session: AsyncSession, bot, timers, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings.telegram, "faculty_button", True)
+    await _seed(session, is_welcome_enabled=True, institution_code="vut")
+
+    await user_joined(_join(), bot, session)
+
+    assert len(bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard) == 1
+
+
 # --- one message per burst -------------------------------------------------------
 
 
