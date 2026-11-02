@@ -41,7 +41,8 @@
 .cat-hero h1 {
   font-size: clamp(30px, 7.5vw, 52px);
   line-height: 1.04;
-  letter-spacing: -0.04em;
+  /* Tighter, and the space between words goes: «ЧатыČVUT» (uiux 10266). */
+  letter-spacing: -0.01em;
   font-weight: 800;
   margin: 0;
   text-wrap: balance;
@@ -140,7 +141,7 @@
 
 .cat h2 {
   font-size: clamp(22px, 5vw, 28px);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   line-height: 1.15;
   margin: 0;
 }
@@ -283,7 +284,7 @@ a.row:target {
 }
 .cat .chips > a {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   display: inline-flex;
   align-items: center;

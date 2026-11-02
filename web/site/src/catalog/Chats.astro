@@ -63,16 +63,24 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
           <header><h2>{t.topics.university}</h2><span class="count">{universities.length + loose.length}</span></header>
           <div class="unis-one">
             {universities.map((line) => (
-              <div class={line.code ? 'one' : 'one open-all'} data-group>
+              <div class="one" data-group>
                 <header>
                   <h3>{line.code ? <a href={localePath(lang, `/universities/${line.code}/`)}>{line.name}</a> : line.name}</h3>
                   {line.city && <span class="count">{line.city}</span>}
                 </header>
                 <div class="rows">
-                  {line.chats.map((chat) => <ChatRow lang={lang} chat={chat} note={chat === line.main ? t.main : null} />)}
+                  {(line.code ? line.chats : line.chats.slice(0, 1)).map((chat) => <ChatRow lang={lang} chat={chat} note={chat === line.main ? t.main : null} />)}
                 </div>
                 {line.code && line.chats.length > 1 && (
                   <a class="more-link" href={localePath(lang, `/universities/${line.code}/`)} data-more>{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true" set:html={arrow} /></a>
+                )}
+                {!line.code && line.chats.length > 1 && (
+                  <details class="rest">
+                    <summary class="more-link">{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                    <div class="rows">
+                      {line.chats.slice(1).map((chat) => <ChatRow lang={lang} chat={chat} />)}
+                    </div>
+                  </details>
                 )}
               </div>
             ))}
@@ -134,10 +142,20 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
       grid-template-columns: 1fr;
     }
   }
-  /* A university with a page shows its main chat until a search asks for more;
-     one without a page shows all of them, having nowhere else to. */
-  [data-group].one:not(.open-all) .rows:not(.open) .row:nth-child(n + 2) {
+  /* A university shows its main chat until a search asks for more: the rest
+     are on its page, or, with no page, a tap away below it (uiux 10266). */
+  [data-group].one:not(.open-all) > .rows:not(.open) .row:nth-child(n + 2) {
     display: none;
+  }
+  .rest > summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .rest > summary::-webkit-details-marker {
+    display: none;
+  }
+  .rest[open] > summary svg {
+    transform: rotate(180deg);
   }
 </style>
 
@@ -161,6 +179,9 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
       group.hidden = shown === 0;
       const more = group.querySelector<HTMLElement>('[data-more]');
       if (more) more.hidden = words.length > 0;
+      // A university with no page keeps the rest folded; a search unfolds it.
+      const rest = group.querySelector<HTMLDetailsElement>('details.rest');
+      if (rest) rest.open = words.length > 0 && shown > 0;
       any ||= shown > 0;
     }
     for (const outer of document.querySelectorAll<HTMLElement>('[data-groups]'))
