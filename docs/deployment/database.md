@@ -62,7 +62,9 @@ published images.
 
 Only releases from the one that introduced this job onward can be returned to
 this way: an older image still migrates in its own entrypoint and would fail
-on the newer revision. A push to main while a rollback waits for the deploy
+on the newer revision. A migration that drops what an older release still
+read moves that line forward: since e2f99c8dd0b0 dropped `pending_actions`,
+the earliest is fdc9382, the first without the MCP control plane. A push to main while a rollback waits for the deploy
 lock cancels the rollback, and the next push redeploys main's head over it.
 
 ## Backups

@@ -41,13 +41,13 @@ def test_the_tables_go_and_nothing_else_does(database) -> None:  # noqa: F811
         conn.execute(sa.text("INSERT INTO channels (name) VALUES ('archived before the drop')"))
     before = _tables(database)
 
-    command.upgrade(_alembic(), "head")
+    command.upgrade(_alembic(), _THIS.revision)
 
     assert before - _tables(database) == _TABLES
 
 
 def test_a_fresh_database_never_had_them(database) -> None:  # noqa: F811
-    command.upgrade(_alembic(), "head")
+    command.upgrade(_alembic(), _THIS.revision)
     assert not _tables(database) & _TABLES
 
 
@@ -64,12 +64,12 @@ def test_rows_that_were_never_exported_stop_it(database, table) -> None:  # noqa
         conn.execute(sa.text(f"INSERT INTO {table} {columns}"))
 
     with pytest.raises(RuntimeError, match=table):
-        command.upgrade(_alembic(), "head")
+        command.upgrade(_alembic(), _THIS.revision)
     assert _tables(database) >= _TABLES
 
 
 def test_it_downgrades_to_the_empty_tables(database) -> None:  # noqa: F811
-    command.upgrade(_alembic(), "head")
+    command.upgrade(_alembic(), _THIS.revision)
     command.downgrade(_alembic(), _BEFORE)
     assert _tables(database) >= _TABLES
     with database.connect() as conn:
@@ -80,7 +80,7 @@ def test_with_pgvector_the_embedding_comes_back_too(database) -> None:  # noqa: 
     """Production has the extension; a database without it gets the table less that one column."""
     with database.begin() as conn:
         conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS vector"))
-    command.upgrade(_alembic(), "head")
+    command.upgrade(_alembic(), _THIS.revision)
     command.downgrade(_alembic(), _BEFORE)
     with database.connect() as conn:
         column = conn.execute(
