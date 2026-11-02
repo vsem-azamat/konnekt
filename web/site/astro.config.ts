@@ -1,6 +1,7 @@
 import { globSync, readFileSync } from 'node:fs';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
+import { parse } from 'yaml';
 
 import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.ts';
 
@@ -16,12 +17,19 @@ import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.t
 
 const root = new URL('.', import.meta.url).pathname;
 
-/** The guides as the sitemap needs them, read the way the content collection reads them. */
+/**
+ * The guides as the sitemap needs them: the same files and the same `draft`
+ * field the content collection reads, parsed as YAML from the frontmatter alone.
+ */
 function guides(): GuideEntry[] {
-  return globSync('src/content/guides/*/*.md', { cwd: root }).map((file) => ({
-    id: file.replace(/^src\/content\/guides\//, '').replace(/\.md$/, ''),
-    draft: /^draft:\s*true\s*$/m.test(readFileSync(`${root}${file}`, 'utf8')),
-  }));
+  return globSync('src/content/guides/*/*.md', { cwd: root }).map((file) => {
+    const text = readFileSync(`${root}${file}`, 'utf8');
+    const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '';
+    return {
+      id: file.replace(/^src\/content\/guides\//, '').replace(/\.md$/, ''),
+      draft: parse(frontmatter)?.draft === true,
+    };
+  });
 }
 
 const hidden = hiddenPaths(guides());

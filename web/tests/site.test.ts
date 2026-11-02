@@ -5,6 +5,7 @@ import {
   alternates,
   guidePath,
   hiddenPaths,
+  indexedLangs,
   langOf,
   localePath,
   telegramHome,
@@ -60,5 +61,17 @@ test('draft guides and an index with no published guide are kept out of search',
     '/en/guides/',
     '/guides/primer/',
     '/uk/guides/',
+  ]);
+});
+
+test('hreflang names only the translations search engines may keep', () => {
+  const hidden = ['/cs/guides/visa/', '/uk/guides/', '/cs/guides/', '/en/guides/'];
+  assert.deepEqual(indexedLangs('/guides/visa/', ['ru', 'cs'], hidden), ['ru']);
+  assert.deepEqual(indexedLangs('/guides/', ['ru', 'uk', 'cs', 'en'], hidden), ['ru']);
+  assert.deepEqual(indexedLangs('/', ['ru', 'uk', 'cs', 'en'], hidden), [
+    'ru',
+    'uk',
+    'cs',
+    'en',
   ]);
 });

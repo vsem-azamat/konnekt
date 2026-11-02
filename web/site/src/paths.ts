@@ -58,6 +58,19 @@ export function alternates(
 }
 
 /**
+ * The languages of a page whose versions search engines may keep: a noindex
+ * translation (an example, an empty list) prints no hreflang of its own, so
+ * naming it would be a link it never returns.
+ */
+export function indexedLangs(
+  path: string,
+  langs: readonly Lang[],
+  hidden: readonly string[],
+): Lang[] {
+  return langs.filter((lang) => !hidden.includes(localePath(lang, path)));
+}
+
+/**
  * Where the landing sends someone who opened it inside Telegram, or null.
  *
  * Telegram opens the Mini App at /chats and the like, never at the root, but a

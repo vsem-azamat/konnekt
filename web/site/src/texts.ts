@@ -87,3 +87,11 @@ export const LANG_NAMES: Record<Lang, string> = {
   cs: 'Čeština',
   en: 'English',
 };
+
+/** Open Graph's locale for each language. */
+export const OG_LOCALES: Record<Lang, string> = {
+  ru: 'ru_RU',
+  uk: 'uk_UA',
+  cs: 'cs_CZ',
+  en: 'en_US',
+};

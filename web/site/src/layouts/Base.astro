@@ -7,8 +7,18 @@
 import '../../../src/styles/tokens.css';
 import '../site.css';
 
-import { alternates, LANGS, type Lang, localePath, telegramHome } from '../paths.ts';
-import { LANG_NAMES, TEXTS } from '../texts.ts';
+import { getCollection } from 'astro:content';
+
+import {
+  alternates,
+  hiddenPaths,
+  indexedLangs,
+  LANGS,
+  type Lang,
+  localePath,
+  telegramHome,
+} from '../paths.ts';
+import { LANG_NAMES, OG_LOCALES, TEXTS } from '../texts.ts';
 
 interface Props {
   lang: Lang;
@@ -26,6 +36,10 @@ const { lang, path, langs = LANGS, title, description, noindex = false } = Astro
 const site = Astro.site?.href ?? '/';
 const canonical = new URL(localePath(lang, path), site).href;
 const t = TEXTS[lang];
+const hidden = hiddenPaths(
+  (await getCollection('guides')).map(({ id, data }) => ({ id, draft: data.draft })),
+);
+const indexed = indexedLangs(path, langs, hidden);
 
 // The tested function itself, not a copy of its logic: it has to run before the
 // first paint, so inline, and it refers to nothing outside its arguments.
@@ -49,7 +63,7 @@ const handOff = `(() => {
     {noindex && <meta name="robots" content="noindex" />}
     {
       !noindex &&
-        alternates(path, langs, site).map(({ hreflang, href }) => (
+        alternates(path, indexed, site).map(({ hreflang, href }) => (
           <link rel="alternate" hreflang={hreflang} href={href} />
         ))
     }
@@ -58,7 +72,7 @@ const handOff = `(() => {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:locale" content={lang} />
+    <meta property="og:locale" content={OG_LOCALES[lang]} />
     <script is:inline set:html={handOff} />
     <script is:inline>
       // The palette before the first paint, the same keys and resolution as the
