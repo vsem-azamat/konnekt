@@ -270,6 +270,18 @@ The web is one Mini App in `web/`. Its console is `web/src/console/`, for
 super admins; everything else is the public half. The old console's `/admin`
 addresses redirect into it (`docker/Caddyfile`).
 
+**The Mini App has a host of its own, and its old addresses still reach it.**
+It lives at `WEBAPI_PUBLIC_URL` (app.konnekt.cz); konnekt.cz is for the public
+site. Buttons already sent in Telegram name the old hosts, konnekt.cz and
+konnekt.azamat.io, and Telegram puts the launch data in the fragment
+(`#tgWebAppData`), which a server never sees. So the app's paths there (`/chats`,
+`/join`, `/console`…) stay 301s to the app's host that keep the path and the
+query; a redirect keeps the fragment. The root is the exception: the catalog's
+notifications opened the bare host, and once the site owns `/` an old button
+and a visitor are the same request. Whatever serves `/` on konnekt.cz must
+send a `#tgWebAppData` fragment on to the app's host in the browser. Until the
+site is there the whole host redirects, apart from the paths Prometheus reads.
+
 **The public half calls nothing of ours but `/api/public/*`, and does not
 import the console.** Only `web/src/console/` may use webapi's session, so a
 public screen cannot make a console request by accident; the shell mounts

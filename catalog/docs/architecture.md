@@ -100,7 +100,7 @@ beside the bot, the webapi and the Mini App.
 
 ## One origin, two APIs
 
-The Mini App is `web/`, served at `PUBLIC_BASE_URL` (konnekt.cz) beside the
+The Mini App is `web/`, served at `PUBLIC_BASE_URL` (app.konnekt.cz) beside the
 moderator console. It reads from two APIs. `/api/v1/*` is the catalog's;
 `/api/public/*` is the webapi's: the chat directory (`catalog`), the
 advertising reach (`reach`) and the join check (`join-check`). Telegram lets a
