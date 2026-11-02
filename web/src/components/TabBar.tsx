@@ -22,7 +22,7 @@ import css from './ui.module.css';
  * so.
  */
 const TABS = [
-  { to: '/', icon: SearchIcon, label: <Trans>Помощь</Trans> },
+  { to: '/home', icon: SearchIcon, label: <Trans>Помощь</Trans> },
   { to: '/chats', icon: ChatIcon, label: <Trans>Чаты</Trans> },
   { to: '/mine', icon: BookmarkIcon, label: <Trans>Заявки</Trans> },
   { to: '/profile', icon: PersonIcon, label: <Trans>Профиль</Trans> },
@@ -30,7 +30,7 @@ const TABS = [
 
 /** A tab stays lit on the screens below it: a chat section is still Чаты. */
 function isOn(to: string, pathname: string): boolean {
-  return to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
+  return pathname === to || pathname.startsWith(`${to}/`);
 }
 
 export function TabBar() {
