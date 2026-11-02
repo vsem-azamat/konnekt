@@ -147,26 +147,6 @@
 		redir * /console permanent
 	}
 
-	# The public site (web/site/): the landing page in each language, the
-	# guides, and what search engines read. Plain HTML built ahead of time; a
-	# page it does not have is a 404, never the app. A language prefix is a
-	# whole path segment, so /ukraine is still the app's.
-	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml
-	handle @site {
-		root * /srv/site
-		# Hashed assets for good, but only those that exist: a missing one is a
-		# 404 nobody may keep. A page, which names them, is never cached.
-		@hashed {
-			path /_astro/*
-			file
-		}
-		header @hashed Cache-Control "public, max-age=31536000, immutable"
-		@page not path /_astro/*
-		header @page Cache-Control "no-cache"
-		try_files {path} {path}/index.html =404
-		file_server
-	}
-
 	# The Mini App owns every other path, its client-side routes included.
 	# Hashed assets never change contents, so they are cached for good, but only
 	# when they exist: a missing one is a 404, never the page and never cached.

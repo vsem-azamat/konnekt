@@ -646,7 +646,7 @@ def test_every_long_running_service_rotates_its_logs() -> None:
     """bot, webapi and webui used json-file with no limits, on a disk shared with other projects."""
     services = yaml.safe_load(COMPOSE.read_text())["services"]
 
-    for name in ("bot", "webapi", "webui"):
+    for name in ("bot", "webapi", "webui", "site"):
         options = services[name]["logging"]["options"]
         assert options["max-size"], name
         assert options["max-file"], name
@@ -843,7 +843,7 @@ def test_each_image_build_keeps_its_cache_in_a_scope_of_its_own() -> None:
         assert read.get("scope"), build["cache-from"]
         assert read["scope"] == write.get("scope"), build["cache-to"]
         scopes.append(read["scope"])
-    assert len(builds) == 3
+    assert len(builds) == 4
     assert len(set(scopes)) == len(scopes)
 
 
@@ -965,3 +965,34 @@ def test_a_pull_request_builds_the_images_the_deploy_builds() -> None:
     assert sorted(map(shape, pull_request)) == sorted(map(shape, deploy))
     assert all(build["push"] is False for build in pull_request)
     assert not any("cache-to" in build for build in pull_request)
+
+
+def test_the_site_is_its_own_small_container_that_sends_the_app_on() -> None:
+    """konnekt.cz's public site (docker/site/): a tag of the public webui package,
+    so the host pulls it without a login; told where the app lives, which its
+    redirects name; within the memory Azamat allowed it (agora 10022)."""
+    site = yaml.safe_load(COMPOSE.read_text())["services"]["site"]
+
+    assert site["image"].startswith("ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${IMAGE_TAG")
+    assert site["environment"]["APP_URL"] == "${WEBAPI_PUBLIC_URL}"
+    assert site["ports"] == ["127.0.0.1:18092:80"]
+    assert site["mem_limit"] == "256m"
+    assert "{$APP_URL:https://app.invalid}{uri}" in (ROOT / "docker" / "site" / "Caddyfile").read_text()
+
+
+def test_the_site_image_is_built_published_and_kept_like_the_others() -> None:
+    """Built from the web build with the same arguments as the webui, checked
+    before a dispatched deploy, and not pruned while it can be rolled back to."""
+    steps = yaml.safe_load(DEPLOY.read_text())["jobs"]["build-and-push"]["steps"]
+    builds = {
+        step["with"]["target"]: step["with"]
+        for step in steps
+        if str(step.get("uses", "")).startswith("docker/build-push-action@")
+    }
+    assert builds["site"]["tags"].strip() == "ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${{ github.sha }}"
+    assert builds["site"]["build-args"] == builds["webui"]["build-args"]
+
+    deploy = DEPLOY.read_text()
+    assert 'supervisor-telegram-webui:site-"$SHA"' in deploy
+    assert 'keep="$IMAGE_TAG catalog-$IMAGE_TAG site-$IMAGE_TAG"' in deploy
+    assert 'keep="$keep $PREVIOUS_TAG catalog-$PREVIOUS_TAG site-$PREVIOUS_TAG"' in deploy

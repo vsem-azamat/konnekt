@@ -46,13 +46,17 @@ ARG VITE_SENTRY_DSN=
 ARG SENTRY_ORG=
 ARG SENTRY_URL=
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN SENTRY_ORG=$SENTRY_ORG SENTRY_URL=$SENTRY_URL
-# Where the public site lives (WEBAPI_PUBLIC_URL), for its canonical links,
-# hreflang and sitemap, which must be absolute. See web/site/astro.config.ts.
-# Required: without it the pages would name localhost as their own address.
+# Where each lives (PUBLIC_SITE_URL, WEBAPI_PUBLIC_URL): the site names itself
+# in canonical links, hreflang and the sitemap, which must be absolute, and the
+# app in the way it hands a Telegram launch on (web/site/); the app sends a
+# browser to the site (VITE_SITE_URL). Required: unset, a page would name
+# localhost, or send somebody nowhere.
 ARG SITE_URL
-ENV SITE_URL=$SITE_URL
+ARG APP_URL
+ENV SITE_URL=$SITE_URL APP_URL=$APP_URL VITE_SITE_URL=$SITE_URL
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     : "${SITE_URL:?pass --build-arg SITE_URL=<the site's https origin>}" && \
+    : "${APP_URL:?pass --build-arg APP_URL=<the app's https origin>}" && \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || true)" pnpm run build
 
 # Production stage
@@ -98,7 +102,16 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 # The Mini App, public screens and console alike; docker/Caddyfile routes the
 # API paths around it.
 COPY --from=web-build /app/web/dist /srv/app
-# The public site beside it: the landing page and the guides (web/site/).
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD caddy validate --config /etc/caddy/Caddyfile >/dev/null || exit 1
+
+# The public site on konnekt.cz (web/site/), static, in a container of its own:
+# the app has its own host now, and the site's pages rendered on request will
+# need a server beside these (docker/site/Caddyfile).
+FROM caddy:2.11.2-alpine AS site
+
+COPY docker/site/Caddyfile /etc/caddy/Caddyfile
 COPY --from=web-build /app/web/site/dist /srv/site
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

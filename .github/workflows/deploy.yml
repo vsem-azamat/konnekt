@@ -102,7 +102,8 @@ jobs:
           target: webui
           build-args: |
             WEB_VERSION=${{ github.sha }}
-            SITE_URL=${{ vars.WEBAPI_PUBLIC_URL }}
+            SITE_URL=${{ vars.PUBLIC_SITE_URL }}
+            APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
             VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEBUI }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_URL=${{ vars.SENTRY_URL }}
@@ -114,6 +115,29 @@ jobs:
             ghcr.io/vsem-azamat/supervisor-telegram-webui:${{ github.sha }}
           cache-from: type=gha,scope=webui
           cache-to: type=gha,mode=max,scope=webui
+
+      # The public site on konnekt.cz, from the same web build (docker/site/).
+      # A tag of the public webui package, which the host pulls without a login.
+      - name: Build and push the site
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: site
+          build-args: |
+            WEB_VERSION=${{ github.sha }}
+            SITE_URL=${{ vars.PUBLIC_SITE_URL }}
+            APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
+            VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEBUI }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_URL=${{ vars.SENTRY_URL }}
+          # Uploads the source maps under this commit (web/vite.config.ts).
+          secrets: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          push: true
+          tags: |
+            ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${{ github.sha }}
+          cache-from: type=gha,scope=site
+          cache-to: type=gha,mode=max,scope=site
 
       # A tag of the same public package rather than a package of its own: a
       # new package starts private, and the host pulls without a login.
@@ -156,7 +180,7 @@ jobs:
         run: |
           echo "$SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "sha must be a full 40-character commit id" >&2; exit 1; }
           git merge-base --is-ancestor "$SHA" origin/main || { echo "$SHA is not on main" >&2; exit 1; }
-          for image in supervisor-telegram:"$SHA" supervisor-telegram-webui:"$SHA" supervisor-telegram:catalog-"$SHA"; do
+          for image in supervisor-telegram:"$SHA" supervisor-telegram-webui:"$SHA" supervisor-telegram-webui:site-"$SHA" supervisor-telegram:catalog-"$SHA"; do
             docker buildx imagetools inspect "ghcr.io/vsem-azamat/$image" > /dev/null \
               || { echo "no published image $image" >&2; exit 1; }
           done
@@ -358,8 +382,8 @@ jobs:
             # This project's images only, and only once the new release is up:
             # the host is shared, and its other projects' images and build
             # cache are theirs to keep. 99 GB had piled up before this.
-            keep="$IMAGE_TAG catalog-$IMAGE_TAG"
-            [ -z "$PREVIOUS_TAG" ] || keep="$keep $PREVIOUS_TAG catalog-$PREVIOUS_TAG"
+            keep="$IMAGE_TAG catalog-$IMAGE_TAG site-$IMAGE_TAG"
+            [ -z "$PREVIOUS_TAG" ] || keep="$keep $PREVIOUS_TAG catalog-$PREVIOUS_TAG site-$PREVIOUS_TAG"
             stale=$(docker images --format '{{.Repository}}:{{.Tag}}' | while read -r ref; do
               case "$ref" in
                 ghcr.io/vsem-azamat/supervisor-telegram:*|ghcr.io/vsem-azamat/supervisor-telegram-webui:*) ;;

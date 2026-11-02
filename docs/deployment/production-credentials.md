@@ -50,6 +50,7 @@ What is public anyway. Printed in every public workflow log.
 | --- | --- |
 | `DB_PORT` | Optional, 5432 by default |
 | `WEBAPI_PUBLIC_URL` | Required. The allowed CORS origin, and where the catalog's buttons and notifications open the app |
+| `PUBLIC_SITE_URL` | Required. The public site's origin (konnekt.cz): its canonical links, hreflang and sitemap, and where the app sends a browser. The site's container sends every path that is not its own to `WEBAPI_PUBLIC_URL` |
 | `WEBAPI_OIDC_CLIENT_ID` | Optional. The Client ID next to that secret: the bot's id, which every sign-in URL shows anyway |
 | `WEBAPI_ADMIN_URL` | Optional. The origin the console opens at in a browser; the OpenID Connect redirect is `<it>/api/auth/telegram/callback` and must be one of BotFather's Allowed URLs |
 | `ADS_BOT_NAME` | Optional. The ads desk bot's display name; unset keeps the one in `app/core/config.py` |
