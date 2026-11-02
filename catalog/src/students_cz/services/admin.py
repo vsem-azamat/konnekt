@@ -63,6 +63,12 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         HelperProfile.status.in_((PublishStatus.PUBLISHED, PublishStatus.BANNED)),
         HelperProfile.reviewed_at.is_(None),
     )
+    # A hidden one is new again when its owner changed it, not when it first
+    # went out.
+    listed_or_edited = case(
+        (HelperProfile.status == PublishStatus.BANNED, HelperProfile.updated_at),
+        else_=HelperProfile.published_at,
+    )
     hidden = HelperProfile.status == PublishStatus.BANNED
     unanswered = and_(
         live(now), ~exists().where(RequestResponse.request_id == HelpRequest.id)
@@ -71,20 +77,7 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         SearchQuery.results_count == 0, SearchQuery.created_at >= now - MONTH
     )
     return AdminCatalog(
-        # A hidden one is new again when its owner changed it, not when it
-        # first went out.
-        profiles=await _new_profiles(
-            session,
-            lang,
-            to_review,
-            newest=case(
-                (
-                    HelperProfile.status == PublishStatus.BANNED,
-                    HelperProfile.updated_at,
-                ),
-                else_=HelperProfile.published_at,
-            ),
-        ),
+        profiles=await _new_profiles(session, lang, to_review, newest=listed_or_edited),
         hidden=await _new_profiles(
             session, lang, hidden, newest=HelperProfile.updated_at
         ),
@@ -93,6 +86,7 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         counts=AdminCounts(
             profiles_week=await _count(session, HelperProfile.user_id, new_profile),
             profiles_to_review=await _count(session, HelperProfile.user_id, to_review),
+            profiles_waiting_since=await _oldest(session, listed_or_edited, to_review),
             hidden=await _count(session, HelperProfile.user_id, hidden),
             requests_week=await _count(
                 session,
@@ -103,6 +97,9 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
                 ),
             ),
             unanswered=await _count(session, HelpRequest.id, unanswered),
+            unanswered_waiting_since=await _oldest(
+                session, HelpRequest.created_at, unanswered
+            ),
             failed_searches=await _count(
                 session, func.distinct(_search_key()), failed_search
             ),
@@ -116,6 +113,14 @@ async def _count(
     where: ColumnElement[bool],
 ) -> int:
     return await session.scalar(select(func.count(what)).where(where)) or 0
+
+
+async def _oldest(
+    session: AsyncSession,
+    since: ColumnElement[Any] | QueryableAttribute[Any],
+    where: ColumnElement[bool],
+) -> datetime | None:
+    return await session.scalar(select(func.min(since)).where(where))
 
 
 async def _new_profiles(
