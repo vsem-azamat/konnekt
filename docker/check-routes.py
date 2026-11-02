@@ -15,9 +15,10 @@ a dead end for the other. The app's screens, which search engines must not
 keep, say so with X-Robots-Tag.
 
 With --site it reads the public site's own Caddyfile (docker/site/, the site
-container on konnekt.cz) instead: the site's paths are its pages, «Открыть
-Konnekt» reaches the catalog without a browser's cookies, and every other
-path is a 301 to the app's host (APP_URL) that keeps the path and the query.
+container on konnekt.cz) instead: the site's paths are its pages, the
+catalog pages reach its Node server without a browser's cookies, «Открыть
+Konnekt» reaches the catalog the same way, and every other path is a 301 to
+the app's host (APP_URL) that keeps the path and the query.
 
 Usage: caddy adapt ... | python3 docker/check-routes.py
 (run with ADMIN_HOST=admin.example.test in the adapting environment)
@@ -34,6 +35,7 @@ WEBAPI = "webapi:8787"
 CATALOG = "catalog-api:8000"
 APP = "/srv/app"
 SITE = "/srv/site"
+RENDER = "site-render:4321"
 ADMIN_HOST = "admin.example.test"
 APP_URL = "https://app.example.test"
 
@@ -78,6 +80,17 @@ def public_site() -> dict[str, str]:
     """The site container's one host: its pages, the way into the bot, and the app's paths sent on."""
     return {
         **dict.fromkeys(SITE_PATHS, SITE),
+        # The catalog pages, rendered on request.
+        "/universities/": RENDER,
+        "/universities/cvut/": RENDER,
+        "/uk/universities/": RENDER,
+        "/en/universities/cvut/": RENDER,
+        "/chats/": RENDER,
+        "/cs/chats/": RENDER,
+        "/sitemap-catalog.xml": RENDER,
+        "/universities": "308 /universities/",
+        "/uk/universities": "308 /uk/universities/",
+        "/en/chats": "308 /en/chats/",
         "/api/v1/open": CATALOG,
         # Old buttons in Telegram name this host; the app is on its own now.
         "/home": TO_APP,
@@ -347,6 +360,8 @@ def problems(route: dict, path: str, expected: str, inherited: str | None = None
     if where != expected:
         return [f"goes to {where or 'nothing'}, not {expected}"]
     out = []
+    if expected == RENDER and not cookie_free(proxy):
+        out.append("is proxied with cookies")
     if expected == CATALOG and not cookie_free(proxy):
         # The console's session is valid on this whole origin, and the
         # catalog authenticates by initData alone: not its to receive.

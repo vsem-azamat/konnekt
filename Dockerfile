@@ -106,13 +106,23 @@ COPY --from=web-build /app/web/dist /srv/app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD caddy validate --config /etc/caddy/Caddyfile >/dev/null || exit 1
 
-# The public site on konnekt.cz (web/site/), static, in a container of its own:
-# the app has its own host now, and the site's pages rendered on request will
-# need a server beside these (docker/site/Caddyfile).
-FROM caddy:2.11.2-alpine AS site
+# The public site on konnekt.cz (web/site/), in containers of its own: Caddy
+# serves the built pages and sends the catalog pages to the Node server the
+# same build produced (docker/site/Caddyfile). One image for both, so a
+# release is one tag: the `site` service runs Caddy, `site-render` the server.
+FROM node:24.15.0-alpine3.23 AS site
 
+COPY --from=caddy:2.11.2-alpine /usr/bin/caddy /usr/bin/caddy
+# Where Caddy keeps its state, as in its own image.
+ENV XDG_CONFIG_HOME=/config XDG_DATA_HOME=/data
 COPY docker/site/Caddyfile /etc/caddy/Caddyfile
-COPY --from=web-build /app/web/site/dist /srv/site
+COPY --from=web-build /app/web/site/dist/client /srv/site
+# The server bundles what it imports (site/astro.config.ts); its own copy of
+# the built pages is where it looks for them, and the same files as Caddy's.
+COPY --from=web-build /app/web/site/dist/server /srv/render/server
+RUN ln -s /srv/site /srv/render/client
 
+EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD caddy validate --config /etc/caddy/Caddyfile >/dev/null || exit 1
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
