@@ -82,6 +82,18 @@ async def _record(
     logger.info("bot_rights_changed", chat_id=chat_id, status=status, changed_by=by)
 
 
+def is_absent(chat: Chat, rights: ChatBotRights | None) -> bool:
+    """Whether the bot is not in the chat, as far as what is stored can tell.
+
+    The hourly loop marks a chat that refuses it (`Chat.bot_absent_at`) and
+    clears the mark at its next daily ask; the bot's own update that it is back
+    comes at once, so a rights row newer than the mark wins.
+    """
+    if rights is not None and rights.status in GONE:
+        return True
+    return chat.bot_absent_at is not None and (rights is None or rights.known_at <= chat.bot_absent_at)
+
+
 def problems_of(status: str, rights: dict[str, bool]) -> list[str]:
     """What keeps the bot from moderating, by the names the gauge reports them under."""
     if status in GONE:

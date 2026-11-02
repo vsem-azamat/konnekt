@@ -203,9 +203,10 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
         updates and its hourly and daily checks. synced_at is when getChat last
         answered; member_count is the newest hourly count, None when there is
         none. bot_status is None for a chat the bot has not been asked about,
-        and bot_missing_rights names what keeps it from moderating there.
+        and bot_missing_rights names what keeps it from moderating there: "left"
+        when the bot is not in the chat, with bot_absent_since saying since when.
         """
-        from app.chats.bot_rights import problems_of
+        from app.chats.bot_rights import is_absent, problems_of
         from app.db.models import Chat, ChatBotRights
         from app.webapi.services import member_counts
 
@@ -216,6 +217,7 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
             member_count = await member_counts.latest(session, chat_id)
         if row is None:
             raise ToolError("unknown_chat")
+        absent = is_absent(row, rights)
 
         return {
             "chat_id": row.id,
@@ -230,7 +232,9 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
             "preview_only": row.is_preview_only,
             "synced_at": row.last_synced_at.isoformat() if row.last_synced_at else None,
             "bot_status": rights.status if rights else None,
-            "bot_missing_rights": problems_of(rights.status, rights.rights) if rights else [],
+            "bot_missing_rights": ["left"] if absent else problems_of(rights.status, rights.rights) if rights else [],
+            # Since when the bot has not been in the chat; the count is from before.
+            "bot_absent_since": row.bot_absent_at.isoformat() if absent and row.bot_absent_at else None,
         }
 
     @mcp.tool

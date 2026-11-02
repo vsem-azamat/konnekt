@@ -41,7 +41,6 @@ from aiogram.exceptions import TelegramAPIError, TelegramNetworkError, TelegramR
 from sqlalchemy import select
 
 from app.chats import bot_rights, profile
-from app.chats.bot_rights import GONE
 from app.chats.members import ADMINISTRATORS
 from app.chats.metadata import ask, fetch_metadata
 from app.chats.rights import DEFAULT_ADMIN_RIGHTS
@@ -154,9 +153,7 @@ def inspect_chat(
         synced_at=chat.last_synced_at,
         bot_status=rights.status if rights else None,
     )
-    # The hourly loop's mark stands until its next daily ask; the bot's own update says it is back at once.
-    marked_absent = chat.bot_absent_at is not None and (rights is None or rights.known_at <= chat.bot_absent_at)
-    if marked_absent or state.bot_status in GONE:
+    if bot_rights.is_absent(chat, rights):
         return dataclasses.replace(state, findings=("bot is not in the chat",))
     if chat.last_synced_at is None:
         return dataclasses.replace(state, findings=("not synced yet",))

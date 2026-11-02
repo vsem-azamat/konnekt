@@ -465,6 +465,7 @@ async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) 
         "synced_at",
         "bot_status",
         "bot_missing_rights",
+        "bot_absent_since",
     }
     assert data["title"] == "Managed Chat"
     assert data["type"] == "supergroup"
@@ -477,6 +478,22 @@ async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) 
     assert data["bot_status"] == "administrator"
     assert data["bot_missing_rights"] == ["no_restrict", "no_invite"]
     assert data["preview_only"] is False
+    assert data["bot_absent_since"] is None
+
+
+async def test_chat_info_says_when_the_bot_is_not_in_the_chat(mcp_session) -> None:
+    """A chat the bot was never added to after the move has a mark and no rights: its old count is history."""
+    await _seed_chats(mcp_session)
+    absent = datetime.datetime(2026, 10, 20, 12, 0)
+    async with mcp_session() as session:
+        (await session.get(Chat, MANAGED_CHAT_ID)).bot_absent_at = absent
+        session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=900))
+        await session.commit()
+
+    data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
+
+    assert data["bot_absent_since"].startswith("2026-10-20T12:00")
+    assert data["bot_missing_rights"] == ["left"]
 
 
 async def test_chat_info_without_a_count_says_none_not_zero(mcp_session) -> None:
