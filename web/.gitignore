@@ -1,8 +1,6 @@
 node_modules/
 dist/
 dist-ssr/
-# Astro's generated types for the site, remade by every build
-.astro/
 *.local
 
 # Certificates minted by vite-plugin-mkcert

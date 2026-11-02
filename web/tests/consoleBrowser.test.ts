@@ -25,7 +25,7 @@ test('an error code the server never sends is not shown as a message', () => {
   assert.equal(loginProblem('?other=failed'), null);
 });
 
-test('a browser gets the console and its sign-in, and the public site everywhere else', () => {
+test('a browser gets the console and its sign-in, and the landing page everywhere else', () => {
   assert.equal(isBrowserConsolePath('/login'), true);
   assert.equal(isBrowserConsolePath('/console'), true);
   assert.equal(isBrowserConsolePath('/console/chats/-100123'), true);
