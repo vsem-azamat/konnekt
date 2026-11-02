@@ -1317,6 +1317,37 @@ export type Price = {
 export type PriceUnit = 'hour' | 'lesson' | 'work' | 'day' | 'week' | 'month' | 'semester' | 'item' | 'negotiable';
 
 /**
+ * PublicUniversity
+ *
+ * A university as the public site names it on its catalog pages.
+ *
+ * Reference data and nothing else: no id, no faculties, nothing about who
+ * studies there. `site_url` is the university's own site, which its page links.
+ */
+export type PublicUniversity = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Short Name
+     */
+    short_name: string | null;
+    /**
+     * City
+     */
+    city: string | null;
+    /**
+     * Site Url
+     */
+    site_url: string | null;
+};
+
+/**
  * PublishStatus
  */
 export type PublishStatus = 'draft' | 'pending' | 'published' | 'hidden' | 'banned';
@@ -1931,6 +1962,35 @@ export type AdsApiV1AdsGetResponses = {
 };
 
 export type AdsApiV1AdsGetResponse = AdsApiV1AdsGetResponses[keyof AdsApiV1AdsGetResponses];
+
+export type UniversitiesApiV1UniversitiesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        lang?: UiLang;
+    };
+    url: '/api/v1/universities';
+};
+
+export type UniversitiesApiV1UniversitiesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UniversitiesApiV1UniversitiesGetError = UniversitiesApiV1UniversitiesGetErrors[keyof UniversitiesApiV1UniversitiesGetErrors];
+
+export type UniversitiesApiV1UniversitiesGetResponses = {
+    /**
+     * Response Universities Api V1 Universities Get
+     *
+     * Successful Response
+     */
+    200: Array<PublicUniversity>;
+};
+
+export type UniversitiesApiV1UniversitiesGetResponse = UniversitiesApiV1UniversitiesGetResponses[keyof UniversitiesApiV1UniversitiesGetResponses];
 
 export type ReadMeApiV1MeGetData = {
     body?: never;
