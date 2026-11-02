@@ -321,7 +321,7 @@ export function BotHistorySheet({
   );
 }
 
-/** The chat's people with admin rights, as the bot last heard; bots are left out by Telegram. */
+/** The chat's people with admin rights, as the bot last heard; another bot shows here when its updates did. */
 export function AdminRows({ admins }: { admins: ChatAdmin[] }) {
   if (!admins.length) {
     return (

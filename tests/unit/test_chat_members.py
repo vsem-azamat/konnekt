@@ -191,9 +191,13 @@ async def test_the_daily_check_records_who_the_administrators_are(session_maker)
         (await session.get(DbUser, OWNER.id)).language_code = "cs"
         await session.commit()
     quiet = User(id=12, is_bot=False, first_name="Tichý", last_name="Admin", username="tichy")
+    # Off the list since: asked about on their own, and named from that answer.
+    demoted = User(id=13, is_bot=False, first_name="Bývalý")
+    async with session_maker() as session:
+        await members.record(session, CHAT_ID, _admin(demoted), at=T0 - datetime.timedelta(days=1))
     bot = _bot(
         admins=[ChatMemberOwner(user=OWNER, is_anonymous=False), _admin(quiet)],
-        members_by_id={},
+        members_by_id={demoted.id: ChatMemberMember(user=demoted)},
     )
 
     await members.check_administrators(session_maker=session_maker, bot=bot, chat_id=CHAT_ID, at=T0)
@@ -201,6 +205,7 @@ async def test_the_daily_check_records_who_the_administrators_are(session_maker)
     async with session_maker() as session:
         added = await session.get(DbUser, quiet.id)
         assert (added.first_name, added.last_name, added.username) == ("Tichý", "Admin", "tichy")
+        assert (await session.get(DbUser, demoted.id)).first_name == "Bývalý"
         owner = await session.get(DbUser, OWNER.id)
         assert owner.first_name == OWNER.first_name
         # The list says nothing of language or Premium: what was known stays.

@@ -171,7 +171,7 @@ async def check_administrators(
 async def _remember(db: AsyncSession, user: User) -> None:
     """Keep the name of somebody the check found, who may never have written while the bot watched.
 
-    The list says nothing of the language or Premium: what was known of them stays.
+    Telegram leaves out the language here, and Premium when it is not: what was known of them stays.
     """
     await get_user_repository(db).upsert_profile(
         user.id,
