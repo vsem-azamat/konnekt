@@ -3,8 +3,7 @@
 Updates by kind and outcome, Bot API calls by method, the age of the poller's
 pulse and the depth of the queues. Series are never per chat or person
 (app/core/metrics.py says why). The bot has no web front, so it serves the
-scrape itself, on a port of its own: not the MCP plane's, which must stay
-unreachable from outside.
+scrape itself, on a port of its own.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ from app.chats import bot_rights, welcome
 from app.core import metrics
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.models import JoinCaptcha, PendingAction
+from app.db.models import JoinCaptcha
 from app.presentation.telegram.heartbeat import HEARTBEAT
 
 if TYPE_CHECKING:
@@ -90,17 +89,13 @@ class ApiCallMetrics(BaseRequestMiddleware):
 
 
 async def refresh_queue_depths(session: AsyncSession) -> None:
-    """One read of what is waiting: captchas for an answer or a decision, proposals for a press,
-    greetings past their time."""
+    """One read of what is waiting: captchas for an answer or a decision, greetings past
+    their time."""
     captchas = dict(
         (await session.execute(select(JoinCaptcha.status, func.count()).group_by(JoinCaptcha.status))).tuples().all()
     )
     QUEUE_DEPTH.labels(queue="captcha_pending").set(captchas.get(JoinCaptcha.STATUS_PENDING, 0))
     QUEUE_DEPTH.labels(queue="captcha_held").set(captchas.get(JoinCaptcha.STATUS_HELD, 0))
-    pending = await session.scalar(
-        select(func.count()).select_from(PendingAction).where(PendingAction.status == "pending")
-    )
-    QUEUE_DEPTH.labels(queue="pending_actions").set(pending or 0)
     QUEUE_DEPTH.labels(queue="welcome_overdue").set(await welcome.overdue(session))
 
 
@@ -159,7 +154,7 @@ async def run_metrics_server() -> None:
 
     class _BotOwnsSignals(uvicorn.Server):
         # aiogram replaces the signal handlers on each start_polling; the main
-        # bot owns SIGTERM, as for the MCP plane.
+        # bot owns SIGTERM.
         @contextlib.contextmanager
         def capture_signals(self) -> Generator[None, None, None]:
             yield

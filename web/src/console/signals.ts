@@ -19,26 +19,10 @@ export interface WaveSignal {
   quiet_until: string;
 }
 
-/** A ban or blacklisting proposed through MCP, waiting for a press. */
-export interface PendingActionSignal {
-  id: number;
-  action: 'ban' | 'blacklist';
-  /** None for every chat. */
-  chat_id: number | null;
-  chat_title: string | null;
-  target_user_id: number;
-  target_username: string | null;
-  target_name: string | null;
-  reason: string | null;
-  created_at: string;
-  expires_at: string;
-}
-
 export interface Signals {
   waves: WaveSignal[];
   /** People asking to join one chat within a minute that make a wave. */
   wave_per_minute: number;
-  pending_actions: PendingActionSignal[];
   queues: { ads_unreviewed: number; chats_in_review: number };
 }
 
@@ -58,7 +42,7 @@ export function menuCounts(
   catalog: { profiles_to_review: number } | undefined,
 ): MenuCounts {
   return {
-    signals: (signals?.waves.length ?? 0) + (signals?.pending_actions.length ?? 0),
+    signals: signals?.waves.length ?? 0,
     chats: signals?.queues.chats_in_review ?? 0,
     spam: signals?.queues.ads_unreviewed ?? 0,
     catalog: catalog?.profiles_to_review ?? 0,
@@ -87,22 +71,12 @@ export function elapsed(
 }
 
 /** Why a press on the Сигналы screen did not go through. */
-export type DecisionProblem =
-  | 'gone'
-  | 'decided'
-  | 'protected'
-  | 'unmanaged'
-  | 'refused'
-  | 'failed';
+export type DecisionProblem = 'gone' | 'decided' | 'failed';
 
 /** webapi's refusal of a decision, as the card should explain it. */
 export function decisionProblem(error: unknown): DecisionProblem {
   if (!(error instanceof ConsoleError)) return 'failed';
-  if (error.status === 404 || error.detail === 'gone') return 'gone';
+  if (error.status === 404) return 'gone';
   if (error.detail === 'decided otherwise') return 'decided';
-  if (error.detail === 'protected') return 'protected';
-  if (error.detail === 'unmanaged') return 'unmanaged';
-  // Telegram said no, and the proposal was closed as failed: another press finds it gone.
-  if (error.status === 502 && error.detail === 'failed') return 'refused';
   return 'failed';
 }

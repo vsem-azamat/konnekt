@@ -26,26 +26,12 @@ const signals: Signals = {
     },
   ],
   wave_per_minute: 20,
-  pending_actions: [
-    {
-      id: 2,
-      action: 'ban',
-      chat_id: null,
-      chat_title: null,
-      target_user_id: 7,
-      target_username: null,
-      target_name: null,
-      reason: null,
-      created_at: '2026-10-22T08:00:00',
-      expires_at: '2026-10-22T09:00:00',
-    },
-  ],
   queues: { ads_unreviewed: 4, chats_in_review: 2 },
 };
 
 test('each menu item counts what waits behind it', () => {
   assert.deepEqual(menuCounts(signals, { profiles_to_review: 3 }), {
-    signals: 2,
+    signals: 1,
     chats: 2,
     spam: 4,
     catalog: 3,
@@ -87,23 +73,12 @@ test('how long ago reads in minutes, then in hours', () => {
 });
 
 test('a refused decision says why, in the words webapi gives', () => {
-  assert.equal(decisionProblem(new ConsoleError(409, 'failed', 'gone')), 'gone');
   assert.equal(decisionProblem(new ConsoleError(404, 'failed', 'no such wave')), 'gone');
   assert.equal(
     decisionProblem(new ConsoleError(409, 'failed', 'decided otherwise')),
     'decided',
   );
-  assert.equal(
-    decisionProblem(new ConsoleError(409, 'failed', 'protected')),
-    'protected',
-  );
-  assert.equal(
-    decisionProblem(new ConsoleError(409, 'failed', 'unmanaged')),
-    'unmanaged',
-  );
-  // Telegram refused, or the network did: nothing more specific to say.
-  assert.equal(decisionProblem(new ConsoleError(502, 'failed', 'failed')), 'refused');
-  // A gateway's 502 says nothing of the proposal; another try is the honest advice.
+  // The network or a gateway: nothing more specific to say; another try is the honest advice.
   assert.equal(decisionProblem(new ConsoleError(502)), 'failed');
   assert.equal(decisionProblem(new ConsoleError(500)), 'failed');
   assert.equal(decisionProblem(new TypeError('fetch failed')), 'failed');

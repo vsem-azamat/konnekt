@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router';
 import {
   BagIcon,
   BellIcon,
-  BlockIcon,
   ChatIcon,
   DocumentIcon,
   PeopleIcon,
@@ -44,13 +43,7 @@ import {
 } from '@/console/queries';
 import css from '@/console/Summary.module.css';
 import { type AttentionKey, attention, type BusyChat } from '@/console/session';
-import {
-  elapsed,
-  menuCounts,
-  minutesUntil,
-  type PendingActionSignal,
-  type WaveSignal,
-} from '@/console/signals';
+import { elapsed, menuCounts, type WaveSignal } from '@/console/signals';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -78,7 +71,7 @@ function Summary() {
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
   const audience = useQuery(audienceSummaryQuery);
-  // The waves and the proposals, and whether the console's bot can act: the
+  // The waves, and whether the console's bot can act: the
   // same in both layouts. A browser's menu reads the signals too.
   const inBrowser = useBrowserConsole();
   // Polled here too: the Mini App has no menu to keep it fresh.
@@ -168,20 +161,13 @@ function Summary() {
     ),
   };
 
-  // Each wave and proposal on a row of its own, above the queues, as the
+  // Each wave on a row of its own, above the queues, as the
   // Сигналы screen puts them.
   const waiting = [
     ...(signals.data?.waves ?? []).map((wave) => (
       <WaveRow
         key={`wave-${wave.id}`}
         wave={wave}
-        onClick={() => open('/console/signals')}
-      />
-    )),
-    ...(signals.data?.pending_actions ?? []).map((proposal) => (
-      <ProposalRow
-        key={`proposal-${proposal.id}`}
-        proposal={proposal}
         onClick={() => open('/console/signals')}
       />
     )),
@@ -633,51 +619,6 @@ function WaveRow({ wave, onClick }: { wave: WaveSignal; onClick: () => void }) {
         ) : (
           <Chevron />
         )
-      }
-      onClick={onClick}
-    />
-  );
-}
-
-/** A ban proposed through MCP on the summary: whom, and how long it waits. */
-function ProposalRow({
-  proposal,
-  onClick,
-}: {
-  proposal: PendingActionSignal;
-  onClick: () => void;
-}) {
-  const who =
-    proposal.target_name ??
-    (proposal.target_username
-      ? `@${proposal.target_username}`
-      : String(proposal.target_user_id));
-  const chat = proposal.chat_title ?? String(proposal.chat_id);
-  const left = minutesUntil(proposal.expires_at);
-  return (
-    <Row
-      leading={
-        <Tile tone={1}>
-          <BlockIcon size={19} />
-        </Tile>
-      }
-      wrap
-      title={
-        proposal.action === 'blacklist' ? (
-          <Trans>Чёрный список: {who}</Trans>
-        ) : proposal.chat_id === null ? (
-          <Trans>Бан {who} во всех чатах</Trans>
-        ) : (
-          <Trans>
-            Бан {who} в {chat}
-          </Trans>
-        )
-      }
-      hint={<Trans>предложено через MCP · истекает через {left} мин</Trans>}
-      trailing={
-        <span className={`${table.pill} ${table.warn}`}>
-          <Trans>Ждёт нажатия</Trans>
-        </span>
       }
       onClick={onClick}
     />

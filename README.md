@@ -48,10 +48,6 @@ chats clean, and admins run everything from one console.
 | Catalog API | Tutors, services, requests; its own database | `catalog/` |
 | Mini App and console | React 19, one app for students and admins | `web/` |
 
-Removing a person always stays with a human: the control plane (an outside
-agent) can only propose a ban or a blacklist entry, and a super admin confirms
-it in the bot or the console, or it expires.
-
 ## Run it locally
 
 You need Docker, uv and pnpm. Each of the last four lines is a long-running

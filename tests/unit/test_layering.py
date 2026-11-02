@@ -1,7 +1,6 @@
 """The shared feature packages do not reach into the bot's presentation layer.
 
-app.moderation and app.chats serve the web API and the control plane as well
-as the bot; importing app.presentation from them made the shared layer depend
+app.moderation and app.chats serve the web API as well as the bot; importing app.presentation from them made the shared layer depend
 on one of its callers.
 """
 
@@ -13,7 +12,7 @@ from pathlib import Path
 import pytest
 
 APP = Path(__file__).resolve().parents[2] / "app"
-SHARED = ["audience", "chats", "core", "db", "mcp", "moderation", "webapi"]
+SHARED = ["audience", "chats", "core", "db", "moderation", "webapi"]
 
 
 def _imports(path: Path) -> set[str]:

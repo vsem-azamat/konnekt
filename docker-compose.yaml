@@ -8,7 +8,7 @@
 # every setting.
 #
 # There are no enable-flags here at all. A feature is on when it is configured:
-# the control plane needs a token, and that token is also its switch. A flag
+# the ads desk needs a token, and that token is also its switch. A flag
 # that could disagree with the configuration it gates can only ever be wrong in
 # one direction, and it is the direction that fails silently.
 #
@@ -34,7 +34,6 @@ x-runtime-env: &runtime-env
   ADMIN_SUPER_ADMINS:
   ADMIN_REPORT_CHAT_ID:
   WEBAPI_PUBLIC_URL:
-  MCP_TOKEN:
   # Fixed here rather than passed in: they do not differ between deployments,
   # and one of them is what "production" means.
   APP_ENVIRONMENT: production
@@ -126,18 +125,12 @@ services:
       # Each process is its own Sentry project; unset, nothing is reported.
       SENTRY_DSN: ${SENTRY_DSN_BOT:-}
       SENTRY_RELEASE: ${IMAGE_TAG}
-    # The MCP control plane is served here rather than by webapi: Telegram
-    # answers a confirmation button to the identity that sent it, and that
-    # identity is this process. Loopback only — not published to the internet.
-    # The scrape beside it, on its own port: the edge proxies that one to
-    # Prometheus, and the control plane stays reachable from this host alone.
+    # The scrape, loopback only: the edge proxies it to Prometheus.
     ports:
-      - "127.0.0.1:8788:8788"
       - "127.0.0.1:8789:8789"
-    # A network of its own: the MCP plane listens on every interface inside
-    # the container, so on the shared network the catalog API and every other
-    # container could reach it. Nothing in the stack calls the bot; it needs
-    # only the way out, to Telegram and the database.
+    # A network of its own: the scrape listens on every interface inside the
+    # container. Nothing in the stack calls the bot; it needs only the way
+    # out, to Telegram and the database.
     networks: [bot]
     volumes:
       - bot-logs:/app/logs

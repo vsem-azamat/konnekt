@@ -439,8 +439,8 @@ msgid "Kč"
 msgstr "Kč"
 
 #: src/console/pages/Signals.tsx
-msgid "В чёрный список"
-msgstr "Blacklist"
+#~ msgid "В чёрный список"
+#~ msgstr "Blacklist"
 
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
@@ -473,8 +473,8 @@ msgid "Капча в чате"
 msgstr "Captcha in the chat"
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: главного администратора забанить нельзя."
-msgstr "Not done: the main administrator cannot be banned."
+#~ msgid "Не выполнено: главного администратора забанить нельзя."
+#~ msgstr "Not done: the main administrator cannot be banned."
 
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
@@ -632,8 +632,8 @@ msgid "Реклама или спам"
 msgstr "Advertising or spam"
 
 #: src/console/pages/Signals.tsx
-msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
-msgstr "The same buttons as in the bot's private message; the decision shows there too."
+#~ msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
+#~ msgstr "The same buttons as in the bot's private message; the decision shows there too."
 
 #: src/console/pages/Summary.tsx
 msgid "могут получить сообщение"
@@ -716,8 +716,8 @@ msgid "Данные входа устарели."
 msgstr "The sign-in data has expired."
 
 #: src/console/pages/Summary.tsx
-msgid "Ждёт нажатия"
-msgstr "Awaiting a tap"
+#~ msgid "Ждёт нажатия"
+#~ msgstr "Awaiting a tap"
 
 #: src/pages/Profile.tsx
 msgid "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
@@ -1051,8 +1051,8 @@ msgid "ждёт решения"
 msgstr "awaiting a decision"
 
 #: src/console/pages/Signals.tsx
-msgid "Подтвердить бан"
-msgstr "Confirm the ban"
+#~ msgid "Подтвердить бан"
+#~ msgstr "Confirm the ban"
 
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
@@ -1120,8 +1120,8 @@ msgid "Неправдивые сведения"
 msgstr "Misleading information"
 
 #: src/console/pages/Summary.tsx
-msgid "предложено через MCP · истекает через {left} мин"
-msgstr "proposed via MCP · expires in {left} min"
+#~ msgid "предложено через MCP · истекает через {left} мин"
+#~ msgstr "proposed via MCP · expires in {left} min"
 
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
@@ -1240,8 +1240,8 @@ msgid "в разделе «Не про учёбу»"
 msgstr "in «Not about studies»"
 
 #: src/console/pages/Signals.tsx
-msgid "Ни набегов, ни предложенных банов."
-msgstr "No raids and no proposed bans."
+#~ msgid "Ни набегов, ни предложенных банов."
+#~ msgstr "No raids and no proposed bans."
 
 #: src/console/pages/Audience.tsx
 msgid "список, поиск, фильтры"
@@ -1438,8 +1438,8 @@ msgid "Срок"
 msgstr "Turnaround"
 
 #: src/console/pages/Signals.tsx
-msgid "Отклонить"
-msgstr "Reject"
+#~ msgid "Отклонить"
+#~ msgstr "Reject"
 
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
@@ -1672,8 +1672,8 @@ msgstr "hidden, the author changed it"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Бан {who} в {chat}"
-msgstr "Ban {who} in {chat}"
+#~ msgid "Бан {who} в {chat}"
+#~ msgstr "Ban {who} in {chat}"
 
 #: src/console/pages/Chat.tsx
 msgid "Раздел каталога"
@@ -1740,8 +1740,8 @@ msgid "Проверено {0}"
 msgstr "Checked {0}"
 
 #: src/console/pages/Signals.tsx
-msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
-msgstr "Proposed through MCP. Waits for an admin to press, expires in {left} min."
+#~ msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
+#~ msgstr "Proposed through MCP. Waits for an admin to press, expires in {left} min."
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -2543,6 +2543,10 @@ msgstr "People"
 msgid "Не в каталоге · чат не решён"
 msgstr "Not in the catalog · no decision yet"
 
+#: src/console/pages/Signals.tsx
+msgid "Набегов нет."
+msgstr "No raids."
+
 #: src/pages/Landing.tsx
 #~ msgid "Кто поможет с учёбой в Чехии"
 #~ msgstr "Who can help you study in Czechia"
@@ -2656,8 +2660,8 @@ msgid "Бан не сработает, капча в чате не выключ�
 msgstr "Bans will not work, and the captcha in the chat cannot keep a newcomer from writing."
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: Telegram отказал. Запрос закрыт."
-msgstr "Not done: Telegram refused. The request is closed."
+#~ msgid "Не выполнено: Telegram отказал. Запрос закрыт."
+#~ msgstr "Not done: Telegram refused. The request is closed."
 
 #: src/console/Charts.tsx
 msgid "Чт"
@@ -2925,8 +2929,8 @@ msgstr "per month"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Бан {who} во всех чатах"
-msgstr "Ban {who} in every chat"
+#~ msgid "Бан {who} во всех чатах"
+#~ msgstr "Ban {who} in every chat"
 
 #: src/console/pages/Chat.tsx
 msgid "Админы чата"
@@ -3071,8 +3075,8 @@ msgstr "Breaks the rules"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Чёрный список: {who}"
-msgstr "Blacklist: {who}"
+#~ msgid "Чёрный список: {who}"
+#~ msgstr "Blacklist: {who}"
 
 #: src/console/pages/Chats.tsx
 msgid "Участники"
@@ -3137,8 +3141,8 @@ msgid "Ещё"
 msgstr "More"
 
 #: src/console/pages/Signals.tsx
-msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
-msgstr "Proposed through MCP: {reason}. Waits for an admin to press, expires in {left} min."
+#~ msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
+#~ msgstr "Proposed through MCP: {reason}. Waits for an admin to press, expires in {left} min."
 
 #. placeholder {0}: step.fresh
 #: src/console/AudienceCharts.tsx
@@ -4040,8 +4044,8 @@ msgid "Требует внимания"
 msgstr "Needs attention"
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
-msgstr "Not done: the bot no longer moderates this chat. The request is closed."
+#~ msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
+#~ msgstr "Not done: the bot no longer moderates this chat. The request is closed."
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Все услуги выключены, поэтому тебя сейчас не найдут. Включи хотя бы одну."
