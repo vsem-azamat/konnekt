@@ -22,7 +22,7 @@ from app.db.session import get_session_maker
 from app.webapi.deps import get_publish_bot, get_session, require_super_admin
 from app.webapi.schemas import SignalQueues, Signals, WaveSignal
 from app.webapi.services.member_counts import latest_for
-from app.webapi.services.spam_pings import count_unreviewed
+from app.webapi.services.spam_pings import count_unreviewed, unreviewed_since
 
 logger = get_logger("webapi.signals")
 
@@ -38,7 +38,12 @@ async def read_signals(session: Annotated[AsyncSession, Depends(get_session)]) -
     titles = dict((await session.execute(select(Chat.id, Chat.title).where(Chat.id.in_(chat_ids)))).tuples().all())
     members = await latest_for(session, [wave.chat_id for wave, _ in held_waves])
 
-    in_review = await session.scalar(select(func.count(Chat.id)).where(Chat.resource_status == Chat.STATUS_DISCOVERED))
+    # Found when the bot first met the chat, so it waits from then.
+    in_review, review_since = (
+        await session.execute(
+            select(func.count(Chat.id), func.min(Chat.created_at)).where(Chat.resource_status == Chat.STATUS_DISCOVERED)
+        )
+    ).one()
     return Signals(
         waves=[
             WaveSignal(
@@ -55,7 +60,12 @@ async def read_signals(session: Annotated[AsyncSession, Depends(get_session)]) -
             for wave, held in held_waves
         ],
         wave_per_minute=waves.PER_MINUTE,
-        queues=SignalQueues(ads_unreviewed=await count_unreviewed(session), chats_in_review=in_review or 0),
+        queues=SignalQueues(
+            ads_unreviewed=await count_unreviewed(session),
+            ads_waiting_since=await unreviewed_since(session),
+            chats_in_review=in_review,
+            chats_waiting_since=review_since,
+        ),
     )
 
 

@@ -664,10 +664,13 @@ class WaveSignal(BaseModel):
 
 
 class SignalQueues(BaseModel):
-    """How many wait in the console's own queues."""
+    """How many wait in the console's own queues, and since when."""
 
     ads_unreviewed: int
+    # When the oldest of each came in; none when nothing waits.
+    ads_waiting_since: datetime.datetime | None
     chats_in_review: int
+    chats_waiting_since: datetime.datetime | None
 
 
 class Signals(BaseModel):
