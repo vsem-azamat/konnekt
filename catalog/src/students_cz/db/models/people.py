@@ -163,7 +163,8 @@ class HelperProfile(TimestampMixin, Base):
     )
     hidden_note: Mapped[str | None] = mapped_column(String(HIDE_NOTE_MAX))
     # Whether the bot writes when somebody posts a request this person could
-    # answer. Theirs to turn off in «Мои услуги»; see services/request_alerts.py.
+    # answer. Theirs to turn off in «О себе и как работаю»; see
+    # services/request_alerts.py.
     new_request_alerts: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )

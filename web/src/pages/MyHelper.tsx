@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { EditIcon, iconForService, PlusIcon } from '@/components/icons';
+import { NoUsernameNotice } from '@/components/NoUsernameNotice';
 import { OwnerStatusCard } from '@/components/OwnerStatusCard';
 import { PriceUnitLabel } from '@/components/Phrase';
 import { ServiceSheet } from '@/components/ServiceSheet';
@@ -131,6 +132,7 @@ export default function MyHelperPage() {
           place="services"
         />
       ) : null}
+      {seen ? <NoUsernameNotice /> : null}
 
       {data && serviceTypes ? (
         <WhatToAdd helper={data} serviceTypes={serviceTypes} />

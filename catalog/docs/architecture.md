@@ -71,7 +71,7 @@ yet — what is still owed is listed at the bottom of this document.
 for an answer to your own request, which is not us writing to you unprompted.
 The one unprompted message is about somebody else's request
 (`services/request_alerts.py`): it skips anyone with `unsubscribed_at`, and its
-own way out is the switch in «Мои услуги» (`helper_profiles.new_request_alerts`),
+own way out is the switch in «О себе и как работаю» (`helper_profiles.new_request_alerts`),
 which the message names.
 
 Nothing here is DDD. There are no aggregates, no repository per model, no

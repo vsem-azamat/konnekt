@@ -120,7 +120,7 @@ async def test_a_helper_hears_once_in_their_language(
     assert text.startswith("<b>A new request for your service</b>")
     assert "calculus &lt;3 before the exam" in text
     assert "Budget up to 500 Kč" in text
-    assert "“My services”" in text
+    assert "“About me and how I work”" in text
 
 
 async def test_nothing_in_the_first_five_minutes(

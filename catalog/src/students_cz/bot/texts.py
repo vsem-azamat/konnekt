@@ -97,31 +97,31 @@ WAIT_FOR_MESSAGE: dict[UiLang, str] = {
 
 # Somebody posted a request this helper's services cover. The only message
 # here that answers nothing the recipient did, so it says how to stop it; the
-# switch is in «Мои услуги», and services/request_alerts.py keeps it rare.
+# switch is in «О себе и как работаю», and services/request_alerts.py keeps it rare.
 NEW_REQUEST_FOR_HELPER: dict[UiLang, str] = {
     UiLang.RU: (
         "<b>Новая заявка по твоей услуге</b>\n"
         "{topic}\n"
         "«{text}»{budget}\n\n"
-        "Выключить такие сообщения можно в «Мои услуги»."
+        "Выключить такие сообщения можно в «О себе и как работаю»."
     ),
     UiLang.CS: (
         "<b>Nová poptávka k tvé službě</b>\n"
         "{topic}\n"
         "„{text}“{budget}\n\n"
-        "Tyto zprávy vypneš v „Moje služby“."
+        "Tyto zprávy vypneš v „O mně a jak pracuji“."
     ),
     UiLang.EN: (
         "<b>A new request for your service</b>\n"
         "{topic}\n"
         "“{text}”{budget}\n\n"
-        "You can turn these messages off in “My services”."
+        "You can turn these messages off in “About me and how I work”."
     ),
     UiLang.UK: (
         "<b>Нова заявка на твою послугу</b>\n"
         "{topic}\n"
         "«{text}»{budget}\n\n"
-        "Вимкнути такі повідомлення можна в «Мої послуги»."
+        "Вимкнути такі повідомлення можна в «Про себе і як працюю»."
     ),
 }
 
