@@ -1,0 +1,14 @@
+---
+import GuideList from '../../../components/GuideList.astro';
+import { DEFAULT_LANG, LANGS, type Lang } from '../../../paths.ts';
+
+export function getStaticPaths() {
+  return LANGS.filter((lang) => lang !== DEFAULT_LANG).map((lang) => ({
+    params: { lang },
+  }));
+}
+
+const { lang } = Astro.params as { lang: Lang };
+---
+
+<GuideList lang={lang} />

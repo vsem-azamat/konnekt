@@ -1,0 +1,44 @@
+---
+/** The guides in one language, examples marked as such. */
+import { getCollection } from 'astro:content';
+
+import Base from '../layouts/Base.astro';
+import { guidePath, hiddenPaths, type Lang, langOf, localePath } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = TEXTS[lang];
+const all = await getCollection('guides');
+const guides = all.filter((guide) => langOf(guide.id) === lang);
+const hidden = hiddenPaths(all.map(({ id, data }) => ({ id, draft: data.draft })));
+---
+
+<Base
+  lang={lang}
+  path="/guides/"
+  title={`${t.guides} — Konnekt`}
+  description={t.guides}
+  noindex={hidden.includes(localePath(lang, '/guides/'))}
+>
+  <main class="page">
+    <h1>{t.guides}</h1>
+    {guides.length === 0 && <p>{t.noGuides}</p>}
+    <ul class="guides">
+      {
+        guides.map((guide) => (
+          <li>
+            <a href={guidePath(guide.id)}>
+              {guide.data.draft && <span class="badge">{t.example}</span>}
+              <strong>{guide.data.title}</strong>
+              <p>{guide.data.description}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>

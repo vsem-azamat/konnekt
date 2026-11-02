@@ -1,0 +1,42 @@
+---
+/**
+ * The landing page in one language: say what is behind the door and open it.
+ *
+ * The button goes through the catalog's /api/v1/open, which redirects to the
+ * bot: the bot's handle lives in one place, the token the server runs with,
+ * rather than in this build too.
+ */
+import Base from '../layouts/Base.astro';
+import type { Lang } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = TEXTS[lang];
+// The Mini App's tile tones, in the order its landing used them.
+const TONES = [0, 3, 1, 2];
+---
+
+<Base lang={lang} path="/" title={t.title} description={t.description}>
+  <main class="landing">
+    <h1 class="headline">{t.headline}</h1>
+    <p class="sub">{t.sub}</p>
+    <ul class="chips">
+      {
+        t.chips.map((chip, index) => (
+          <li
+            class="chip"
+            style={`background: var(--tone-${TONES[index]}-bg); color: var(--tone-${TONES[index]}-fg)`}
+          >
+            {chip}
+          </li>
+        ))
+      }
+    </ul>
+    <a class="cta" href="/api/v1/open">{t.cta}</a>
+    <p class="foot">{t.foot}</p>
+  </main>
+</Base>

@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+
+import Guide from '../../../components/Guide.astro';
+import { DEFAULT_LANG, langOf, slugOf } from '../../../paths.ts';
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides');
+  return guides
+    .filter((guide) => langOf(guide.id) !== DEFAULT_LANG)
+    .map((guide) => ({
+      params: { lang: langOf(guide.id), slug: slugOf(guide.id) },
+      props: { guide },
+    }));
+}
+
+const { guide } = Astro.props;
+---
+
+<Guide guide={guide} />
