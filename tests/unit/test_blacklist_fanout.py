@@ -159,7 +159,7 @@ class TestOnlyApprovedChats:
 
 class TestSuperAdmins:
     async def test_a_super_admin_is_never_blacklisted(self, wired, monkeypatch):
-        """Whichever door asks: a command, the console, the control plane.
+        """Whichever door asks: a command or the console.
 
         A blacklisted account loses every message, its private ones to the bot
         included, so a super admin on the list would lose the bot itself.

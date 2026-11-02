@@ -202,7 +202,6 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "BRAVE_API_KEY",
         "TELETHON_API_ID",
         "TELETHON_API_HASH",
-        "MCP_TOKEN",
         "WEBAPI_OIDC_CLIENT_SECRET",
         "CATALOG_SERVICE_TOKEN",
         # Prometheus's bearer token: whoever has it reads every counter.
@@ -630,16 +629,16 @@ def test_the_deploy_never_passes_a_list_as_one_unquoted_variable() -> None:
         assert not re.search(rf"(docker [^\n]*|\bin) \${name}\b", script), name
 
 
-def test_nothing_else_in_the_stack_can_reach_the_control_plane() -> None:
-    """The bot serves MCP; on the shared network every container, the catalog API included, could reach it."""
+def test_nothing_else_in_the_stack_can_reach_the_bot() -> None:
+    """Nothing in the stack calls the bot; on the shared network every container could reach its scrape."""
     services = yaml.safe_load(COMPOSE.read_text())["services"]
 
     assert services["bot"]["networks"] == ["bot"]
     for name, service in services.items():
         if name != "bot":
             assert "bot" not in (service.get("networks") or []), name
-    # The host still reaches it, on loopback only.
-    assert "127.0.0.1:8788:8788" in services["bot"]["ports"]
+    # The host still reaches the scrape, on loopback only.
+    assert services["bot"]["ports"] == ["127.0.0.1:8789:8789"]
 
 
 def test_every_long_running_service_rotates_its_logs() -> None:
@@ -809,12 +808,11 @@ def test_the_metrics_secret_reaches_the_three_processes_that_serve_a_scrape_and_
     assert holders == {"bot", "webapi", "catalog-api"}
 
 
-def test_the_bots_scrape_is_published_on_loopback_beside_the_control_plane_not_through_it() -> None:
-    """The edge reaches it at 127.0.0.1:8789; the MCP plane stays a port of its own."""
+def test_the_bots_scrape_is_published_on_loopback() -> None:
+    """The edge reaches it at 127.0.0.1:8789."""
     ports = yaml.safe_load(COMPOSE.read_text())["services"]["bot"]["ports"]
 
     assert "127.0.0.1:8789:8789" in ports
-    assert "127.0.0.1:8788:8788" in ports
     assert all(port.startswith("127.0.0.1:") for port in ports)
 
 

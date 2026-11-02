@@ -7,7 +7,7 @@ from app.presentation.telegram.middlewares import (
     chat_type as chat_type_middlewares,
 )
 
-from . import admin, captcha, events, groups, moderation, pending_actions, service, start
+from . import admin, captcha, events, groups, moderation, service, start
 
 router = Router()
 
@@ -20,7 +20,6 @@ groups.groups_router.message.middleware(chat_type_middlewares.ChatTypeMiddleware
 service.router.message.middleware(admin_middlewares.SuperAdminMiddleware())
 
 router.include_router(moderation.moderation_router)
-router.include_router(pending_actions.pending_actions_router)
 router.include_router(captcha.router)
 router.include_router(start.router)
 router.include_router(admin.admin_router)

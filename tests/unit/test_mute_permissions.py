@@ -1,4 +1,4 @@
-"""The permission sets shared by `!mute`/`!unmute` and the control plane's tools."""
+"""The permission sets `!mute`/`!unmute` and the join captcha share."""
 
 from aiogram.types import ChatPermissions
 from app.moderation.mute_permissions import MUTED, UNMUTED

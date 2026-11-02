@@ -663,22 +663,6 @@ class WaveSignal(BaseModel):
     quiet_until: datetime.datetime
 
 
-class PendingActionSignal(BaseModel):
-    """A ban or blacklisting proposed through MCP, waiting for an admin's press."""
-
-    id: int
-    action: Literal["ban", "blacklist"]
-    # None for every chat.
-    chat_id: int | None
-    chat_title: str | None
-    target_user_id: int
-    target_username: str | None
-    target_name: str | None
-    reason: str | None
-    created_at: datetime.datetime
-    expires_at: datetime.datetime
-
-
 class SignalQueues(BaseModel):
     """How many wait in the console's own queues."""
 
@@ -692,7 +676,10 @@ class Signals(BaseModel):
     waves: list[WaveSignal]
     # People asking to join one chat within a minute that make a wave.
     wave_per_minute: int
-    pending_actions: list[PendingActionSignal]
+    # Always empty: the MCP proposals are gone. Kept one release so a console
+    # tab still on the old bundle counts zero instead of failing; dropped with
+    # the pending_actions table.
+    pending_actions: list[None] = []
     queues: SignalQueues
 
 

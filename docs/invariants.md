@@ -246,7 +246,7 @@ chat, do not set it by hand on the bot's link.
 
 **Moderation is the one meaning of `approved`, read when the action runs.**
 Every path that acts in a chat asks whether it is approved at the moment it
-acts — a proposal confirmed later or a join check passed later asks again,
+acts — a join check passed later asks again,
 since the chat may have been switched to watching in between. The statuses
 that only list a chat are other values of the same column rather than a second
 column beside it: a second column would have to be remembered at every one of
@@ -432,7 +432,7 @@ moderator removed from a chat keeps it until the cache expires.
 
 **A moderator's action is written down after it succeeds, never before.** The
 row is the claim that something happened, so an attempt that Telegram refused
-must not leave one — and a proposal a human rejected leaves nothing at all.
+must not leave one.
 
 **Failing to write the row never fails the action.** By the time the record is
 written the person is already banned; an error surfacing to the admin at that
@@ -440,54 +440,16 @@ point would report the opposite of what happened. The write is logged and
 swallowed, which is the one place in this codebase where losing data is
 preferable to raising.
 
-**The actor is always a person.** The source says how the action was asked for —
-a command in a chat, the console, or the control plane — but a token can never be the answer
-to "who banned this person", so a confirmed proposal is recorded against the
-admin who pressed confirm.
+**The actor is always a person.** The source says how the action was asked for:
+a command in a chat or the console. Rows from the retired MCP control plane keep
+the source `mcp`, recorded against the admin who pressed confirm, so the value
+stays in the enum and the check constraint while the history holds it.
 
 **The blacklist cache may be stale, never wrong about a return.** The bot keeps
 the blacklisted ids for five minutes, and not every path that changes the list
 can reset that cache — the console runs in another process. A cached id is confirmed against
 its row before the bot bans anyone: a stale cache may let a fresh ban wait for
 Telegram's own, but never throws out a person who was let back in.
-
-## MCP control plane
-
-**The boundary is what a leaked token can do, not which tools exist.** The
-original rule was that the toolset must never grow. That held while the plane
-only touched content, and stopped holding when the operator's moderation work
-moved here, because the point of that work is privileged mutation. What
-replaced it: reads never reach outside managed chats, bounded writes are
-reversible or self-expiring, and removals are only ever proposed.
-
-**Removing a person is never performed by a tool call.** `propose_ban` and
-`propose_blacklist` create a pending action and return. A super admin presses
-confirm in the moderator bot or on the console's Сигналы screen, or it expires
-having done nothing. Both presses go through the same claim, so of two at once
-exactly one runs, and the console's press takes the buttons off the bot's
-message so it cannot offer a decision already made. Any tool that
-bans directly re-opens this — as would any tool that decides and acts in one
-call, which is what the removed assistant's `analyze_message` did.
-
-**A ban is attributable, and the token is not a person.** Every proposal records
-the admin it acts for — the first super admin, the same one escalations and
-reports answer to. With no admin configured the proposal tools refuse
-rather than log an action against nobody.
-
-**Tool errors are masked because they land in an operator's chat history.** An
-unmasked exception travels to the external runtime and from there into a
-conversation log; a failed database connection would carry its DSN along.
-`mask_error_details` is not a debugging convenience to toggle.
-
-**The control plane is not published to the internet, and that is a decision
-rather than an oversight.** It is served by the bot, published on the host's
-loopback only, and inside the stack the bot sits on a network no other
-container joins: the catalog API parses untrusted input and must not be one
-leaked token away from it. The edge has no rule for it. This was not always
-so: the endpoint used to live on the web API behind the existing `/api/*`
-proxy, where enabling the flag was enough to expose it. Do not restore that
-convenience — the toolset now includes privileged moderation, and its safety
-rests on more than a bearer token.
 
 ## Observability
 
@@ -507,9 +469,9 @@ is no flag beside it: one that disagreed with the secret could only fail in the
 direction that leaves a door open. The same token reads all three endpoints;
 rotating it is one repository secret and one file on the monitoring host.
 
-**The bot's metrics are not the control plane's port.** The bot has no web
-front, so its scrape has a port of its own (8789), which the edge may proxy to
-Prometheus. The MCP plane (8788) must stay unproxied, see «Approval».
+**The bot's scrape has a port of its own.** The bot has no web front, so its
+metrics are served on 8789, published on loopback, which the edge may proxy to
+Prometheus.
 
 ## Deployment
 

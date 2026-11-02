@@ -440,8 +440,8 @@ msgid "Kč"
 msgstr "Kč"
 
 #: src/console/pages/Signals.tsx
-msgid "В чёрный список"
-msgstr "Na černou listinu"
+#~ msgid "В чёрный список"
+#~ msgstr "Na černou listinu"
 
 #: src/console/pages/Chat.tsx
 msgid "Отключить"
@@ -478,8 +478,8 @@ msgid "Капча в чате"
 msgstr "Captcha v chatu"
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: главного администратора забанить нельзя."
-msgstr "Neprovedeno: hlavního administrátora nelze zabanovat."
+#~ msgid "Не выполнено: главного администратора забанить нельзя."
+#~ msgstr "Neprovedeno: hlavního administrátora nelze zabanovat."
 
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
@@ -641,8 +641,8 @@ msgid "Реклама или спам"
 msgstr "Reklama nebo spam"
 
 #: src/console/pages/Signals.tsx
-msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
-msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět i tam."
+#~ msgid "Те же кнопки, что в личном сообщении бота; решение видно и там."
+#~ msgstr "Stejná tlačítka jako v soukromé zprávě bota; rozhodnutí je vidět i tam."
 
 #: src/console/pages/Summary.tsx
 #~ msgid "могут получить сообщение"
@@ -729,8 +729,8 @@ msgid "Данные входа устарели."
 msgstr "Přihlašovací údaje vypršely."
 
 #: src/console/pages/Summary.tsx
-msgid "Ждёт нажатия"
-msgstr "Čeká na stisknutí"
+#~ msgid "Ждёт нажатия"
+#~ msgstr "Čeká na stisknutí"
 
 #: src/pages/Profile.tsx
 msgid "{waitingForMe, plural, one {# заявка по твоим услугам} few {# заявки по твоим услугам} many {# заявок по твоим услугам} other {# заявки по твоим услугам}}"
@@ -1068,8 +1068,8 @@ msgid "ждёт решения"
 msgstr "čeká na rozhodnutí"
 
 #: src/console/pages/Signals.tsx
-msgid "Подтвердить бан"
-msgstr "Potvrdit ban"
+#~ msgid "Подтвердить бан"
+#~ msgstr "Potvrdit ban"
 
 #: src/pages/Join.tsx
 msgid "факультеты, общежития, общие"
@@ -1137,8 +1137,8 @@ msgid "Неправдивые сведения"
 msgstr "Nepravdivé údaje"
 
 #: src/console/pages/Summary.tsx
-msgid "предложено через MCP · истекает через {left} мин"
-msgstr "navrženo přes MCP · vyprší za {left} min"
+#~ msgid "предложено через MCP · истекает через {left} мин"
+#~ msgstr "navrženo přes MCP · vyprší za {left} min"
 
 #: src/pages/MyHelper.tsx
 msgid "репетиторство, работы, документы"
@@ -1261,8 +1261,8 @@ msgid "в разделе «Не про учёбу»"
 msgstr "v sekci «Ne o studiu»"
 
 #: src/console/pages/Signals.tsx
-msgid "Ни набегов, ни предложенных банов."
-msgstr "Žádné nájezdy ani navržené bany."
+#~ msgid "Ни набегов, ни предложенных банов."
+#~ msgstr "Žádné nájezdy ani navržené bany."
 
 #: src/console/pages/Audience.tsx
 msgid "список, поиск, фильтры"
@@ -1459,8 +1459,8 @@ msgid "Срок"
 msgstr "Termín"
 
 #: src/console/pages/Signals.tsx
-msgid "Отклонить"
-msgstr "Odmítnout"
+#~ msgid "Отклонить"
+#~ msgstr "Odmítnout"
 
 #: src/pages/OfferPrices.tsx
 msgid "Анкета скрыта — услуги сохранятся, но в каталоге их не будет. Включить видимость можно в анкете."
@@ -1697,8 +1697,8 @@ msgstr "skrytý, autor ho upravil"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Бан {who} в {chat}"
-msgstr "Ban {who} v {chat}"
+#~ msgid "Бан {who} в {chat}"
+#~ msgstr "Ban {who} v {chat}"
 
 #: src/console/pages/Chat.tsx
 msgid "Раздел каталога"
@@ -1765,8 +1765,8 @@ msgid "Проверено {0}"
 msgstr "Zkontrolováno {0}"
 
 #: src/console/pages/Signals.tsx
-msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
-msgstr "Navrženo přes MCP. Čeká na stisk admina, vyprší za {left} min."
+#~ msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
+#~ msgstr "Navrženo přes MCP. Čeká na stisk admina, vyprší za {left} min."
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
@@ -2576,6 +2576,10 @@ msgstr "Lidé"
 msgid "Не в каталоге · чат не решён"
 msgstr "Není v katalogu · bez rozhodnutí"
 
+#: src/console/pages/Signals.tsx
+msgid "Набегов нет."
+msgstr "Žádné nájezdy."
+
 #: src/pages/Landing.tsx
 #~ msgid "Кто поможет с учёбой в Чехии"
 #~ msgstr "Kdo pomůže se studiem v Česku"
@@ -2689,8 +2693,8 @@ msgid "Бан не сработает, капча в чате не выключ�
 msgstr "Ban nebude fungovat a captcha v chatu nováčkovi nezakáže psát."
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: Telegram отказал. Запрос закрыт."
-msgstr "Neprovedeno: Telegram odmítl. Žádost je uzavřena."
+#~ msgid "Не выполнено: Telegram отказал. Запрос закрыт."
+#~ msgstr "Neprovedeno: Telegram odmítl. Žádost je uzavřena."
 
 #: src/console/Charts.tsx
 msgid "Чт"
@@ -2960,8 +2964,8 @@ msgstr "posledních 7 dní"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Бан {who} во всех чатах"
-msgstr "Ban {who} ve všech chatech"
+#~ msgid "Бан {who} во всех чатах"
+#~ msgstr "Ban {who} ve všech chatech"
 
 #: src/console/pages/Chat.tsx
 msgid "Админы чата"
@@ -3106,8 +3110,8 @@ msgstr "Porušuje pravidla"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
-msgid "Чёрный список: {who}"
-msgstr "Černá listina: {who}"
+#~ msgid "Чёрный список: {who}"
+#~ msgstr "Černá listina: {who}"
 
 #: src/console/pages/Chats.tsx
 msgid "Участники"
@@ -3172,8 +3176,8 @@ msgid "Ещё"
 msgstr "Další"
 
 #: src/console/pages/Signals.tsx
-msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
-msgstr "Navrženo přes MCP: {reason}. Čeká na stisk admina, vyprší za {left} min."
+#~ msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
+#~ msgstr "Navrženo přes MCP: {reason}. Čeká na stisk admina, vyprší za {left} min."
 
 #. placeholder {0}: step.fresh
 #: src/console/AudienceCharts.tsx
@@ -4084,8 +4088,8 @@ msgid "Требует внимания"
 msgstr "Vyžaduje pozornost"
 
 #: src/console/pages/Signals.tsx
-msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
-msgstr "Neprovedeno: bot už tento chat nemoderuje. Žádost je uzavřena."
+#~ msgid "Не выполнено: бот больше не модерирует этот чат. Запрос закрыт."
+#~ msgstr "Neprovedeno: bot už tento chat nemoderuje. Žádost je uzavřena."
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Все услуги выключены, поэтому тебя сейчас не найдут. Включи хотя бы одну."

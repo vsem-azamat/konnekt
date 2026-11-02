@@ -15,7 +15,7 @@ the point.
 from __future__ import annotations
 
 import pytest
-from app.core.config import AdminSettings, DatabaseSettings, McpSettings
+from app.core.config import AdminSettings, DatabaseSettings, ObservabilitySettings
 
 pytestmark = pytest.mark.unit
 
@@ -34,7 +34,7 @@ def test_an_empty_int_falls_back_to_its_default() -> None:
 
 def test_an_empty_credential_leaves_its_feature_switched_off() -> None:
     """The deploy forwards these names whether or not they hold anything."""
-    assert McpSettings.model_validate({"token": ""}).active is False
+    assert ObservabilitySettings.model_validate({"metrics_secret": ""}).metrics_secret.get_secret_value() == ""
 
 
 def test_a_value_that_is_present_still_wins() -> None:

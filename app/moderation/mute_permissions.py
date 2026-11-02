@@ -1,6 +1,6 @@
 """What a mute takes away and what an unmute gives back.
 
-`!mute` and the control plane's `mute_user` used to spell their own sets, and
+`!mute` and the retired control plane's `mute_user` used to spell their own sets, and
 both still sent `can_send_media_messages` after Telegram had split it into six
 fields, so the two mutes differed and neither named what it meant to deny.
 """

@@ -915,8 +915,6 @@ def serving(monkeypatch) -> list[dict]:
     async def idle(*_args, **_kwargs):
         return None
 
-    monkeypatch.setattr("app.mcp.runner.run_mcp_server", idle)
-    monkeypatch.setattr("app.moderation.pending_actions.run_expiry_sweep", idle)
     monkeypatch.setattr("app.moderation.history_service.run_history_retention", idle)
     monkeypatch.setattr("app.chats.snapshots.run_snapshot_loop", idle)
     monkeypatch.setattr("app.presentation.telegram.heartbeat.watch", idle)

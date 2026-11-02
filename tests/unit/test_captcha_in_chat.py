@@ -521,7 +521,7 @@ async def test_an_admins_ban_is_not_undone(session: AsyncSession, bot) -> None:
 
 @pytest.mark.parametrize("by", [777, BOT_ID], ids=["by hand", "through the bot"])
 async def test_an_admin_unmuting_them_settles_it(session: AsyncSession, bot, by: int) -> None:
-    """`/unmute` and the control plane's unmute act as the bot: still an admin's decision."""
+    """`/unmute` acts as the bot: still an admin's decision."""
     await _seed(session)
     await _let_in(session, bot)
 

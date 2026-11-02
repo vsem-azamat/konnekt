@@ -34,7 +34,7 @@ def create_engine() -> AsyncEngine:
 def get_session_maker() -> async_sessionmaker[AsyncSession]:
     """The process-wide session factory, built once.
 
-    Callers ask for this freely — per update, per request, per MCP tool call —
+    Callers ask for this freely — per update, per request, per sweep —
     and get the same factory back; only the sessions it hands out are new. That
     is the intended shape: a session is a unit of work that borrows a connection
     from the pool for as long as it needs one and is not safe to share between

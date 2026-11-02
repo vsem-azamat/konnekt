@@ -1,7 +1,7 @@
 """The administrator rights the bot asks for in a chat.
 
 Owned here rather than by the bot's profile: the chat audit holds every chat
-to them, and the audit runs from the web API and the control plane too.
+to them, and the audit runs from the web API too.
 """
 
 from aiogram.types import ChatAdministratorRights

@@ -28,7 +28,6 @@ dependencies = [
     "telegramify-markdown>=1.1,<2",
     "fastapi>=0.136.0",
     "uvicorn[standard]>=0.44.0",
-    "fastmcp>=3.2.4",
     "pyjwt[crypto]>=2.10.1",
     "prometheus-client>=0.25,<1",
     "sentry-sdk>=2.40",

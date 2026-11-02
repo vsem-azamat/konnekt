@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  BlockIcon,
   ChatIcon,
   PeopleIcon,
   PersonIcon,
@@ -37,14 +36,13 @@ import {
   decisionProblem,
   elapsed,
   minutesUntil,
-  type PendingActionSignal,
   type Signals,
   type WaveSignal,
 } from '@/console/signals';
 
 /**
- * What waits for an admin's decision: the waves and the proposed bans the bot
- * asks about in the report chat and in private, then the console's queues.
+ * What waits for an admin's decision: the waves the bot asks about in the
+ * report chat, then the console's queues.
  * In a browser the menu and the bell count from the same answer.
  */
 export default function ConsoleSignalsPage() {
@@ -81,8 +79,8 @@ function SignalsBody() {
     return <ConsoleFailure error={signals.error} retry={() => void signals.refetch()} />;
   }
 
-  const { waves, pending_actions: proposals, queues, wave_per_minute } = signals.data;
-  const decisions = waves.length + proposals.length;
+  const { waves, queues, wave_per_minute } = signals.data;
+  const decisions = waves.length;
   const counts = catalog.data?.counts;
   const queueRows: { key: string; count: number; row: (count: number) => ReactNode }[] = [
     {
@@ -195,18 +193,10 @@ function SignalsBody() {
               onRefused={refused}
             />
           ))}
-          {proposals.map((proposal) => (
-            <ProposalCard
-              key={`action-${proposal.id}`}
-              proposal={proposal}
-              now={now}
-              onRefused={refused}
-            />
-          ))}
         </div>
       ) : (
         <Hint>
-          <Trans>Ни набегов, ни предложенных банов.</Trans>
+          <Trans>Набегов нет.</Trans>
         </Hint>
       )}
 
@@ -339,65 +329,6 @@ function WaveCard({
   );
 }
 
-function ProposalCard({
-  proposal,
-  now,
-  onRefused,
-}: {
-  proposal: PendingActionSignal;
-  now: Date;
-  onRefused: (refusal: Refusal) => void;
-}) {
-  const who =
-    proposal.target_name ??
-    (proposal.target_username
-      ? `@${proposal.target_username}`
-      : String(proposal.target_user_id));
-  const chat = proposal.chat_title ?? String(proposal.chat_id);
-  const left = minutesUntil(proposal.expires_at, now);
-  // The sentence ends with its own full stop.
-  const reason = proposal.reason?.trim().replace(/[.!?…]+$/, '');
-  return (
-    <section className={css.card}>
-      <div className={css.head}>
-        <Tile tone={1}>
-          <BlockIcon size={19} />
-        </Tile>
-        <div>
-          <b>
-            {proposal.action === 'blacklist' ? (
-              <Trans>Чёрный список: {who}</Trans>
-            ) : proposal.chat_id === null ? (
-              <Trans>Бан {who} во всех чатах</Trans>
-            ) : (
-              <Trans>
-                Бан {who} в {chat}
-              </Trans>
-            )}
-          </b>
-          <span>
-            id {proposal.target_user_id}
-            {proposal.target_username ? ` · @${proposal.target_username}` : null}
-          </span>
-        </div>
-      </div>
-      <p className={css.text}>
-        {reason ? (
-          <Trans>
-            Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left}{' '}
-            мин.
-          </Trans>
-        ) : (
-          <Trans>
-            Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин.
-          </Trans>
-        )}
-      </p>
-      <ProposalActions proposal={proposal} label={who} onRefused={onRefused} />
-    </section>
-  );
-}
-
 /**
  * The report chat's three buttons. The answer comes before the work, as the
  * button's does: declining a wave of hundreds takes minutes, and the bot's
@@ -458,55 +389,6 @@ function WaveActions({
   );
 }
 
-function ProposalActions({
-  proposal,
-  label,
-  onRefused,
-}: {
-  proposal: PendingActionSignal;
-  label: string;
-  onRefused: (refusal: Refusal) => void;
-}) {
-  const queryClient = useQueryClient();
-  const decide = useMutation({
-    mutationFn: (confirm: boolean) => consoleChanges.decideProposal(proposal.id, confirm),
-    onSuccess: () => forget(queryClient, { proposal: proposal.id }),
-    onError: (error) => {
-      const problem = decisionProblem(error);
-      // No answer came back: the press may not have arrived, so the card stays.
-      if (problem === 'failed') return;
-      // Refused for a reason that will not change: the proposal is closed either way.
-      onRefused({ key: `action-${proposal.id}`, label, problem });
-      forget(queryClient, { proposal: proposal.id });
-    },
-  });
-  return (
-    <div className={css.decide}>
-      <Actions>
-        <Action danger disabled={decide.isPending} onClick={() => decide.mutate(true)}>
-          {proposal.action === 'blacklist' ? (
-            <Trans>В чёрный список</Trans>
-          ) : (
-            <Trans>Подтвердить бан</Trans>
-          )}
-        </Action>
-        <Action quiet disabled={decide.isPending} onClick={() => decide.mutate(false)}>
-          <Trans>Отклонить</Trans>
-        </Action>
-      </Actions>
-      {decide.error ? (
-        <Hint>
-          <ProblemText problem={decisionProblem(decide.error)} />
-        </Hint>
-      ) : (
-        <Hint>
-          <Trans>Те же кнопки, что в личном сообщении бота; решение видно и там.</Trans>
-        </Hint>
-      )}
-    </div>
-  );
-}
-
 /** A press the server refused, kept on screen after its card has gone. */
 interface Refusal {
   key: string;
@@ -520,14 +402,6 @@ function ProblemText({ problem }: { problem: DecisionProblem }) {
       return <Trans>Уже решено в Telegram или срок вышел.</Trans>;
     case 'decided':
       return <Trans>По этой волне уже решили иначе.</Trans>;
-    case 'protected':
-      return <Trans>Не выполнено: главного администратора забанить нельзя.</Trans>;
-    case 'unmanaged':
-      return (
-        <Trans>Не выполнено: бот больше не модерирует этот чат. Запрос закрыт.</Trans>
-      );
-    case 'refused':
-      return <Trans>Не выполнено: Telegram отказал. Запрос закрыт.</Trans>;
     default:
       return <Trans>Не получилось связаться с сервером. Попробуйте ещё раз.</Trans>;
   }
@@ -536,19 +410,10 @@ function ProblemText({ problem }: { problem: DecisionProblem }) {
 /** Take a decided card off the screen and the counters without waiting for the next reading. */
 function forget(
   queryClient: ReturnType<typeof useQueryClient>,
-  decided: { wave: number } | { proposal: number },
+  decided: { wave: number },
 ) {
   queryClient.setQueryData<Signals>(consoleSignalsQuery.queryKey, (old) =>
-    old
-      ? 'wave' in decided
-        ? { ...old, waves: old.waves.filter((wave) => wave.id !== decided.wave) }
-        : {
-            ...old,
-            pending_actions: old.pending_actions.filter(
-              (proposal) => proposal.id !== decided.proposal,
-            ),
-          }
-      : old,
+    old ? { ...old, waves: old.waves.filter((wave) => wave.id !== decided.wave) } : old,
   );
 }
 
