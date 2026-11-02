@@ -108,7 +108,7 @@
   color: var(--muted);
 }
 
-/* Decided on, yet students do not see it: the one worth a second look. */
+/* Decided on, yet students do not see it, or the bot is not there: the one worth a second look. */
 .hidden,
 .chat small.hidden {
   color: var(--tone-1-fg);

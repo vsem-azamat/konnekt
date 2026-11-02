@@ -460,7 +460,11 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
           {gone ? (
             <>
               {' · '}
-              <span className={table.hidden}>{gone}</span>
+              <span
+                className={chat.resource_status === 'disabled' ? table.off : table.hidden}
+              >
+                {gone}
+              </span>
             </>
           ) : null}
           {[
