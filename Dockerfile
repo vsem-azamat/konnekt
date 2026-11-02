@@ -40,9 +40,10 @@ ARG WEB_VERSION=unknown
 ENV VITE_APP_VERSION=$WEB_VERSION
 # Where the public site lives (WEBAPI_PUBLIC_URL), for its canonical links,
 # hreflang and sitemap, which must be absolute. See web/site/astro.config.ts.
-ARG SITE_URL=
+# Required: without it the pages would name localhost as their own address.
+ARG SITE_URL
 ENV SITE_URL=$SITE_URL
-RUN pnpm run build
+RUN : "${SITE_URL:?pass --build-arg SITE_URL=<the site's https origin>}" && pnpm run build
 
 # Production stage
 FROM python:3.12.13-slim-trixie AS production

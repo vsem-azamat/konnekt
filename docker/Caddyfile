@@ -154,8 +154,12 @@
 	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml
 	handle @site {
 		root * /srv/site
-		# Hashed assets for good; a page, which names them, never.
-		@hashed path /_astro/*
+		# Hashed assets for good, but only those that exist: a missing one is a
+		# 404 nobody may keep. A page, which names them, is never cached.
+		@hashed {
+			path /_astro/*
+			file
+		}
 		header @hashed Cache-Control "public, max-age=31536000, immutable"
 		@page not path /_astro/*
 		header @page Cache-Control "no-cache"
