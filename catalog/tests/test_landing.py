@@ -90,3 +90,34 @@ async def test_a_failing_telegram_is_not_a_crash(app_with) -> None:
         response = await http.get("/api/v1/open")
 
     assert response.status_code == 503
+
+
+async def test_open_can_start_on_a_universitys_chats(app_with) -> None:
+    """«Открыть в Konnekt» on a university's page opens the app on its chats."""
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": "uni-cvut"})
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp=uni-cvut"
+
+
+@pytest.mark.parametrize(
+    "start",
+    [
+        "uni-nowhere",  # no such university
+        "uni-cvut_fit",  # a faculty: the app's section screen is a university's
+        "home",  # a screen the site has no business naming
+        "uni-cvut&startapp=x",  # anything else rides along into the link
+    ],
+)
+async def test_open_starts_only_where_the_catalog_knows(app_with, start: str) -> None:
+    """A start the catalog does not know opens the app itself, never a guess."""
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": start})
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"

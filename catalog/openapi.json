@@ -28,6 +28,53 @@
         }
       }
     },
+    "/api/v1/universities": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Universities",
+        "description": "The universities, for the public site's catalog pages.\n\nUnauthenticated like `/open`: the site renders these pages for people who\nare not in Telegram and for search engines, and the rows are the same\nreference data every app user reads. The language is asked for in the\nquery, the page's own, since there is nobody whose setting it could be.",
+        "operationId": "universities_api_v1_universities_get",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/UiLang",
+              "default": "ru"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicUniversity"
+                  },
+                  "title": "Response Universities Api V1 Universities Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me": {
       "get": {
         "tags": [
@@ -5585,6 +5632,61 @@
           "negotiable"
         ],
         "title": "PriceUnit"
+      },
+      "PublicUniversity": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "site_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "short_name",
+          "city",
+          "site_url"
+        ],
+        "title": "PublicUniversity",
+        "description": "A university as the public site names it on its catalog pages.\n\nReference data and nothing else: no id, no faculties, nothing about who\nstudies there. `site_url` is the university's own site, which its page links."
       },
       "PublishStatus": {
         "type": "string",

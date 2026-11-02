@@ -645,6 +645,20 @@ class AdsInfo(BaseModel):
     contact_url: str | None
 
 
+class PublicUniversity(BaseModel):
+    """A university as the public site names it on its catalog pages.
+
+    Reference data and nothing else: no id, no faculties, nothing about who
+    studies there. `site_url` is the university's own site, which its page links.
+    """
+
+    code: str
+    name: str
+    short_name: str | None
+    city: str | None
+    site_url: str | None
+
+
 # ── the console ─────────────────────────────────────────────────────────
 
 
