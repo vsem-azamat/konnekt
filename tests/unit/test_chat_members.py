@@ -183,6 +183,30 @@ async def test_the_daily_check_finds_a_demotion_the_updates_missed(session_maker
     assert sorted(call.args[1] for call in bot.get_chat_member.await_args_list) == [gone_admin.id, other_bot.id]
 
 
+async def test_the_daily_check_records_who_the_administrators_are(session_maker) -> None:
+    """An owner who never wrote while the bot watched would be a bare number in the console."""
+    async with session_maker() as session:
+        session.add(DbUser(id=OWNER.id, username=None, first_name="Old"))
+        await session.commit()
+        (await session.get(DbUser, OWNER.id)).language_code = "cs"
+        await session.commit()
+    quiet = User(id=12, is_bot=False, first_name="Tichý", last_name="Admin", username="tichy")
+    bot = _bot(
+        admins=[ChatMemberOwner(user=OWNER, is_anonymous=False), _admin(quiet)],
+        members_by_id={},
+    )
+
+    await members.check_administrators(session_maker=session_maker, bot=bot, chat_id=CHAT_ID, at=T0)
+
+    async with session_maker() as session:
+        added = await session.get(DbUser, quiet.id)
+        assert (added.first_name, added.last_name, added.username) == ("Tichý", "Admin", "tichy")
+        owner = await session.get(DbUser, OWNER.id)
+        assert owner.first_name == OWNER.first_name
+        # The list says nothing of language or Premium: what was known stays.
+        assert (owner.language_code, owner.is_premium) == ("cs", None)
+
+
 async def test_in_the_same_second_the_later_update_wins_whatever_order_they_arrive(session) -> None:
     """The captcha mutes and admits within a second; handled at once, the admit may be recorded first."""
     muted = ChatMemberRestricted.model_validate({"user": JAN, "is_member": False, "until_date": 0, **_PERMISSIONS})
