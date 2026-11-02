@@ -99,8 +99,9 @@ in [invariants](../invariants.md).
 - **"AI moderation"** does not describe this system. No model decides anything
   here; the moderation paths are deterministic, and the judgement calls belong
   to an administrator.
-- **"Automatic ban"** overstates what happens. Only an administrator removes
-  someone: by a command, on the console, or by putting them on the blacklist.
+- **"Automatic ban"** overstates what happens. An administrator bans, by a
+  command, on the console, or by putting someone on the blacklist. On its own
+  the bot only removes, without a ban, someone who failed a chat's captcha.
 - **"General-purpose platform"** overstates the current evidence unless we can
   name supported audiences and workflows beyond the present operating model.
 - Database choices, Telegram client details, and the number of bot identities

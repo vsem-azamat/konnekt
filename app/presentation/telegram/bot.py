@@ -325,7 +325,7 @@ async def _supervise(polling: Coroutine[Any, Any, None], services: list[Coroutin
     The poller ending, by SIGTERM or by failing, ends the process: waiting for
     every task kept it alive after a failed start, deaf and immune to SIGTERM,
     and made every deploy end in a kill. A service that returns is simply done
-    (metrics return at once when nobody scrapes); one that raises takes the
+    (metrics return at once without their secret); one that raises takes the
     process down with it, so a restart brings it back.
     """
     main = asyncio.ensure_future(polling)

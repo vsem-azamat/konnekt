@@ -84,7 +84,7 @@ async def test_sigterm_ends_the_process_without_waiting_for_a_kill(monkeypatch, 
 
 
 async def test_a_service_that_finishes_early_does_not_stop_the_bot(monkeypatch, services) -> None:
-    """The metrics server returns at once when nobody scrapes; that is not a shutdown."""
+    """The metrics server returns at once without its secret; that is not a shutdown."""
     polling_done = asyncio.Event()
 
     async def idle(*_args, **_kwargs):
