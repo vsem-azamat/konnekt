@@ -45,6 +45,15 @@ test('the site hands a Telegram launch on to the app, launch data and all', () =
   assert.equal(telegramHome(data, '?x=1', `${app}/`), `${app}/home?x=1${data}`);
 });
 
+test('a launch on the public catalogue opens the app’s own chats', () => {
+  // Buttons sent in Telegram named konnekt.cz/chats while it was the app.
+  const data = '#tgWebAppData=user%3D1&tgWebAppVersion=8.0';
+  const app = 'https://app.konnekt.cz';
+  assert.equal(telegramHome(data, '', app, '/chats/'), `${app}/chats${data}`);
+  assert.equal(telegramHome(data, '', app, '/uk/chats/'), `${app}/chats${data}`);
+  assert.equal(telegramHome(data, '', app, '/universities/cvut/'), `${app}/home${data}`);
+});
+
 test('a browser stays on the site', () => {
   assert.equal(telegramHome('', '', 'https://app.konnekt.cz'), null);
   assert.equal(telegramHome('#guides', '?q=1', 'https://app.konnekt.cz'), null);
