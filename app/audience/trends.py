@@ -12,7 +12,7 @@ import datetime
 import math
 from typing import TYPE_CHECKING, Any, Literal
 
-from sqlalchemy import func, literal, select, union_all
+from sqlalchemy import exists, func, literal, or_, select, union, union_all
 
 from app.audience.record import ESTIMATE
 from app.audience.views import _members
@@ -38,8 +38,9 @@ METRICS: tuple[Metric, ...] = ("starts", "app_new", "joins", "blocks")
 PERIODS = (7, 30, 90)
 # Past a month a bar is a week: 90 thin bars do not fit a phone.
 WEEK_PAST = 30
-# Segments show this many, and the rest as one row.
+# Segments show this many, and the rest as one row under a key no link can carry (see record.SOURCE).
 SEGMENT_ROWS = 5
+REST = "*"
 
 # When each record began. Before that a day is unknown, not empty.
 # The audience's own release (alembic e5d2a7c4b913): the first starts of the main bot.
@@ -109,7 +110,22 @@ async def _since(db: AsyncSession) -> dict[Metric, datetime.date]:
 
 
 def _value(counts: dict[datetime.date, int], first: datetime.date, last: datetime.date, since: datetime.date):
-    """A bar's count, or None when none of it was counted. A bar counted only in part sums its counted days."""
+    """A bar's count, or None unless all of it was recorded: a week recorded for two days would read as a quiet week."""
+    if first < since:
+        return None
+    day, total = first, 0
+    while day <= last:
+        total += counts.get(day, 0)
+        day += datetime.timedelta(days=1)
+    return total
+
+
+def _total(counts: dict[datetime.date, int], first: datetime.date, last: datetime.date, since: datetime.date):
+    """A period's sum over the days recorded in it, or None if none were.
+
+    By day, not by bar: a week recorded only in part is hatched on the chart,
+    yet its recorded days still belong to the period's total.
+    """
     if last < since:
         return None
     day, total = max(first, since), 0
@@ -119,18 +135,17 @@ def _value(counts: dict[datetime.date, int], first: datetime.date, last: datetim
     return total
 
 
-def _total(values: list[int | None]) -> int | None:
-    counted = [v for v in values if v is not None]
-    return sum(counted) if counted else None
+def _in_chats(user_id: Any) -> Any:
+    """Whether the bot saw `user_id` in a chat: wrote there (messages are kept 180 days), asked to join, or is a member.
 
-
-def _chat_people() -> Any:
-    """(user_id, chat_id, at) for each time the bot saw somebody in a chat: wrote, asked to join, or is a member."""
-    return union_all(
-        select(Message.user_id, Message.chat_id, Message.timestamp.label("at")),
-        select(JoinCaptcha.user_id, JoinCaptcha.chat_id, JoinCaptcha.created_at.label("at")),
-        select(ChatMember.user_id, ChatMember.chat_id, ChatMember.changed_at.label("at")),
-    ).subquery()
+    EXISTS on each table rather than IN over their union: messages grow past
+    what PostgreSQL will hash, and NOT IN then rescans them for every person.
+    """
+    return or_(
+        exists().where(Message.user_id == user_id),
+        exists().where(JoinCaptcha.user_id == user_id),
+        exists().where(ChatMember.user_id == user_id),
+    )
 
 
 async def trends(db: AsyncSession, *, days: int, today: datetime.date) -> dict[str, Any]:
@@ -139,20 +154,21 @@ async def trends(db: AsyncSession, *, days: int, today: datetime.date) -> dict[s
     start = spans[0][0]
     series: list[dict[str, Any]] = [{"from": first, "to": last} for first, last in spans]
     now_point: dict[str, Any] = {"from": today, "to": today}
+    half = len(series) // 2
+    totals: dict[str, dict[str, int | None]] = {}
     for metric in METRICS:
         counts = await _per_day(db, metric, min(start, today))
         for point, (first, last) in zip(series, spans, strict=True):
             point[metric] = _value(counts, first, last, since[metric])
         now_point[metric] = _value(counts, today, today, since[metric])
-    half = len(series) // 2
-    totals = {
-        metric: {
-            "now": _total([p[metric] for p in series[half:]]),
-            "before": _total([p[metric] for p in series[:half]]),
+        totals[metric] = {
+            "now": _total(counts, series[half]["from"], series[-1]["to"], since[metric]),
+            "before": _total(counts, series[0]["from"], series[half - 1]["to"], since[metric]),
         }
-        for metric in METRICS
-    }
-    period_start = datetime.datetime.combine(series[half]["from"], datetime.time())
+    period = (
+        datetime.datetime.combine(series[half]["from"], datetime.time()),
+        datetime.datetime.combine(today, datetime.time()),
+    )
     return {
         "days": days,
         "today": today,
@@ -160,13 +176,17 @@ async def trends(db: AsyncSession, *, days: int, today: datetime.date) -> dict[s
         "series": series,
         "today_point": now_point,
         "totals": totals,
-        **await _funnel(db, period_start),
+        **await _funnel(db, period),
         "segments": await _segments(db),
     }
 
 
 def _came() -> Any:
-    """Everybody who started the main bot or opened the Mini App."""
+    """Everybody the main bot may have written to at some point, or who opened the Mini App.
+
+    The reach's ``started_at`` is the first leave the main bot had to write:
+    a /start, any private message, or the Mini App's permission. Not only Start.
+    """
     return union_all(
         select(AudienceReach.user_id).where(
             AudienceReach.bot == Touchpoint.MAIN_BOT, AudienceReach.started_at.is_not(None)
@@ -175,17 +195,22 @@ def _came() -> Any:
     ).subquery()
 
 
-async def _funnel(db: AsyncSession, period_start: datetime.datetime) -> dict[str, Any]:
-    seen = _chat_people()
-    in_chats = select(seen.c.user_id)
+async def _funnel(db: AsyncSession, period: tuple[datetime.datetime, datetime.datetime]) -> dict[str, Any]:
     came = select(_came().c.user_id).distinct().subquery()
-
     started = (
         select(AudienceReach.user_id)
         .where(AudienceReach.bot == Touchpoint.MAIN_BOT, AudienceReach.started_at.is_not(None))
         .subquery()
     )
     opened = select(AudienceTouch.user_id).where(AudienceTouch.touchpoint == Touchpoint.MINI_APP).subquery()
+    seen = union(select(Message.user_id).distinct(), select(JoinCaptcha.user_id), select(ChatMember.user_id)).subquery()
+    # Confirmed in any way at all: any leave to write, or any touchpoint but the guessed one.
+    confirmed = or_(
+        exists().where(AudienceReach.user_id == AudienceMember.user_id, AudienceReach.started_at.is_not(None)),
+        exists().where(
+            AudienceTouch.user_id == AudienceMember.user_id, AudienceTouch.touchpoint != Touchpoint.MAIN_BOT
+        ),
+    )
 
     members = _members().subquery()
     statuses: dict[str, int] = {}
@@ -195,32 +220,36 @@ async def _funnel(db: AsyncSession, period_start: datetime.datetime) -> dict[str
     async def count(statement: Any) -> int:
         return await db.scalar(select(func.count()).select_from(statement.subquery())) or 0
 
+    start, end = period
     return {
         "funnel": {
-            "seen_in_chats": await count(select(seen.c.user_id).distinct()),
+            "seen_in_chats": await count(select(seen.c.user_id)),
             "started_bot": await count(select(started.c.user_id)),
             "opened_app": await count(select(opened.c.user_id)),
             "both": await count(select(started.c.user_id).where(started.c.user_id.in_(select(opened.c.user_id)))),
-            "not_from_chats": await count(select(came.c.user_id).where(came.c.user_id.not_in(in_chats))),
+            "not_from_chats": await count(select(came.c.user_id).where(~_in_chats(came.c.user_id))),
             "reachable": statuses.get("reachable", 0),
             "blocked": statuses.get("blocked", 0),
             "opted_out": statuses.get("opted_out", 0),
             "estimate": await count(
-                select(AudienceMember.user_id).where(
-                    AudienceMember.source == ESTIMATE, AudienceMember.user_id.not_in(select(came.c.user_id))
-                )
+                select(AudienceMember.user_id).where(AudienceMember.source == ESTIMATE, ~confirmed)
             ),
         },
-        # Not who was first seen in a chat: members are known only since the bot began asking, so all would look new.
+        # The bars' period, to yesterday. Not who was first seen in a chat: members
+        # are known only since the bot began asking, so all would look new.
         "funnel_new": {
             "started_bot": await count(
                 select(AudienceReach.user_id).where(
-                    AudienceReach.bot == Touchpoint.MAIN_BOT, AudienceReach.started_at >= period_start
+                    AudienceReach.bot == Touchpoint.MAIN_BOT,
+                    AudienceReach.started_at >= start,
+                    AudienceReach.started_at < end,
                 )
             ),
             "opened_app": await count(
                 select(AudienceTouch.user_id).where(
-                    AudienceTouch.touchpoint == Touchpoint.MINI_APP, AudienceTouch.first_at >= period_start
+                    AudienceTouch.touchpoint == Touchpoint.MINI_APP,
+                    AudienceTouch.first_at >= start,
+                    AudienceTouch.first_at < end,
                 )
             ),
         },
@@ -228,28 +257,33 @@ async def _funnel(db: AsyncSession, period_start: datetime.datetime) -> dict[str
 
 
 def _fold(rows: list[tuple[str, str, int]]) -> list[dict[str, Any]]:
-    """The largest few, and the rest as one row keyed «other» with how many they are."""
+    """The largest few, and the rest as one row keyed `REST` with how many they are."""
     rows = sorted(rows, key=lambda row: (-row[2], row[1]))
     out = [{"key": key, "label": label, "people": people} for key, label, people in rows[:SEGMENT_ROWS]]
     rest = rows[SEGMENT_ROWS:]
     if rest:
-        out.append({"key": "other", "label": str(len(rest)), "people": sum(row[2] for row in rest)})
+        out.append({"key": REST, "label": str(len(rest)), "people": sum(row[2] for row in rest)})
     return out
 
 
 async def _segments(db: AsyncSession) -> dict[str, list[dict[str, Any]]]:
-    """Who came to us, by the chat the bot saw them in first, their Telegram language, and the link that brought them."""
+    """Who came to us, by the chat the bot saw them write or ask to join in first, their Telegram language, and their first link."""
     came = select(_came().c.user_id).distinct().subquery()
-    seen = _chat_people()
+    # Where the bot saw them write or ask to join; a membership's date is its last change, not the first sight.
+    who = select(came.c.user_id)
+    seen = union_all(
+        select(Message.user_id, Message.chat_id, Message.timestamp.label("at")).where(Message.user_id.in_(who)),
+        select(JoinCaptcha.user_id, JoinCaptcha.chat_id, JoinCaptcha.created_at.label("at")).where(
+            JoinCaptcha.user_id.in_(who)
+        ),
+    ).subquery()
     ranked = (
         select(
             seen.c.user_id,
             seen.c.chat_id,
             func.row_number().over(partition_by=seen.c.user_id, order_by=(seen.c.at, seen.c.chat_id)).label("rank"),
         )
-        .where(seen.c.user_id.in_(select(came.c.user_id)))
-        .subquery()
-    )
+    ).subquery()
     chats = await db.execute(
         select(ranked.c.chat_id, func.coalesce(Chat.title, literal("")), func.count())
         .outerjoin(Chat, Chat.id == ranked.c.chat_id)

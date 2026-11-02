@@ -35,11 +35,11 @@ export interface TrendPoint {
 export interface Funnel {
   /** Wrote in a chat in the last 180 days, asked to join one, or is a member the bot knows of. */
   seen_in_chats: number;
-  /** Pressed Start in the main bot at least once. */
+  /** Gave the main bot leave to write at least once: Start, any private message, or the Mini App's permission. */
   started_bot: number;
   /** Opened the Mini App at least once. */
   opened_app: number;
-  /** Did both. */
+  /** Of those, how many also opened the Mini App. */
   both: number;
   /** Of those who came to the bot or the Mini App, how many the bot never saw in a chat. */
   not_from_chats: number;
@@ -49,6 +49,14 @@ export interface Funnel {
   opted_out: number;
   /** Guessed by the backfill to have written to the bot; never confirmed. */
   estimate: number;
+}
+
+/** The key of the folded rest of a segment list: no link can carry it (app/audience/trends.py). */
+export const REST = '*';
+
+/** Days a period really spans: past a month a bar is a week, so 90 days are 13 weeks. */
+export function periodLength(days: Period): number {
+  return days > 30 ? Math.ceil(days / 7) * 7 : days;
 }
 
 export interface Segment {
@@ -111,8 +119,7 @@ export function change(
  * two periods after its record began.
  */
 export function comparableFrom(since: string, days: Period): string {
-  // Past a month a bar is a week, so a period is whole weeks.
-  const length = days > 30 ? Math.ceil(days / 7) * 7 : days;
+  const length = periodLength(days);
   const date = new Date(`${since}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + length * 2);
   return date.toISOString().slice(0, 10);

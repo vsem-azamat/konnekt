@@ -137,3 +137,49 @@ async def test_segments_name_the_chat_seen_first(session_maker, audience):
     assert languages == {"ru": 1, "uk": 1, "cs": 1}
     sources = {row["key"]: row["people"] for row in answer["segments"]["sources"]}
     assert sources == {"welcome": 1, "uni-cvut": 1, "": 1}
+
+
+def test_a_bar_recorded_only_in_part_is_unknown():
+    """A week whose first days came before the record would read as a quiet week."""
+    counts = {ago(3): 2}
+    assert trends._value(counts, ago(6), ago(0), since=ago(3)) is None
+    assert trends._value(counts, ago(3), ago(3), since=ago(3)) == 2
+
+
+async def test_the_period_in_the_funnel_ends_yesterday_like_the_bars(session_maker, audience):
+    async with session_maker() as db:
+        await record.seen(db, Person(id=60, first_name="Today"), Touchpoint.MINI_APP, at=at(TODAY))
+        await db.commit()
+        answer = await trends.trends(db, days=30, today=TODAY)
+
+    assert answer["funnel_new"]["opened_app"] == 1, "Anna only: Taras was before the period, the other is today"
+
+
+async def test_a_guess_who_used_anything_else_is_no_longer_a_guess(session_maker, audience):
+    async with session_maker() as db:
+        await record.seen(db, GUESS, Touchpoint.CONTACT_BOT, at=at(ago(4)))
+        await db.commit()
+        answer = await trends.trends(db, days=30, today=TODAY)
+
+    assert answer["funnel"]["estimate"] == 0
+
+
+def test_the_folded_rest_has_a_key_no_link_can_carry():
+    rows = [(str(n), str(n), 10 - n) for n in range(7)]
+    folded = trends._fold(rows)
+    assert folded[-1] == {"key": trends.REST, "label": "2", "people": 9}
+    assert not record.SOURCE.fullmatch(trends.REST)
+
+
+async def test_a_long_period_totals_every_recorded_day_though_its_first_week_is_hatched(session_maker):
+    """Starts were recorded from a Tuesday: that week's bar is unknown, its Tuesday still counts."""
+    today = trends.STARTS_SINCE + datetime.timedelta(days=30)
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=at(trends.STARTS_SINCE), started=Touchpoint.MAIN_BOT)
+        await db.commit()
+        week = await trends.trends(db, days=90, today=today)
+        month = await trends.trends(db, days=30, today=today)
+
+    first_bar = next(p for p in week["series"] if p["from"] <= trends.STARTS_SINCE <= p["to"])
+    assert first_bar["starts"] is None
+    assert week["totals"]["starts"]["now"] == month["totals"]["starts"]["now"] == 1

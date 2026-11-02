@@ -218,14 +218,18 @@ export function FunnelSteps({
   );
 }
 
-/** Who came to the bot, the Mini App or both, as one bar in three parts. */
+/** Who came: the bot may write and no Mini App, the Mini App and the bot may write, the Mini App alone. */
 export function Overlap({ funnel }: { funnel: Funnel }) {
   const { t } = useLingui();
   const parts = overlap(funnel);
   const rows = [
-    { key: 'bot', count: parts.botOnly, label: t`только бот` },
-    { key: 'both', count: parts.both, label: t`и бот, и Mini App` },
-    { key: 'app', count: parts.appOnly, label: t`только Mini App, без /start` },
+    {
+      key: 'bot',
+      count: parts.botOnly,
+      label: t`бот может писать, Mini App не открывали`,
+    },
+    { key: 'both', count: parts.both, label: t`Mini App, бот может писать` },
+    { key: 'app', count: parts.appOnly, label: t`Mini App, писать боту не разрешили` },
   ];
   return (
     <div className={css.overlap}>

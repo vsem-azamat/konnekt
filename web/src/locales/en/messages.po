@@ -84,6 +84,10 @@ msgstr "Old bots"
 msgid "например: VZP"
 msgstr "e.g. VZP"
 
+#: src/console/pages/Audience.tsx
+msgid "Пришедшие к нам — по чату, где бот впервые видел, как они пишут или просятся."
+msgstr "People who came to us, by the chat where the bot first saw them write or ask to join."
+
 #: src/console/pages/Summary.tsx
 msgid "показы и клики"
 msgstr "impressions and clicks"
@@ -396,6 +400,11 @@ msgstr "{0} today · {1} this week"
 msgid "Реклама и «вошёл/вышел» останутся в чате."
 msgstr "Ads and “joined/left” notices will stay in the chat."
 
+#. placeholder {0}: f.not_from_chats
+#: src/console/pages/Audience.tsx
+msgid "Хоть раз дали боту писать (Start, сообщение боту, разрешение в Mini App) или открыли Mini App. Из них {fromChats} бот видел в чатах, {0} в чатах не видел."
+msgstr "Gave the bot leave to write at least once (Start, a message to the bot, permission in the Mini App) or opened the Mini App. The bot had seen {fromChats} of them in chats and {0} not."
+
 #. placeholder {0}: moment(chat.bot_absent_at ?? '')
 #: src/console/BotInChat.tsx
 msgid "Telegram не пускает бота в чат, последняя проверка {0}. Ничего из настроек ниже не работает, пока бота не вернут."
@@ -501,6 +510,10 @@ msgstr "Close"
 msgid "Чешский для вуза"
 msgstr "Czech for university"
 
+#: src/console/AudienceCharts.tsx
+msgid "бот может писать, Mini App не открывали"
+msgstr "the bot may write, never opened the Mini App"
+
 #: src/pages/Ads.tsx
 #: src/pages/AdsApp.tsx
 msgid "Карточка в приложении"
@@ -511,8 +524,8 @@ msgid "Ничего не нашли. Попробуй сокращение — �
 msgstr "Nothing found. Try the abbreviation — ČVUT, VŠE, MUNI."
 
 #: src/console/pages/Audience.tsx
-msgid "Пришедшие к нам — по чату, где бот увидел их впервые."
-msgstr "People who came to us, by the chat where the bot first saw them."
+#~ msgid "Пришедшие к нам — по чату, где бот увидел их впервые."
+#~ msgstr "People who came to us, by the chat where the bot first saw them."
 
 #: src/pages/MyHelper.tsx
 msgid "Предмет"
@@ -611,8 +624,8 @@ msgstr "Send response"
 
 #. placeholder {0}: f.estimate
 #: src/console/pages/Audience.tsx
-msgid "Ещё {0} — догадка: бот видел их до марта 2026 и мог получать от них сообщения в личке, но проверить это нельзя. В цифры выше они не входят."
-msgstr "{0} more are a guess: the bot saw them before March 2026 and may have had private messages from them, but there is no way to check. They are not in the numbers above."
+#~ msgid "Ещё {0} — догадка: бот видел их до марта 2026 и мог получать от них сообщения в личке, но проверить это нельзя. В цифры выше они не входят."
+#~ msgstr "{0} more are a guess: the bot saw them before March 2026 and may have had private messages from them, but there is no way to check. They are not in the numbers above."
 
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
@@ -633,8 +646,8 @@ msgid "Умеешь то, что нужно другим?"
 msgstr "Good at something others need?"
 
 #: src/console/AudienceCharts.tsx
-msgid "и бот, и Mini App"
-msgstr "both the bot and the Mini App"
+#~ msgid "и бот, и Mini App"
+#~ msgstr "both the bot and the Mini App"
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -691,8 +704,8 @@ msgid "Бот в чате, но не админ · с {0}"
 msgstr "The bot is in the chat but not an admin · since {0}"
 
 #: src/console/AudienceCharts.tsx
-msgid "только бот"
-msgstr "bot only"
+#~ msgid "только бот"
+#~ msgstr "bot only"
 
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
@@ -1771,8 +1784,8 @@ msgstr "Reason"
 #. placeholder {0}: fresh.started_bot
 #. placeholder {1}: fresh.opened_app
 #: src/console/pages/Audience.tsx
-msgid "За период: +{0} запустили бота, +{1} открыли Mini App."
-msgstr "In this period: +{0} started the bot, +{1} opened the Mini App."
+#~ msgid "За период: +{0} запустили бота, +{1} открыли Mini App."
+#~ msgstr "In this period: +{0} started the bot, +{1} opened the Mini App."
 
 #: src/components/Incoming.tsx
 msgid "До {amount} Kč"
@@ -1859,6 +1872,11 @@ msgstr "found by the check"
 #: src/console/pages/AudiencePerson.tsx
 msgid "оценка по старым данным"
 msgstr "estimated from old data"
+
+#. placeholder {0}: f.estimate
+#: src/console/pages/Audience.tsx
+msgid "Ещё {0} — догадка переноса: старые записи бота, по которым похоже, что человек писал боту в личку. Проверить нельзя, сами они с тех пор не появлялись. В цифры выше не входят."
+msgstr "{0} more are a backfill guess: old bot records that suggest the person wrote to the bot privately. There is no way to check, and they have not come back since. They are not in the numbers above."
 
 #: src/console/pages/Chat.tsx
 msgid "Вуз"
@@ -2154,9 +2172,17 @@ msgstr "Offer a service, and students will write to you"
 msgid "например: Страховка для студентов"
 msgstr "e.g. Student insurance"
 
+#: src/console/pages/Audience.tsx
+msgid "открывали Mini App, но писать боту не разрешили"
+msgstr "opened the Mini App but did not let the bot write"
+
 #: src/pages/Profile.tsx
 msgid "B1, B2, нострификация"
 msgstr "B1, B2, nostrifikace"
+
+#: src/console/AudienceCharts.tsx
+msgid "Mini App, бот может писать"
+msgstr "Mini App, the bot may write"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновить из Telegram"
@@ -2219,6 +2245,10 @@ msgstr "The line under your name"
 #: src/console/pages/Audience.tsx
 msgid "Пришедшие к нам — по языку их Telegram."
 msgstr "People who came to us, by their Telegram language."
+
+#: src/console/AudienceCharts.tsx
+msgid "Mini App, писать боту не разрешили"
+msgstr "Mini App, the bot may not write"
 
 #. placeholder {0}: request.helpers_seeing
 #: src/pages/Request.tsx
@@ -2895,8 +2925,8 @@ msgid "Админы чата"
 msgstr "Chat admins"
 
 #: src/console/AudienceCharts.tsx
-msgid "только Mini App, без /start"
-msgstr "Mini App only, no /start"
+#~ msgid "только Mini App, без /start"
+#~ msgstr "Mini App only, no /start"
 
 #: src/console/pages/Chat.tsx
 msgid "Отключить чат"
@@ -2911,8 +2941,8 @@ msgid "Нострификация"
 msgstr "Nostrification"
 
 #: src/console/pages/Audience.tsx
-msgid "можно написать: запустили бота и не заблокировали"
-msgstr "can be written to: started the bot and did not block it"
+#~ msgid "можно написать: запустили бота и не заблокировали"
+#~ msgstr "can be written to: started the bot and did not block it"
 
 #: src/console/pages/Chat.tsx
 msgid "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
@@ -3007,8 +3037,8 @@ msgid "Попробовать ещё раз"
 msgstr "Try again"
 
 #: src/console/pages/Audience.tsx
-msgid "{days} дней по вчера против {days} дней до них. Сегодня отдельно: день не закончился."
-msgstr "{days} days to yesterday against the {days} days before. Today is apart: it is not over."
+#~ msgid "{days} дней по вчера против {days} дней до них. Сегодня отдельно: день не закончился."
+#~ msgstr "{days} days to yesterday against the {days} days before. Today is apart: it is not over."
 
 #: src/console/pages/Summary.tsx
 msgid "{held} · {hoursAgo} ч назад"
@@ -3016,8 +3046,8 @@ msgstr "{held} · {hoursAgo} h ago"
 
 #. placeholder {0}: f.not_from_chats
 #: src/console/pages/Audience.tsx
-msgid "Хоть раз запустили бота или открыли Mini App. Из них {fromChats} бот видел в чатах, {0} пришли по ссылке."
-msgstr "Started the bot or opened the Mini App at least once. The bot had seen {fromChats} of them in chats; {0} came by a link."
+#~ msgid "Хоть раз запустили бота или открыли Mini App. Из них {fromChats} бот видел в чатах, {0} пришли по ссылке."
+#~ msgstr "Started the bot or opened the Mini App at least once. The bot had seen {fromChats} of them in chats; {0} came by a link."
 
 #: src/pages/Mine.tsx
 msgid "Закрытых заявок нет"
@@ -3040,6 +3070,12 @@ msgstr "Blacklist: {who}"
 msgid "Участники"
 msgstr "Members"
 
+#. placeholder {0}: fresh.started_bot
+#. placeholder {1}: fresh.opened_app
+#: src/console/pages/Audience.tsx
+msgid "За период: +{0} дали боту писать, +{1} впервые открыли Mini App."
+msgstr "In this period: +{0} let the bot write, +{1} opened the Mini App for the first time."
+
 #: src/console/Login.tsx
 msgid "Войти через Telegram"
 msgstr "Sign in with Telegram"
@@ -3051,6 +3087,10 @@ msgstr "Awaiting a decision"
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "A couple of words about you — what you take on and what you do not"
+
+#: src/console/pages/Audience.tsx
+msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
+msgstr "First gave the main bot leave to write to them: pressed Start, wrote to it or allowed it in the Mini App. Each person counts once. Recorded since 20 Oct: whoever used the bot before is counted on their first visit after that date."
 
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
@@ -3398,8 +3438,8 @@ msgid "По твоим услугам · {count}"
 msgstr "For your services · {count}"
 
 #: src/console/pages/Audience.tsx
-msgid "Запустили бота"
-msgstr "Started the bot"
+#~ msgid "Запустили бота"
+#~ msgstr "Started the bot"
 
 #: src/console/pages/Spam.tsx
 msgid "Не разобрано · {unreviewed}"
@@ -3688,13 +3728,17 @@ msgstr "Nothing found."
 msgid "договоримся"
 msgstr "we will agree"
 
+#: src/console/pages/Audience.tsx
+msgid "можно написать: дали боту писать и не заблокировали"
+msgstr "can be written to: let the bot write and did not block it"
+
 #: src/console/pages/Chat.tsx
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Not in the catalog · no t.me link"
 
 #: src/console/pages/Audience.tsx
-msgid "были только в Mini App: бот им написать не может"
-msgstr "used only the Mini App: the bot cannot write to them"
+#~ msgid "были только в Mini App: бот им написать не может"
+#~ msgstr "used only the Mini App: the bot cannot write to them"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
@@ -3813,6 +3857,10 @@ msgstr "Add yourself to this list — students will write to you."
 #: src/console/pages/Spam.tsx
 msgid "Вчера"
 msgstr "Yesterday"
+
+#: src/console/pages/Audience.tsx
+msgid "{length} дней по вчера против {length} дней до них. Сегодня отдельно: день не закончился."
+msgstr "{length} days to yesterday against the {length} days before. Today is apart: it is not over."
 
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"
@@ -4084,6 +4132,10 @@ msgstr "I need help with my studies."
 msgid "заявок за 7 дней"
 msgstr "requests in 7 days"
 
+#: src/console/pages/Audience.tsx
+msgid "Разрешили боту писать"
+msgstr "Let the bot write"
+
 #: src/components/SubjectSearch.tsx
 msgid "Предмет, например математика"
 msgstr "Subject, for example maths"
@@ -4142,8 +4194,8 @@ msgid "Вопрос приходит только в личку. Многие е
 msgstr "The question only arrives in a private message. Many miss it: Telegram tells them an admin will approve, and they never open the bot."
 
 #: src/console/pages/Audience.tsx
-msgid "Впервые нажали Start в основном боте. Каждый человек считается один раз, в день первого запуска."
-msgstr "Pressed Start in the main bot for the first time. Each person counts once, on the day of their first start."
+#~ msgid "Впервые нажали Start в основном боте. Каждый человек считается один раз, в день первого запуска."
+#~ msgstr "Pressed Start in the main bot for the first time. Each person counts once, on the day of their first start."
 
 #: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx

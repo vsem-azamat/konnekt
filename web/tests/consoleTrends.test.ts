@@ -8,6 +8,7 @@ import {
   comparableFrom,
   overlap,
   percent,
+  periodLength,
   splitPeriods,
   type TrendPoint,
 } from '../src/console/trends.ts';
@@ -68,4 +69,10 @@ test('a small share keeps one decimal and nothing is a share of nobody', () => {
   assert.equal(percent(88, 2460, 'en'), '3.6%');
   assert.equal(percent(50, 100, 'en'), '50%');
   assert.equal(percent(1, 0, 'en'), '—');
+});
+
+test('a period past a month is whole weeks', () => {
+  assert.equal(periodLength(7), 7);
+  assert.equal(periodLength(30), 30);
+  assert.equal(periodLength(90), 91);
 });

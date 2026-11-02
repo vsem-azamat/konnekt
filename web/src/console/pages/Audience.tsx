@@ -1,5 +1,5 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -38,6 +38,8 @@ import {
   PERIODS,
   type Period,
   percent,
+  periodLength,
+  REST,
   type Segment,
   splitPeriods,
 } from '@/console/trends';
@@ -62,7 +64,12 @@ export default function ConsoleAudiencePage() {
 
 function AudienceView() {
   const [days, setDays] = useState<Period>(30);
-  const { data, isPending, error, refetch } = useQuery(audienceTrendsQuery(days));
+  // Kept here, not in the view: switching the period must not reset the chart.
+  const [picked, setPicked] = useState<Metric>('starts');
+  const { data, isPending, error, refetch } = useQuery({
+    ...audienceTrendsQuery(days),
+    placeholderData: keepPreviousData,
+  });
 
   if (isPending) {
     return (
@@ -78,7 +85,15 @@ function AudienceView() {
       </div>
     );
   }
-  return <Trends data={data} days={days} setDays={setDays} />;
+  return (
+    <Trends
+      data={data}
+      days={days}
+      setDays={setDays}
+      picked={picked}
+      setPicked={setPicked}
+    />
+  );
 }
 
 /** What each metric is called and who it counts. */
@@ -86,11 +101,12 @@ function useMetrics(): Record<Metric, { title: string; who: ReactNode }> {
   const { t } = useLingui();
   return {
     starts: {
-      title: t`Запустили бота`,
+      title: t`Разрешили боту писать`,
       who: (
         <Trans>
-          Впервые нажали Start в основном боте. Каждый человек считается один раз, в день
-          первого запуска.
+          Впервые дали основному боту писать им: нажали Start, написали ему или разрешили
+          в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался
+          ботом раньше, засчитан в день первого визита после этой даты.
         </Trans>
       ),
     },
@@ -139,6 +155,8 @@ interface TrendsProps {
   data: AudienceTrends;
   days: Period;
   setDays: (days: Period) => void;
+  picked: Metric;
+  setPicked: (metric: Metric) => void;
 }
 
 /** Whether the whole period before was recorded, so that comparing with it means something. */
@@ -147,12 +165,13 @@ function comparable(data: AudienceTrends, metric: Metric): boolean {
   return first !== undefined && first.from >= data.counted_since[metric];
 }
 
-function Trends({ data, days, setDays }: TrendsProps) {
+function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
   const { t } = useLingui();
   const day = useDay();
   const metrics = useMetrics();
-  const [picked, setPicked] = useState<Metric>('starts');
   const { now, before } = splitPeriods(data);
+  // Past a month a bar is a week, so 90 days are 13 weeks: say what is counted.
+  const length = periodLength(data.days);
 
   const delta = (metric: Metric) => {
     const total = data.totals[metric];
@@ -186,7 +205,7 @@ function Trends({ data, days, setDays }: TrendsProps) {
         />
         <span>
           <Trans>
-            {days} дней по вчера против {days} дней до них. Сегодня отдельно: день не
+            {length} дней по вчера против {length} дней до них. Сегодня отдельно: день не
             закончился.
           </Trans>
         </span>
@@ -283,8 +302,9 @@ function FunnelCard({ data }: { data: AudienceTrends }) {
       title: t`Пришли к нам`,
       who: (
         <Trans>
-          Хоть раз запустили бота или открыли Mini App. Из них {fromChats} бот видел в
-          чатах, {f.not_from_chats} пришли по ссылке.
+          Хоть раз дали боту писать (Start, сообщение боту, разрешение в Mini App) или
+          открыли Mini App. Из них {fromChats} бот видел в чатах, {f.not_from_chats} в
+          чатах не видел.
         </Trans>
       ),
       count: came,
@@ -299,8 +319,8 @@ function FunnelCard({ data }: { data: AudienceTrends }) {
       <FunnelSteps steps={steps} extra={{ came: <Overlap funnel={f} /> }} />
       <p className={css.who}>
         <Trans>
-          За период: +{fresh.started_bot} запустили бота, +{fresh.opened_app} открыли Mini
-          App.
+          За период: +{fresh.started_bot} дали боту писать, +{fresh.opened_app} впервые
+          открыли Mini App.
         </Trans>
       </p>
       <Label aside={<Trans>сейчас</Trans>}>
@@ -309,7 +329,7 @@ function FunnelCard({ data }: { data: AudienceTrends }) {
       <div className={css.side}>
         <div>
           <b>{f.reachable}</b>
-          <Trans>можно написать: запустили бота и не заблокировали</Trans>
+          <Trans>можно написать: дали боту писать и не заблокировали</Trans>
         </div>
         <div>
           <b>{f.blocked}</b>
@@ -321,14 +341,15 @@ function FunnelCard({ data }: { data: AudienceTrends }) {
         </div>
         <div>
           <b>{f.opened_app - f.both}</b>
-          <Trans>были только в Mini App: бот им написать не может</Trans>
+          <Trans>открывали Mini App, но писать боту не разрешили</Trans>
         </div>
       </div>
       {f.estimate > 0 ? (
         <p className={css.estimate}>
           <Trans>
-            Ещё {f.estimate} — догадка: бот видел их до марта 2026 и мог получать от них
-            сообщения в личке, но проверить это нельзя. В цифры выше они не входят.
+            Ещё {f.estimate} — догадка переноса: старые записи бота, по которым похоже,
+            что человек писал боту в личку. Проверить нельзя, сами они с тех пор не
+            появлялись. В цифры выше не входят.
           </Trans>
         </p>
       ) : null}
@@ -350,7 +371,7 @@ function useSegmentLabel(): (by: By, row: Segment) => string {
     offer: t`ссылка «Предложить помощь»`,
   };
   return (by, row) => {
-    if (row.key === 'other') {
+    if (row.key === REST) {
       const rest = row.label;
       return by === 'chats' ? t`ещё чатов: ${rest}` : t`остальные: ${rest}`;
     }
@@ -369,7 +390,11 @@ function Segments({ data }: { data: AudienceTrends }) {
   const label = useSegmentLabel();
   const [by, setBy] = useState<By>('chats');
   const who = {
-    chats: <Trans>Пришедшие к нам — по чату, где бот увидел их впервые.</Trans>,
+    chats: (
+      <Trans>
+        Пришедшие к нам — по чату, где бот впервые видел, как они пишут или просятся.
+      </Trans>
+    ),
     languages: <Trans>Пришедшие к нам — по языку их Telegram.</Trans>,
     sources: <Trans>Пришедшие к нам — по ссылке, с которой они пришли впервые.</Trans>,
   }[by];
