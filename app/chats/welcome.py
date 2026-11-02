@@ -26,7 +26,7 @@ from aiogram.exceptions import (
     TelegramMigrateToChat,
     TelegramNotFound,
 )
-from aiogram.types import InlineKeyboardMarkup, User
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
 from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,6 +55,8 @@ EXTENDED = "extended"
 # A joiner counted in while the edit naming them was refused, flood control typically.
 EDIT_SKIPPED = "edit_skipped"
 NOT_SENT = "not_sent"
+# Under the button into the app, in a university's own chat: its faculties' chats.
+FACULTIES_BUTTON = "🎓 Чаты факультетов"
 
 _sleep = asyncio.sleep
 
@@ -85,7 +87,9 @@ def text(names: list[str], others: int, chat_text: str | None) -> str:
     return "\n\n".join(lines)
 
 
-async def greet(bot: Bot, chat_id: int, user: User, *, chat_text: str | None, lifetime: int) -> int | None:
+async def greet(
+    bot: Bot, chat_id: int, user: User, *, chat_text: str | None, lifetime: int, university: str | None = None
+) -> int | None:
     """Greet `user`: in the greeting that is up, or in a new one.
 
     Returns the greeting's message id, for the caller to record when it is to
@@ -103,7 +107,7 @@ async def greet(bot: Bot, chat_id: int, user: User, *, chat_text: str | None, li
                 _keep(chat_id, greeting, lifetime)
                 return greeting.message_id
             _drop(chat_id)
-        greeting = await _post(bot, chat_id, user, chat_text)
+        greeting = await _post(bot, chat_id, user, chat_text, university)
         if greeting is None:
             return None
         _up[chat_id] = greeting
@@ -179,8 +183,8 @@ def _name(user: User) -> str:
     return user.mention_html(user.first_name)
 
 
-async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _Greeting | None:
-    markup = await intro.link_markup(bot, SOURCE)
+async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None, university: str | None) -> _Greeting | None:
+    markup = await _markup(bot, university)
     try:
         try:
             sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
@@ -246,6 +250,16 @@ async def _add(bot: Bot, chat_id: int, greeting: _Greeting, user: User) -> bool:
     logger.info("welcome_extended", chat_id=chat_id, message_id=greeting.message_id)
     WELCOME_GREETINGS.labels(outcome=EXTENDED).inc()
     return True
+
+
+async def _markup(bot: Bot, university: str | None) -> InlineKeyboardMarkup:
+    """The button into the app, and in a university's own chat a second one to its faculties' chats."""
+    markup = await intro.link_markup(bot, SOURCE)
+    if university:
+        me = await bot.me()
+        url = f"https://t.me/{me.username}?startapp=uni-{university}"
+        markup.inline_keyboard.append([InlineKeyboardButton(text=FACULTIES_BUTTON, url=url)])
+    return markup
 
 
 def _keep(chat_id: int, greeting: _Greeting, lifetime: int) -> None:

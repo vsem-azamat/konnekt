@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -741,6 +742,30 @@ class WelcomeGreeting(Base):
         self.chat_id = chat_id
         self.message_id = message_id
         self.delete_at = delete_at
+
+
+class FacultyList(Base):
+    """The message a university chat pins with its faculties' chats, as the bot last wrote it.
+
+    Kept so the bot edits that one message rather than pinning a new one: an
+    edit notifies nobody. `gone_at` is when Telegram said the message was no
+    longer there; somebody removed it, and the bot does not post it again.
+    """
+
+    __tablename__ = "faculty_lists"
+
+    chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True)
+    message_id: Mapped[int] = mapped_column(BigInteger)
+    text: Mapped[str] = mapped_column(Text)
+    # Unset until the pin went through: a message posted but not pinned is pinned on the next round.
+    pinned_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    gone_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
+
+    def __init__(self, chat_id: int, message_id: int, text: str) -> None:
+        self.chat_id = chat_id
+        self.message_id = message_id
+        self.text = text
 
 
 class UserPhoto(Base):

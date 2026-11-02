@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.captcha import service as captcha
 from app.captcha.telegram import already_member, with_retry
-from app.chats import invite_links, profile, welcome
+from app.chats import faculty_list, invite_links, profile, welcome
 from app.chats.metadata import fetch_metadata, username_of
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -69,9 +69,13 @@ async def user_joined(event: ChatMemberUpdated, bot: Bot, db: AsyncSession) -> N
     if chat is None or not chat.is_welcome_enabled:
         return
     chat_text, lifetime = chat.welcome_message, chat.time_delete
+    # A university's own chat points at its faculties' chats.
+    university = await faculty_list.university_of(db, chat) if settings.telegram.faculty_button else None
     # Done with the database before waiting on Telegram and on other joiners.
     await db.commit()
-    message_id = await welcome.greet(bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime)
+    message_id = await welcome.greet(
+        bot, chat.id, joined, chat_text=chat_text, lifetime=lifetime, university=university
+    )
     if message_id is not None:
         try:
             await welcome.remember(db, chat.id, message_id, lifetime)

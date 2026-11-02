@@ -257,6 +257,11 @@ async def _serve() -> None:
 
     tasks.append(run_invite_link_sync(session_maker=session_maker, bot=main_bot))
 
+    # The faculties' chats a university chat pins, in the chats it was approved for.
+    from app.chats.faculty_list import run_sync_loop as run_faculty_list_sync
+
+    tasks.append(run_faculty_list_sync(session_maker=session_maker, bot=main_bot))
+
     # What the bot may do in each chat, asked again for any chat no update has confirmed lately.
     from app.chats.bot_rights import run_check_loop as run_bot_rights_check
 

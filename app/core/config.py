@@ -108,6 +108,16 @@ class TelegramSettings(Settings):
         default="",
         description="Photo the /start album opens with, beside the video (file_id or https URL); unset, text only",
     )
+    # Thousands read a pinned message, so a chat gets one only once its text was
+    # approved for it: named here, none by default (app/chats/faculty_list.py).
+    faculty_list_chats: Annotated[list[int], NoDecode] = Field(
+        default_factory=list,
+        description="University chats where the bot pins and keeps their faculties' chats, comma-separated ids",
+    )
+    faculty_button: bool = Field(
+        default=False,
+        description="A university chat's greeting gets a second button, to its faculties' chats in the app",
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="MODERATOR_BOT_",
@@ -122,6 +132,11 @@ class TelegramSettings(Settings):
     def _split_retired(cls, value: Any) -> Any:
         # Whitespace too: a secret gets pasted one token per line, and a token holds none.
         return re.split(r"[\s,]+", value) if isinstance(value, str) else value
+
+    @field_validator("faculty_list_chats", mode="before")
+    @classmethod
+    def _split_chats(cls, value: Any) -> Any:
+        return [part for part in re.split(r"[\s,]+", value) if part] if isinstance(value, str) else value
 
     @field_validator("intro_video", "intro_video_cover", "intro_photo", mode="before")
     @classmethod
