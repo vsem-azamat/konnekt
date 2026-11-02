@@ -141,6 +141,16 @@ async def test_a_button_pressed_in_private_is_a_visit(session_maker):
     assert (touch.user_id, touch.touchpoint) == (PERSON.id, Touchpoint.MAIN_BOT)
 
 
+async def test_a_button_pressed_in_private_does_not_open_the_bot(session_maker):
+    """The bot's message may be a join request's captcha, which Telegram lets it send without a start."""
+    middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)
+    press = CallbackQuery(id="1", from_user=PERSON, chat_instance="c", message=_message(), data="x")
+
+    await _run(middleware, Update(update_id=1, callback_query=press))
+
+    assert await _rows(session_maker, AudienceReach) == []
+
+
 @pytest.mark.parametrize("payload", ["a" * 65, "drop table", "привет"])
 async def test_a_payload_that_none_of_our_links_carry_is_not_kept(session_maker, payload):
     middleware = AudienceMiddleware(session_maker, Touchpoint.MAIN_BOT)

@@ -185,7 +185,8 @@ after it did not once (37 of 37 in the week to 2.11, «bot can't initiate
 conversation»). The way into the app after a pass is therefore a button on the
 captcha message the bot edits to «Готово»; the video goes only to whoever
 started the bot, which the audience records, and to everyone asked in the
-chat, who opened the bot to answer.
+chat, who opened the bot to answer. So a tap on a button in the private chat
+is a visit, not a start: the captcha is the bot's message there without one.
 
 **Asked in the chat, the applicant is muted before the request is approved.**
 With `captcha_in_chat` the request is approved at once, so the order is the
