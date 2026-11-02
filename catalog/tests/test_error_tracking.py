@@ -102,3 +102,17 @@ async def test_a_deliberate_503_is_not_an_issue(sentry: Captured) -> None:
         assert (await client.get("/down")).status_code == 503
 
     assert sentry.events == []
+
+
+def test_a_log_line_goes_by_its_format_string_not_its_arguments(
+    sentry: Captured,
+) -> None:
+    log = logging.getLogger("students_cz.x")
+    log.warning("service_call operator=%s %s", 268388996, "GET /x")
+    log.error("no status mapped for %s", "268388996")
+
+    [event] = sentry.events
+    assert event["logentry"] == {"message": "no status mapped for %s"}
+    crumbs = [c.get("message") for c in event["breadcrumbs"]["values"]]
+    assert "service_call operator=%s %s" in crumbs
+    assert "268388996" not in repr(event)

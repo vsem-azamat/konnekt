@@ -57,6 +57,10 @@ _PATTERNS = (
     (re.compile(r"\S*auth_date=\S*hash=\S*|\S*hash=\S*auth_date=\S*"), _FILTERED),
     (re.compile(r"\+\d[\d ()-]{7,}\d"), _FILTERED),
     (re.compile(r"(Key \([^)]*\))=\([^)]*\)"), rf"\1=({_FILTERED})"),
+    # A database error's DETAIL line quotes the row; validation errors their input.
+    (re.compile(r"DETAIL:.*"), f"DETAIL: {_FILTERED}"),
+    (re.compile(r"input_value=.*?(?=, input_type=|\]|$)", re.MULTILINE), f"input_value={_FILTERED}"),
+    (re.compile(r"'input': (\{[^}]*\}|'[^']*'|\"[^\"]*\"|[^,}]+)"), f"'input': {_FILTERED}"),
     # An address keeps its path, without the query or fragment after it...
     (re.compile(r"([a-z][a-z0-9+.-]*://[^\s?#]*)[?#]\S*", re.IGNORECASE), r"\1"),
     # ...and a long number in it is somebody's id.
@@ -88,9 +92,22 @@ def _scrub(value: Any, key: str | None = None) -> Any:
     return value
 
 
+def _named_by_route(request: Any, event: Any) -> Any:
+    """The address as its route, `/avatars/{file_id}`, when the framework named it."""
+    route = event.get("transaction")
+    source = (event.get("transaction_info") or {}).get("source")
+    url = request.get("url")
+    if source == "route" and isinstance(route, str) and route.startswith("/") and isinstance(url, str):
+        origin = re.match(r"[a-z][a-z0-9+.-]*://[^/?#]*", url, re.IGNORECASE)
+        if origin:
+            return {**request, "url": origin.group(0) + route}
+    return request
+
+
 def _before_send(event: Event, _hint: Hint) -> Event | None:
     request = event.get("request")
     if request:
+        request = _named_by_route(request, event)
         event["request"] = {key: request[key] for key in _REQUEST_KEYS if key in request}
     return _scrub(event)
 

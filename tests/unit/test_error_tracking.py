@@ -157,7 +157,7 @@ def test_a_database_error_loses_the_values_it_quotes() -> None:
     value = scrubbed["exception"]["values"][0]["value"]
 
     assert "555777999" not in value
-    assert "Key (tg_id)" in value
+    assert value.startswith("DETAIL:")
 
 
 def test_the_events_own_ids_are_kept() -> None:
@@ -202,3 +202,32 @@ def test_a_transaction_is_scrubbed_like_an_error(sentry: Captured) -> None:
     hook = sentry_sdk.get_client().options["before_send_transaction"]
 
     assert _TOKEN not in repr(hook(event, {}))
+
+
+@pytest.mark.parametrize(
+    ("text", "personal"),
+    [
+        (
+            'null value in column "x" violates not-null constraint\nDETAIL:  Failing row contains (17, Ahoj, ivan@example.cz).',
+            "ivan@example.cz",
+        ),
+        ("1 validation error\n  Value error [type=value_error, input_value='my name is Ivan', input_type=str]", "Ivan"),
+        ("{'type': 'missing', 'loc': ('body',), 'msg': 'Field required', 'input': {'text': 'Ivan'}}", "Ivan"),
+    ],
+)
+def test_errors_that_quote_their_input_lose_it(text: str, personal: str) -> None:
+    event: Any = {"exception": {"values": [{"value": text}]}}
+
+    assert personal not in repr(error_tracking._before_send(event, {}))
+
+
+def test_a_request_is_named_by_its_route_when_the_route_is_known() -> None:
+    event: Any = {
+        "transaction": "/api/public/avatars/{file_id}",
+        "transaction_info": {"source": "route"},
+        "request": {"method": "GET", "url": "https://konnekt.cz/api/public/avatars/AgADx7"},
+    }
+
+    scrubbed: Any = error_tracking._before_send(event, {})
+
+    assert scrubbed["request"]["url"] == "https://konnekt.cz/api/public/avatars/{file_id}"
