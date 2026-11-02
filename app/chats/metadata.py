@@ -78,10 +78,17 @@ class BotNotInChatError(Exception):
     """
 
 
-def _not_in_chat(err: TelegramAPIError) -> bool:
+def gone_status(err: TelegramAPIError) -> str | None:
+    """The status a refusal says the bot has in the chat: "kicked" or "left", or None when it says nothing of the sort.
+
+    A kick is the one Telegram names; leaving, never being added and a
+    deleted chat all come down to the bot not being there.
+    """
     if isinstance(err, TelegramForbiddenError):
-        return True
-    return isinstance(err, TelegramBadRequest) and "chat not found" in err.message.lower()
+        return "kicked" if "kicked" in err.message.lower() else "left"
+    if isinstance(err, TelegramBadRequest) and "chat not found" in err.message.lower():
+        return "left"
+    return None
 
 
 @dataclass(frozen=True)
@@ -239,7 +246,7 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
     except TelegramMigrateToChat as err:
         raise ChatMigratedError(chat_id, err.migrate_to_chat_id) from err
     except TelegramAPIError as err:
-        if _not_in_chat(err):
+        if gone_status(err) is not None:
             raise BotNotInChatError(chat_id) from err
         logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None
