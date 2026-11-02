@@ -36,6 +36,7 @@
   "devDependencies": {
     "@astrojs/sitemap": "3.7.4",
     "@biomejs/biome": "^2.5.15",
+    "@fontsource-variable/inter-tight": "5.3.0",
     "@hey-api/openapi-ts": "^0.99.0",
     "@lingui/babel-plugin-lingui-macro": "^6.10.0",
     "@lingui/cli": "^6.10.0",

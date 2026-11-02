@@ -2,9 +2,12 @@
 /** The guides in one language, examples marked as such. */
 import { getCollection } from 'astro:content';
 
+import '../site.css';
 import Base from '../layouts/Base.astro';
 import { guidePath, hiddenPaths, type Lang, langOf, localePath } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
 
 interface Props {
   lang: Lang;
@@ -24,10 +27,11 @@ const hidden = hiddenPaths(all.map(({ id, data }) => ({ id, draft: data.draft })
   description={t.guides}
   noindex={hidden.includes(localePath(lang, '/guides/'))}
 >
+  <Header lang={lang} path="/guides/" />
   <main class="page">
     <h1>{t.guides}</h1>
     {guides.length === 0 && <p>{t.noGuides}</p>}
-    <ul class="guides">
+    <ul class="guides-list">
       {
         guides.map((guide) => (
           <li>
@@ -41,4 +45,5 @@ const hidden = hiddenPaths(all.map(({ id, data }) => ({ id, draft: data.draft })
       }
     </ul>
   </main>
+  <Footer lang={lang} path="/guides/" />
 </Base>

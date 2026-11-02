@@ -1,181 +1,13 @@
 /*
- * The site's own layout. Colours, radii and tones are the Mini App's
- * (src/styles/tokens.css), so the two read as one product.
+ * The guide pages' own layout, on landing F's tokens (landing/f.css): its
+ * header, footer and type are theirs too.
  */
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', system-ui,
-    sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  color: var(--ink);
-  background-color: var(--bg);
-}
-
-a {
-  color: inherit;
-}
-
-.bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  max-width: 44rem;
-  margin: 0 auto;
-  padding: max(14px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 0
-    max(24px, env(safe-area-inset-left));
-}
-
-.wordmark {
-  font-size: 15px;
-  font-weight: 760;
-  letter-spacing: -0.02em;
-  text-decoration: none;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
-}
-
-.nav > a,
-.langs summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 10px;
-  color: var(--ink-soft);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.langs {
-  position: relative;
-}
-
-.langs summary {
-  list-style: none;
-}
-
-.langs summary::-webkit-details-marker {
-  display: none;
-}
-
-.langs ul {
-  position: absolute;
-  right: 0;
-  z-index: 1;
-  margin: 4px 0 0;
-  padding: 6px;
-  list-style: none;
-  background: var(--surface);
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
-}
-
-.langs a {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.langs a[aria-current] {
-  font-weight: 640;
-}
-
-.landing {
-  display: grid;
-  align-content: safe center;
-  justify-items: start;
-  gap: clamp(14px, 3.2vh, 22px);
-  min-height: calc(100dvh - 58px);
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: 24px 24px max(24px, env(safe-area-inset-bottom));
-}
-
-.headline {
-  margin: 0;
-  font-size: clamp(28px, 7.2vw, 40px);
-  line-height: 1.08;
-  font-weight: 730;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-
-.sub {
-  margin: 0;
-  font-size: clamp(14px, 3.6vw, 16px);
-  color: var(--ink-soft);
-  max-width: 30ch;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chip {
-  padding: 6px 11px;
-  border-radius: var(--r-chip);
-  font-size: 12.5px;
-  font-weight: 560;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 0 26px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 15.5px;
-  font-weight: 640;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-}
-
-:where(.cta, .nav a, .langs summary):focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
-.foot {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--muted);
-  max-width: 34ch;
-}
 
 .page {
   max-width: 44rem;
   margin: 0 auto;
-  padding: 24px max(24px, env(safe-area-inset-right))
-    max(48px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  padding: 24px max(16px, env(safe-area-inset-right))
+    max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
 .page h1 {
@@ -186,7 +18,7 @@ a {
   text-wrap: balance;
 }
 
-.guides {
+.guides-list {
   display: grid;
   gap: 10px;
   margin: 0;
@@ -194,27 +26,28 @@ a {
   list-style: none;
 }
 
-.guides a {
+.guides-list a {
   display: grid;
   gap: 4px;
   padding: 16px;
   border-radius: 14px;
-  background: var(--surface);
+  background: var(--card);
+  border: 1px solid var(--hair);
   text-decoration: none;
 }
 
-.guides p {
+.guides-list p {
   margin: 0;
-  color: var(--ink-soft);
+  color: var(--soft);
   font-size: 14px;
 }
 
 .badge {
   justify-self: start;
   padding: 2px 8px;
-  border-radius: var(--r-chip);
-  background: var(--tone-1-bg);
-  color: var(--tone-1-fg);
+  border-radius: 999px;
+  background: var(--t1b);
+  color: var(--t1f);
   font-size: 12px;
   font-weight: 560;
 }

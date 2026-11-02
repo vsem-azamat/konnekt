@@ -2,9 +2,12 @@
 /** One guide, with links to its translations. */
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 
+import '../site.css';
 import Base from '../layouts/Base.astro';
 import { langOf, slugOf } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
 
 interface Props {
   guide: CollectionEntry<'guides'>;
@@ -27,6 +30,7 @@ const { Content } = await render(guide);
   description={guide.data.description}
   noindex={guide.data.draft}
 >
+  <Header lang={lang} path={`/guides/${slug}/`} langs={langs} />
   <main class="page">
     {guide.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
     <article class="article">
@@ -34,4 +38,5 @@ const { Content } = await render(guide);
       <Content />
     </article>
   </main>
+  <Footer lang={lang} path={`/guides/${slug}/`} />
 </Base>

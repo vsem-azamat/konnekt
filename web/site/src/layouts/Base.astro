@@ -4,8 +4,10 @@
  * palette before the first paint, and the way back into the app for anyone
  * who reaches this page from inside Telegram.
  */
-import '../../../src/styles/tokens.css';
-import '../site.css';
+// Each subset is its own file behind a unicode-range: a page downloads only the scripts it uses.
+import '@fontsource-variable/inter-tight';
+import latinFont from '@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2?url';
+import '../landing/f.css';
 
 import { getCollection } from 'astro:content';
 
@@ -18,7 +20,7 @@ import {
   localePath,
   telegramHome,
 } from '../paths.ts';
-import { LANG_NAMES, OG_LOCALES, TEXTS } from '../texts.ts';
+import { OG_LOCALES } from '../texts.ts';
 
 interface Props {
   lang: Lang;
@@ -35,7 +37,6 @@ interface Props {
 const { lang, path, langs = LANGS, title, description, noindex = false } = Astro.props;
 const site = Astro.site?.href ?? '/';
 const canonical = new URL(localePath(lang, path), site).href;
-const t = TEXTS[lang];
 const hidden = hiddenPaths(
   (await getCollection('guides')).map(({ id, data }) => ({ id, draft: data.draft })),
 );
@@ -55,6 +56,7 @@ const handOff = `(() => {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
+    <link rel="preload" href={latinFont} as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#fffefc" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)" />
     <title>{title}</title>
@@ -75,12 +77,12 @@ const handOff = `(() => {
     <meta property="og:locale" content={OG_LOCALES[lang]} />
     <script is:inline set:html={handOff} />
     <script is:inline>
-      // The palette before the first paint, the same keys and resolution as the
-      // Mini App's index.html and src/lib/theme.ts: keep the three in step.
+      // The palette before the first paint: ?theme= (screenshots), then the
+      // stored choice (the Mini App's keys), then the system.
       (() => {
-        let mode = null;
+        let mode = new URLSearchParams(location.search).get('theme');
         try {
-          mode = localStorage.getItem('students-cz.theme');
+          if (mode !== 'light' && mode !== 'dark') mode = localStorage.getItem('students-cz.theme');
           if (mode !== 'light' && mode !== 'dark') mode = localStorage.getItem('konnekt.theme');
         } catch {}
         if (mode !== 'light' && mode !== 'dark') {
@@ -91,31 +93,6 @@ const handOff = `(() => {
     </script>
   </head>
   <body>
-    <header class="bar">
-      <a class="wordmark" href={localePath(lang, '/')}>Konnekt</a>
-      <nav class="nav">
-        <a href={localePath(lang, '/guides/')}>{t.guides}</a>
-        <details class="langs">
-          <summary aria-label={t.language}>{lang.toUpperCase()}</summary>
-          <ul>
-            {
-              LANGS.map((other) => (
-                <li>
-                  <a
-                    href={localePath(other, langs.includes(other) ? path : '/')}
-                    hreflang={other}
-                    lang={other}
-                    aria-current={other === lang ? 'true' : undefined}
-                  >
-                    {LANG_NAMES[other]}
-                  </a>
-                </li>
-              ))
-            }
-          </ul>
-        </details>
-      </nav>
-    </header>
     <slot />
   </body>
 </html>

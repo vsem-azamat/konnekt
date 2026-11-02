@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!dist", "!src/locales/**/*.ts", "!src/lib/generated"]
+    "includes": [
+      "**",
+      "!dist",
+      "!src/locales/**/*.ts",
+      "!src/lib/generated",
+      "!site/src/landing/av"
+    ]
   },
   "formatter": {
     "enabled": true,

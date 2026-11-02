@@ -37,6 +37,8 @@ const hidden = hiddenPaths(guides());
 export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4321',
   // /uk/ and /guides/x/: one address per page, the one the canonical link names.
+  // The dev server is what uiux compares with the prototype: no toolbar over the page.
+  devToolbar: { enabled: false },
   trailingSlash: 'always',
   build: { format: 'directory' },
   integrations: [
