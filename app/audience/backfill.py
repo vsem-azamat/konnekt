@@ -50,7 +50,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.audience import record
-from app.audience.record import Person
+from app.audience.record import ESTIMATE, Person
 from app.core.enums import Touchpoint
 from app.core.logging import get_logger
 from app.db.models import AdsTopic, AudienceMember, Message, ModerationEvent, SpamPing, User
@@ -63,7 +63,6 @@ if TYPE_CHECKING:
 
 logger = get_logger("audience.backfill")
 
-ESTIMATE = "backfill:dm_estimate"
 # Shortly before the release that began recording people who never wrote
 # (chat members, applicants, admins): anybody newer is not a guess to make.
 ESTIMATE_BEFORE = datetime.datetime(2026, 10, 29, 16, 30)

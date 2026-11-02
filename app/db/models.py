@@ -1101,6 +1101,34 @@ class AudienceTouch(Base):
     count: Mapped[int] = mapped_column(Integer, default=1)
 
 
+class AudienceDay(Base):
+    """One day on which one person used one touchpoint, or blocked or let back in one bot.
+
+    What the trends are counted from: how many different people opened the
+    Mini App in a day or a week, how many blocked the bot last month. The
+    touches keep only the first and last visit, and the reach only the
+    latest state, so neither can say. One row however many visits the day
+    had, and nothing about what was done.
+    """
+
+    __tablename__ = "audience_days"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "touchpoint IN ('main_bot', 'contact_bot', 'mini_app', 'moved_bot')", name="ck_audience_days_touchpoint"
+        ),
+        sa.CheckConstraint("event IN ('visit', 'block', 'unblock')", name="ck_audience_days_event"),
+        sa.Index("ix_audience_days_day", "day", "touchpoint", "event"),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audience_members.user_id", ondelete="CASCADE"), primary_key=True
+    )
+    # A UTC date, as every time here is UTC.
+    day: Mapped[datetime.date] = mapped_column(sa.Date, primary_key=True)
+    touchpoint: Mapped[str] = mapped_column(String(16), primary_key=True)
+    event: Mapped[str] = mapped_column(String(8), primary_key=True)
+
+
 class AudienceReach(Base):
     """Whether one bot may write to one person.
 

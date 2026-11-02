@@ -12,10 +12,10 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import case, func, null, update
+from sqlalchemy import case, func, null, select, update
 
 from app.core.enums import Touchpoint
-from app.db.models import AudienceMember, AudienceReach, AudienceTouch
+from app.db.models import AudienceDay, AudienceMember, AudienceReach, AudienceTouch
 from app.db.upsert import insert_for
 
 if TYPE_CHECKING:
@@ -24,11 +24,15 @@ if TYPE_CHECKING:
     from aiogram.types import User
     from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["Person", "Touchpoint", "blocked", "may_write", "opted_out", "seen", "started"]
+__all__ = ["ESTIMATE", "Person", "Touchpoint", "blocked", "may_write", "opted_out", "seen", "started"]
 
 # A start or startapp payload that can be stored as where somebody came from:
 # what our own links carry. Anything else is somebody typing, and is not kept.
 SOURCE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+# The source the backfill gives a private contact it could only guess at
+# (see app/audience/backfill.py). Its date is a guess too, so it is no day of a visit.
+ESTIMATE = "backfill:dm_estimate"
 
 _PROFILE = ("username", "first_name", "last_name", "language_code", "is_premium")
 
@@ -150,6 +154,8 @@ async def seen(
         )
     )
 
+    if source != ESTIMATE:
+        await _day(db, person.id, touchpoint, "visit", at)
     if started is not None:
         await _reach(db, person.id, started, at=at, open_=True)
 
@@ -176,6 +182,12 @@ async def may_write(db: AsyncSession, user_id: int, bot: Touchpoint) -> bool:
     return reach is not None and reach.started_at is not None and reach.blocked_at is None
 
 
+async def _day(db: AsyncSession, user_id: int, touchpoint: Touchpoint, event: str, at: datetime.datetime) -> None:
+    days = AudienceDay.__table__
+    insert = insert_for(db, days).values(user_id=user_id, day=at.date(), touchpoint=touchpoint, event=event)
+    await db.execute(insert.on_conflict_do_nothing())
+
+
 async def _member(db: AsyncSession, user_id: int, at: datetime.datetime) -> None:
     members = AudienceMember.__table__
     insert = insert_for(db, members).values(user_id=user_id, first_seen_at=at, last_seen_at=at)
@@ -183,7 +195,26 @@ async def _member(db: AsyncSession, user_id: int, at: datetime.datetime) -> None
 
 
 async def _reach(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime, open_: bool) -> None:
+    """Set whether `bot` may write, and keep the day when that changed.
+
+    A day is kept only for a change: every send to somebody who blocked the
+    bot ends in a 403, and only the first is a block. Whoever lifts a block,
+    an unblock, a /start or the Mini App's leave to write, the day says so.
+    An event older than the state it would change is history the state
+    ignores, and so do the days.
+    """
     reach = AudienceReach.__table__
+    before = (
+        await db.execute(
+            select(reach.c.blocked_at, reach.c.known_at).where(reach.c.user_id == user_id, reach.c.bot == bot)
+        )
+    ).first()
+    if before is None or before.known_at <= at:
+        was_blocked = before is not None and before.blocked_at is not None
+        if open_ and was_blocked:
+            await _day(db, user_id, bot, "unblock", at)
+        elif not open_ and not was_blocked:
+            await _day(db, user_id, bot, "block", at)
     insert = insert_for(db, reach).values(
         user_id=user_id,
         bot=bot,
