@@ -36,7 +36,8 @@ def test_history_fills_known_days_and_standing_blocks_but_not_guesses(database) 
                 "(1, 'mini_app', '2026-10-20 09:00', '2026-11-01 23:59', 7), "
                 "(2, 'main_bot', '2026-10-21 10:00', '2026-10-21 10:00', 1), "
                 "(3, 'main_bot', '2026-04-01 10:00', '2026-04-01 10:00', 1), "
-                "(4, 'main_bot', '2026-04-02 10:00', '2026-10-30 10:00', 1)"
+                "(4, 'main_bot', '2026-04-02 10:00', '2026-10-30 10:00', 1), "
+                "(3, 'mini_app', '2026-10-31 09:00', '2026-10-31 09:00', 1)"
             )
         )
         conn.execute(
@@ -56,6 +57,7 @@ def test_history_fills_known_days_and_standing_blocks_but_not_guesses(database) 
         (1, "2026-11-01", "mini_app", "visit"),
         (2, "2026-10-21", "main_bot", "visit"),
         (2, "2026-10-25", "main_bot", "block"),
+        (3, "2026-10-31", "mini_app", "visit"),
         (4, "2026-10-30", "main_bot", "visit"),
     ]
 

@@ -22,17 +22,17 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 # The backfill's guesses at private contacts were dated by when the bot first
-# stored them, not by any visit: their first day is no visit, and their last
-# only if they came back since.
+# stored them, not by any visit: their first day in the main bot is no visit,
+# and their last only if they came back since. Their other touchpoints are real.
 HISTORY = """
 INSERT INTO audience_days (user_id, day, touchpoint, event)
 SELECT t.user_id, CAST(t.first_at AS DATE), t.touchpoint, 'visit'
 FROM audience_touches t JOIN audience_members m ON m.user_id = t.user_id
-WHERE m.source IS DISTINCT FROM 'backfill:dm_estimate'
+WHERE t.touchpoint <> 'main_bot' OR m.source IS DISTINCT FROM 'backfill:dm_estimate'
 UNION
 SELECT t.user_id, CAST(t.last_at AS DATE), t.touchpoint, 'visit'
 FROM audience_touches t JOIN audience_members m ON m.user_id = t.user_id
-WHERE m.source IS DISTINCT FROM 'backfill:dm_estimate' OR t.last_at > t.first_at
+WHERE t.touchpoint <> 'main_bot' OR m.source IS DISTINCT FROM 'backfill:dm_estimate' OR t.last_at > t.first_at
 UNION
 SELECT user_id, CAST(blocked_at AS DATE), bot, 'block' FROM audience_reach WHERE blocked_at IS NOT NULL
 """
