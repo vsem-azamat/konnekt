@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 BEFORE = "a4f7c2e9b1d6"
 
 
-def test_history_fills_first_and_last_days_and_standing_blocks(database) -> None:  # noqa: F811
+def test_history_fills_known_days_and_standing_blocks_but_not_guesses(database) -> None:  # noqa: F811
     command.upgrade(_alembic(), BEFORE)
     with database.begin() as conn:
         conn.execute(
@@ -22,11 +22,21 @@ def test_history_fills_first_and_last_days_and_standing_blocks(database) -> None
                 "(1, '2026-10-20 09:00', '2026-11-01 23:59'), (2, '2026-10-21 10:00', '2026-10-21 10:00')"
             )
         )
+        # Two guesses of the backfill: one never seen since, one who wrote again on 30 October.
+        conn.execute(
+            sa.text(
+                "INSERT INTO audience_members (user_id, source, first_seen_at, last_seen_at) VALUES "
+                "(3, 'backfill:dm_estimate', '2026-04-01 10:00', '2026-04-01 10:00'), "
+                "(4, 'backfill:dm_estimate', '2026-04-02 10:00', '2026-10-30 10:00')"
+            )
+        )
         conn.execute(
             sa.text(
                 "INSERT INTO audience_touches (user_id, touchpoint, first_at, last_at, count) VALUES "
                 "(1, 'mini_app', '2026-10-20 09:00', '2026-11-01 23:59', 7), "
-                "(2, 'main_bot', '2026-10-21 10:00', '2026-10-21 10:00', 1)"
+                "(2, 'main_bot', '2026-10-21 10:00', '2026-10-21 10:00', 1), "
+                "(3, 'main_bot', '2026-04-01 10:00', '2026-04-01 10:00', 1), "
+                "(4, 'main_bot', '2026-04-02 10:00', '2026-10-30 10:00', 1)"
             )
         )
         conn.execute(
@@ -46,6 +56,7 @@ def test_history_fills_first_and_last_days_and_standing_blocks(database) -> None
         (1, "2026-11-01", "mini_app", "visit"),
         (2, "2026-10-21", "main_bot", "visit"),
         (2, "2026-10-25", "main_bot", "block"),
+        (4, "2026-10-30", "main_bot", "visit"),
     ]
 
 

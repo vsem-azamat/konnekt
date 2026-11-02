@@ -4,6 +4,7 @@ A new table beside the audience, so the previous release runs unchanged. It is
 filled from what the audience already knows for certain: the first and last
 day of each touchpoint, and the day of each block that still stands. The days
 between are lost, and so are blocks lifted since; the console hatches them.
+The backfill's guessed dates are left out.
 
 Revision ID: b8d4e1f6a2c7
 Revises: a4f7c2e9b1d6
@@ -20,11 +21,18 @@ down_revision: str | None = "a4f7c2e9b1d6"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+# The backfill's guesses at private contacts were dated by when the bot first
+# stored them, not by any visit: their first day is no visit, and their last
+# only if they came back since.
 HISTORY = """
 INSERT INTO audience_days (user_id, day, touchpoint, event)
-SELECT user_id, CAST(first_at AS DATE), touchpoint, 'visit' FROM audience_touches
+SELECT t.user_id, CAST(t.first_at AS DATE), t.touchpoint, 'visit'
+FROM audience_touches t JOIN audience_members m ON m.user_id = t.user_id
+WHERE m.source IS DISTINCT FROM 'backfill:dm_estimate'
 UNION
-SELECT user_id, CAST(last_at AS DATE), touchpoint, 'visit' FROM audience_touches
+SELECT t.user_id, CAST(t.last_at AS DATE), t.touchpoint, 'visit'
+FROM audience_touches t JOIN audience_members m ON m.user_id = t.user_id
+WHERE m.source IS DISTINCT FROM 'backfill:dm_estimate' OR t.last_at > t.first_at
 UNION
 SELECT user_id, CAST(blocked_at AS DATE), bot, 'block' FROM audience_reach WHERE blocked_at IS NOT NULL
 """

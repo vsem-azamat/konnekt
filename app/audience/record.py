@@ -24,11 +24,15 @@ if TYPE_CHECKING:
     from aiogram.types import User
     from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["Person", "Touchpoint", "blocked", "may_write", "opted_out", "seen", "started"]
+__all__ = ["ESTIMATE", "Person", "Touchpoint", "blocked", "may_write", "opted_out", "seen", "started"]
 
 # A start or startapp payload that can be stored as where somebody came from:
 # what our own links carry. Anything else is somebody typing, and is not kept.
 SOURCE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+# The source the backfill gives a private contact it could only guess at
+# (see app/audience/backfill.py). Its date is a guess too, so it is no day of a visit.
+ESTIMATE = "backfill:dm_estimate"
 
 _PROFILE = ("username", "first_name", "last_name", "language_code", "is_premium")
 
@@ -150,7 +154,8 @@ async def seen(
         )
     )
 
-    await _day(db, person.id, touchpoint, "visit", at)
+    if source != ESTIMATE:
+        await _day(db, person.id, touchpoint, "visit", at)
     if started is not None:
         await _reach(db, person.id, started, at=at, open_=True)
 
@@ -158,8 +163,6 @@ async def seen(
 async def started(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime) -> None:
     """Record that `bot` may write to `user_id` from `at`, without it being a visit: an unblock."""
     await _member(db, user_id, at)
-    if await _blocked_before(db, user_id, bot, at):
-        await _day(db, user_id, bot, "unblock", at)
     await _reach(db, user_id, bot, at=at, open_=True)
 
 
@@ -167,12 +170,9 @@ async def blocked(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: dateti
     """Record that `user_id` blocked `bot`: Telegram said so, or refused a send with 403.
 
     Somebody can block a bot before this table first saw them; they used it,
-    so they are audience from then. A send refused again is the same block,
-    not another day of one.
+    so they are audience from then.
     """
     await _member(db, user_id, at)
-    if not await _blocked_before(db, user_id, bot, at):
-        await _day(db, user_id, bot, "block", at)
     await _reach(db, user_id, bot, at=at, open_=False)
 
 
@@ -180,16 +180,6 @@ async def may_write(db: AsyncSession, user_id: int, bot: Touchpoint) -> bool:
     """Whether `bot` may start a conversation with `user_id`: they started it and have not blocked it since."""
     reach = await db.get(AudienceReach, (user_id, bot))
     return reach is not None and reach.started_at is not None and reach.blocked_at is None
-
-
-async def _blocked_before(db: AsyncSession, user_id: int, bot: Touchpoint, at: datetime.datetime) -> bool:
-    """Whether `bot` stood blocked by `user_id` just before `at`, as far as is known."""
-    blocked_at = await db.scalar(
-        select(AudienceReach.blocked_at).where(
-            AudienceReach.user_id == user_id, AudienceReach.bot == bot, AudienceReach.known_at <= at
-        )
-    )
-    return blocked_at is not None
 
 
 async def _day(db: AsyncSession, user_id: int, touchpoint: Touchpoint, event: str, at: datetime.datetime) -> None:
@@ -205,7 +195,26 @@ async def _member(db: AsyncSession, user_id: int, at: datetime.datetime) -> None
 
 
 async def _reach(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime, open_: bool) -> None:
+    """Set whether `bot` may write, and keep the day when that changed.
+
+    A day is kept only for a change: every send to somebody who blocked the
+    bot ends in a 403, and only the first is a block. Whoever lifts a block,
+    an unblock, a /start or the Mini App's leave to write, the day says so.
+    An event older than the state it would change is history the state
+    ignores, and so do the days.
+    """
     reach = AudienceReach.__table__
+    before = (
+        await db.execute(
+            select(reach.c.blocked_at, reach.c.known_at).where(reach.c.user_id == user_id, reach.c.bot == bot)
+        )
+    ).first()
+    if before is None or before.known_at <= at:
+        was_blocked = before is not None and before.blocked_at is not None
+        if open_ and was_blocked:
+            await _day(db, user_id, bot, "unblock", at)
+        elif not open_ and not was_blocked:
+            await _day(db, user_id, bot, "block", at)
     insert = insert_for(db, reach).values(
         user_id=user_id,
         bot=bot,

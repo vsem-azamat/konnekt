@@ -90,3 +90,26 @@ async def test_bots_leave_no_days(session_maker):
         await db.commit()
 
     assert await _days(session_maker, user_id=999) == []
+
+
+async def test_a_start_or_the_mini_app_that_lifts_a_block_is_an_unblock(session_maker):
+    """Telegram's unblock update and the /start after it race; whichever is recorded first keeps the day."""
+    async with session_maker() as db:
+        await record.blocked(db, ANNA.id, Touchpoint.MAIN_BOT, at=MORNING)
+        await record.seen(db, ANNA, Touchpoint.MINI_APP, at=NEXT_DAY, started=Touchpoint.MAIN_BOT)
+        await record.started(db, ANNA.id, Touchpoint.MAIN_BOT, at=NEXT_DAY - datetime.timedelta(seconds=1))
+        await db.commit()
+
+    assert await _days(session_maker) == [
+        ("2026-11-02", "main_bot", "block"),
+        ("2026-11-03", "main_bot", "unblock"),
+        ("2026-11-03", "mini_app", "visit"),
+    ]
+
+
+async def test_a_guess_of_the_backfill_is_no_day_of_a_visit(session_maker):
+    async with session_maker() as db:
+        await record.seen(db, ANNA, Touchpoint.MAIN_BOT, at=MORNING, source=record.ESTIMATE, replay=True)
+        await db.commit()
+
+    assert await _days(session_maker) == []
