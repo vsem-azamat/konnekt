@@ -439,6 +439,10 @@ msgstr "What the bot does in the chat"
 msgid "Kč"
 msgstr "Kč"
 
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт меньше часа"
+msgstr "oldest waiting under an hour"
+
 #: src/console/pages/Signals.tsx
 #~ msgid "В чёрный список"
 #~ msgstr "Blacklist"
@@ -723,6 +727,11 @@ msgstr "The bot is in the chat but not an admin · since {0}"
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
 msgstr "The link must lead to a Telegram chat: https://t.me/…"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+msgstr "oldest waiting {0, plural, one {# day} other {# days}}"
 
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
@@ -1942,8 +1951,7 @@ msgstr "Students will stop seeing it. Impressions and clicks are kept."
 msgid "Прага"
 msgstr "Prague"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "открытые, срок не вышел"
 msgstr "open, before their deadline"
 
@@ -2486,8 +2494,7 @@ msgstr "captcha"
 msgid "Название или id"
 msgstr "Name or id"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "каталог"
 msgstr "catalog"
 
@@ -2655,8 +2662,7 @@ msgstr "The bot was removed from the chat · {0}"
 msgid "За 7 дней"
 msgstr "Last 7 days"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Чаты на проверке"
 msgstr "Chats awaiting review"
 
@@ -3262,8 +3268,7 @@ msgid "Анкета сохранена, но в каталоге её нет. В
 msgstr "Your profile is saved but not in the catalog. You can bring it back below."
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Заявки без откликов"
 msgstr "Requests with no answer"
 
@@ -3308,8 +3313,7 @@ msgstr "Author banned"
 msgid "Капча"
 msgstr "Captcha"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "детектор, все чаты"
 msgstr "detector, all chats"
 
@@ -3423,8 +3427,7 @@ msgstr "Tap the button to confirm you are not a bot. The request is approved at 
 msgid "Причина: <0/>"
 msgstr "Reason: <0/>"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Реклама не разобрана"
 msgstr "Ads to review"
 
@@ -3559,8 +3562,7 @@ msgstr "The queue is empty: everything is reviewed."
 msgid "Не ждать"
 msgstr "Don’t wait"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "бот в них есть, но они не одобрены"
 msgstr "the bot is in them, but they are not approved"
 
@@ -3573,8 +3575,7 @@ msgid "{held} · {ago} мин назад"
 msgstr "{held} · {ago} min ago"
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Новые анкеты"
 msgstr "New profiles"
 
@@ -4262,6 +4263,11 @@ msgstr "Couldn't load the chats"
 #: src/pages/Landing.tsx
 #~ msgid "Репетиторы"
 #~ msgstr "Tutors"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+msgstr "oldest waiting {0, plural, one {# hour} other {# hours}}"
 
 #: src/console/pages/Chat.tsx
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."

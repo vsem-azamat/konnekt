@@ -439,6 +439,10 @@ msgstr "Що бот робить у чаті"
 msgid "Kč"
 msgstr "Kč"
 
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт меньше часа"
+msgstr "найдовше чекає менше години"
+
 #: src/console/pages/Signals.tsx
 #~ msgid "В чёрный список"
 #~ msgstr "До чорного списку"
@@ -723,6 +727,11 @@ msgstr "Бот у чаті, але не адмін · з {0}"
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
 msgstr "Посилання має вести на чат у Telegram: https://t.me/…"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+msgstr "найдовше чекає {0, plural, one {# день} few {# дні} many {# днів} other {# дня}}"
 
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
@@ -1942,8 +1951,7 @@ msgstr "Студенти перестануть її бачити. Покази 
 msgid "Прага"
 msgstr "Прага"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "открытые, срок не вышел"
 msgstr "відкриті, термін не минув"
 
@@ -2486,8 +2494,7 @@ msgstr "капча"
 msgid "Название или id"
 msgstr "Назва або id"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "каталог"
 msgstr "каталог"
 
@@ -2655,8 +2662,7 @@ msgstr "Бота видалили з чату · {0}"
 msgid "За 7 дней"
 msgstr "За 7 днів"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Чаты на проверке"
 msgstr "Чати на перевірці"
 
@@ -3262,8 +3268,7 @@ msgid "Анкета сохранена, но в каталоге её нет. В
 msgstr "Анкету збережено, але в каталозі її немає. Повернути можна нижче."
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Заявки без откликов"
 msgstr "Заявки без відгуків"
 
@@ -3308,8 +3313,7 @@ msgstr "Автора забанено"
 msgid "Капча"
 msgstr "Капча"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "детектор, все чаты"
 msgstr "детектор, усі чати"
 
@@ -3423,8 +3427,7 @@ msgstr "Натисни кнопку, щоб підтвердити, що ти н
 msgid "Причина: <0/>"
 msgstr "Причина: <0/>"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Реклама не разобрана"
 msgstr "Нерозібрана реклама"
 
@@ -3559,8 +3562,7 @@ msgstr "Черга порожня: усе розібрано."
 msgid "Не ждать"
 msgstr "Не чекати"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "бот в них есть, но они не одобрены"
 msgstr "бот у них є, але їх не схвалено"
 
@@ -3573,8 +3575,7 @@ msgid "{held} · {ago} мин назад"
 msgstr "{held} · {ago} хв тому"
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Новые анкеты"
 msgstr "Нові анкети"
 
@@ -4262,6 +4263,11 @@ msgstr "Не вдалося завантажити чати"
 #: src/pages/Landing.tsx
 #~ msgid "Репетиторы"
 #~ msgstr "Репетитори"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "дольше всех ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+msgstr "найдовше чекає {0, plural, one {# годину} few {# години} many {# годин} other {# години}}"
 
 #: src/console/pages/Chat.tsx
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."

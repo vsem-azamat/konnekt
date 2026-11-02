@@ -1,21 +1,13 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  ChatIcon,
-  PeopleIcon,
-  PersonIcon,
-  ShieldIcon,
-  TargetIcon,
-} from '@/components/icons';
+import { PeopleIcon } from '@/components/icons';
 import {
   Action,
   Actions,
-  Count,
   Hint,
   Label,
-  Row,
   Rows,
   SkeletonRows,
   Sub,
@@ -23,6 +15,7 @@ import {
   Title,
 } from '@/components/Ui';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { QueueRow } from '@/console/QueueRow';
 import {
   adminCatalogQuery,
   consoleChanges,
@@ -36,6 +29,7 @@ import {
   decisionProblem,
   elapsed,
   minutesUntil,
+  queues,
   type Signals,
   type WaveSignal,
 } from '@/console/signals';
@@ -79,83 +73,9 @@ function SignalsBody() {
     return <ConsoleFailure error={signals.error} retry={() => void signals.refetch()} />;
   }
 
-  const { waves, queues, wave_per_minute } = signals.data;
+  const { waves, wave_per_minute } = signals.data;
   const decisions = waves.length;
-  const counts = catalog.data?.counts;
-  const queueRows: { key: string; count: number; row: (count: number) => ReactNode }[] = [
-    {
-      key: 'ads',
-      count: queues.ads_unreviewed,
-      row: (count: number) => (
-        <Row
-          key="ads"
-          leading={
-            <Tile tone={1}>
-              <ShieldIcon size={19} />
-            </Tile>
-          }
-          title={<Trans>Реклама не разобрана</Trans>}
-          hint={<Trans>детектор, все чаты</Trans>}
-          trailing={<Count>{count}</Count>}
-          onClick={() => navigate('/console/spam')}
-        />
-      ),
-    },
-    {
-      key: 'review',
-      count: queues.chats_in_review,
-      row: (count: number) => (
-        <Row
-          key="review"
-          leading={
-            <Tile tone={3}>
-              <ChatIcon size={19} />
-            </Tile>
-          }
-          title={<Trans>Чаты на проверке</Trans>}
-          hint={<Trans>бот в них есть, но они не одобрены</Trans>}
-          trailing={<Count>{count}</Count>}
-          onClick={() => navigate('/console/chats?tab=decide')}
-        />
-      ),
-    },
-    {
-      key: 'profiles',
-      count: counts?.profiles_to_review ?? 0,
-      row: (count: number) => (
-        <Row
-          key="profiles"
-          leading={
-            <Tile tone={2}>
-              <PersonIcon size={19} />
-            </Tile>
-          }
-          title={<Trans>Новые анкеты</Trans>}
-          hint={<Trans>каталог</Trans>}
-          trailing={<Count>{count}</Count>}
-          onClick={() => navigate('/console/catalog')}
-        />
-      ),
-    },
-    {
-      key: 'requests',
-      count: counts?.unanswered ?? 0,
-      row: (count: number) => (
-        <Row
-          key="requests"
-          leading={
-            <Tile tone={2}>
-              <TargetIcon size={19} />
-            </Tile>
-          }
-          title={<Trans>Заявки без откликов</Trans>}
-          hint={<Trans>открытые, срок не вышел</Trans>}
-          trailing={<Count>{count}</Count>}
-          onClick={() => navigate('/console/catalog')}
-        />
-      ),
-    },
-  ].filter((item) => item.count > 0);
+  const queueRows = queues(signals.data, catalog.data?.counts);
   const queued = queueRows.reduce((sum, item) => sum + item.count, 0);
 
   return (
@@ -207,7 +127,11 @@ function SignalsBody() {
         <ConsoleFailure error={catalog.error} retry={() => void catalog.refetch()} />
       ) : null}
       {queueRows.length ? (
-        <Rows>{queueRows.map((item) => item.row(item.count))}</Rows>
+        <Rows>
+          {queueRows.map((queue) => (
+            <QueueRow key={queue.key} queue={queue} now={now} onOpen={navigate} />
+          ))}
+        </Rows>
       ) : catalog.isPending ? (
         <SkeletonRows count={2} />
       ) : catalog.error ? null : (

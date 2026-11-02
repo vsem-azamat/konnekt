@@ -1,3 +1,4 @@
+import type { AdminCounts } from '../lib/generated/types.gen.ts';
 import { ConsoleError, utc } from './session.ts';
 
 /**
@@ -23,7 +24,13 @@ export interface Signals {
   waves: WaveSignal[];
   /** People asking to join one chat within a minute that make a wave. */
   wave_per_minute: number;
-  queues: { ads_unreviewed: number; chats_in_review: number };
+  /** How many wait, and when the oldest of them came in; null when none does. */
+  queues: {
+    ads_unreviewed: number;
+    ads_waiting_since: string | null;
+    chats_in_review: number;
+    chats_waiting_since: string | null;
+  };
 }
 
 export interface MenuCounts {
@@ -47,6 +54,77 @@ export function menuCounts(
     spam: signals?.queues.ads_unreviewed ?? 0,
     catalog: catalog?.profiles_to_review ?? 0,
   };
+}
+
+export type QueueKey = 'ads' | 'review' | 'profiles' | 'requests';
+
+/** One of the console's queues: how many wait, and since when the oldest. */
+export interface Queue {
+  key: QueueKey;
+  count: number;
+  since: string | null;
+}
+
+/**
+ * The queues with something in them, in the order the console lists them:
+ * webapi's two, then the catalog's. An answer still missing adds none.
+ */
+export function queues(
+  signals: Signals | undefined,
+  catalog:
+    | Pick<
+        AdminCounts,
+        | 'profiles_to_review'
+        | 'profiles_waiting_since'
+        | 'unanswered'
+        | 'unanswered_waiting_since'
+      >
+    | undefined,
+): Queue[] {
+  const all: Queue[] = [];
+  if (signals) {
+    all.push(
+      {
+        key: 'ads',
+        count: signals.queues.ads_unreviewed,
+        since: signals.queues.ads_waiting_since,
+      },
+      {
+        key: 'review',
+        count: signals.queues.chats_in_review,
+        since: signals.queues.chats_waiting_since,
+      },
+    );
+  }
+  if (catalog) {
+    all.push(
+      {
+        key: 'profiles',
+        count: catalog.profiles_to_review,
+        since: catalog.profiles_waiting_since,
+      },
+      {
+        key: 'requests',
+        count: catalog.unanswered,
+        since: catalog.unanswered_waiting_since,
+      },
+    );
+  }
+  return all.filter((queue) => queue.count > 0);
+}
+
+/** Under this a wait reads in hours: «1 день» for 47 hours hides most of a day. */
+const HOURS_BEFORE_DAYS = 48;
+
+/** How long the oldest in a queue waits: under an hour, in hours, then in days. */
+export function waited(
+  iso: string,
+  now: Date = new Date(),
+): { unit: 'fresh' } | { unit: 'hours' | 'days'; count: number } {
+  const hours = Math.floor(minutesSince(iso, now) / 60);
+  if (hours === 0) return { unit: 'fresh' };
+  if (hours < HOURS_BEFORE_DAYS) return { unit: 'hours', count: hours };
+  return { unit: 'days', count: Math.floor(hours / 24) };
 }
 
 /** Whole minutes from a webapi time to now; a time in the future is zero. */

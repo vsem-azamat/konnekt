@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  attention,
   ConsoleError,
   clickRate,
   consoleRequester,
@@ -133,37 +132,6 @@ test('requests that meet a missing session together sign in once', async () => {
 
   await Promise.all([get('/api/stats/home'), get('/api/chats')]);
   assert.equal(calls.filter((c) => c.url === '/api/auth/webapp').length, 1);
-});
-
-test('what needs attention is what has a number above zero', () => {
-  const items = attention({
-    adsUnreviewed: 7,
-    chats: [
-      { resource_status: 'discovered' },
-      { resource_status: 'approved' },
-      { resource_status: 'discovered' },
-    ],
-    requestsUnanswered: 0,
-  });
-  assert.deepEqual(items, [
-    { key: 'ads', count: 7 },
-    { key: 'review', count: 2 },
-  ]);
-  assert.deepEqual(attention({ adsUnreviewed: 0, chats: [], requestsUnanswered: 4 }), [
-    { key: 'requests', count: 4 },
-  ]);
-  assert.deepEqual(
-    attention({
-      adsUnreviewed: 0,
-      chats: [],
-      profilesToReview: 3,
-      requestsUnanswered: 1,
-    }),
-    [
-      { key: 'profiles', count: 3 },
-      { key: 'requests', count: 1 },
-    ],
-  );
 });
 
 test('the click rate is a percentage with one decimal, and nothing without views', () => {

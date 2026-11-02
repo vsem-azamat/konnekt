@@ -42,6 +42,10 @@ export type AdminCounts = {
      */
     profiles_to_review: number;
     /**
+     * Profiles Waiting Since
+     */
+    profiles_waiting_since: string | null;
+    /**
      * Hidden
      */
     hidden: number;
@@ -53,6 +57,10 @@ export type AdminCounts = {
      * Unanswered
      */
     unanswered: number;
+    /**
+     * Unanswered Waiting Since
+     */
+    unanswered_waiting_since: string | null;
     /**
      * Failed Searches
      */

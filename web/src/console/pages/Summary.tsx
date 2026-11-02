@@ -1,6 +1,6 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, type ReactNode, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   BagIcon,
@@ -10,7 +10,6 @@ import {
   PeopleIcon,
   PersonIcon,
   ShieldIcon,
-  TargetIcon,
 } from '@/components/icons';
 import {
   Chevron,
@@ -31,6 +30,7 @@ import type { AudienceOverview } from '@/console/audience';
 import { useBrowserConsole } from '@/console/browserContext';
 import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
+import { QueueRow } from '@/console/QueueRow';
 import {
   adminCatalogQuery,
   adminPartnersQuery,
@@ -43,13 +43,8 @@ import {
   everyMinute,
 } from '@/console/queries';
 import css from '@/console/Summary.module.css';
-import {
-  type AttentionKey,
-  attention,
-  type BusyChat,
-  type HomeStats,
-} from '@/console/session';
-import { elapsed, menuCounts, type WaveSignal } from '@/console/signals';
+import type { BusyChat, HomeStats } from '@/console/session';
+import { elapsed, menuCounts, queues, type WaveSignal } from '@/console/signals';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -96,75 +91,11 @@ function Summary() {
   const loading =
     catalog.isPending ||
     (!webapiError && (stats.isPending || chats.isPending || signals.isPending));
-  const items = attention({
-    adsUnreviewed: stats.data?.spam_pings.unreviewed ?? 0,
-    chats: chats.data ?? [],
-    profilesToReview: catalog.data?.counts.profiles_to_review,
-    requestsUnanswered: catalog.data?.counts.unanswered ?? 0,
-  });
+  const items = queues(signals.data, catalog.data?.counts);
   const approved = chats.data?.filter(
     (chat) => chat.resource_status === 'approved',
   ).length;
   const activePlacements = partners.data?.filter((row) => row.is_active).length;
-
-  const attentionRow: Record<AttentionKey, (count: number) => ReactNode> = {
-    ads: (count) => (
-      <Row
-        key="ads"
-        leading={
-          <Tile tone={1}>
-            <ShieldIcon size={19} />
-          </Tile>
-        }
-        title={<Trans>Реклама не разобрана</Trans>}
-        hint={<Trans>детектор, все чаты</Trans>}
-        trailing={<Count>{count}</Count>}
-        onClick={() => open('/console/spam')}
-      />
-    ),
-    review: (count) => (
-      <Row
-        key="review"
-        leading={
-          <Tile tone={3}>
-            <ChatIcon size={19} />
-          </Tile>
-        }
-        title={<Trans>Чаты на проверке</Trans>}
-        hint={<Trans>бот в них есть, но они не одобрены</Trans>}
-        trailing={<Count>{count}</Count>}
-        onClick={() => open('/console/chats?tab=decide')}
-      />
-    ),
-    profiles: (count) => (
-      <Row
-        key="profiles"
-        leading={
-          <Tile tone={2}>
-            <PersonIcon size={19} />
-          </Tile>
-        }
-        title={<Trans>Новые анкеты</Trans>}
-        hint={<Trans>каталог</Trans>}
-        trailing={<Count>{count}</Count>}
-        onClick={() => open('/console/catalog')}
-      />
-    ),
-    requests: (count) => (
-      <Row
-        key="requests"
-        leading={
-          <Tile tone={2}>
-            <TargetIcon size={19} />
-          </Tile>
-        }
-        title={<Trans>Заявки без откликов</Trans>}
-        hint={<Trans>открытые, срок не вышел</Trans>}
-        trailing={<Count>{count}</Count>}
-        onClick={() => open('/console/catalog')}
-      />
-    ),
-  };
 
   // Each wave on a row of its own, above the queues, as the
   // Сигналы screen puts them.
@@ -260,7 +191,9 @@ function Summary() {
           {items.length + waiting.length > 0 ? (
             <Rows>
               {waiting}
-              {items.map((item) => attentionRow[item.key](item.count))}
+              {items.map((queue) => (
+                <QueueRow key={queue.key} queue={queue} onOpen={open} />
+              ))}
             </Rows>
           ) : !webapiError && !catalog.error ? (
             <Hint>
