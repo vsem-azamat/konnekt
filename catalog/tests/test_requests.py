@@ -580,7 +580,8 @@ async def test_the_author_hears_about_an_answer(
     # for exactly this assertion.
     [[button]] = bot.sent[0]["reply_markup"].inline_keyboard
     assert button.web_app is not None
-    assert button.web_app.url == "https://tests.example"
+    # The app's first screen: the root is the public site's (docs/invariants.md).
+    assert button.web_app.url == "https://tests.example/home"
 
 
 async def test_the_author_reads_the_price_in_crowns(
