@@ -1,4 +1,5 @@
 import { globSync, readFileSync } from 'node:fs';
+import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
 import { parse } from 'yaml';
@@ -8,8 +9,10 @@ import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.t
 /**
  * The public site: the landing page and the guides, built to plain HTML for
  * search engines and link previews, served on konnekt.cz by a container of its
- * own (docker/site/). The Mini App is the other build in this package, on its
- * own host.
+ * own (docker/site/). The catalog pages (/universities/, /chats/) are the
+ * exception, rendered on request from the APIs by the Node server the same
+ * build produces (`prerender = false` on each). The Mini App is the other
+ * build in this package, on its own host.
  *
  * SITE_URL is where the site lives (the deploy passes PUBLIC_SITE_URL), for
  * canonical links, hreflang and the sitemap, which must be absolute. A local
@@ -34,6 +37,7 @@ function guides(): GuideEntry[] {
 }
 
 const hidden = hiddenPaths(guides());
+const building = process.argv.includes('build');
 
 export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4321',
@@ -42,6 +46,11 @@ export default defineConfig({
   devToolbar: { enabled: false },
   trailingSlash: 'always',
   build: { format: 'directory' },
+  adapter: node({ mode: 'standalone' }),
+  // The built server carries everything it imports: its container has no
+  // node_modules. The dev server resolves them as usual, and could not load
+  // the CommonJS among them bundled.
+  vite: { ssr: { noExternal: building || undefined } },
   integrations: [
     sitemap({
       filter: (page) => !hidden.includes(new URL(page).pathname),
