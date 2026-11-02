@@ -83,8 +83,9 @@ async def _settle_guessed_mode(session_maker: async_sessionmaker[AsyncSession], 
 def _note_absent(chat: Chat, now: datetime.datetime) -> None:
     """Mark a chat the bot is not in, saying so once rather than every hour.
 
-    Most likely the chat was never added to the current bot: on 2026-10-20 the
-    moderator moved to a new bot, and only the chats it was added to know it.
+    Either the chat was never added to the current bot (on 2026-10-20 the
+    moderator moved to a new bot, and only the chats it was added to know it),
+    or somebody removed the bot from it.
     """
     if chat.bot_absent_at is None:
         logger.warning(
@@ -92,7 +93,7 @@ def _note_absent(chat: Chat, now: datetime.datetime) -> None:
             chat_id=chat.id,
             title=chat.title,
             status=chat.resource_status,
-            hint="Telegram does not know this chat to the current bot: most likely never added after the bot moved",
+            hint="The current bot is not in this chat: never added after the bot moved, or removed since",
             recheck_hours=BOT_ABSENT_RECHECK_HOURS,
         )
     else:

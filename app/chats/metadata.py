@@ -17,7 +17,13 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramMigrateToChat, TelegramRetryAfter
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramRetryAfter,
+)
 
 from app.core.logging import get_logger
 
@@ -63,16 +69,26 @@ async def ask[T](call: Callable[[], Awaitable[T]]) -> T:
 
 
 class BotNotInChatError(Exception):
-    """Telegram does not know the chat to this bot: "chat not found".
+    """The bot is not in the chat: "chat not found", or "Forbidden".
 
-    What a private group answers a bot that was never in it, and what a deleted
-    chat answers too; a bot that was kicked hears "Forbidden" instead. Unlike a
-    flood or a timeout it will say the same thing an hour later.
+    "Chat not found" is what a private group answers a bot that was never in
+    it, and what a deleted chat answers too; a bot that was kicked or left
+    hears "Forbidden" instead. Unlike a flood or a timeout either will say the
+    same thing an hour later.
     """
 
 
-def _not_found(err: TelegramAPIError) -> bool:
-    return isinstance(err, TelegramBadRequest) and "chat not found" in err.message.lower()
+def gone_status(err: TelegramAPIError) -> str | None:
+    """The status a refusal says the bot has in the chat: "kicked" or "left", or None when it says nothing of the sort.
+
+    A kick is the one Telegram names; leaving, never being added and a
+    deleted chat all come down to the bot not being there.
+    """
+    if isinstance(err, TelegramForbiddenError):
+        return "kicked" if "kicked" in err.message.lower() else "left"
+    if isinstance(err, TelegramBadRequest) and "chat not found" in err.message.lower():
+        return "left"
+    return None
 
 
 @dataclass(frozen=True)
@@ -230,7 +246,7 @@ async def fetch_member_count(*, bot: Bot, chat_id: int) -> int | None:
     except TelegramMigrateToChat as err:
         raise ChatMigratedError(chat_id, err.migrate_to_chat_id) from err
     except TelegramAPIError as err:
-        if _not_found(err):
+        if gone_status(err) is not None:
             raise BotNotInChatError(chat_id) from err
         logger.warning("get_chat_member_count_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
         return None

@@ -13,11 +13,11 @@ import asyncio
 import datetime
 from typing import TYPE_CHECKING
 
-from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from sqlalchemy import or_, select
 
 from app.chats.members import ADMINISTRATORS, check_administrators, rights_of, status_of
-from app.chats.metadata import ask
+from app.chats.metadata import ask, gone_status
 from app.chats.metrics import BOT_RIGHTS_MISSING
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -119,10 +119,11 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
     somebody else's, and Telegram will not show a bot a channel's member
     list), not one known by its invite link alone, nor a group that became
     a supergroup, nor one Telegram does not
-    know to the bot (the hourly loop asks those once a day). A bot that was
-    removed is recorded as gone and asked about as seldom as any other chat,
-    so a return the updates missed is still found. A chat that refuses
-    otherwise is skipped until the next tick.
+    know to the bot (the hourly loop asks those once a day, and clears the
+    mark when the bot is back) unless the bot's rights there still say it
+    is in. A bot that was removed is recorded as gone and asked about as
+    seldom as any other chat, so a return the updates missed is still found.
+    A chat that refuses otherwise is skipped until the next tick.
     """
     config = settings.chat_state
     due = utc_now() - datetime.timedelta(hours=config.recheck_after_hours)
@@ -135,7 +136,9 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
                     Chat.id > Chat.PREVIEW_ID_CEILING,
                     Chat.kind == Chat.KIND_GROUP,
                     Chat.migrated_to_chat_id.is_(None),
-                    Chat.bot_absent_at.is_(None),
+                    # The hourly loop marks a chat the bot is not in, and asks it again
+                    # daily; one whose rights still say otherwise is asked once to correct them.
+                    or_(Chat.bot_absent_at.is_(None), ChatBotRights.status.not_in(GONE)),
                     or_(ChatBotRights.known_at.is_(None), ChatBotRights.known_at < due),
                 )
                 .order_by(Chat.id)
@@ -152,18 +155,18 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
         at = utc_now().replace(microsecond=0)
         try:
             member = await ask(lambda chat_id=chat_id: bot.get_chat_member(chat_id, bot.id))
-        except TelegramForbiddenError as err:
-            # The one answer a bot no longer in the chat gets: a kick says so, leaving does not.
-            gone = "kicked" if "kicked" in err.message.lower() else "left"
-            async with session_maker() as session:
-                await _record(session, chat_id, gone, {}, at=at, by=None)
-            continue
         except TelegramRetryAfter:
             # Over the limit: the rest wait for the next tick rather than add to it.
             logger.warning("bot_rights_check_flooded", asked=asked, due=len(chat_ids))
             break
         except TelegramAPIError as err:
-            logger.warning("bot_rights_check_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+            if (gone := gone_status(err)) is not None:
+                async with session_maker() as session:
+                    await _record(session, chat_id, gone, {}, at=at, by=None)
+            else:
+                logger.warning(
+                    "bot_rights_check_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
+                )
             continue
         async with session_maker() as session:
             await record(session, chat_id, member, at=at)

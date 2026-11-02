@@ -18,7 +18,12 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError, TelegramRetryAfter
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+)
 from app.chats.snapshots import snapshot_once
 from app.core.config import settings
 from app.core.time import utc_now
@@ -572,6 +577,23 @@ class TestBotNotInChat:
 
         assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
         # Nothing to ask getChat about either: it would say the same.
+        bot.get_chat.assert_not_awaited()
+
+    async def test_a_chat_that_kicked_the_bot_is_marked_too(
+        self, db_session_maker: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """A kicked bot hears "Forbidden" instead, and was asking getChat about one such chat every hour."""
+        await _seed(db_session_maker, Chat(id=-100, title="A"))
+        bot = _bot()
+        bot.get_chat_member_count = AsyncMock(
+            side_effect=TelegramForbiddenError(
+                method=MagicMock(), message="Forbidden: bot was kicked from the supergroup chat"
+            )
+        )
+
+        await snapshot_once(session_maker=db_session_maker, bot=bot)
+
+        assert (await _chat(db_session_maker, -100)).bot_absent_at is not None
         bot.get_chat.assert_not_awaited()
 
     async def test_a_marked_chat_is_not_asked_again_the_same_day(

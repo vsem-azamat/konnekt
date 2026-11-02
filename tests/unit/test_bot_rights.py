@@ -195,7 +195,39 @@ async def test_a_refusing_chat_is_skipped_and_flood_control_ends_the_tick(sessio
     assert await bot_rights.check_once(session_maker=session_maker, bot=_bot(answer)) == 2
 
     async with session_maker() as session:
-        assert (await session.scalars(select(ChatBotRights))).all() == []
+        # "Chat not found" is what Telegram tells a bot that is not in the chat.
+        [row] = (await session.scalars(select(ChatBotRights))).all()
+        assert (row.chat_id, row.status) == (-1003, "left")
+
+
+async def test_a_kick_the_updates_missed_is_found_after_the_hourly_loop_marked_the_chat(session_maker) -> None:
+    """The hourly snapshot marks a chat that kicked the bot long before its rights are due again.
+
+    Were marked chats left out, a kick whose update was lost would leave the bot
+    an administrator there for good.
+    """
+    long_ago = utc_now() - datetime.timedelta(days=2)
+    async with session_maker() as session:
+        session.add(Chat(id=-1001))
+        await session.flush()
+        (await session.get(Chat, -1001)).bot_absent_at = utc_now()
+        session.add(
+            ChatBotRights(chat_id=-1001, status="administrator", rights={}, changed_at=long_ago, known_at=long_ago)
+        )
+        await session.commit()
+
+    def answer(chat_id: int, user_id: int):
+        raise TelegramForbiddenError(method=MagicMock(), message="bot was kicked from the supergroup chat")
+
+    bot = _bot(answer)
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 1
+
+    async with session_maker() as session:
+        assert (await session.get(ChatBotRights, -1001)).status == "kicked"
+        (await session.get(ChatBotRights, -1001)).known_at = long_ago
+        await session.commit()
+    # Recorded as gone, it is the hourly loop's to notice a return.
+    assert await bot_rights.check_once(session_maker=session_maker, bot=bot) == 0
 
 
 async def test_the_gauge_counts_approved_chats_by_what_the_bot_lacks(session) -> None:
