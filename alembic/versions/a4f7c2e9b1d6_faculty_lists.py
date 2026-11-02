@@ -24,6 +24,7 @@ def upgrade() -> None:
         sa.Column("chat_id", sa.BigInteger(), autoincrement=False, nullable=False),
         sa.Column("message_id", sa.BigInteger(), nullable=False),
         sa.Column("text", sa.Text(), nullable=False),
+        sa.Column("button_url", sa.Text(), nullable=False),
         sa.Column("pinned_at", sa.DateTime(), nullable=True),
         sa.Column("gone_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=False),

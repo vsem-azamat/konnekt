@@ -275,3 +275,36 @@ async def test_an_edit_telegram_finds_unchanged_counts_as_unchanged(
     assert await _sync(session_maker, bot) == {"unchanged": 1}
 
     assert bot.edit_message_text.await_count == 1
+
+
+async def test_a_new_university_code_moves_the_button(session_maker: async_sessionmaker[AsyncSession]) -> None:
+    """The text stays the same, but the old button would open a section that is no longer there."""
+    async with session_maker() as session:
+        await _university(session)
+        await _faculty(session, -2, "ČVUT FIT")
+    bot = _bot()
+    await _sync(session_maker, bot)
+    async with session_maker() as session:
+        chat = await session.get(Chat, UNIVERSITY)
+        assert chat is not None
+        chat.institution_code = "cvut2"
+        await session.commit()
+
+    assert await _sync(session_maker, bot) == {"edited": 1}
+
+    url = bot.edit_message_text.call_args.kwargs["reply_markup"].inline_keyboard[0][0].url
+    assert url.endswith("startapp=uni-cvut2")
+
+
+async def test_a_list_removed_before_its_pin_is_left_alone(session_maker: async_sessionmaker[AsyncSession]) -> None:
+    async with session_maker() as session:
+        await _university(session)
+        await _faculty(session, -2, "ČVUT FIT")
+    bot = _bot(pin=[_refused("Bad Request: not enough rights"), _refused("Bad Request: message to pin not found")])
+    await _sync(session_maker, bot)
+
+    assert await _sync(session_maker, bot) == {"gone": 1}
+    assert await _sync(session_maker, bot) == {"gone": 1}
+
+    assert bot.send_message.await_count == 1
+    assert bot.pin_chat_message.await_count == 2

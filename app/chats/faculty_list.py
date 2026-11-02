@@ -48,6 +48,7 @@ PAUSE_BETWEEN_CHATS_SECONDS = 1.0
 # How Telegram says an edit changed nothing, and that the message is not there.
 NOT_MODIFIED = "message is not modified"
 NOT_FOUND = "message to edit not found"
+PIN_NOT_FOUND = "message to pin not found"
 
 
 @dataclass(frozen=True)
@@ -79,9 +80,12 @@ def text(university: str, faculties: list[Faculty]) -> str:
     return "\n".join(lines)
 
 
-def markup(bot_username: str, code: str) -> InlineKeyboardMarkup:
+def app_url(bot_username: str, code: str) -> str:
     """The same university in the app, where each chat shows its size and activity."""
-    url = f"https://t.me/{bot_username}?startapp=uni-{code}"
+    return f"https://t.me/{bot_username}?startapp=uni-{code}"
+
+
+def markup(url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=APP_BUTTON, url=url)]])
 
 
@@ -132,7 +136,8 @@ async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
         return "empty"
     body = text(university_name(chat.title), listed)
     me = await bot.me()
-    buttons = markup(me.username or "", chat.institution_code)
+    url = app_url(me.username or "", chat.institution_code)
+    buttons = markup(url)
 
     if kept is None:
         if not await may_pin(session, chat.id):
@@ -142,11 +147,12 @@ async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
             chat.id, body, reply_markup=buttons, disable_notification=True, disable_web_page_preview=True
         )
         # Recorded before the pin: a pin that fails leaves a message to pin next time, not a second one.
-        kept = FacultyList(chat.id, sent.message_id, body)
+        kept = FacultyList(chat.id, sent.message_id, body, url)
         session.add(kept)
         try:
             await session.commit()
-        except Exception:
+        # Cancelled at shutdown as well: unrecorded either way.
+        except BaseException:
             # Unrecorded, it would be posted again next time: taken back instead.
             await bot.delete_message(chat.id, sent.message_id)
             raise
@@ -155,8 +161,14 @@ async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
         return "posted"
 
     if kept.pinned_at is None:
-        await _pin(session, bot, kept)
-    if kept.text == body:
+        try:
+            await _pin(session, bot, kept)
+        except TelegramBadRequest as err:
+            if PIN_NOT_FOUND not in str(err):
+                raise
+            return await _gone(session, kept)
+    # The button too: a university whose code changed would open an empty section.
+    if kept.text == body and kept.button_url == url:
         return "unchanged"
     try:
         await bot.edit_message_text(
@@ -164,19 +176,24 @@ async def sync_chat(session: AsyncSession, bot: Bot, chat: Chat) -> str:
         )
     except TelegramBadRequest as err:
         if NOT_FOUND in str(err):
-            kept.gone_at = utc_now()
-            await session.commit()
-            logger.warning("faculty_list_gone", chat_id=chat.id, message_id=kept.message_id)
-            return "gone"
+            return await _gone(session, kept)
         if NOT_MODIFIED not in str(err):
             raise
-        kept.text = body
+        kept.text, kept.button_url = body, url
         await session.commit()
         return "unchanged"
-    kept.text = body
+    kept.text, kept.button_url = body, url
     await session.commit()
     logger.info("faculty_list_edited", chat_id=chat.id, message_id=kept.message_id, chats=len(listed))
     return "edited"
+
+
+async def _gone(session: AsyncSession, kept: FacultyList) -> str:
+    """Somebody removed the message; it stays removed."""
+    kept.gone_at = utc_now()
+    await session.commit()
+    logger.warning("faculty_list_gone", chat_id=kept.chat_id, message_id=kept.message_id)
+    return "gone"
 
 
 async def _pin(session: AsyncSession, bot: Bot, kept: FacultyList) -> None:

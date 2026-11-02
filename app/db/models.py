@@ -757,15 +757,17 @@ class FacultyList(Base):
     chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True)
     message_id: Mapped[int] = mapped_column(BigInteger)
     text: Mapped[str] = mapped_column(Text)
+    button_url: Mapped[str] = mapped_column(Text)
     # Unset until the pin went through: a message posted but not pinned is pinned on the next round.
     pinned_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     gone_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
-    def __init__(self, chat_id: int, message_id: int, text: str) -> None:
+    def __init__(self, chat_id: int, message_id: int, text: str, button_url: str) -> None:
         self.chat_id = chat_id
         self.message_id = message_id
         self.text = text
+        self.button_url = button_url
 
 
 class UserPhoto(Base):
