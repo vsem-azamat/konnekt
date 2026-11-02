@@ -62,7 +62,7 @@ _PATTERNS = (
     # FastAPI writes one error a line, its input (and ctx) to the end of it.
     (re.compile(r"'input': .*"), f"'input': {_FILTERED}"),
     # An address keeps its path, without the query or fragment after it...
-    (re.compile(r"(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?", re.IGNORECASE), r"\1"),
+    (re.compile(r"(?<![a-z])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?", re.IGNORECASE), r"\1"),
     # ...and a long number in it is somebody's id.
     (re.compile(r"(?<=/)-?\d{5,}(?=[/\s]|$)"), ":id"),
 )

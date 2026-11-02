@@ -1,6 +1,7 @@
 """Errors reach Sentry by name, and nothing secret or personal goes with them."""
 
 import logging
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -124,9 +125,30 @@ def test_a_log_line_goes_by_its_format_string_not_its_arguments(
         "DETAIL:  Failing row contains (1, Ahoj\nIvan, null).\n[SQL: INSERT]",
         "Value error [input_value={'a': [1], 'name': 'Ivan'}, input_type=dict]",
         "  {'type': 'dict_type', 'input': {'a': {}, 'bio': 'Ivan'}}",
+        "DETAIL:  Failing row contains (1, a\nHINT: b Ivan, null).\n[SQL: INSERT]",
+        "Value error [input_value='a, input_type=b Ivan', input_type=str]",
+        "got query_id=1&user=Ivan&auth_date=1&hash=abc from the client",
+        "1https://konnekt.cz/x?q=Ivan",
     ],
 )
 def test_errors_that_quote_their_input_lose_it(text: str) -> None:
     event = {"exception": {"values": [{"value": text}]}}
 
     assert "Ivan" not in repr(error_tracking._before_send(event, {}))
+
+
+def test_a_long_value_is_scrubbed_in_good_time() -> None:
+    """Patterns that rescan a long run from every start took seconds to forever."""
+    event = {
+        "extra": {
+            "blob": "a" * 400_000,
+            "digits": "1" * 400_000,
+            "schemes": "a://" * 100_000,
+            "url": "https://x/?" + "auth_date=1&" * 20_000 + "hash=f",
+        }
+    }
+    started = time.perf_counter()
+
+    error_tracking._before_send(event, {})
+
+    assert time.perf_counter() - started < 1

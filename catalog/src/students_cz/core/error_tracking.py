@@ -58,7 +58,7 @@ _PATTERNS = (
     (re.compile(r"'input': .*"), f"'input': {_FILTERED}"),
     (
         re.compile(
-            r"(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?",
+            r"(?<![a-z])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?",
             re.IGNORECASE,
         ),
         r"\1",

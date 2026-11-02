@@ -247,10 +247,29 @@ def test_a_request_is_named_by_its_route_when_the_route_is_known() -> None:
 
 def test_a_long_value_is_scrubbed_in_good_time() -> None:
     """One pattern took seconds on a long run of non-space characters, on the event loop."""
-    event: Any = {"extra": {"blob": "a" * 400_000, "url": "https://x/?" + "auth_date=1&" * 20_000 + "hash=f"}}
+    event: Any = {
+        "extra": {
+            "blob": "a" * 400_000,
+            "digits": "1" * 400_000,
+            "schemes": "a://" * 100_000,
+            "url": "https://x/?" + "auth_date=1&" * 20_000 + "hash=f",
+        }
+    }
     started = time.perf_counter()
 
     scrubbed: Any = error_tracking._before_send(event, {})
 
     assert time.perf_counter() - started < 1
     assert "hash=f" not in scrubbed["extra"]["url"]
+
+
+def test_bare_init_data_is_filtered() -> None:
+    event: Any = {"extra": {"note": "got query_id=1&user=Ivan&auth_date=1&hash=abc from the client"}}
+
+    assert "Ivan" not in repr(error_tracking._before_send(event, {}))
+
+
+def test_an_address_after_a_digit_still_loses_its_query() -> None:
+    event: Any = {"extra": {"line": "1https://konnekt.cz/x?q=Ivan"}}
+
+    assert "Ivan" not in repr(error_tracking._before_send(event, {}))
