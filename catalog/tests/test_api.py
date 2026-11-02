@@ -687,8 +687,36 @@ async def test_an_unknown_placement_slot_is_rejected(client):
     assert response.status_code == 422
 
 
-async def test_partner_blocks_are_matched_by_condition(client):
-    """Sworn translation belongs on the nostrification screen, not everywhere."""
+async def test_partner_blocks_are_matched_by_condition(client, session):
+    """Sworn translation belongs on the nostrification screen, not everywhere.
+
+    The placement is made here rather than read from the demo data: a database
+    seeded without `demo` has no partners, and the test failed there.
+    """
+    from students_cz.db.models.enums import PlacementSlot, UiLang
+    from students_cz.db.models.partners import (
+        Partner,
+        PartnerOffer,
+        PartnerOfferI18n,
+        Placement,
+    )
+
+    partner = Partner(code="api-test-translator", name="Translator")
+    session.add(partner)
+    await session.flush()
+    offer = PartnerOffer(partner_id=partner.id, url="https://example.test/translation")
+    session.add(offer)
+    await session.flush()
+    for lang in UiLang:
+        session.add(PartnerOfferI18n(offer_id=offer.id, lang=lang, title="Překlad"))
+    placement = Placement(
+        offer_id=offer.id,
+        slot=PlacementSlot.SCREEN_NOSTRIFICATION,
+        conditions={"service_type": "nostrification"},
+    )
+    session.add(placement)
+    await session.flush()
+
     on_topic = (
         await client.get(
             "/api/v1/placements",
@@ -696,7 +724,7 @@ async def test_partner_blocks_are_matched_by_condition(client):
             headers=auth_header(90408),
         )
     ).json()
-    assert any("překlad" in p["title"] or "перевод" in p["title"] for p in on_topic)
+    assert placement.id in [p["id"] for p in on_topic]
 
     off_topic = (
         await client.get(
@@ -705,7 +733,7 @@ async def test_partner_blocks_are_matched_by_condition(client):
             headers=auth_header(90409),
         )
     ).json()
-    assert off_topic == []
+    assert placement.id not in [p["id"] for p in off_topic]
 
 
 async def test_paging_bounds_are_enforced(client):
