@@ -676,10 +676,6 @@ class Signals(BaseModel):
     waves: list[WaveSignal]
     # People asking to join one chat within a minute that make a wave.
     wave_per_minute: int
-    # Always empty: the MCP proposals are gone. Kept one release so a console
-    # tab still on the old bundle counts zero instead of failing; dropped with
-    # the pending_actions table.
-    pending_actions: list[None] = []
     queues: SignalQueues
 
 

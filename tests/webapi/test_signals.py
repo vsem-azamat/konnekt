@@ -147,4 +147,4 @@ async def test_the_queues_count_unreviewed_ads_and_chats_under_review(client, db
 
     assert body["queues"] == {"ads_unreviewed": 1, "chats_in_review": 2}
     assert body["waves"] == []
-    assert body["pending_actions"] == []
+    assert "pending_actions" not in body
