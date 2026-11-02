@@ -34,6 +34,7 @@ from aiogram.types import ChatJoinRequest, InlineKeyboardMarkup, ReplyParameters
 from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.audience import record
 from app.captcha import challenge, in_chat, waves
 from app.captcha.locks import lock_chat
 from app.captcha.metrics import CAPTCHA_EVENTS
@@ -41,7 +42,7 @@ from app.captcha.telegram import already_member, lacks_rights, report, request_g
 from app.chats import welcome
 from app.core import intro
 from app.core.config import settings
-from app.core.enums import ModerationEventAction
+from app.core.enums import ModerationEventAction, Touchpoint
 from app.core.logging import get_logger
 from app.core.time import utc_now
 from app.db.models import CatalogPass, Chat, JoinCaptcha, JoinWave, ModerationEvent
@@ -276,11 +277,13 @@ async def _let_in_on_trust(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: C
     request is settled. Should the approval fail, the note is edited to say so.
     """
     title = _title(chat)
+    markup = await _app_markup(bot)
     try:
         sent = await with_retry(
             lambda: bot.send_message(
                 chat_id=row.user_chat_id,
                 text=challenge.passed_text(title, _link(chat)),
+                reply_markup=markup,
                 disable_web_page_preview=True,
             )
         )
@@ -406,14 +409,15 @@ async def answer(
         await _unmute_on_pass(bot, db, row, chat, now)
         return Outcome.PASSED
     if row.options[pick] == row.answer:
-        await _introduce(bot, row, now)
         try:
             await with_retry(lambda: bot.approve_chat_join_request(chat_id=row.chat_id, user_id=row.user_id))
         except TelegramAPIError as err:
             if not already_member(err):
                 return await _refused(bot, db, row, now, title, err, verb="принять")
-        await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, challenge.passed_text(title, _link(chat)))
+        text = challenge.passed_text(title, _link(chat))
+        await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, text, await _app_markup(bot))
         logger.info("captcha_passed", chat_id=row.chat_id, user_id=row.user_id)
+        await _introduce(bot, db, row)
         return Outcome.PASSED
 
     row.attempts_left -= 1
@@ -555,10 +559,11 @@ async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Ch
             f"Капча в {html.escape(title)}: {row.user_id} прошёл(а) проверку, но бот не смог снять ограничение. "
             "Проверьте права бота в чате.",
         )
-    await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, challenge.unmuted_text(title, _link(chat)))
+    text = challenge.unmuted_text(title, _link(chat))
+    await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, text, await _app_markup(bot))
     logger.info("captcha_passed", chat_id=row.chat_id, user_id=row.user_id, in_chat=True)
     await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
-    await _introduce(bot, row, now)
+    await _introduce(bot, db, row)
     # The join itself was not greeted: they could not have answered.
     if chat.is_welcome_enabled and (user := await in_chat.member(bot, row)):
         chat_text, lifetime = chat.welcome_message, chat.time_delete
@@ -600,18 +605,32 @@ async def _release(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.d
     await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
 
 
-async def _introduce(bot: Bot, row: JoinCaptcha, now: datetime.datetime) -> None:
-    """Konnekt in the private chat, before the approval settles the request and closes it.
+async def _introduce(bot: Bot, db: AsyncSession, row: JoinCaptcha) -> None:
+    """Konnekt's video in the private chat, sent only where it can arrive.
 
-    Whether it arrives decides nothing: the applicant is let in either way.
+    Asked in the chat, they opened the bot themselves. An applicant by request
+    gets it only if they started the bot before: an open request does not let
+    the bot start a conversation, and Telegram refused every such video.
+    Whoever it skips has the button on «Готово». Whether it arrives decides
+    nothing: they are in either way.
     """
-    # Asked in the chat, they opened the bot themselves: it may write any time.
-    if not row.in_chat and now - row.created_at >= _WRITE_WINDOW:
+    if not row.in_chat and not await record.may_write(db, row.user_id, Touchpoint.MAIN_BOT):
+        CAPTCHA_EVENTS.labels(event="intro_skipped").inc()
+        logger.info("captcha_intro_skipped", captcha_id=row.id)
         return
     try:
         await intro.send(bot, row.user_chat_id, challenge.INTRO, intro.private_markup())
     except AiogramError as err:
+        CAPTCHA_EVENTS.labels(event="intro_refused").inc()
         logger.warning("captcha_intro_not_sent", captcha_id=row.id, error=str(err), error_type=type(err).__name__)
+        return
+    CAPTCHA_EVENTS.labels(event="intro_sent").inc()
+    logger.info("captcha_intro_sent", captcha_id=row.id)
+
+
+async def _app_markup(bot: Bot) -> InlineKeyboardMarkup:
+    """The way into the app on «Готово»: an edit goes through where a new message from the bot would not."""
+    return await intro.link_markup(bot, challenge.APP_SOURCE)
 
 
 async def _refused(

@@ -1,9 +1,10 @@
 """Konnekt introducing itself: what it is, its video and the one button into the app.
 
 Said in three places — `/start`, the greeting in a chat and the private chat
-after the captcha. `/start` is an album, the photo and the video under one
-caption, with the button in a message after it, since an album takes none. A
-chat gets the video alone, its button on it: one message per burst of joiners.
+after the captcha, where the note that they are in carries the button too.
+`/start` is an album, the photo and the video under one caption, with the
+button in a message after it, since an album takes none. A chat gets the video
+alone, its button on it: one message per burst of joiners.
 The media are settings, each off until it is set.
 """
 
@@ -56,6 +57,16 @@ def private_markup() -> InlineKeyboardMarkup | None:
         else InlineKeyboardButton(text=OPEN_BUTTON, url=url)
     )
     return InlineKeyboardMarkup(inline_keyboard=[[button]])
+
+
+async def link_markup(bot: Bot, source: str) -> InlineKeyboardMarkup:
+    """The button into the app as the bot's startapp link, which tells the app where the visitor came from.
+
+    A Mini App button is refused in a group; the link opens the same app anywhere.
+    """
+    me = await bot.me()
+    url = f"https://t.me/{me.username}?startapp={source}"
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=OPEN_BUTTON, url=url)]])
 
 
 def fits_caption(text: str) -> bool:

@@ -61,6 +61,7 @@ def bot() -> MagicMock:
     tg_bot = MagicMock()
     sent = MagicMock()
     sent.message_id = 77
+    tg_bot.me = AsyncMock(return_value=User(id=1, is_bot=True, first_name="Konnekt", username="konnekt_test_bot"))
     tg_bot.send_message = AsyncMock(return_value=sent)
     tg_bot.edit_message_text = AsyncMock()
     tg_bot.approve_chat_join_request = AsyncMock()
@@ -144,7 +145,8 @@ async def test_a_trusted_applicant_is_told_they_are_in_with_the_link(session: As
     kwargs = bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == USER_ID
     assert kwargs["text"] == '✅ Готово, ты в <a href="https://t.me/cvut_fit">ČVUT FIT</a>!'
-    assert kwargs.get("reply_markup") is None
+    [[button]] = kwargs["reply_markup"].inline_keyboard
+    assert button.url == "https://t.me/konnekt_test_bot?startapp=captcha_passed"
 
 
 async def test_a_pass_older_than_the_window_asks_again(session: AsyncSession, bot, chat) -> None:

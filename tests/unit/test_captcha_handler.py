@@ -41,6 +41,7 @@ def bot() -> MagicMock:
     tg_bot = MagicMock()
     sent = MagicMock()
     sent.message_id = 77
+    tg_bot.me = AsyncMock(return_value=User(id=1, is_bot=True, first_name="Konnekt", username="konnekt_test_bot"))
     tg_bot.send_message = AsyncMock(return_value=sent)
     tg_bot.edit_message_text = AsyncMock()
     tg_bot.approve_chat_join_request = AsyncMock()

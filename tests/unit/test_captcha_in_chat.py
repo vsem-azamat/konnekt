@@ -358,7 +358,10 @@ async def test_a_pass_unmutes_deletes_the_card_and_greets(session: AsyncSession,
     assert (await session.scalars(select(WelcomeGreeting))).first() is not None
     [row] = await _rows(session)
     assert row.status == JoinCaptcha.STATUS_PASSED
-    assert "✅ Готово, теперь можно писать в" in bot.edit_message_text.await_args_list[0].kwargs["text"]
+    done = bot.edit_message_text.await_args_list[0].kwargs
+    assert "✅ Готово, теперь можно писать в" in done["text"]
+    [[button]] = done["reply_markup"].inline_keyboard
+    assert button.url == f"https://t.me/{BOT_USERNAME}?startapp=captcha_passed"
 
 
 async def test_a_pass_takes_one_name_off_a_shared_card(session: AsyncSession, bot) -> None:

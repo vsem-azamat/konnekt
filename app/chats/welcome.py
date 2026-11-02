@@ -26,7 +26,7 @@ from aiogram.exceptions import (
     TelegramMigrateToChat,
     TelegramNotFound,
 )
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
+from aiogram.types import InlineKeyboardMarkup, User
 from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -173,7 +173,7 @@ def _name(user: User) -> str:
 
 
 async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _Greeting | None:
-    markup = await _markup(bot)
+    markup = await intro.link_markup(bot, SOURCE)
     try:
         try:
             sent, video = await intro.send(bot, chat_id, text([_name(user)], 0, chat_text), markup)
@@ -232,14 +232,6 @@ async def _add(bot: Bot, chat_id: int, greeting: _Greeting, user: User) -> bool:
         # The name is counted all the same and shows with the next edit.
         logger.warning("welcome_edit_skipped", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
     return True
-
-
-async def _markup(bot: Bot) -> InlineKeyboardMarkup:
-    # A Mini App button is refused in a group; the bot's startapp link opens
-    # the same app and tells it where the visitor came from.
-    me = await bot.me()
-    url = f"https://t.me/{me.username}?startapp={SOURCE}"
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=intro.OPEN_BUTTON, url=url)]])
 
 
 def _keep(chat_id: int, greeting: _Greeting, lifetime: int) -> None:
