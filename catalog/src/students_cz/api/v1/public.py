@@ -15,8 +15,8 @@ router = APIRouter()
 
 
 @router.get("/open", include_in_schema=False, tags=["public"])
-async def open_in_telegram(handle: HandleDep) -> RedirectResponse:
-    """Send a browser to the bot.
+async def open_in_telegram(handle: HandleDep, app: bool = False) -> RedirectResponse:
+    """Send a browser to the bot, or with `app` straight into its Mini App.
 
     Unauthenticated on purpose: this is what the landing page's button points
     at, and the landing is what someone sees who has never opened Telegram
@@ -29,7 +29,9 @@ async def open_in_telegram(handle: HandleDep) -> RedirectResponse:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "no bot is configured")
     # 302 rather than 301: a permanent redirect would be cached by the browser
     # for ever, and the target is a handle that can change.
-    return RedirectResponse(f"https://t.me/{username}", status_code=302)
+    # `startapp` with no value opens the bot's main Mini App (BotFather's URL).
+    target = f"https://t.me/{username}?startapp" if app else f"https://t.me/{username}"
+    return RedirectResponse(target, status_code=302)
 
 
 @router.get("/ads", tags=["public"])

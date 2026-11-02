@@ -1,0 +1,14 @@
+---
+import Landing from '../../components/Landing.astro';
+import { DEFAULT_LANG, LANGS } from '../../paths.ts';
+
+export function getStaticPaths() {
+  return LANGS.filter((lang) => lang !== DEFAULT_LANG).map((lang) => ({
+    params: { lang },
+  }));
+}
+
+const { lang } = Astro.params as { lang: (typeof LANGS)[number] };
+---
+
+<Landing lang={lang} />

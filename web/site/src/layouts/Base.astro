@@ -1,0 +1,101 @@
+---
+/**
+ * Every page of the site: its head for search engines and link previews, the
+ * palette before the first paint, and the way back into the app for anyone
+ * who reaches this page from inside Telegram.
+ */
+// Each subset is its own file behind a unicode-range: a page downloads only the scripts it uses.
+import '@fontsource-variable/inter-tight';
+import latinFont from '@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2?url';
+import '../landing/f.css';
+
+import { getCollection } from 'astro:content';
+
+import {
+  alternates,
+  hiddenPaths,
+  indexedLangs,
+  LANGS,
+  type Lang,
+  localePath,
+  telegramHome,
+} from '../paths.ts';
+import { OG_LOCALES } from '../texts.ts';
+
+interface Props {
+  lang: Lang;
+  /** The page's path in Russian, from the root; each language adds its prefix. */
+  path: string;
+  /** The languages this page exists in. */
+  langs?: readonly Lang[];
+  title: string;
+  description: string;
+  /** For an example or an empty list: a page search engines must not keep. */
+  noindex?: boolean;
+}
+
+const { lang, path, langs = LANGS, title, description, noindex = false } = Astro.props;
+const site = Astro.site?.href ?? '/';
+const canonical = new URL(localePath(lang, path), site).href;
+const hidden = hiddenPaths(
+  (await getCollection('guides')).map(({ id, data }) => ({ id, draft: data.draft })),
+);
+const indexed = indexedLangs(path, langs, hidden);
+
+// The tested function itself, not a copy of its logic: it has to run before the
+// first paint, so inline, and it refers to nothing outside its arguments.
+// Where the app lives (the deploy's WEBAPI_PUBLIC_URL); the image build
+// refuses to run without it. The dev server falls back to the app's dev server.
+const app = process.env.APP_URL || 'https://localhost:5173';
+const handOff = `(() => {
+  const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)});
+  if (to) location.replace(to);
+})();`;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preload" href={latinFont} as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#fffefc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {
+      !noindex &&
+        alternates(path, indexed, site).map(({ hreflang, href }) => (
+          <link rel="alternate" hreflang={hreflang} href={href} />
+        ))
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Konnekt" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={OG_LOCALES[lang]} />
+    <script is:inline set:html={handOff} />
+    <script is:inline>
+      // The palette before the first paint: ?theme= (screenshots), then the
+      // stored choice (the Mini App's keys), then the system.
+      (() => {
+        let mode = new URLSearchParams(location.search).get('theme');
+        try {
+          if (mode !== 'light' && mode !== 'dark') mode = localStorage.getItem('students-cz.theme');
+          if (mode !== 'light' && mode !== 'dark') mode = localStorage.getItem('konnekt.theme');
+        } catch {}
+        if (mode !== 'light' && mode !== 'dark') {
+          mode = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = mode;
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

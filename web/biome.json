@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!dist", "!src/locales/**/*.ts", "!src/lib/generated"]
+    "includes": [
+      "**",
+      "!dist",
+      "!src/locales/**/*.ts",
+      "!src/lib/generated",
+      "!site/src/landing/av"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -58,5 +64,18 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    }
+  ]
 }

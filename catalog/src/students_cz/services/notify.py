@@ -57,8 +57,13 @@ def _web_app_button(text: str, url: str | None) -> InlineKeyboardMarkup | None:
 
 
 def _keyboard(lang: UiLang, app_url: str | None) -> InlineKeyboardMarkup | None:
-    """The app, in the recipient's language."""
-    return _web_app_button(pick(OPEN_APP, lang), app_url)
+    """The app's first screen, in the recipient's language.
+
+    /home, the screen the public site also sends a Telegram launch to
+    (docs/invariants.md, «The two halves of the web»).
+    """
+    url = f"{app_url.rstrip('/')}/home" if app_url else None
+    return _web_app_button(pick(OPEN_APP, lang), url)
 
 
 def _console_keyboard(app_url: str | None) -> InlineKeyboardMarkup | None:

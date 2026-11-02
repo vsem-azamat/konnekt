@@ -158,10 +158,12 @@
 	}
 
 	# index.html is the one file that names the current hashes, so a cached
-	# copy points at bundles the next deploy deleted.
+	# copy points at bundles the next deploy deleted. The app's screens are a
+	# person's own, or empty without Telegram: nothing for a search engine.
 	handle {
 		root * /srv/app
 		header Cache-Control "no-cache"
+		header X-Robots-Tag "noindex"
 		try_files {path} /index.html
 		file_server
 	}
@@ -180,9 +182,11 @@ http://{$ADMIN_HOST:admin.invalid} {
 	import access_log
 	encode zstd gzip
 
-	# Never framed: the console is not opened inside Telegram from here.
+	# Never framed: the console is not opened inside Telegram from here, and
+	# never indexed.
 	header {
 		Content-Security-Policy "frame-ancestors 'none'"
+		X-Robots-Tag "noindex"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Strict-Transport-Security "max-age=31536000"

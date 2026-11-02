@@ -19,6 +19,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   /** Sentry's environment name; unset is `production`. */
   readonly VITE_SENTRY_ENVIRONMENT?: string;
+  /** The public site's origin (the deploy's PUBLIC_SITE_URL), where a browser is sent; unset, nowhere. */
+  readonly VITE_SITE_URL?: string;
 }
 
 interface ImportMeta {

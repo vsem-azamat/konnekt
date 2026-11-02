@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { RouteError } from '@/components/RouteError';
 import { TabsLayout } from '@/components/TabsLayout';
 import { lazyScreen as screen } from '@/lib/lazyScreen';
@@ -37,7 +37,21 @@ import Root from '@/Root';
  *
  * The console's screens are lazy: only admins open them, and everyone else
  * would download them with the first screen.
+ *
+ * The first screen is /home, where the public site sends a Telegram launch
+ * that landed on it (web/site/). The root leads there too. Opened at the root,
+ * the address is rewritten before the router reads it, rather than redirected
+ * by a <Navigate>: that would give the first location a key of its own, and
+ * Telegram's back button would show on Home with nothing behind it.
  */
+if (window.location.pathname === '/') {
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `/home${window.location.search}${window.location.hash}`,
+  );
+}
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -52,7 +66,8 @@ export const router = createBrowserRouter([
           {
             element: <TabsLayout />,
             children: [
-              { index: true, element: <HomePage /> },
+              { index: true, element: <Navigate to="/home" replace /> },
+              { path: 'home', element: <HomePage /> },
               { path: 'chats', element: <ChatsPage /> },
               { path: 'chats/:group', element: <ChatSectionPage /> },
               { path: 'results', element: <ResultsPage /> },

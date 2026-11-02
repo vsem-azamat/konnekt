@@ -104,6 +104,14 @@ jobs:
           caddy:2.11.2-alpine caddy adapt --config /etc/caddy/Caddyfile \
           | python3 docker/check-routes.py
 
+    - name: The site's paths are its pages, and every other one goes to the app
+      run: |
+        set -euo pipefail
+        docker run --rm -e APP_URL=https://app.example.test \
+          -v "$PWD/docker/site/Caddyfile:/etc/caddy/Caddyfile:ro" \
+          caddy:2.11.2-alpine caddy adapt --config /etc/caddy/Caddyfile \
+          | python3 docker/check-routes.py --site
+
   python:
     needs: changes
     if: needs.changes.outputs.python == 'true'
@@ -228,9 +236,24 @@ jobs:
       with:
         context: .
         target: webui
-        build-args: WEB_VERSION=${{ github.sha }}
+        build-args: |
+          WEB_VERSION=${{ github.sha }}
+          SITE_URL=${{ vars.PUBLIC_SITE_URL }}
+          APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
         push: false
         cache-from: type=gha,scope=webui
+
+    - name: Build the site's image
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: .
+        target: site
+        build-args: |
+          WEB_VERSION=${{ github.sha }}
+          SITE_URL=${{ vars.PUBLIC_SITE_URL }}
+          APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
+        push: false
+        cache-from: type=gha,scope=site
 
     - name: Build the catalog's image
       uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0

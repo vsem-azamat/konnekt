@@ -11,10 +11,18 @@ catalog, and for a browser's X-Catalog-* headers reaching it.
 The Caddyfile serves two hosts: the Mini App's, which answers anything, and
 the console's, named by ADMIN_HOST, which answers only the console and its API.
 Each is checked on its own, because a path that is right for one is a leak or
-a dead end for the other.
+a dead end for the other. The app's screens, which search engines must not
+keep, say so with X-Robots-Tag.
+
+With --site it reads the public site's own Caddyfile (docker/site/, the site
+container on konnekt.cz) instead: the site's paths are its pages, «Открыть
+Konnekt» reaches the catalog without a browser's cookies, and every other
+path is a 301 to the app's host (APP_URL) that keeps the path and the query.
 
 Usage: caddy adapt ... | python3 docker/check-routes.py
 (run with ADMIN_HOST=admin.example.test in the adapting environment)
+       caddy adapt ... | python3 docker/check-routes.py --site
+(the site's Caddyfile, with APP_URL=https://app.example.test)
 """
 
 import fnmatch
@@ -25,7 +33,9 @@ import sys
 WEBAPI = "webapi:8787"
 CATALOG = "catalog-api:8000"
 APP = "/srv/app"
+SITE = "/srv/site"
 ADMIN_HOST = "admin.example.test"
+APP_URL = "https://app.example.test"
 
 # Who may frame each host: Telegram's clients the Mini App, nobody the console.
 FRAMING = {
@@ -37,7 +47,51 @@ FRAMING = {
 # Paths whose route falls back to the page when no file matches: a client-side
 # route reloaded must get the app, and a missing asset must get a 404, never
 # the page (which would then be cached as that asset).
-FALLS_BACK = {"/", "/chats", "/join", "/console", "/console/chats/-100123", "/login", "/administrator"}
+FALLS_BACK = {"/", "/home", "/chats", "/join", "/console", "/console/chats/-100123", "/login", "/administrator"}
+
+# The public site, which search engines read: a page it does not have is a 404,
+# never the app's page, and it carries no noindex.
+SITE_PATHS = {
+    "/",
+    "/uk",
+    "/uk/",
+    "/cs/",
+    "/en/guides/visa/",
+    "/guides",
+    "/guides/",
+    "/guides/primer/",
+    "/robots.txt",
+    "/sitemap-index.xml",
+    "/sitemap-0.xml",
+    "/_astro/Base.abc123.css",
+}
+
+# What each host says to search engines on every response, apart from each
+# route's own: nothing site-wide on the Mini App's; never index the console's.
+ROBOTS = {None: None, ADMIN_HOST: "noindex"}
+
+# The app's, on the site's host: a 301 to the app keeping the path and query.
+TO_APP = f"301 {APP_URL}{{http.request.uri}}"
+
+
+def public_site() -> dict[str, str]:
+    """The site container's one host: its pages, the way into the bot, and the app's paths sent on."""
+    return {
+        **dict.fromkeys(SITE_PATHS, SITE),
+        "/api/v1/open": CATALOG,
+        # Old buttons in Telegram name this host; the app is on its own now.
+        "/home": TO_APP,
+        "/chats": TO_APP,
+        "/chats/cvut": TO_APP,
+        "/join": TO_APP,
+        "/console/chats/-100123": TO_APP,
+        "/ukraine": TO_APP,
+        # Nothing else of the API is the site's.
+        "/api/public/catalog": TO_APP,
+        "/api/v1/me": TO_APP,
+        "/healthz": TO_APP,
+        "/assets/index-abc123.js": TO_APP,
+    }
 
 
 def expectations() -> dict[str | None, dict[str, str]]:
@@ -107,6 +161,7 @@ def mini_app() -> dict[str, str]:
         "/administrator": APP,
         # The Mini App owns every other path, its client-side routes included.
         "/": APP,
+        "/home": APP,
         "/chats": APP,
         "/join": APP,
         "/assets/index-abc123.js": APP,
@@ -117,10 +172,17 @@ def site_routes(config: dict, host: str | None) -> list[dict]:
     """The routes of the site that answers `host`; None is the one with no host.
 
     Each site is one terminal route holding a subroute, and Caddy tries the
-    named hosts before the catch-all.
+    named hosts before the catch-all. A Caddyfile with one site and no host
+    (the site container's) is laid out flat instead: its routes are the server's.
     """
     servers = config["apps"]["http"]["servers"]
     (server,) = servers.values()
+    wrapped = all(
+        route.get("terminal") and [h.get("handler") for h in route.get("handle", [])] == ["subroute"]
+        for route in server["routes"]
+    )
+    if not wrapped:
+        return [] if host else server["routes"]
     for site in server["routes"]:
         hosts = [h for m in site.get("match", []) for h in m.get("host", [])]
         if (host in hosts) if host else not hosts:
@@ -129,14 +191,31 @@ def site_routes(config: dict, host: str | None) -> list[dict]:
     return []
 
 
-def framing(routes: list[dict]) -> str | None:
-    """The `Content-Security-Policy` a site sets on every response, if it does."""
+def site_header(routes: list[dict], name: str) -> str | None:
+    """A header a site sets on every response, if it does."""
     for route in routes:
+        if route.get("match"):
+            continue
         for handler in route.get("handle", []):
             if handler.get("handler") == "headers":
-                value = handler.get("response", {}).get("set", {}).get("Content-Security-Policy")
+                value = handler.get("response", {}).get("set", {}).get(name)
                 if value:
                     return value[0]
+    return None
+
+
+def framing(routes: list[dict]) -> str | None:
+    """The `Content-Security-Policy` a site sets on every response, if it does."""
+    return site_header(routes, "Content-Security-Policy")
+
+
+def robots(route: dict) -> str | None:
+    """The X-Robots-Tag a route sets, if it does."""
+    for handler in handlers(route):
+        if handler.get("handler") == "headers":
+            value = handler.get("response", {}).get("set", {}).get("X-Robots-Tag")
+            if value:
+                return value[0]
     return None
 
 
@@ -180,14 +259,28 @@ def handlers(route: dict) -> list[dict]:
     return out
 
 
+def try_files(route: dict) -> list[str]:
+    """The files a route tries, in order, if it tries any."""
+    for handler in handlers(route):
+        for sub in handler.get("routes", []):
+            for match in sub.get("match", []):
+                if "try_files" in match.get("file", {}):
+                    return match["file"]["try_files"]
+    return []
+
+
 def falls_back(route: dict) -> bool:
-    """Whether a route rewrites a missing file to the page (`try_files`), or always does."""
+    """Whether a route rewrites a missing file to the app's page, or always does."""
+    return "/index.html" in try_files(route) or any(
+        h.get("handler") == "rewrite" and h.get("uri") == "/index.html" for h in handlers(route)
+    )
+
+
+def not_found(route: dict) -> bool:
+    """Whether a route answers 404 when no file matches."""
     return any(
-        "try_files" in match.get("file", {})
-        for handler in handlers(route)
-        for sub in handler.get("routes", [])
-        for match in sub.get("match", [])
-    ) or any(h.get("handler") == "rewrite" and h.get("uri") == "/index.html" for h in handlers(route))
+        h.get("handler") == "static_response" and h.get("status_code") in (404, "404") for h in handlers(route)
+    ) or ("=404" in try_files(route))
 
 
 # What only the console's server may tell the catalog: it signs an operator in
@@ -210,9 +303,7 @@ def catalog_proxies(node: object) -> list[dict]:
     """
     found: list[dict] = []
     if isinstance(node, dict):
-        if node.get("handler") == "reverse_proxy" and any(
-            u.get("dial") == CATALOG for u in node.get("upstreams", [])
-        ):
+        if node.get("handler") == "reverse_proxy" and any(u.get("dial") == CATALOG for u in node.get("upstreams", [])):
             found.append(node)
         for value in node.values():
             found.extend(catalog_proxies(value))
@@ -230,8 +321,11 @@ def cookie_free(proxy: dict) -> bool:
     )
 
 
-def problems(route: dict, path: str, expected: str) -> list[str]:
-    """What is wrong with how `route` serves `path`, if anything."""
+def problems(route: dict, path: str, expected: str, inherited: str | None = None) -> list[str]:
+    """What is wrong with how `route` serves `path`, if anything.
+
+    `inherited` is the X-Robots-Tag the whole site sets, which every route carries.
+    """
     found = handlers(route)
     proxy = next((h for h in found if h.get("handler") == "reverse_proxy"), None)
     redirect = next((h for h in found if h.get("handler") == "static_response"), None)
@@ -259,14 +353,23 @@ def problems(route: dict, path: str, expected: str) -> list[str]:
         out.append("is proxied with cookies")
     if expected == CATALOG and (kept := service_headers_kept(proxy)):
         out.append(f"passes on {', '.join(kept)} from the client")
-    if not proxy and falls_back(route) != (path in FALLS_BACK):
+    if not proxy and expected == APP and falls_back(route) != (path in FALLS_BACK):
         out.append("falls back to the page" if falls_back(route) else "does not fall back to the page")
+    if expected == SITE and falls_back(route):
+        out.append("falls back to the app's page")
+    if expected == SITE and not not_found(route):
+        out.append("does not answer 404 for a page the site lacks")
+    if path in FALLS_BACK and expected == APP and (robots(route) or inherited) != "noindex":
+        out.append("lets search engines index an app screen")
+    if expected == SITE and robots(route):
+        out.append(f"tells search engines {robots(route)}")
     return out
 
 
 def main() -> int:
     config = json.load(sys.stdin)
     failed = False
+    on_site = "--site" in sys.argv[1:]
     proxies = catalog_proxies(config)
     if not proxies:
         print("no proxy to the catalog found: the walk is looking in the wrong place")
@@ -279,8 +382,8 @@ def main() -> int:
         if not cookie_free(proxy):
             print(f"catalog proxy #{index} is proxied with cookies")
             failed = True
-    for host, samples in expectations().items():
-        label = host or "mini app"
+    for host, samples in ({None: public_site()} if on_site else expectations()).items():
+        label = host or ("site" if on_site else "mini app")
         # `handle` blocks share a group and exactly one of them runs: the
         # first whose matcher fits. Routes outside a group (encode) pass through.
         site = site_routes(config, host)
@@ -293,9 +396,13 @@ def main() -> int:
         if framing(site) != wanted:
             print(f"{label}: framing is {framing(site)}, not {wanted}", file=sys.stderr)
             failed = True
+        told = site_header(site, "X-Robots-Tag")
+        if told != ROBOTS[host]:
+            print(f"{label}: X-Robots-Tag is {told}, not {ROBOTS[host]}", file=sys.stderr)
+            failed = True
         for path, expected in samples.items():
             chosen = next((r for r in terminal if matches(r, path)), None)
-            found = problems(chosen, path, expected) if chosen else ["is handled by nothing"]
+            found = problems(chosen, path, expected, told) if chosen else ["is handled by nothing"]
             for problem in found:
                 print(f"{label} {path} {problem}", file=sys.stderr)
             failed = failed or bool(found)

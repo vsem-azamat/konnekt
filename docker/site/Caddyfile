@@ -1,0 +1,123 @@
+{
+	servers {
+		# The edge proxy in front reaches this one over a private address; its
+		# X-Forwarded-For is passed on rather than replaced with its own.
+		trusted_proxies static private_ranges
+		# Read from the right: a client cannot pick its own address by
+		# sending one first.
+		trusted_proxies_strict
+	}
+	# Caddy's own log, errors included. Spelled out: a snippet cannot be
+	# imported here, the global block being first; keep it the same as below.
+	log {
+		output stderr
+		format filter {
+			wrap json
+			fields {
+				request>uri delete
+				request>headers delete
+				request>tls delete
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+# What a log line leaves out, in the access log and in Caddy's own error log
+# alike: a proxy error carries the request it failed on, and a sign-in
+# callback's `code` and `state` ride in its query string, a path names the
+# person it is about (/api/audience/<id>), and the browser sends cookies and an
+# Authorization header with initData. None of it belongs in a log. The line
+# keeps what happened to the request: its method, host, status, time, an id,
+# and which backend (`handler`) it went to; the backend's own line, found by the
+# id, has the route.
+(without_the_request) {
+	format filter {
+		wrap json
+		fields {
+			request>uri delete
+			request>headers delete
+			request>tls delete
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			resp_headers delete
+		}
+	}
+}
+
+(access_log) {
+	log {
+		output stdout
+		import without_the_request
+	}
+	# One id per request, here, so the line below and the backends' lines agree.
+	log_append request_id {http.request.uuid}
+	# Hashed files nobody reads a line about.
+	@quiet path /_astro/*
+	log_skip @quiet
+}
+
+# konnekt.cz: the public site (web/site/), built to plain HTML. The Mini App
+# lives on its own host (APP_URL, the deploy's WEBAPI_PUBLIC_URL); buttons
+# already sent in Telegram still name this one, so every path that is not the
+# site's goes there with its path and query, and the fragment that carries
+# Telegram's launch data survives the redirect (docs/invariants.md).
+:80 {
+	import access_log
+	encode zstd gzip
+
+	# Framable by Telegram's web clients like the app: an old button opens this
+	# host inside Telegram Web, and the page must load to send it on (the
+	# landing's script). No X-Robots-Tag: this host is what search engines read.
+	header {
+		Content-Security-Policy "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+	}
+
+	# «Открыть Konnekt»: the catalog redirects to the bot from the token it runs
+	# with. Nothing else of the catalog's is served here, and nothing of a
+	# browser's cookies or service headers reaches it.
+	handle /api/v1/open {
+		log_append handler catalog
+		reverse_proxy catalog-api:8000 {
+			header_up X-Request-Id {http.request.uuid}
+			header_up -Cookie
+			header_up -X-Catalog-Service
+			header_up -X-Catalog-Operator
+			header_up -X-Catalog-Lang
+			header_down -Set-Cookie
+		}
+	}
+
+	# The landing page in each language, the guides, and what search engines
+	# read. A page the site lacks is a 404, never the app. A language prefix is
+	# a whole path segment, so /ukraine goes to the app like any other path.
+	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml
+	handle @site {
+		root * /srv/site
+		# Hashed assets for good, but only those that exist: a missing one is a
+		# 404 nobody may keep. A page, which names them, is never cached.
+		@hashed {
+			path /_astro/*
+			file
+		}
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@page not path /_astro/*
+		header @page Cache-Control "no-cache"
+		try_files {path} {path}/index.html =404
+		file_server
+	}
+
+	# The app's paths (/chats, /join, /console…) and the API it calls are the
+	# app's host's now. Compose refuses to start the site without APP_URL; run
+	# by hand without it, the fallback is a name nobody resolves.
+	handle {
+		redir {$APP_URL:https://app.invalid}{uri} permanent
+	}
+}

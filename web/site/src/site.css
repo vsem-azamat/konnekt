@@ -1,0 +1,68 @@
+/*
+ * The guide pages' own layout, on landing F's tokens (landing/f.css): its
+ * header, footer and type are theirs too.
+ */
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 24px max(16px, env(safe-area-inset-right))
+    max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.page h1 {
+  margin: 0 0 16px;
+  font-size: clamp(26px, 6vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.guides-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guides-list a {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  text-decoration: none;
+}
+
+.guides-list p {
+  margin: 0;
+  color: var(--soft);
+  font-size: 14px;
+}
+
+.badge {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--t1b);
+  color: var(--t1f);
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.article {
+  max-width: 65ch;
+}
+
+.article :is(h2, h3) {
+  margin: 1.6em 0 0.4em;
+  line-height: 1.25;
+}
+
+.article p,
+.article ul,
+.article ol {
+  margin: 0 0 1em;
+}

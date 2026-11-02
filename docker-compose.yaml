@@ -210,6 +210,23 @@ services:
       - catalog-api
     restart: unless-stopped
 
+  # The public site on konnekt.cz (docker/site/): its pages, and a 301 to the
+  # app for every other path, which old buttons in Telegram still name. Within
+  # the memory Azamat allowed it.
+  site:
+    image: ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}
+    container_name: supervisor-telegram-site
+    logging: *rotated-logs
+    environment:
+      # Where the app's paths are sent (docker/site/Caddyfile).
+      APP_URL: ${WEBAPI_PUBLIC_URL:?Set WEBAPI_PUBLIC_URL to the app's https origin}
+    ports:
+      - "127.0.0.1:18092:80"
+    mem_limit: 256m
+    depends_on:
+      - catalog-api
+    restart: unless-stopped
+
   # The bot's database, moderator_prod, lives on the shared database server,
   # whose own backup jobs do not cover it. A dump a day lands here instead, on
   # another machine, with the credentials the bot runs with.

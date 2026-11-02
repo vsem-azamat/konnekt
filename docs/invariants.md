@@ -279,8 +279,9 @@ konnekt.azamat.io, and Telegram puts the launch data in the fragment
 query; a redirect keeps the fragment. The root is the exception: the catalog's
 notifications opened the bare host, and once the site owns `/` an old button
 and a visitor are the same request. Whatever serves `/` on konnekt.cz must
-send a `#tgWebAppData` fragment on to the app's host in the browser. Until the
-site is there the whole host redirects, apart from the paths Prometheus reads.
+send a `#tgWebAppData` fragment on to the app's host in the browser: the site
+(`web/site/`, its own container, `docker/site/`) does, from every page, and
+answers every path that is not its own with that 301.
 
 **The public half calls nothing of ours but `/api/public/*`, and does not
 import the console.** Only `web/src/console/` may use webapi's session, so a
