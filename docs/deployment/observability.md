@@ -28,6 +28,23 @@ error log included, carry no uri, headers or client address, only the backend
 do not quote their parameters. `tests/unit/test_no_silent_errors.py` holds the
 rule that a failure names its class.
 
+## Errors in Sentry
+
+Sentry org `konnekt-cz` (EU, `https://konnekt-cz.sentry.io`), one project a
+process: `bot`, `webapi`, `catalog-api`, `webui`. Each takes its DSN from the
+repository secret `SENTRY_DSN_<PROJECT>`; unset, the process reports nothing.
+The release is the deployed commit, and the web build uploads its source maps
+under it with `SENTRY_AUTH_TOKEN` (an org token that can write releases and
+nothing else). All five are kept in 1Password, «Sentry Konnekt».
+
+An event is an error-level line or an uncaught exception, named by its
+`event`; warnings travel with it as breadcrumbs, by name. The line itself, its
+fields and frame locals stay in Loki. Every string an event carries is
+filtered for bot tokens, bearer and `tma` credentials, initData and phone
+numbers (`app/core/error_tracking.py`, the catalog's `core/error_tracking.py`,
+`web/src/lib/errorTracking.ts`). Alerts are e-mail on a new, regressed or
+escalating issue, never per event.
+
 ## Metrics
 
 | Process | Where Prometheus reads it |
