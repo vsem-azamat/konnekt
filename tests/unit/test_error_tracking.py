@@ -213,6 +213,15 @@ def test_a_transaction_is_scrubbed_like_an_error(sentry: Captured) -> None:
         ),
         ("1 validation error\n  Value error [type=value_error, input_value='my name is Ivan', input_type=str]", "Ivan"),
         ("{'type': 'missing', 'loc': ('body',), 'msg': 'Field required', 'input': {'text': 'Ivan'}}", "Ivan"),
+        (
+            "violates not-null constraint\nDETAIL:  Failing row contains (1, Ahoj\nIvan 2nd line, null).\n[SQL: INSERT]",
+            "Ivan",
+        ),
+        ("DETAIL:  Key (body)=(Ahoj\nIvan) already exists.", "Ivan"),
+        ("Value error [type=value_error, input_value={'a': [1], 'name': 'Ivan'}, input_type=dict]", "Ivan"),
+        ("Value error [type=value_error, input_value=['x]', 'Ivan'], input_type=list]", "Ivan"),
+        ("  {'type': 'dict_type', 'loc': ('response',), 'input': {'a': {}, 'bio': 'Ivan'}}", "Ivan"),
+        ("  {'type': 'list_type', 'loc': ('response',), 'input': ['x', 'Ivan']}", "Ivan"),
     ],
 )
 def test_errors_that_quote_their_input_lose_it(text: str, personal: str) -> None:
