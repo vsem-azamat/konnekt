@@ -38,7 +38,16 @@ COPY web/ ./
 # failed.
 ARG WEB_VERSION=unknown
 ENV VITE_APP_VERSION=$WEB_VERSION
-RUN pnpm run build
+# Where the app reports its failures (web/src/lib/errorTracking.ts), and the
+# Sentry the build uploads the source maps to. The DSN ships in the bundle
+# anyway; the token is a build secret, kept out of every layer, and without it
+# nothing is uploaded.
+ARG VITE_SENTRY_DSN=
+ARG SENTRY_ORG=
+ARG SENTRY_URL=
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN SENTRY_ORG=$SENTRY_ORG SENTRY_URL=$SENTRY_URL
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || true)" pnpm run build
 
 # Production stage
 FROM python:3.12.13-slim-trixie AS production
