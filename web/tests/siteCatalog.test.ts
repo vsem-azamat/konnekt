@@ -8,10 +8,12 @@ import {
   cityFromSlug,
   citySlug,
   indexable,
+  jsonLd,
   mainChat,
   sections,
   universitiesWithChats,
 } from '../site/src/catalog/catalog.ts';
+import { langOf } from '../site/src/catalog/page.ts';
 import { remembered } from '../site/src/catalog/remembered.ts';
 import { sanitizeUniversities } from '../site/src/catalog/source.ts';
 import type { PublicChat } from '../src/lib/chats.ts';
@@ -284,4 +286,23 @@ test('the universities are checked as they arrive, not trusted', () => {
     { code: 'vse', name: 'VŠE', short_name: null, city: null, site_url: null },
   ]);
   assert.throws(() => sanitizeUniversities({ detail: 'down' }));
+});
+
+test('a chat’s title cannot close the page’s JSON-LD script', () => {
+  // The admins of a listed group choose its title.
+  const text = jsonLd({ name: 'Dorm</script><script>window.PWNED=1</script>' });
+
+  assert.equal(text.includes('<'), false);
+  assert.deepEqual(JSON.parse(text), {
+    name: 'Dorm</script><script>window.PWNED=1</script>',
+  });
+});
+
+test('a catalog page’s language is its prefix, and Russian has none', () => {
+  assert.equal(langOf(undefined), 'ru');
+  assert.equal(langOf('uk'), 'uk');
+  assert.equal(langOf('en'), 'en');
+  // One address per page: Russian is at the root, never under /ru/.
+  assert.equal(langOf('ru'), null);
+  assert.equal(langOf('xx'), null);
 });

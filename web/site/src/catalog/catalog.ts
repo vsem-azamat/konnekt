@@ -235,3 +235,13 @@ export function anchors(chats: readonly PublicChat[]): Map<PublicChat, string> {
   }
   return ids;
 }
+
+/**
+ * `value` as the text of a `<script type="application/ld+json">`. JSON alone
+ * is not safe there: a chat's title, which its group's admins choose, could
+ * hold `</script>` and end the script early. Every `<` is written as its
+ * escape, which JSON reads back as the same character.
+ */
+export function jsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}

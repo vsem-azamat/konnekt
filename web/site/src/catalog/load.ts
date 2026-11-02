@@ -37,7 +37,7 @@ export interface UniversitiesProps {
   /** The city `?city=` picked, or null: a filtered page is noindex. */
   city: string | null;
   filtered: boolean;
-  /** Chats on /chats/ that name no university the catalog knows. */
+  /** The chats /chats/ lists under subjects, work and general: no university's. */
   loose: number;
 }
 
@@ -54,14 +54,16 @@ export async function universitiesPage(
     ...new Set(all.map((u) => u.university.city).filter((c) => c !== null)),
   ];
   const city = cityFromSlug(url.searchParams.get('city'), choices);
-  const listed = new Set(all.flatMap((u) => u.chats));
   return {
     lang,
     list: city ? all.filter((u) => u.university.city === city) : all,
     cities: choices,
     city,
     filtered: url.search !== '',
-    loose: data.chats.filter((c) => !listed.has(c)).length,
+    loose: catalogue(data.chats, data.universities).topics.reduce(
+      (sum, { chats }) => sum + chats.length,
+      0,
+    ),
   };
 }
 

@@ -47,7 +47,9 @@ const here = localePath(lang, path);
       {
         list.map(({ university: u, chats }) => {
           const short = u.short_name ?? u.name;
-          const main = mainChat(chats) ?? chats[0];
+          // Only a main chat's count, which is said so: a sum would count one
+          // student many times, and another chat's might be a dorm's.
+          const main = mainChat(chats);
           return (
             <a class="card uni" href={localePath(lang, `/universities/${u.code}/`)}>
               <span class={`mono tone${toneOf(u.code)}`} data-long={short.length > 4 || undefined} aria-hidden="true">{short}</span>

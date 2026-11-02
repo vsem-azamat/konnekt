@@ -113,7 +113,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 FROM node:24.15.0-alpine3.23 AS site
 
 COPY --from=caddy:2.11.2-alpine /usr/bin/caddy /usr/bin/caddy
-# Where Caddy keeps its state, as in its own image.
+# What Caddy's image adds around it: the media types a file is served with,
+# without which the fonts go out with none, and where it keeps its state.
+RUN apk add --no-cache mailcap
 ENV XDG_CONFIG_HOME=/config XDG_DATA_HOME=/data
 COPY docker/site/Caddyfile /etc/caddy/Caddyfile
 COPY --from=web-build /app/web/site/dist/client /srv/site

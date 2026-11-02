@@ -7,11 +7,14 @@ import { DEFAULT_LANG, LANGS, type Lang } from '../paths.ts';
 import { CATALOG_TEXTS } from './texts.ts';
 
 /**
- * Cloudflare keeps a page ten minutes and serves the last one for a day while
- * it asks again or the API is down; a browser asks every time. A new chat is
- * on the site within ten minutes, and nobody has to purge anything.
+ * Cloudflare keeps a page ten minutes, by the Cache Rule that makes it cache
+ * these paths' HTML at all (set with the deploy that brings them), and for a
+ * day past that serves the last one while it asks again or while the server
+ * answers an error; a browser asks every time. A new chat is on the site
+ * within ten minutes, and nobody has to purge anything.
  */
-export const CACHED = 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400';
+export const CACHED =
+  'public, max-age=0, s-maxage=600, stale-while-revalidate=86400, stale-if-error=86400';
 /** A page that is not there, such as a university with no chats: kept a minute. */
 const MISSING = 'public, max-age=0, s-maxage=60';
 
@@ -31,7 +34,7 @@ export function notFound(): Response {
 
 /**
  * The APIs failed with nothing kept to fall back on. Not cached: Cloudflare
- * keeps serving the last good page meanwhile (stale-while-revalidate).
+ * keeps serving the last good page meanwhile (stale-if-error).
  */
 export function unavailable(lang: Lang): Response {
   return new Response(CATALOG_TEXTS[lang].unavailable, {

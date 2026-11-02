@@ -38,6 +38,7 @@ function guides(): GuideEntry[] {
 
 const hidden = hiddenPaths(guides());
 const building = process.argv.includes('build');
+const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
 
 export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4321',
@@ -53,7 +54,12 @@ export default defineConfig({
   vite: { ssr: { noExternal: building || undefined } },
   integrations: [
     sitemap({
-      filter: (page) => !hidden.includes(new URL(page).pathname),
+      // The catalog pages are rendered on request and listed by their own
+      // sitemap, which knows which of them may be indexed (sitemap-catalog.xml).
+      filter: (page) => {
+        const { pathname } = new URL(page);
+        return !hidden.includes(pathname) && !CATALOG.test(pathname);
+      },
       i18n: {
         defaultLocale: DEFAULT_LANG,
         locales: Object.fromEntries(LANGS.map((lang) => [lang, lang])),

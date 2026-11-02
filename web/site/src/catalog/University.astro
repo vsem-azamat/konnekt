@@ -7,11 +7,11 @@
  */
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { num } from '../landing/copy.ts';
+import { num, OPEN } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import { localePath } from '../paths.ts';
 import ChatRow from './ChatRow.astro';
-import { anchors, indexable, mainChat, sections } from './catalog.ts';
+import { anchors, indexable, jsonLd, mainChat, sections } from './catalog.ts';
 import './catalog.css';
 import type { UniversityProps } from './load.ts';
 import { toneOf } from './page.ts';
@@ -89,7 +89,7 @@ const schema = {
   description={t.universityDescription(count(lang, chats.length, t.chats), short, u.name)}
   noindex={thin}
 >
-  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+  <script is:inline type="application/ld+json" set:html={jsonLd(schema)} />
   <Header lang={lang} path={path} />
   <main class="wrap cat">
     <ol class="crumbs" aria-label={t.nav}>
@@ -132,7 +132,7 @@ const schema = {
         <div class="card thin sec">
           <h3>{t.thinTitle}</h3>
           <p>{t.thinText(short)}</p>
-          <a class="all" href="/api/v1/open?app=1"><span>{t.suggest}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="all" href={OPEN}><span>{t.suggest}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </div>
       )
     }
