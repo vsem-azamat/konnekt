@@ -290,8 +290,9 @@ otherwise the only way to do either is the database.
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
   30 days, grouped by their text ignoring case and leading or trailing spaces, most frequent
-  first. Each list is capped; the counts give each list's full length, and the
-  number of requests posted this week.
+  first. Each list is capped; the counts give each list's full length, the
+  number of requests posted this week, and when the oldest profile and the
+  oldest request still waiting came in.
 - `GET /admin/profiles/{id}`: one profile as the operator moderates it.
   `POST …/review` keeps it as it is: `reviewed_at` is set and it leaves the
   new list, still listed or still hidden. `POST …/hide` takes a reason

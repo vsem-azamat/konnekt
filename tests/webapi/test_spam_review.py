@@ -328,7 +328,7 @@ async def test_the_summary_counts_what_waits_in_the_queue(client_factory, db_ses
 
     async with client_factory() as client:
         await client.post(f"/api/spam/pings/{reviewed}/review", json={"verdict": "done"})
-        resp = await client.get("/api/stats/home")
+        resp = await client.get("/api/signals")
 
     assert resp.status_code == 200, resp.text
-    assert resp.json()["spam_pings"]["unreviewed"] == 2
+    assert resp.json()["queues"]["ads_unreviewed"] == 2

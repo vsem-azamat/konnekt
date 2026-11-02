@@ -673,9 +673,13 @@ class AdminCounts(BaseModel):
     profiles_week: int
     # Listed profiles no operator has kept or hidden yet, however old.
     profiles_to_review: int
+    # When the oldest of them came in; none when nothing waits. The console
+    # says how long it waits.
+    profiles_waiting_since: datetime | None
     hidden: int
     requests_week: int
     unanswered: int
+    unanswered_waiting_since: datetime | None
     failed_searches: int
 
 

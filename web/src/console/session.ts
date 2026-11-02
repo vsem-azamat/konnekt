@@ -316,32 +316,7 @@ export interface HomeStats {
   members_delta: MemberDelta[];
   /** Members of the chats counted all week, a day apart from a week ago to now. */
   members_week: number[];
-  spam_pings: { count_24h: number; count_7d: number; unreviewed: number };
-}
-
-// ── what the summary says ─────────────────────────────────────────────────
-
-export type AttentionKey = 'ads' | 'review' | 'profiles' | 'requests';
-
-/**
- * What needs a look, in the order the summary lists it; zero is not news.
- */
-export function attention(input: {
-  adsUnreviewed: number;
-  chats: Pick<ConsoleChat, 'resource_status'>[];
-  profilesToReview?: number;
-  requestsUnanswered: number;
-}): { key: AttentionKey; count: number }[] {
-  const items: { key: AttentionKey; count: number }[] = [
-    { key: 'ads', count: input.adsUnreviewed },
-    {
-      key: 'review',
-      count: input.chats.filter((chat) => chat.resource_status === 'discovered').length,
-    },
-    { key: 'profiles', count: input.profilesToReview ?? 0 },
-    { key: 'requests', count: input.requestsUnanswered },
-  ];
-  return items.filter((item) => item.count > 0);
+  spam_pings: { count_24h: number; count_7d: number };
 }
 
 /** Clicks per impression as a percentage, one decimal; nothing without views. */

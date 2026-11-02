@@ -618,6 +618,10 @@ msgstr "Это не наши услуги. Мы получаем комисси�
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Показываем тому, кому она нужна сейчас, а не всем подряд."
 
+#: src/console/QueueRow.tsx
+msgid "ждёт меньше часа"
+msgstr "ждёт меньше часа"
+
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
 msgstr "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
@@ -1322,6 +1326,11 @@ msgstr "Отмена"
 msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
 msgstr "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
+msgstr "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
+
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
 msgid "Оставить"
@@ -1941,8 +1950,7 @@ msgstr "Студенты перестанут её видеть. Показы и
 msgid "Прага"
 msgstr "Прага"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "открытые, срок не вышел"
 msgstr "открытые, срок не вышел"
 
@@ -2485,8 +2493,7 @@ msgstr "капча"
 msgid "Название или id"
 msgstr "Название или id"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "каталог"
 msgstr "каталог"
 
@@ -2654,8 +2661,7 @@ msgstr "Бота удалили из чата · {0}"
 msgid "За 7 дней"
 msgstr "За 7 дней"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Чаты на проверке"
 msgstr "Чаты на проверке"
 
@@ -2711,6 +2717,10 @@ msgstr "дали писать и не заблокировали; ещё {opted}
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Отметь всё, что умеешь. Цены спросим на следующем экране."
+
+#: src/console/QueueRow.tsx
+msgid "ждут меньше часа"
+msgstr "ждут меньше часа"
 
 #: src/console/pages/Chats.tsx
 #: src/console/TopSearch.tsx
@@ -3261,8 +3271,7 @@ msgid "Анкета сохранена, но в каталоге её нет. В
 msgstr "Анкета сохранена, но в каталоге её нет. Вернуть можно ниже."
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Заявки без откликов"
 msgstr "Заявки без откликов"
 
@@ -3290,6 +3299,11 @@ msgstr "У этого человека нет @username — написать н�
 msgid "Бот для действий из консоли"
 msgstr "Бот для действий из консоли"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+msgstr "ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не запускали"
 msgstr "не запускали"
@@ -3307,8 +3321,7 @@ msgstr "Автор забанен"
 msgid "Капча"
 msgstr "Капча"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "детектор, все чаты"
 msgstr "детектор, все чаты"
 
@@ -3422,8 +3435,7 @@ msgstr "Нажми кнопку, чтобы подтвердить, что ты 
 msgid "Причина: <0/>"
 msgstr "Причина: <0/>"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Реклама не разобрана"
 msgstr "Реклама не разобрана"
 
@@ -3558,8 +3570,7 @@ msgstr "Очередь пуста: всё разобрано."
 msgid "Не ждать"
 msgstr "Не ждать"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "бот в них есть, но они не одобрены"
 msgstr "бот в них есть, но они не одобрены"
 
@@ -3572,8 +3583,7 @@ msgid "{held} · {ago} мин назад"
 msgstr "{held} · {ago} мин назад"
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Новые анкеты"
 msgstr "Новые анкеты"
 
@@ -3845,6 +3855,11 @@ msgstr "Язык приложения"
 #~ msgid "Новые по неделям"
 #~ msgstr "Новые по неделям"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+msgstr "ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+
 #: src/console/BanSheet.tsx
 msgid "Подтверждение"
 msgstr "Подтверждение"
@@ -3990,6 +4005,11 @@ msgstr "как у родителя"
 #: src/console/pages/Chat.tsx
 msgid "Не указан"
 msgstr "Не указан"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# дня} few {# дней} many {# дней} other {# дня}}"
+msgstr "ждут до {0, plural, one {# дня} few {# дней} many {# дней} other {# дня}}"
 
 #: src/console/pages/Summary.tsx
 msgid "Аудитория подробно"
@@ -4161,7 +4181,7 @@ msgstr "Сообщение автору"
 msgid "Где её видно"
 msgstr "Где её видно"
 
-#. placeholder {0}: stats.data.spam_pings.unreviewed
+#. placeholder {0}: signals.data.queues.ads_unreviewed
 #: src/console/pages/Summary.tsx
 msgid "{0} всего не разобрано"
 msgstr "{0} всего не разобрано"

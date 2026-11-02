@@ -3197,6 +3197,18 @@
             "type": "integer",
             "title": "Profiles To Review"
           },
+          "profiles_waiting_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles Waiting Since"
+          },
           "hidden": {
             "type": "integer",
             "title": "Hidden"
@@ -3209,6 +3221,18 @@
             "type": "integer",
             "title": "Unanswered"
           },
+          "unanswered_waiting_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unanswered Waiting Since"
+          },
           "failed_searches": {
             "type": "integer",
             "title": "Failed Searches"
@@ -3218,9 +3242,11 @@
         "required": [
           "profiles_week",
           "profiles_to_review",
+          "profiles_waiting_since",
           "hidden",
           "requests_week",
           "unanswered",
+          "unanswered_waiting_since",
           "failed_searches"
         ],
         "title": "AdminCounts"

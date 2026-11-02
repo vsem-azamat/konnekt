@@ -619,6 +619,10 @@ msgstr "These aren't our services. We take a commission from the partner, nothin
 msgid "Показываем тому, кому она нужна сейчас, а не всем подряд."
 msgstr "Shown to whoever needs it right now, not to everyone."
 
+#: src/console/QueueRow.tsx
+msgid "ждёт меньше часа"
+msgstr "waiting under an hour"
+
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
 msgstr "{name} will see your response on their request and can message you on Telegram."
@@ -1323,6 +1327,11 @@ msgstr "Cancel"
 msgid "Пока её видишь только ты. Ниже уже стоит «В каталоге»: нажми «Сохранить», и анкета появится в поиске."
 msgstr "Only you can see it for now. «In the catalog» is already chosen below: tap «Save» and your profile will show up in search."
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
+msgstr "waiting up to {0, plural, one {# hour} other {# hours}}"
+
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
 msgid "Оставить"
@@ -1942,8 +1951,7 @@ msgstr "Students will stop seeing it. Impressions and clicks are kept."
 msgid "Прага"
 msgstr "Prague"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "открытые, срок не вышел"
 msgstr "open, before their deadline"
 
@@ -2486,8 +2494,7 @@ msgstr "captcha"
 msgid "Название или id"
 msgstr "Name or id"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "каталог"
 msgstr "catalog"
 
@@ -2655,8 +2662,7 @@ msgstr "The bot was removed from the chat · {0}"
 msgid "За 7 дней"
 msgstr "Last 7 days"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Чаты на проверке"
 msgstr "Chats awaiting review"
 
@@ -2712,6 +2718,10 @@ msgstr "let it write and did not block it; {opted} more unsubscribed from news"
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Tick everything you can do. Prices come on the next screen."
+
+#: src/console/QueueRow.tsx
+msgid "ждут меньше часа"
+msgstr "waiting under an hour"
 
 #: src/console/pages/Chats.tsx
 #: src/console/TopSearch.tsx
@@ -3262,8 +3272,7 @@ msgid "Анкета сохранена, но в каталоге её нет. В
 msgstr "Your profile is saved but not in the catalog. You can bring it back below."
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Заявки без откликов"
 msgstr "Requests with no answer"
 
@@ -3291,6 +3300,11 @@ msgstr "This person has no @username — there is no way to write to them"
 msgid "Бот для действий из консоли"
 msgstr "The bot for console actions"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+msgstr "waiting {0, plural, one {# hour} other {# hours}}"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не запускали"
 msgstr "never started"
@@ -3308,8 +3322,7 @@ msgstr "Author banned"
 msgid "Капча"
 msgstr "Captcha"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "детектор, все чаты"
 msgstr "detector, all chats"
 
@@ -3423,8 +3436,7 @@ msgstr "Tap the button to confirm you are not a bot. The request is approved at 
 msgid "Причина: <0/>"
 msgstr "Reason: <0/>"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Реклама не разобрана"
 msgstr "Ads to review"
 
@@ -3559,8 +3571,7 @@ msgstr "The queue is empty: everything is reviewed."
 msgid "Не ждать"
 msgstr "Don’t wait"
 
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "бот в них есть, но они не одобрены"
 msgstr "the bot is in them, but they are not approved"
 
@@ -3573,8 +3584,7 @@ msgid "{held} · {ago} мин назад"
 msgstr "{held} · {ago} min ago"
 
 #: src/console/pages/Catalog.tsx
-#: src/console/pages/Signals.tsx
-#: src/console/pages/Summary.tsx
+#: src/console/QueueRow.tsx
 msgid "Новые анкеты"
 msgstr "New profiles"
 
@@ -3846,6 +3856,11 @@ msgstr "App language"
 #~ msgid "Новые по неделям"
 #~ msgstr "New by week"
 
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждёт {0, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+msgstr "waiting {0, plural, one {# day} other {# days}}"
+
 #: src/console/BanSheet.tsx
 msgid "Подтверждение"
 msgstr "Confirmation"
@@ -3991,6 +4006,11 @@ msgstr "same as the parent"
 #: src/console/pages/Chat.tsx
 msgid "Не указан"
 msgstr "Not set"
+
+#. placeholder {0}: wait.count
+#: src/console/QueueRow.tsx
+msgid "ждут до {0, plural, one {# дня} few {# дней} many {# дней} other {# дня}}"
+msgstr "waiting up to {0, plural, one {# day} other {# days}}"
 
 #: src/console/pages/Summary.tsx
 msgid "Аудитория подробно"
@@ -4162,7 +4182,7 @@ msgstr "Message to the author"
 msgid "Где её видно"
 msgstr "Where it appears"
 
-#. placeholder {0}: stats.data.spam_pings.unreviewed
+#. placeholder {0}: signals.data.queues.ads_unreviewed
 #: src/console/pages/Summary.tsx
 msgid "{0} всего не разобрано"
 msgstr "{0} to review in all"

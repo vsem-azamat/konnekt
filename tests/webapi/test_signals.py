@@ -6,6 +6,7 @@ import datetime
 from typing import TYPE_CHECKING
 
 import pytest
+from app.core.enums import SpamVerdict
 from app.core.time import utc_now
 from app.db.models import Chat, ChatMemberSnapshot, JoinCaptcha, JoinWave, SpamPing
 from app.webapi.main import app
@@ -130,21 +131,52 @@ async def test_a_wave_quiet_for_longer_than_the_spell_is_no_longer_paused(client
 
 async def test_the_queues_count_unreviewed_ads_and_chats_under_review(client, db_session_maker) -> None:
     now = utc_now()
+    week_ago = now - datetime.timedelta(days=7)
     async with db_session_maker() as session:
+        chats = [
+            Chat(id=-1, title="New", resource_status=Chat.STATUS_DISCOVERED),
+            Chat(id=-2, title="Also new", resource_status=Chat.STATUS_DISCOVERED),
+            Chat(id=-3, title="Ours", resource_status=Chat.STATUS_APPROVED),
+        ]
+        for chat, created_at in zip(chats, (week_ago, now, week_ago - datetime.timedelta(days=1)), strict=True):
+            chat.created_at = created_at
+        session.add_all(chats)
+
+        def ping(message_id: int, detected_at: datetime.datetime, verdict: str | None = None) -> SpamPing:
+            hit = SpamPing(
+                chat_id=-3,
+                user_id=5,
+                message_id=message_id,
+                kind="link",
+                matches=["bit.ly"],
+                snippet="x",
+                detected_at=detected_at,
+            )
+            hit.verdict = verdict
+            return hit
+
         session.add_all(
             [
-                Chat(id=-1, title="New", resource_status=Chat.STATUS_DISCOVERED),
-                Chat(id=-2, title="Also new", resource_status=Chat.STATUS_DISCOVERED),
-                Chat(id=-3, title="Ours", resource_status=Chat.STATUS_APPROVED),
+                ping(1, now - datetime.timedelta(hours=3)),
+                ping(2, now),
+                # Answered already: however old, it waits for nobody.
+                ping(3, week_ago, SpamVerdict.NOT_AD),
             ]
-        )
-        session.add(
-            SpamPing(chat_id=-3, user_id=5, message_id=1, kind="link", matches=["bit.ly"], snippet="x", detected_at=now)
         )
         await session.commit()
 
     body = await _signals(client)
 
-    assert body["queues"] == {"ads_unreviewed": 1, "chats_in_review": 2}
+    queues = body["queues"]
+    assert (queues["ads_unreviewed"], queues["chats_in_review"]) == (2, 2)
+    # How long the oldest one waits, as the console says it.
+    assert datetime.datetime.fromisoformat(queues["ads_waiting_since"]) == now - datetime.timedelta(hours=3)
+    assert datetime.datetime.fromisoformat(queues["chats_waiting_since"]) == week_ago
     assert body["waves"] == []
     assert "pending_actions" not in body
+
+
+async def test_an_empty_queue_waits_since_never(client) -> None:
+    queues = (await _signals(client))["queues"]
+
+    assert queues == {"ads_unreviewed": 0, "ads_waiting_since": None, "chats_in_review": 0, "chats_waiting_since": None}

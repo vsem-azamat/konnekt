@@ -8,7 +8,9 @@ import {
   menuCounts,
   minutesSince,
   minutesUntil,
+  queues,
   type Signals,
+  waited,
 } from '../src/console/signals.ts';
 
 const signals: Signals = {
@@ -26,7 +28,12 @@ const signals: Signals = {
     },
   ],
   wave_per_minute: 20,
-  queues: { ads_unreviewed: 4, chats_in_review: 2 },
+  queues: {
+    ads_unreviewed: 4,
+    ads_waiting_since: '2026-10-20T08:00:00',
+    chats_in_review: 2,
+    chats_waiting_since: '2026-08-09T18:07:35',
+  },
 };
 
 test('each menu item counts what waits behind it', () => {
@@ -70,6 +77,40 @@ test('how long ago reads in minutes, then in hours', () => {
   assert.deepEqual(elapsed('2026-10-22T07:31:00', now), { unit: 'minutes', count: 59 });
   // A wave is kept a day: «1380 мин назад» is unreadable.
   assert.deepEqual(elapsed('2026-10-21T09:30:00', now), { unit: 'hours', count: 23 });
+});
+
+test('each queue with something in it says how many and since when', () => {
+  assert.deepEqual(
+    queues(signals, {
+      profiles_to_review: 0,
+      profiles_waiting_since: null,
+      unanswered: 3,
+      unanswered_waiting_since: '2026-10-01T10:00:00Z',
+    }),
+    [
+      { key: 'ads', count: 4, since: '2026-10-20T08:00:00' },
+      { key: 'review', count: 2, since: '2026-08-09T18:07:35' },
+      { key: 'requests', count: 3, since: '2026-10-01T10:00:00Z' },
+    ],
+  );
+  // The catalog not answered yet: its queues wait for it, webapi's do not.
+  assert.deepEqual(
+    queues(signals, undefined).map((queue) => queue.key),
+    ['ads', 'review'],
+  );
+  assert.deepEqual(queues(undefined, undefined), []);
+});
+
+test('how long the oldest waits reads in hours, then in days', () => {
+  const now = new Date('2026-10-22T08:30:00Z');
+  assert.deepEqual(waited('2026-10-22T08:00:00', now), { unit: 'fresh' });
+  assert.deepEqual(waited('2026-10-22T07:30:00', now), { unit: 'hours', count: 1 });
+  // «1 день» for 47 hours would hide most of a day.
+  assert.deepEqual(waited('2026-10-20T09:30:00', now), { unit: 'hours', count: 47 });
+  assert.deepEqual(waited('2026-10-20T08:30:00', now), { unit: 'days', count: 2 });
+  assert.deepEqual(waited('2026-08-09T18:07:35', now), { unit: 'days', count: 73 });
+  // The catalog's times carry their zone, webapi's are UTC without one.
+  assert.deepEqual(waited('2026-10-22T09:00:00+02:00', now), { unit: 'hours', count: 1 });
 });
 
 test('a refused decision says why, in the words webapi gives', () => {

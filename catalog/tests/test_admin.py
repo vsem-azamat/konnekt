@@ -365,6 +365,60 @@ async def test_counts_are_the_full_lengths_when_the_lists_are_cut(
     assert (len(body["failed_searches"]), body["counts"]["failed_searches"]) == (1, 2)
 
 
+async def test_each_queue_says_since_when_its_oldest_waits(
+    session: AsyncSession, helper_factory
+) -> None:
+    """The console shows how long the oldest one waits, not just how many."""
+    now = datetime.now(UTC)
+    # Older than anything the database may hold of its own (demo data).
+    long_ago = now - timedelta(days=4000)
+    author = await _person(session, 97411, "Lena")
+    kept = await helper_factory(tg_id=97412)
+    waiting = await helper_factory(tg_id=97413)
+    edited = await helper_factory(tg_id=97414)
+    for user, published in (
+        (kept, long_ago - timedelta(days=5)),
+        (waiting, long_ago),
+        (edited, long_ago - timedelta(days=9)),
+    ):
+        profile = await session.get(HelperProfile, user.id)
+        assert profile is not None
+        profile.published_at = published
+    kept_profile = await session.get(HelperProfile, kept.id)
+    assert kept_profile is not None
+    kept_profile.reviewed_at = now
+    # Hidden long ago and changed by its owner today: it waits from the edit.
+    edited_profile = await session.get(HelperProfile, edited.id)
+    assert edited_profile is not None
+    edited_profile.status = PublishStatus.BANNED
+    edited_profile.hidden_reason = HideReason.SPAM
+    edited_profile.updated_at = now
+    answered = HelpRequest(
+        author_id=author.id, raw_text="answered", status=RequestStatus.OPEN
+    )
+    open_one = HelpRequest(
+        author_id=author.id, raw_text="open", status=RequestStatus.OPEN
+    )
+    session.add_all([answered, open_one])
+    await session.flush()
+    answered.created_at = long_ago - timedelta(days=3)
+    open_one.created_at = long_ago + timedelta(days=1)
+    session.add(
+        RequestResponse(request_id=answered.id, helper_id=kept.id, message="могу")
+    )
+    await session.flush()
+
+    async with _client(session) as http:
+        counts = (
+            await http.get("/api/v1/admin/catalog", headers=auth_header(OPERATOR))
+        ).json()["counts"]
+
+    assert datetime.fromisoformat(counts["profiles_waiting_since"]) == long_ago
+    assert datetime.fromisoformat(counts["unanswered_waiting_since"]) == (
+        long_ago + timedelta(days=1)
+    )
+
+
 # ── moderating a profile ────────────────────────────────────────────────
 
 

@@ -61,6 +61,11 @@ async def count_unreviewed(session: AsyncSession, *, chat_id: int | None = None,
     return int((await session.execute(stmt)).scalar_one())
 
 
+async def unreviewed_since(session: AsyncSession) -> datetime.datetime | None:
+    """When the oldest hit still waiting was found; none when nothing waits."""
+    return await session.scalar(select(func.min(SpamPing.detected_at)).where(_UNREVIEWED))
+
+
 def _filters(*, chat_id: int | None, status: PingStatus, days: int | None) -> list[ColumnElement[bool]]:
     where: list[ColumnElement[bool]] = []
     if chat_id is not None:
