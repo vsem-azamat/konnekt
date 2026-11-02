@@ -207,6 +207,10 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "CATALOG_SERVICE_TOKEN",
         # Prometheus's bearer token: whoever has it reads every counter.
         "OBSERVABILITY_METRICS_SECRET",
+        # Whoever has a DSN can file events into the project and spend its quota.
+        "SENTRY_DSN_BOT",
+        "SENTRY_DSN_WEBAPI",
+        "SENTRY_DSN_CATALOG_API",
     }
 
     for name, expression in step["env"].items():
@@ -945,8 +949,18 @@ def test_a_pull_request_builds_the_images_the_deploy_builds() -> None:
     )
 
     def shape(build: dict[str, Any]) -> str:
-        """All of a build but where its result and cache go."""
-        return repr(sorted((key, value) for key, value in build.items() if key not in ("push", "tags", "cache-to")))
+        """All of a build but where its result, its cache and its Sentry reports go.
+
+        A pull request's build reports nowhere: its source maps would be filed
+        under a release that never ships.
+        """
+        kept = dict(build)
+        for key in ("push", "tags", "cache-to", "secrets"):
+            kept.pop(key, None)
+        if "build-args" in kept:
+            args = [arg for arg in str(kept["build-args"]).split("\n") if arg and "SENTRY_" not in arg]
+            kept["build-args"] = "\n".join(args)
+        return repr(sorted(kept.items()))
 
     assert sorted(map(shape, pull_request)) == sorted(map(shape, deploy))
     assert all(build["push"] is False for build in pull_request)

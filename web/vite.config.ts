@@ -1,5 +1,6 @@
 import { fileURLToPath, URL } from 'node:url';
 import { lingui } from '@lingui/vite-plugin';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
@@ -30,6 +31,13 @@ const WEBAPI_TARGET = 'http://127.0.0.1:8787';
  */
 const httpsDisabled = process.env.VITE_NO_HTTPS === '1';
 
+/**
+ * The image build uploads the source maps to Sentry, under the commit the app
+ * reports as its release, so a minified stack reads as the source. Only where
+ * CI hands the build a token (Dockerfile); everywhere else the plugin is off.
+ */
+const sentryToken = process.env.SENTRY_AUTH_TOKEN;
+
 export default defineConfig({
   plugins: [
     react(),
@@ -38,6 +46,16 @@ export default defineConfig({
     lingui({ macroTransform: true }),
     // Telegram refuses to load a Mini App over plain HTTP.
     ...(httpsDisabled ? [] : [mkcert()]),
+    // Last, so it sees the bundle as written.
+    sentryVitePlugin({
+      disable: !sentryToken,
+      authToken: sentryToken,
+      org: process.env.SENTRY_ORG,
+      project: 'webui',
+      url: process.env.SENTRY_URL,
+      release: { name: process.env.VITE_APP_VERSION },
+      telemetry: false,
+    }),
   ],
   resolve: {
     alias: {

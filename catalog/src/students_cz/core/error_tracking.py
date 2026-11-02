@@ -1,0 +1,174 @@
+"""Errors to Sentry, without the data they happened to.
+
+A log call here names its event in the message and puts the data in
+`extra={"fields": ...}`; the fields stay on the host. What the SDK collects by
+itself, headers, URLs and the breadcrumbs of outgoing calls, passes through
+`_scrub` first: the bot token is in every Bot API URL, a Mini App request
+carries `Authorization: tma <initData>`, and a path or a query names the
+person it is about. A request goes with its method and its address cut to the
+route, ids out; headers, query and body stay behind.
+"""
+
+import logging
+import re
+from typing import Any
+
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
+
+from students_cz.core.config import Settings
+
+_DENYLIST = [
+    *DEFAULT_DENYLIST,
+    "init_data",
+    "initdata",
+    "tgwebappdata",
+    "hash",
+    "phone",
+    "phone_number",
+    "dsn",
+    "fields",
+]
+
+_FILTERED = "[Filtered]"
+
+# A bot token, a bearer or `tma` credential, signed initData, a phone number,
+# the values a database error quotes; an address loses its query and the ids
+# in its path.
+_PATTERNS = (
+    (re.compile(r"(?<!\d)\d{5,}:[A-Za-z0-9_-]{30,}"), _FILTERED),
+    (re.compile(r"(?i)\b(bearer|tma)\s+\S+"), _FILTERED),
+    (re.compile(r"(?:tgWebAppData|init_?data)=\S+", re.IGNORECASE), _FILTERED),
+    (re.compile(r"\+\d[\d ()-]{7,}\d"), _FILTERED),
+    # A database error's DETAIL line quotes the row; validation errors their input.
+    # A value can span lines, or hold "HINT:": the DETAIL runs to the last
+    # HINT or SQL line.
+    (
+        re.compile(r"DETAIL:.*(?=\n(?:HINT:|\[SQL: ))|DETAIL:.*", re.DOTALL),
+        f"DETAIL: {_FILTERED}",
+    ),
+    (
+        re.compile(r"input_value=.*(?=, input_type=)|input_value=.*"),
+        f"input_value={_FILTERED}",
+    ),
+    # FastAPI writes one error a line, its input (and ctx) to the end of it.
+    (re.compile(r"'input': .*"), f"'input': {_FILTERED}"),
+    (
+        re.compile(
+            r"(?<![a-z])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?",
+            re.IGNORECASE,
+        ),
+        r"\1",
+    ),
+    (re.compile(r"(?<=/)-?\d{5,}(?=[/\s]|$)"), ":id"),
+)
+
+# The event's own ids, which a pattern must not touch.
+_OWN_KEYS = frozenset(
+    {"event_id", "release", "dist", "trace_id", "span_id", "parent_span_id"}
+)
+_REQUEST_KEYS = ("method", "url")
+_QUERY_KEYS = ("http.query", "http.fragment")
+
+
+_TOKEN = re.compile(r"\S+")
+
+
+def _signed_init_data(token: re.Match[str]) -> str:
+    """initData in any spelling: a token carrying both its date and its signature.
+
+    By token rather than by one pattern, which took seconds on a long value.
+    """
+    text = token.group()
+    return _FILTERED if "auth_date=" in text and "hash=" in text else text
+
+
+def _scrub(value: Any, key: str | None = None) -> Any:
+    if isinstance(value, str):
+        if key in _OWN_KEYS:
+            return value
+        for pattern, replacement in _PATTERNS:
+            value = pattern.sub(replacement, value)
+        return _TOKEN.sub(_signed_init_data, value)
+    if isinstance(value, dict):
+        return {name: _scrub(item, name) for name, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_scrub(item) for item in value]
+    return value
+
+
+def _named_by_route(request: Any, event: Any) -> Any:
+    """The address as its route, `/avatars/{file_id}`, when the framework named it."""
+    route = event.get("transaction")
+    source = (event.get("transaction_info") or {}).get("source")
+    url = request.get("url")
+    if (
+        source == "route"
+        and isinstance(route, str)
+        and route.startswith("/")
+        and isinstance(url, str)
+    ):
+        origin = re.match(r"[a-z][a-z0-9+.-]*://[^/?#]*", url, re.IGNORECASE)
+        if origin:
+            return {**request, "url": origin.group(0) + route}
+    return request
+
+
+def _before_send(event: Any, _hint: Any) -> Any:
+    logentry = event.get("logentry")
+    if logentry:
+        # The format string names the event; its arguments are the data.
+        event["logentry"] = {"message": logentry.get("message")}
+    request = event.get("request")
+    if request:
+        request = _named_by_route(request, event)
+        event["request"] = {key: request[key] for key in _REQUEST_KEYS if key in request}
+    return _scrub(event)
+
+
+def _before_breadcrumb(crumb: Any, hint: Any) -> Any:
+    # A log line as written, before its arguments: `operator=%s`, not the id.
+    record = (hint or {}).get("log_record")
+    if record is not None:
+        crumb["message"] = str(record.msg)
+        crumb.pop("data", None)
+    data = crumb.get("data")
+    if data:
+        crumb["data"] = {
+            key: item for key, item in data.items() if key not in _QUERY_KEYS
+        }
+    return _scrub(crumb)
+
+
+def setup_error_tracking(settings: Settings) -> bool:
+    """Start reporting when a DSN is set; say whether it did."""
+    dsn = settings.sentry_dsn.get_secret_value()
+    if not dsn:
+        return False
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=settings.sentry_environment,
+        release=settings.sentry_release or None,
+        sample_rate=settings.sentry_sample_rate,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        # No send_default_pii: unset is off, and setting it at all is deprecated.
+        # Locals hold the profile being saved, the initData being checked.
+        include_local_variables=False,
+        max_request_body_size="never",
+        event_scrubber=EventScrubber(denylist=_DENYLIST, recursive=True),
+        before_send=_before_send,
+        before_send_transaction=_before_send,
+        before_breadcrumb=_before_breadcrumb,
+        integrations=[
+            # Warnings as breadcrumbs, errors as events; the message is the event name.
+            LoggingIntegration(event_level=logging.ERROR),
+            # A 503 is an answer (search without its model, say); what nobody
+            # caught is still reported.
+            StarletteIntegration(failed_request_status_codes=set()),
+            FastApiIntegration(failed_request_status_codes=set()),
+        ],
+    )
+    return True

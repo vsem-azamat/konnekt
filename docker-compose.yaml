@@ -123,6 +123,9 @@ services:
       ADS_BOT_CONTACT: ${CATALOG_ADS_CONTACT:-}
       # What Prometheus presents to read this process; unset, nothing is served.
       OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
+      # Each process is its own Sentry project; unset, nothing is reported.
+      SENTRY_DSN: ${SENTRY_DSN_BOT:-}
+      SENTRY_RELEASE: ${IMAGE_TAG}
     # The MCP control plane is served here rather than by webapi: Telegram
     # answers a confirmation button to the identity that sent it, and that
     # identity is this process. Loopback only — not published to the internet.
@@ -167,6 +170,8 @@ services:
       # SERVICE_TOKEN, shared by these two containers alone.
       WEBAPI_CATALOG_SERVICE_TOKEN: ${CATALOG_SERVICE_TOKEN:-}
       OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
+      SENTRY_DSN: ${SENTRY_DSN_WEBAPI:-}
+      SENTRY_RELEASE: ${IMAGE_TAG}
     volumes:
       - bot-logs:/app/logs
     healthcheck:
@@ -311,6 +316,8 @@ services:
       # Never true here. It would let anyone claim to be anyone.
       ALLOW_UNSIGNED_INIT_DATA: "false"
       OBSERVABILITY_METRICS_SECRET: ${OBSERVABILITY_METRICS_SECRET:-}
+      SENTRY_DSN: ${SENTRY_DSN_CATALOG_API:-}
+      SENTRY_RELEASE: ${IMAGE_TAG}
       LOG_LEVEL: INFO
     depends_on:
       catalog-postgres: {condition: service_healthy}

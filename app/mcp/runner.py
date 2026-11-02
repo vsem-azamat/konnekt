@@ -20,6 +20,11 @@ if TYPE_CHECKING:
 
 logger = get_logger("mcp.runner")
 
+# How long the plane gets to finish its lifespan once the bot is stopping,
+# and, inside that, how long open connections get to close.
+_SHUTDOWN_SECONDS = 5.0
+_DRAIN_SECONDS = 2
+
 
 def _build_server(app: Any) -> Any:
     """Wrap uvicorn so it leaves this process's signal handling alone.
@@ -42,6 +47,9 @@ def _build_server(app: Any) -> Any:
         port=settings.mcp.port,
         log_config=None,
         lifespan="on",
+        # A connected client holds a stream open, and uvicorn would wait for it
+        # forever; past this its connections are closed and the lifespan ends.
+        timeout_graceful_shutdown=_DRAIN_SECONDS,
     )
     return _BotOwnsSignals(config)
 
@@ -62,9 +70,29 @@ async def run_mcp_server() -> None:
 
     logger.info("mcp_serving", host=settings.mcp.host, port=settings.mcp.port, path=settings.mcp.path)
     try:
-        await server.serve()
+        await serve_until_cancelled(server)
     except asyncio.CancelledError:
         logger.info("mcp_cancelled")
         raise
     finally:
         logger.info("mcp_stopped")
+
+
+async def serve_until_cancelled(server: Any) -> None:
+    """Serve until cancelled, then stop the way uvicorn stops itself.
+
+    Cancelling ``serve()`` itself cut the ASGI lifespan off mid-wait, and
+    uvicorn logged that as an error with a traceback on every deploy. Asked to
+    exit instead, it runs the app's shutdown and returns.
+    """
+    serving = asyncio.ensure_future(server.serve())
+    try:
+        await asyncio.shield(serving)
+    except asyncio.CancelledError:
+        server.should_exit = True
+        await asyncio.wait({serving}, timeout=_SHUTDOWN_SECONDS)
+        raise
+    finally:
+        # Gone before the bot closes the database, whichever way this ended.
+        serving.cancel()
+        await asyncio.gather(serving, return_exceptions=True)

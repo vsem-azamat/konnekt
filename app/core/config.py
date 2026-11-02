@@ -567,6 +567,30 @@ class ObservabilitySettings(Settings):
     )
 
 
+class SentrySettings(Settings):
+    """Where this process reports its errors; no DSN, no reporting.
+
+    The bot and the web API are separate Sentry projects, so each container is
+    given its own DSN under the same name (docker-compose.yaml).
+    """
+
+    dsn: SecretStr = Field(default=SecretStr(""), description="Sentry DSN; empty turns reporting off")
+    # Empty takes APP_ENVIRONMENT, so a staging deployment cannot report as production.
+    environment: str = Field(default="", description="Sentry environment")
+    # The image's commit, which is what a regression is measured against.
+    release: str = Field(default="", description="Release, the deployed git sha")
+    sample_rate: float = Field(default=1.0, ge=0, le=1, description="Share of error events sent")
+    traces_sample_rate: float = Field(default=0.0, ge=0, le=1, description="Share of requests traced")
+
+    model_config = SettingsConfigDict(
+        env_prefix="SENTRY_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class AppSettings(Settings):
     """Main application settings."""
 
@@ -585,6 +609,7 @@ class AppSettings(Settings):
     chat_state: ChatStateSettings = Field(default_factory=ChatStateSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
+    sentry: SentrySettings = Field(default_factory=SentrySettings)
 
     model_config = SettingsConfigDict(
         env_prefix="APP_",

@@ -15,6 +15,10 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_INIT_DATA?: string;
   /** The commit this build was made from, set by the image build; reported with a failure. */
   readonly VITE_APP_VERSION?: string;
+  /** Where failures go (lib/errorTracking.ts); unset, nowhere. Public: it ships in the bundle. */
+  readonly VITE_SENTRY_DSN?: string;
+  /** Sentry's environment name; unset is `production`. */
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
 }
 
 interface ImportMeta {

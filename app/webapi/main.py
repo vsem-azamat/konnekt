@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.alerts import AlertHandler
 from app.core.config import settings
+from app.core.error_tracking import setup_error_tracking
 from app.core.logging import get_logger, setup_logging
 from app.webapi.deps import require_super_admin
 from app.webapi.origin_guard import DEV_ORIGINS, RequireOurOrigin
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
 # Without it structlog prints to stdout and nothing reaches the root logger:
 # no JSON in production, no LOG_FILE_PATH, and no error alerts.
 setup_logging()
+setup_error_tracking("webapi")
 # RequestLog writes the line for every request, with its id and its route;
 # uvicorn's would be a second, poorer one.
 logging.getLogger("uvicorn.access").disabled = True

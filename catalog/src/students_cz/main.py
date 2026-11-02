@@ -20,6 +20,7 @@ from students_cz.api.v1.health import health_router
 from students_cz.bot import build_bot
 from students_cz.core import metrics
 from students_cz.core.config import get_settings
+from students_cz.core.error_tracking import setup_error_tracking
 from students_cz.core.logs import JsonFormatter
 from students_cz.db.session import dispose_engine
 from students_cz.services import errors, request_alerts
@@ -144,6 +145,7 @@ def status_for(exc: BaseException) -> int:
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
+    setup_error_tracking(settings)
     app = FastAPI(
         title="Students CZ",
         description="Student help catalog for the Czech Republic",

@@ -80,6 +80,8 @@ async def test_the_same_error_is_sent_once_per_throttle_window() -> None:
 
 async def test_transient_fetch_failures_are_not_sent() -> None:
     """Telegram's 5xx comes and goes; a poller that stays down is the watchdog's to report."""
+    setup_logging()
+
     sent = await _run(lambda: logging.getLogger("aiogram.dispatcher").error("Failed to fetch updates - %s", "5xx"))
 
     assert sent == []

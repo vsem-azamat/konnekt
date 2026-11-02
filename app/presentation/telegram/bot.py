@@ -19,6 +19,7 @@ from app.core.alerts import AlertHandler
 from app.core.config import settings
 from app.core.container import setup_container
 from app.core.enums import Touchpoint
+from app.core.error_tracking import setup_error_tracking
 from app.core.logging import get_logger, setup_logging
 
 if TYPE_CHECKING:
@@ -44,6 +45,7 @@ from app.presentation.telegram.middlewares.logging_context import AlreadyReporte
 from app.presentation.telegram.profile import publish_profile
 
 setup_logging()
+setup_error_tracking("bot")
 logger = get_logger("bot")
 
 

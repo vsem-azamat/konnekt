@@ -35,7 +35,8 @@ def _keep_event_name(renderer: Processor) -> Processor:
         kind = event_dict.get("error_type")
         if isinstance(kind, str):
             event = f"{event} ({kind})"
-        return (renderer(logger, method_name, event_dict),), {"extra": {"structlog_event": event}}
+        extra = {"structlog_event": event, EXCEPTION_ATTR: event_dict.pop(_EXCEPTION, None)}
+        return (renderer(logger, method_name, event_dict),), {"extra": extra}
 
     return render
 
@@ -46,6 +47,26 @@ _EVENT_NAME = "_event_name"
 def _remember_event_name(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
     """The event as written, before positional arguments are formatted into it."""
     event_dict[_EVENT_NAME] = event_dict.get("event", "?")
+    return event_dict
+
+
+_EXCEPTION = "_exception"
+
+# Where the stdlib record of a structlog line keeps the exception itself.
+# `format_exc_info` renders it into the line, and Sentry needs the frames.
+EXCEPTION_ATTR = "structlog_exception"
+
+
+def _remember_exception(_logger: Any, _method_name: str, event_dict: EventDict) -> EventDict:
+    """The exception being logged, before it is rendered to text."""
+    exc_info = event_dict.get("exc_info")
+    if exc_info:
+        if isinstance(exc_info, BaseException):
+            exc_info = (type(exc_info), exc_info, exc_info.__traceback__)
+        elif not isinstance(exc_info, tuple):
+            exc_info = sys.exc_info()
+        if exc_info[0] is not None:
+            event_dict[_EXCEPTION] = exc_info
     return event_dict
 
 
@@ -106,6 +127,25 @@ _UVICORN_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")
 _QUIET_LIBRARIES = ("httpx", "httpcore")
 
 
+class RetriedPollingFailure(logging.Filter):
+    """aiogram's failed getUpdates, which it retries itself, as a warning.
+
+    Telegram's 502s, a dropped connection, a flood wait: about fifty a day,
+    each followed by a retry that works. aiogram logs them at ERROR, and so
+    they were alerts and Sentry issues about nothing. A poller that stays down
+    is the heartbeat watchdog's to report.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if str(record.msg).startswith("Failed to fetch updates") and record.levelno > logging.WARNING:
+            record.levelno = logging.WARNING
+            record.levelname = "WARNING"
+        return True
+
+
+_POLLING_LOGGER = "aiogram.dispatcher"
+
+
 def _install(root: logging.Logger, handler: logging.Handler) -> None:
     """Replace this module's earlier handler of the same kind, so a second call adds nothing."""
     for old in [h for h in root.handlers if getattr(h, _OURS, None) == type(handler).__name__]:
@@ -152,6 +192,9 @@ def setup_logging() -> None:
             handler.setFormatter(formatter)
     for name in _QUIET_LIBRARIES:
         logging.getLogger(name).setLevel(logging.WARNING)
+    polling = logging.getLogger(_POLLING_LOGGER)
+    if not any(isinstance(f, RetriedPollingFailure) for f in polling.filters):
+        polling.addFilter(RetriedPollingFailure())
 
     # Configure processors based on environment
     processors: list[Processor] = [
@@ -165,6 +208,7 @@ def setup_logging() -> None:
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
+        _remember_exception,
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
     ]

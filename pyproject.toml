@@ -31,6 +31,7 @@ dependencies = [
     "fastmcp>=3.2.4",
     "pyjwt[crypto]>=2.10.1",
     "prometheus-client>=0.25,<1",
+    "sentry-sdk>=2.40",
 ]
 
 [build-system]

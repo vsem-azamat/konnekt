@@ -40,6 +40,7 @@ import {
   scrub,
   startReporting,
 } from '@/lib/clientErrors';
+import { captureError, startErrorTracking } from '@/lib/errorTracking';
 import { followKeyboard } from '@/lib/keyboard';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
@@ -54,6 +55,14 @@ import './index.css';
  * it, which is why this is a sequence and not a set of effects.
  */
 async function bootstrap(): Promise<void> {
+  // First, so a failure in any step below is reported; it waits for nothing.
+  if (!import.meta.env.DEV) {
+    startErrorTracking({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      environment: import.meta.env.VITE_SENTRY_ENVIRONMENT,
+      release: import.meta.env.VITE_APP_VERSION,
+    });
+  }
   // Before anything else, and in particular before the mock: outside Telegram
   // there is no account, no chat to notify and nothing to sign a request
   // with, so the catalog cannot run. That is a landing page, not an error.
@@ -464,6 +473,7 @@ function renderFailed(error: unknown, info: { componentStack?: string }): void {
   console.error(error);
   const { message, stack, ignore } = describeError(error);
   if (ignore) return;
+  captureError(error, info.componentStack);
   reportClientEvent({
     kind: 'render',
     message,
@@ -499,6 +509,7 @@ bootstrap().catch((error: unknown) => {
   const { message, stack } = describeError(error);
   reportClientEvent({ kind: 'error', message, stack });
   flushClientEvents();
+  captureError(error);
 
   const container = document.getElementById('root');
   if (container) {
