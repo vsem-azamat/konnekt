@@ -10,11 +10,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.audience import views
+from app.audience import trends, views
 from app.core.enums import Touchpoint
 from app.core.time import utc_now
 from app.webapi.deps import get_session
-from app.webapi.schemas import AudiencePage, AudiencePersonRead, AudienceStatus, AudienceSummary
+from app.webapi.schemas import AudiencePage, AudiencePersonRead, AudienceStatus, AudienceSummary, AudienceTrends
 
 router = APIRouter(prefix="/audience", tags=["audience"])
 
@@ -22,6 +22,16 @@ router = APIRouter(prefix="/audience", tags=["audience"])
 @router.get("/summary", response_model=AudienceSummary)
 async def audience_summary(session: Annotated[AsyncSession, Depends(get_session)]) -> AudienceSummary:
     return AudienceSummary.model_validate(await views.summary(session, now=utc_now()))
+
+
+@router.get("/trends", response_model=AudienceTrends, response_model_by_alias=True)
+async def audience_trends(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    days: int = 30,
+) -> AudienceTrends:
+    if days not in trends.PERIODS:
+        raise HTTPException(status_code=422, detail="bad_period")
+    return AudienceTrends.model_validate(await trends.trends(session, days=days, today=utc_now().date()))
 
 
 @router.get("", response_model=AudiencePage)
@@ -55,7 +65,7 @@ async def audience_page(
 
 @router.get("/{user_id}", response_model=AudiencePersonRead)
 async def audience_person(user_id: int, session: Annotated[AsyncSession, Depends(get_session)]) -> AudiencePersonRead:
-    """Declared after `/summary`, which this route would otherwise take for an id."""
+    """Declared after `/summary` and `/trends`, which this route would otherwise take for an id."""
     card = await views.person(session, user_id)
     if card is None:
         raise HTTPException(status_code=404, detail="not_in_audience")

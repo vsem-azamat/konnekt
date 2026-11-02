@@ -511,6 +511,72 @@ class AudienceSummary(BaseModel):
     contact_bot_blocked: int
 
 
+class AudienceTrendPoint(BaseModel):
+    """One bar: a day, or a week past a month. A metric not yet recorded then is None, not 0."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: datetime.date = Field(alias="from", serialization_alias="from")
+    to: datetime.date
+    starts: int | None
+    app_new: int | None
+    joins: int | None
+    blocks: int | None
+
+
+class AudienceTrendTotal(BaseModel):
+    now: int | None
+    before: int | None
+
+
+class AudienceFunnel(BaseModel):
+    """All time, except what the reach says now: see app.audience.trends."""
+
+    seen_in_chats: int
+    started_bot: int
+    opened_app: int
+    both: int
+    not_from_chats: int
+    reachable: int
+    blocked: int
+    opted_out: int
+    estimate: int
+
+
+class AudienceFunnelNew(BaseModel):
+    started_bot: int
+    opened_app: int
+
+
+class AudienceSegment(BaseModel):
+    key: str
+    label: str
+    people: int
+
+
+class AudienceSegments(BaseModel):
+    chats: list[AudienceSegment]
+    languages: list[AudienceSegment]
+    sources: list[AudienceSegment]
+
+
+class AudienceTrends(BaseModel):
+    """The Audience page: four trends against the period before, the funnel, and the segments."""
+
+    days: int
+    today: datetime.date
+    counted_since: dict[str, datetime.date]
+    # The period before, then this one; the last bar ends yesterday.
+    series: list[AudienceTrendPoint]
+    # Today so far, kept out of the bars and the totals.
+    today_point: AudienceTrendPoint
+    totals: dict[str, AudienceTrendTotal]
+    funnel: AudienceFunnel
+    # Gained since this period began.
+    funnel_new: AudienceFunnelNew
+    segments: AudienceSegments
+
+
 class AudienceMemberRead(BaseModel):
     """One person in the audience list. Only what Telegram itself tells about them."""
 

@@ -37,6 +37,7 @@ import {
   pingsPath,
   unreviewedPath,
 } from './spam';
+import type { AudienceTrends, Period } from './trends';
 
 /** A ban's or an unban's answer: where Telegram refused, and how many took. */
 export interface BanAnswer {
@@ -271,6 +272,15 @@ export const audienceSummaryQuery = {
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 };
+
+/** The audience over `days` days and the same number before them. */
+export const audienceTrendsQuery = (days: Period) => ({
+  queryKey: ['console', 'audience', 'trends', days] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<AudienceTrends>(`/api/audience/trends?days=${days}`, { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
 
 /** The audience list, a page at a time, newest activity first. */
 export const audiencePeopleQuery = (filters: AudienceFilters) => ({
