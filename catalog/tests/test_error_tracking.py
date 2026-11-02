@@ -65,3 +65,40 @@ def test_secrets_in_any_value_are_filtered(value: str, secret: str) -> None:
     event = {"extra": {"anything": value}}
 
     assert secret not in repr(error_tracking._before_send(event, {}))
+
+
+def test_a_request_keeps_its_route_not_the_ids_or_query_in_it() -> None:
+    event = {
+        "request": {
+            "method": "GET",
+            "url": "https://konnekt.cz/api/v1/admin/profiles/555777999?q=Ivan",
+            "query_string": "q=Ivan",
+            "headers": {"Authorization": "tma user=1"},
+        },
+        "release": "0064152123456aa7711d",
+    }
+
+    scrubbed = error_tracking._before_send(event, {})
+
+    assert scrubbed["request"] == {
+        "method": "GET",
+        "url": "https://konnekt.cz/api/v1/admin/profiles/:id",
+    }
+    assert scrubbed["release"] == "0064152123456aa7711d"
+
+
+async def test_a_deliberate_503_is_not_an_issue(sentry: Captured) -> None:
+    from fastapi import FastAPI, HTTPException
+    from httpx import ASGITransport, AsyncClient
+
+    app = FastAPI()
+
+    @app.get("/down")
+    async def down() -> None:
+        raise HTTPException(503, "search is off")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://t") as client:
+        assert (await client.get("/down")).status_code == 503
+
+    assert sentry.events == []

@@ -49,3 +49,14 @@ test('a breadcrumb of an API call keeps its path and loses its query', () => {
     status_code: 500,
   });
 });
+
+test("the event's own ids are kept, a commit with a run of digits included", () => {
+  const ids = {
+    release: '0064152123456aa7711d0000000000000000abcd',
+    event_id: '1234567890abcdef1234567890abcdef',
+  };
+  const event = scrubEvent({ type: undefined, ...ids } as ErrorEvent);
+
+  assert.equal(event.release, ids.release);
+  assert.equal(event.event_id, ids.event_id);
+});

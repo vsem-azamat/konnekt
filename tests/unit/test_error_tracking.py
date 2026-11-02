@@ -120,3 +120,85 @@ def test_ids_survive_scrubbing() -> None:
     event: Any = {"tags": {"chat_id": "-1004313465922", "update_id": "745020106"}}
 
     assert error_tracking._before_send(event, {}) == event
+
+
+def test_a_request_keeps_its_route_not_the_ids_or_query_in_it() -> None:
+    event: Any = {
+        "request": {
+            "method": "GET",
+            "url": "https://konnekt.cz/api/audience/555777999?q=Ivan+Petrov",
+            "query_string": "q=Ivan+Petrov",
+            "headers": {"Referer": "https://konnekt.cz/#tgWebAppData=x"},
+            "data": {"text": "Привет"},
+        }
+    }
+
+    scrubbed: Any = error_tracking._before_send(event, {})
+    request = scrubbed["request"]
+
+    assert request == {"method": "GET", "url": "https://konnekt.cz/api/audience/:id"}
+
+
+def test_an_outgoing_call_loses_its_query_and_ids() -> None:
+    crumb: Any = {
+        "category": "httplib",
+        "data": {"url": "http://catalog-api:8000/api/v1/admin/profiles/555777999", "http.query": "phone=777123456"},
+    }
+
+    scrubbed: Any = error_tracking._before_breadcrumb(crumb, {})
+
+    assert scrubbed["data"] == {"url": "http://catalog-api:8000/api/v1/admin/profiles/:id"}
+
+
+def test_a_database_error_loses_the_values_it_quotes() -> None:
+    event: Any = {"exception": {"values": [{"value": "DETAIL:  Key (tg_id)=(555777999) already exists."}]}}
+
+    scrubbed: Any = error_tracking._before_send(event, {})
+    value = scrubbed["exception"]["values"][0]["value"]
+
+    assert "555777999" not in value
+    assert "Key (tg_id)" in value
+
+
+def test_the_events_own_ids_are_kept() -> None:
+    sha = "0064152123456aa7711d0000000000000000abcd"
+    event: Any = {"release": sha, "event_id": "1234567890abcdef1234567890abcdef"}
+
+    assert error_tracking._before_send(event, {}) == event
+
+
+def test_an_uvicorn_error_is_one_event_though_two_loggers_carry_it(sentry: Captured) -> None:
+    uvicorn_error = logging.getLogger("uvicorn.error")
+    propagates = uvicorn_error.propagate
+    uvicorn_error.propagate = True
+    try:
+        uvicorn_error.error("Application startup failed. Exiting.")
+    finally:
+        uvicorn_error.propagate = propagates
+
+    assert len(sentry.events) == 1
+
+
+async def test_a_deliberate_503_is_not_an_issue(sentry: Captured) -> None:
+    from fastapi import FastAPI, HTTPException
+    from httpx import ASGITransport, AsyncClient
+
+    app = FastAPI()
+
+    @app.get("/down")
+    async def down() -> None:
+        raise HTTPException(503, "catalog not connected")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
+        assert (await client.get("/down")).status_code == 503
+
+    assert sentry.events == []
+
+
+def test_a_transaction_is_scrubbed_like_an_error(sentry: Captured) -> None:
+    """Traced requests skip before_send; a span names every URL called, the bot's token in it."""
+    event: Any = {"spans": [{"description": f"POST https://api.telegram.org/bot{_TOKEN}/sendMessage"}]}
+
+    hook = sentry_sdk.get_client().options["before_send_transaction"]
+
+    assert _TOKEN not in repr(hook(event, {}))
