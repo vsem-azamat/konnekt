@@ -82,6 +82,18 @@ async def _record(
     logger.info("bot_rights_changed", chat_id=chat_id, status=status, changed_by=by)
 
 
+def is_absent(chat: Chat, rights: ChatBotRights | None) -> bool:
+    """Whether the bot is not in the chat, as far as what is stored can tell.
+
+    The hourly loop marks a chat that refuses it (`Chat.bot_absent_at`) and
+    clears the mark at its next daily ask; the bot's own update that it is back
+    comes at once, so a rights row newer than the mark wins.
+    """
+    if rights is not None and rights.status in GONE:
+        return True
+    return chat.bot_absent_at is not None and (rights is None or rights.known_at <= chat.bot_absent_at)
+
+
 def problems_of(status: str, rights: dict[str, bool]) -> list[str]:
     """What keeps the bot from moderating, by the names the gauge reports them under."""
     if status in GONE:
@@ -109,6 +121,38 @@ async def refresh_gauge(session: AsyncSession) -> None:
             counts[problem] += 1
     for problem, count in counts.items():
         BOT_RIGHTS_MISSING.labels(problem=problem).set(count)
+
+
+def _now() -> datetime.datetime:
+    # Telegram dates its updates in whole seconds; a change it makes in the
+    # second after a question must still count as newer than the answer.
+    return utc_now().replace(microsecond=0)
+
+
+async def confirm(
+    *,
+    session_maker: async_sessionmaker[AsyncSession],
+    bot: Bot,
+    chat_id: int,
+    at: datetime.datetime | None = None,
+) -> str:
+    """Ask Telegram what the bot is in `chat_id` now, record it, and return the status.
+
+    A refusal that says the bot is not there is that answer, recorded as
+    gone. Any other refusal is raised, flood control included, and changes nothing.
+    """
+    at = at or _now()
+    try:
+        member = await ask(lambda: bot.get_chat_member(chat_id, bot.id))
+    except TelegramAPIError as err:
+        if (gone := gone_status(err)) is None:
+            raise
+        async with session_maker() as session:
+            await _record(session, chat_id, gone, {}, at=at, by=None)
+        return gone
+    async with session_maker() as session:
+        await record(session, chat_id, member, at=at)
+    return status_of(member)
 
 
 async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bot) -> int:
@@ -150,27 +194,17 @@ async def check_once(*, session_maker: async_sessionmaker[AsyncSession], bot: Bo
         if asked:
             await asyncio.sleep(config.pause_between_chats_seconds)
         asked += 1
-        # Telegram dates its updates in whole seconds; a change it makes in
-        # the second after this question must still count as newer.
-        at = utc_now().replace(microsecond=0)
+        at = _now()
         try:
-            member = await ask(lambda chat_id=chat_id: bot.get_chat_member(chat_id, bot.id))
+            status = await confirm(session_maker=session_maker, bot=bot, chat_id=chat_id, at=at)
         except TelegramRetryAfter:
             # Over the limit: the rest wait for the next tick rather than add to it.
             logger.warning("bot_rights_check_flooded", asked=asked, due=len(chat_ids))
             break
         except TelegramAPIError as err:
-            if (gone := gone_status(err)) is not None:
-                async with session_maker() as session:
-                    await _record(session, chat_id, gone, {}, at=at, by=None)
-            else:
-                logger.warning(
-                    "bot_rights_check_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__
-                )
+            logger.warning("bot_rights_check_failed", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
             continue
-        async with session_maker() as session:
-            await record(session, chat_id, member, at=at)
-        if status_of(member) not in ADMINISTRATORS:
+        if status not in ADMINISTRATORS:
             # Without the rights, Telegram may refuse the list, and the bot gets no member updates to keep it.
             continue
         await asyncio.sleep(config.pause_between_chats_seconds)

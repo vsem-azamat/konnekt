@@ -339,3 +339,30 @@ async def test_a_refused_administrators_list_skips_that_chat_and_flood_control_e
     async with session_maker() as session:
         # Both asked chats still had the bot's own rights recorded.
         assert len((await session.scalars(select(ChatBotRights))).all()) == 2
+
+
+MARK = datetime.datetime(2026, 11, 2, 7, 0)
+
+
+@pytest.mark.parametrize(
+    ("mark", "status", "known", "absent"),
+    [
+        (None, None, MARK, False),
+        (MARK, None, MARK, True),
+        (None, "kicked", MARK, True),
+        (None, "left", MARK, True),
+        # A mark newer than the rights, or as new: a kick whose update was lost.
+        (MARK, "administrator", MARK - datetime.timedelta(hours=1), True),
+        (MARK, "administrator", MARK, True),
+        # Rights newer than the mark: the bot's own update that it is back.
+        (MARK, "administrator", MARK + datetime.timedelta(seconds=1), False),
+    ],
+)
+def test_whether_the_bot_is_in_a_chat(mark, status, known, absent) -> None:
+    chat = Chat(id=-1001)
+    chat.bot_absent_at = mark
+    rights = (
+        ChatBotRights(chat_id=-1001, status=status, rights={}, changed_at=known, known_at=known) if status else None
+    )
+
+    assert bot_rights.is_absent(chat, rights) is absent

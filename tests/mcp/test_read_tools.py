@@ -6,17 +6,16 @@ after it. And the projections must drop what should not travel — the free-text
 rationale behind a past moderation decision, which is written for an
 administrator and not for an external runtime.
 
-Everything these tools read is either our own tables or the Bot API. The one
-stub is the bot.
+Everything these tools read is our own tables: Telegram's side of a chat is
+what the bot recorded from its updates and daily checks, not asked again.
 """
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+import datetime
 
 import pytest
-from app.db.models import Chat, Message, PendingAction, SpamPing, User
+from app.db.models import Chat, ChatBotRights, ChatMemberSnapshot, Message, PendingAction, SpamPing, User
 from app.mcp.tools.read import register_read_tools
 
 pytestmark = pytest.mark.asyncio
@@ -35,28 +34,6 @@ def mcp_session(db_session_maker, monkeypatch):
 
     monkeypatch.setattr(session_module, "get_session_maker", lambda: db_session_maker)
     return db_session_maker
-
-
-@pytest.fixture
-def bot_stub(monkeypatch):
-    """Install a stand-in moderator bot on the container."""
-    from app.core.container import container
-
-    bot = SimpleNamespace(
-        get_chat=AsyncMock(
-            return_value=SimpleNamespace(
-                id=MANAGED_CHAT_ID,
-                title="Managed Chat",
-                type="supergroup",
-                username="managed",
-                description="О чате",
-                linked_chat_id=-100555,
-            )
-        ),
-        get_chat_member_count=AsyncMock(return_value=42),
-    )
-    monkeypatch.setattr(container, "_bot", bot)
-    return bot
 
 
 def _server():
@@ -125,17 +102,16 @@ async def test_chat_tools_refuse_a_chat_we_do_not_manage(mcp_session, tool, args
     assert "users" not in data
 
 
-async def test_get_chat_info_refuses_a_chat_we_do_not_manage(mcp_session, bot_stub) -> None:
+async def test_get_chat_info_refuses_a_chat_we_do_not_manage(mcp_session) -> None:
     await _seed_chats(mcp_session)
 
     data = await _call("get_chat_info", {"chat_id": FOREIGN_CHAT_ID})
 
     assert data["error"] == "unknown_chat"
-    bot_stub.get_chat.assert_not_awaited()
 
 
-async def test_get_chat_info_never_asks_telegram_about_a_chat_known_by_its_invite_page(mcp_session, bot_stub) -> None:
-    """Its id is one of ours, not Telegram's, so it must not reach the Bot API."""
+async def test_get_chat_info_answers_about_a_chat_known_by_its_invite_page(mcp_session) -> None:
+    """Its id is one of ours, not Telegram's; what its page said is what there is."""
     preview_id = Chat.preview_id_for("5byLmmR3YvIyYWFi")
     async with mcp_session() as session:
         session.add(Chat(id=preview_id, title="UPOL", resource_status=Chat.STATUS_EXTERNAL))
@@ -143,8 +119,9 @@ async def test_get_chat_info_never_asks_telegram_about_a_chat_known_by_its_invit
 
     data = await _call("get_chat_info", {"chat_id": preview_id})
 
-    assert data["error"] == "preview_only"
-    bot_stub.get_chat.assert_not_awaited()
+    assert data["title"] == "UPOL"
+    assert data["preview_only"] is True
+    assert data["bot_status"] is None
 
 
 async def test_managed_chat_history_is_returned(mcp_session) -> None:
@@ -449,17 +426,137 @@ async def test_list_chats_respects_limit(mcp_session) -> None:
 # ── surface ───────────────────────────────────────────────────────────────
 
 
-async def test_chat_info_comes_from_one_bot_api_call(mcp_session, bot_stub) -> None:
-    """Description and linked_chat_id used to be fetched a second time through
-    a user session. `getChat` had been carrying them the whole time."""
-    await _seed_chats(mcp_session)
+async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) -> None:
+    """Telegram's side of the chat comes from the stored state: getChat answers
+    the hourly loop and the bot's own updates, and a tool asking again only adds
+    to the flood limit."""
+    synced = datetime.datetime(2026, 11, 2, 8, 0)
+    async with mcp_session() as session:
+        chat = Chat(id=MANAGED_CHAT_ID, title="Managed Chat", resource_status=Chat.STATUS_APPROVED)
+        chat.chat_type, chat.username, chat.description = "supergroup", "managed", "О чате"
+        chat.linked_chat_id, chat.last_synced_at = -100555, synced
+        session.add(chat)
+        await session.flush()
+        session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=42))
+        session.add(
+            ChatBotRights(
+                chat_id=MANAGED_CHAT_ID,
+                status="administrator",
+                rights={"can_delete_messages": True, "can_restrict_members": False},
+                changed_at=synced,
+                known_at=synced,
+            )
+        )
+        await session.commit()
 
     data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
 
+    # This goes to an external runtime: a new field is a decision, not a side effect.
+    assert set(data) == {
+        "chat_id",
+        "title",
+        "type",
+        "username",
+        "member_count",
+        "description",
+        "linked_chat_id",
+        "resource_status",
+        "preview_only",
+        "synced_at",
+        "bot_status",
+        "bot_missing_rights",
+        "member_count_at",
+    }
+    assert data["title"] == "Managed Chat"
+    assert data["type"] == "supergroup"
+    assert data["username"] == "managed"
     assert data["member_count"] == 42
     assert data["description"] == "О чате"
     assert data["linked_chat_id"] == -100555
     assert data["resource_status"] == Chat.STATUS_APPROVED
+    assert data["synced_at"].startswith("2026-11-02T08:00")
+    assert data["bot_status"] == "administrator"
+    assert data["bot_missing_rights"] == ["no_restrict", "no_invite"]
+    assert data["preview_only"] is False
+    assert data["member_count_at"] is not None
+
+
+async def _chat_with(
+    session_maker, *, mark: datetime.datetime | None, status: str | None, known: datetime.datetime
+) -> None:
+    await _seed_chats(session_maker)
+    async with session_maker() as session:
+        (await session.get(Chat, MANAGED_CHAT_ID)).bot_absent_at = mark
+        if status is not None:
+            rights = {"can_delete_messages": True, "can_restrict_members": True, "can_invite_users": True}
+            session.add(
+                ChatBotRights(
+                    chat_id=MANAGED_CHAT_ID,
+                    status=status,
+                    rights=rights if status == "administrator" else {},
+                    changed_at=known,
+                    known_at=known,
+                )
+            )
+        await session.commit()
+
+
+MARK = datetime.datetime(2026, 11, 2, 7, 0)
+
+
+@pytest.mark.parametrize(
+    ("status", "known", "expected"),
+    [
+        # Never added after the bot moved: the hourly loop's mark, no rights.
+        (None, MARK, ("left", ["left"])),
+        # A kick whose update was lost: the mark is newer than the rights.
+        ("administrator", MARK - datetime.timedelta(hours=3), ("left", ["left"])),
+        # Removed, and the bot heard it.
+        ("kicked", MARK - datetime.timedelta(hours=3), ("kicked", ["left"])),
+        # Added back since the mark: its own update says so at once.
+        ("administrator", MARK + datetime.timedelta(hours=1), ("administrator", [])),
+    ],
+)
+async def test_chat_info_says_whether_the_bot_is_in_the_chat(mcp_session, status, known, expected) -> None:
+    """One answer, not a status and a verdict that disagree."""
+    await _chat_with(mcp_session, mark=MARK, status=status, known=known)
+
+    data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
+
+    assert (data["bot_status"], data["bot_missing_rights"]) == expected
+
+
+async def test_chat_info_says_how_old_the_count_is(mcp_session) -> None:
+    """A count of a chat the bot left long ago is history; the client is told when it was taken."""
+    await _seed_chats(mcp_session)
+    taken = datetime.datetime(2026, 9, 1, 12, 0)
+    async with mcp_session() as session:
+        session.add(
+            ChatMemberSnapshot(
+                chat_id=MANAGED_CHAT_ID, member_count=870, captured_at=taken - datetime.timedelta(days=30)
+            )
+        )
+        session.add(ChatMemberSnapshot(chat_id=MANAGED_CHAT_ID, member_count=900, captured_at=taken))
+        # Another chat's count, newer: not this chat's.
+        session.add(
+            ChatMemberSnapshot(chat_id=-100777, member_count=12, captured_at=taken + datetime.timedelta(days=1))
+        )
+        await session.commit()
+
+    data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
+
+    assert data["member_count"] == 900
+    assert data["member_count_at"].startswith("2026-09-01T12:00")
+
+
+async def test_chat_info_without_a_count_says_none_not_zero(mcp_session) -> None:
+    await _seed_chats(mcp_session)
+
+    data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
+
+    assert data["member_count"] is None
+    assert data["member_count_at"] is None
+    assert data["bot_status"] is None
 
 
 async def test_toolset_is_read_only(mcp_session) -> None:
