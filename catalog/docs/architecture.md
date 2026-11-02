@@ -109,8 +109,7 @@ Mini App call only its own origin, so the router in front of the app
 the stack. For the browser it is one host.
 
 The catalog has no host of its own; the bot's buttons open the app's screens
-under `PUBLIC_BASE_URL` (its first screen is `/home`: the root is the public
-site's).
+under `PUBLIC_BASE_URL`, the app's host (its first screen is `/home`).
 
 The rules below about the app's screens, and «The web shell scrolls in exactly
 one place», govern that `web/` directory. They stay here because the product

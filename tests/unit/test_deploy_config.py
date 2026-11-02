@@ -974,7 +974,8 @@ def test_the_site_is_its_own_small_container_that_sends_the_app_on() -> None:
     site = yaml.safe_load(COMPOSE.read_text())["services"]["site"]
 
     assert site["image"].startswith("ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${IMAGE_TAG")
-    assert site["environment"]["APP_URL"] == "${WEBAPI_PUBLIC_URL}"
+    # Required: empty, the redirect would name this host again and loop.
+    assert site["environment"]["APP_URL"].startswith("${WEBAPI_PUBLIC_URL:?")
     assert site["ports"] == ["127.0.0.1:18092:80"]
     assert site["mem_limit"] == "256m"
     assert "{$APP_URL:https://app.invalid}{uri}" in (ROOT / "docker" / "site" / "Caddyfile").read_text()
@@ -993,6 +994,8 @@ def test_the_site_image_is_built_published_and_kept_like_the_others() -> None:
     assert builds["site"]["build-args"] == builds["webui"]["build-args"]
 
     deploy = DEPLOY.read_text()
-    assert 'supervisor-telegram-webui:site-"$SHA"' in deploy
+    # Checked before a dispatched deploy only when that release has a site to run.
+    assert "supervisor-telegram-webui:site-$SHA" in deploy
+    assert "git show \"$SHA:docker-compose.yaml\" | grep -q '^  site:$'" in deploy
     assert 'keep="$IMAGE_TAG catalog-$IMAGE_TAG site-$IMAGE_TAG"' in deploy
     assert 'keep="$keep $PREVIOUS_TAG catalog-$PREVIOUS_TAG site-$PREVIOUS_TAG"' in deploy

@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 
 /**
- * Search engines may read the site; the app's screens carry X-Robots-Tag:
- * noindex from docker/Caddyfile, and the API is no page at all.
+ * Search engines may read the site. The app is on a host of its own, whose
+ * screens say noindex themselves (docker/Caddyfile); here an API path is only
+ * the way into the bot.
  */
 export const GET: APIRoute = ({ site }) =>
   new Response(

@@ -19,6 +19,20 @@ test('the first screen is /home, and the root inside the app leads there', () =>
   assert.match(router, /index: true, element: <Navigate to="\/home" replace \/>/);
 });
 
+test('an app opened at its root starts on /home with no history behind it', () => {
+  // A <Navigate> would give the location a key, and the back button shows for
+  // any key but the first: Home would open with a back button leading nowhere.
+  const router = read('router.tsx');
+  const rewrite = router.search(
+    /history\.replaceState\(\s*window\.history\.state,\s*'',\s*`\/home/,
+  );
+  assert.ok(rewrite >= 0, 'the root is rewritten in place');
+  assert.ok(
+    rewrite < router.indexOf('createBrowserRouter(['),
+    'before the router reads the location',
+  );
+});
+
 test('the Help tab is lit on /home', () => {
   assert.match(read('components/TabBar.tsx'), /to: '\/home', icon: SearchIcon/);
 });

@@ -180,7 +180,13 @@ jobs:
         run: |
           echo "$SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "sha must be a full 40-character commit id" >&2; exit 1; }
           git merge-base --is-ancestor "$SHA" origin/main || { echo "$SHA is not on main" >&2; exit 1; }
-          for image in supervisor-telegram:"$SHA" supervisor-telegram-webui:"$SHA" supervisor-telegram-webui:site-"$SHA" supervisor-telegram:catalog-"$SHA"; do
+          images="supervisor-telegram:$SHA supervisor-telegram-webui:$SHA supervisor-telegram:catalog-$SHA"
+          # The site's image exists from the release that brought the site; an
+          # older one, a rollback, has no site service to run it.
+          if git show "$SHA:docker-compose.yaml" | grep -q '^  site:$'; then
+            images="$images supervisor-telegram-webui:site-$SHA"
+          fi
+          for image in $images; do
             docker buildx imagetools inspect "ghcr.io/vsem-azamat/$image" > /dev/null \
               || { echo "no published image $image" >&2; exit 1; }
           done

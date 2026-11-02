@@ -56,8 +56,8 @@
 	}
 	# One id per request, here, so the line below and the backends' lines agree.
 	log_append request_id {http.request.uuid}
-	# The container check, every few seconds, and files nobody reads a line about.
-	@quiet path /healthz /assets/*
+	# Hashed files nobody reads a line about.
+	@quiet path /_astro/*
 	log_skip @quiet
 }
 
@@ -115,8 +115,8 @@
 	}
 
 	# The app's paths (/chats, /join, /console…) and the API it calls are the
-	# app's host's now. Unset, APP_URL falls back to a name nobody resolves,
-	# which is a broken link rather than a loop back here.
+	# app's host's now. Compose refuses to start the site without APP_URL; run
+	# by hand without it, the fallback is a name nobody resolves.
 	handle {
 		redir {$APP_URL:https://app.invalid}{uri} permanent
 	}

@@ -66,8 +66,8 @@ SITE_PATHS = {
     "/_astro/Base.abc123.css",
 }
 
-# What each host says to search engines on every response: nothing on the Mini
-# App's, whose site is the point; never index the console's.
+# What each host says to search engines on every response, apart from each
+# route's own: nothing site-wide on the Mini App's; never index the console's.
 ROBOTS = {None: None, ADMIN_HOST: "noindex"}
 
 # The app's, on the site's host: a 301 to the app keeping the path and query.
@@ -119,7 +119,6 @@ def console() -> dict[str, str]:
         "/login": APP,
         "/assets/index-abc123.js": APP,
         # Everything else is the console's front door, never the landing page.
-        "/guides/": "302 /console",
         "/": "302 /console",
         "/chats": "302 /console",
         "/join": "302 /console",

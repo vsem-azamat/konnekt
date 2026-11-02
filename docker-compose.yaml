@@ -219,7 +219,7 @@ services:
     logging: *rotated-logs
     environment:
       # Where the app's paths are sent (docker/site/Caddyfile).
-      APP_URL: ${WEBAPI_PUBLIC_URL}
+      APP_URL: ${WEBAPI_PUBLIC_URL:?Set WEBAPI_PUBLIC_URL to the app's https origin}
     ports:
       - "127.0.0.1:18092:80"
     mem_limit: 256m

@@ -7,10 +7,11 @@ import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.t
 
 /**
  * The public site: the landing page and the guides, built to plain HTML for
- * search engines and link previews. The Mini App is the other build in this
- * package; docker/Caddyfile serves each its own paths on the same host.
+ * search engines and link previews, served on konnekt.cz by a container of its
+ * own (docker/site/). The Mini App is the other build in this package, on its
+ * own host.
  *
- * SITE_URL is where the site lives (the deploy passes WEBAPI_PUBLIC_URL), for
+ * SITE_URL is where the site lives (the deploy passes PUBLIC_SITE_URL), for
  * canonical links, hreflang and the sitemap, which must be absolute. A local
  * build without it gets the dev server's address.
  */
