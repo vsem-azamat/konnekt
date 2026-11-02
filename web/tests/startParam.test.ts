@@ -34,3 +34,7 @@ test('a university code with an underscore is a code too', () => {
     state: { from: 'link' },
   });
 });
+
+test('/chats in a chat with no university opens the catalogue of chats', () => {
+  assert.deepEqual(startRoute('chats'), { path: '/chats', state: { from: 'link' } });
+});

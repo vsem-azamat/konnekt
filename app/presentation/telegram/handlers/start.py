@@ -10,17 +10,19 @@ stays on screen; `/help` answers "what can I type" and still grows with the
 role of whoever asked.
 """
 
-from aiogram import Router, types
-from aiogram.exceptions import TelegramBadRequest
+from contextlib import suppress
+
+from aiogram import Bot, Router, types
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.filters import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.chats import faculty_list
 from app.core import intro
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.text import plural
 from app.db.repositories import AdminRepository
-from app.presentation.telegram.utils import buttons as buttons_service
 from app.presentation.telegram.utils import other
 
 router = Router()
@@ -48,6 +50,14 @@ GREETING = intro.ABOUT
 OPEN_BUTTON = intro.OPEN_BUTTON
 # Under the album, which takes no button of its own.
 BUTTON_NOTE = "Открывай 👇"
+# /chats where the bot knows no university to list, and in private.
+CHATS_IN_APP = "Все студенческие чаты Чехии — в Konnekt 👇"
+# Where the app records that somebody came from /chats in a group.
+CHATS_SOURCE = "chats"
+# How long /chats and its answer stay in a group.
+CHATS_ANSWER_SECONDS = 300
+# The last /chats answer in each group, which the next one replaces.
+_chats_answers: dict[int, int] = {}
 
 
 @router.message(Command("start", prefix="/!"))
@@ -112,7 +122,7 @@ async def help_command(message: types.Message, admin_repo: AdminRepository) -> N
     text = (
         "<b>Команды</b>\n\n"
         "<b>Всем</b>\n"
-        "/chats — чаты списком\n"
+        "/chats — чаты вуза и факультетов\n"
         "/contacts — написать нам\n"
         "/report — в ответ на сообщение, пожаловаться на него (в группе)\n"
     )
@@ -149,12 +159,43 @@ async def help_command(message: types.Message, admin_repo: AdminRepository) -> N
 
 
 @router.message(Command("chats", prefix="/!"))
-async def get_chats(message: types.Message, db: AsyncSession) -> None:
-    text = "<b>Студенческие чаты:</b>\n\nПожалуйста, соблюдайте правила!\n\n"
-    builder = await buttons_service.get_chat_buttons(db)
-    bot_message = await message.answer(text, reply_markup=builder.as_markup())
-    await message.delete()
-    other.sleep_and_delete(bot_message)
+async def get_chats(message: types.Message, bot: Bot, db: AsyncSession) -> None:
+    """The chats somebody is looking for, from where they asked.
+
+    In a university's chat its faculties, in a faculty's the whole university,
+    from the rows the catalog lists; anywhere else, and in private, the way
+    into the catalog itself. In a group the command and the answer both go
+    after a while (Azamat, 9737), and a new answer takes the place of the one
+    before it. The clock is this process's: a restart within those minutes
+    leaves both in the chat.
+    """
+    me = await bot.me()
+    catalogue = types.InlineKeyboardButton(
+        text=faculty_list.APP_BUTTON, url=f"https://t.me/{me.username}?startapp={CHATS_SOURCE}"
+    )
+    if message.chat.type == "private":
+        button = (
+            _open_button(OPEN_BUTTON, f"{_site()}/chats", private=True) if settings.webapi.public_url else catalogue
+        )
+        await message.answer(CHATS_IN_APP, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[button]]))
+        return
+
+    listing = await faculty_list.listing_for(db, message.chat.id)
+    if listing is not None and listing.chats:
+        text = faculty_list.text(listing.university, listing.chats, heading=listing.heading)
+        markup = faculty_list.markup(faculty_list.app_url(me.username or "", listing.code))
+    else:
+        text = CHATS_IN_APP
+        markup = types.InlineKeyboardMarkup(inline_keyboard=[[catalogue]])
+    answer = await message.answer(text, reply_markup=markup, disable_web_page_preview=True)
+    # Recorded before the await: two /chats at once must not both take down the same answer.
+    before = _chats_answers.get(message.chat.id)
+    _chats_answers[message.chat.id] = answer.message_id
+    if before is not None:
+        with suppress(TelegramAPIError):
+            await bot.delete_message(message.chat.id, before)
+    other.sleep_and_delete(message, CHATS_ANSWER_SECONDS)
+    other.sleep_and_delete(answer, CHATS_ANSWER_SECONDS)
 
 
 @router.message(Command("contacts", prefix="/!"))
