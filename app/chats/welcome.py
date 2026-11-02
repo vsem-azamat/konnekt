@@ -30,6 +30,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, User
 from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.chats.metrics import WELCOME_GREETINGS
 from app.core import intro
 from app.core.logging import get_logger
 from app.core.time import utc_now
@@ -48,6 +49,10 @@ DELETABLE_FOR = datetime.timedelta(hours=48)
 _FINAL = (TelegramBadRequest, TelegramForbiddenError, TelegramNotFound, TelegramMigrateToChat)
 # The source the Mini App records for people who came from a greeting.
 SOURCE = "welcome"
+# What became of a joiner's greeting, as `welcome_greetings_total` counts it.
+SENT = "sent"
+EXTENDED = "extended"
+NOT_SENT = "not_sent"
 
 _sleep = asyncio.sleep
 
@@ -189,7 +194,10 @@ async def _post(bot: Bot, chat_id: int, user: User, chat_text: str | None) -> _G
     except TelegramAPIError as err:
         # A greeting Telegram refuses is the chat's problem, not the join's.
         logger.warning("welcome_not_sent", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+        WELCOME_GREETINGS.labels(outcome=NOT_SENT).inc()
         return None
+    logger.info("welcome_sent", chat_id=chat_id, message_id=sent.message_id, video=video)
+    WELCOME_GREETINGS.labels(outcome=SENT).inc()
     return _Greeting(
         message_id=sent.message_id,
         video=video,
@@ -231,6 +239,8 @@ async def _add(bot: Bot, chat_id: int, greeting: _Greeting, user: User) -> bool:
         # Flood control, typically, which is what a burst of joins runs into.
         # The name is counted all the same and shows with the next edit.
         logger.warning("welcome_edit_skipped", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+    logger.info("welcome_extended", chat_id=chat_id, message_id=greeting.message_id)
+    WELCOME_GREETINGS.labels(outcome=EXTENDED).inc()
     return True
 
 

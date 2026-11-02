@@ -11,3 +11,5 @@ INVITE_LINK_PROBLEMS = Gauge("invite_link_problems", "Listed chats whose link th
 # left, not_admin, no_delete, no_restrict, no_invite, and unknown for an approved
 # chat nobody has asked about yet.
 BOT_RIGHTS_MISSING = Gauge("bot_chat_rights_missing", "Approved chats where the bot lacks what it needs", ["problem"])
+# sent (a new greeting), extended (a joiner added to the one up), not_sent.
+WELCOME_GREETINGS = Counter("welcome_greetings_total", "Greetings the chats gave their new members", ["outcome"])

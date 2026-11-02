@@ -629,3 +629,37 @@ async def test_stuck_greetings_do_not_crowd_out_one_that_is_due(
     await welcome.sweep(bot, session, now=t0 + timedelta(hours=1))
 
     bot.delete_message.assert_any_await(chat_id=CHAT_ID, message_id=9)
+
+
+# --- what is counted ---------------------------------------------------------------
+
+
+def _greetings(outcome: str) -> float:
+    from prometheus_client import REGISTRY
+
+    return REGISTRY.get_sample_value("welcome_greetings_total", {"outcome": outcome}) or 0.0
+
+
+async def test_a_greeting_sent_and_one_extended_are_counted(session: AsyncSession, bot, timers) -> None:
+    """Only failures were logged, so nobody could tell a quiet chat from a broken greeting."""
+    await _seed(session, is_welcome_enabled=True)
+    sent, extended = _greetings(welcome.SENT), _greetings(welcome.EXTENDED)
+
+    await user_joined(_join(1, "Marek"), bot, session)
+    await user_joined(_join(2, "Tereza"), bot, session)
+
+    assert _greetings(welcome.SENT) == sent + 1
+    assert _greetings(welcome.EXTENDED) == extended + 1
+
+
+async def test_a_greeting_telegram_refuses_is_counted_as_not_sent(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+    bot.send_message.side_effect = TelegramForbiddenError(
+        method=MagicMock(), message="Forbidden: bot was kicked from the supergroup chat"
+    )
+    sent, not_sent = _greetings(welcome.SENT), _greetings(welcome.NOT_SENT)
+
+    await user_joined(_join(), bot, session)
+
+    assert _greetings(welcome.SENT) == sent
+    assert _greetings(welcome.NOT_SENT) == not_sent + 1
