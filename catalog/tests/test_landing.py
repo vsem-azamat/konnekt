@@ -42,6 +42,17 @@ async def test_open_redirects_to_the_bot(app_with) -> None:
     assert response.headers["location"] == "https://t.me/student_cz_bot"
 
 
+async def test_open_can_open_the_mini_app_itself(app_with) -> None:
+    """«Открыть Konnekt» on the site opens the app, not the chat with the bot."""
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"app": "1"})
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
+
+
 async def test_open_needs_no_init_data(app_with) -> None:
     """The whole point: this is reached by someone not in Telegram yet."""
     app = await app_with(StubBot("student_cz_bot"))
