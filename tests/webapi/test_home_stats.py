@@ -187,3 +187,10 @@ async def test_the_weeks_line_sums_the_chats_counted_all_week(client_factory, db
         week = (await client.get("/api/stats/home")).json()["members_week"]
 
     assert week == [150, 150, 150, 150, 180, 180, 180, 210]
+
+
+async def test_no_chat_counted_all_week_is_no_line_rather_than_a_flat_one(client_factory, db_session_maker) -> None:
+    await _snapshots(db_session_maker, -1001, "approved", [(2 * D, 100), (H, 110)])
+
+    async with client_factory() as client:
+        assert (await client.get("/api/stats/home")).json()["members_week"] == []

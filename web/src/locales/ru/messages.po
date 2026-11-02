@@ -446,6 +446,10 @@ msgstr "В чёрный список"
 msgid "Отключить"
 msgstr "Отключить"
 
+#: src/console/pages/Chat.tsx
+msgid "Сообщения по часам"
+msgstr "Сообщения по часам"
+
 #: src/console/TopSearch.tsx
 msgid "Не удалось найти. Попробуйте ещё раз."
 msgstr "Не удалось найти. Попробуйте ещё раз."
@@ -2389,8 +2393,8 @@ msgid "язык {0}"
 msgstr "язык {0}"
 
 #: src/console/pages/Chat.tsx
-msgid "сообщения — последние 7 дней"
-msgstr "сообщения — последние 7 дней"
+#~ msgid "сообщения — последние 7 дней"
+#~ msgstr "сообщения — последние 7 дней"
 
 #: src/pages/AdsChats.tsx
 msgid "Выходит в выбранных чатах один раз. Где он уместен, подскажем."
@@ -2948,6 +2952,10 @@ msgstr "Твоя услуга здесь"
 #: src/pages/OfferPrices.tsx
 msgid "в месяц"
 msgstr "в месяц"
+
+#: src/console/pages/Chat.tsx
+msgid "последние 7 дней"
+msgstr "последние 7 дней"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx

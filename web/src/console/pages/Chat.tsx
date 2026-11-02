@@ -694,13 +694,15 @@ function ChatScreen({ chatId }: { chatId: number }) {
         ))}
       </Rows>
 
-      <Label aside={<Trans>сообщения — последние 7 дней</Trans>}>
+      <Label>
         <Trans>Активность</Trans>
       </Label>
-      <div className={ui.column}>
-        <MemberTrend snapshots={chat.member_snapshots} />
-        <Heatmap cells={chat.heatmap} />
-      </div>
+      <MemberTrend snapshots={chat.member_snapshots} />
+
+      <Label aside={<Trans>последние 7 дней</Trans>}>
+        <Trans>Сообщения по часам</Trans>
+      </Label>
+      <Heatmap cells={chat.heatmap} />
 
       <Label>
         <Trans>Реклама</Trans>

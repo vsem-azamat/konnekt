@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 Status = Literal["reachable", "never_started", "blocked", "opted_out"]
-STATUSES: tuple[Status, ...] = ("reachable", "never_started", "blocked", "opted_out")
 
 _main = (
     select(AudienceReach.user_id, AudienceReach.started_at, AudienceReach.blocked_at)

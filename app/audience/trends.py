@@ -317,10 +317,13 @@ async def overview(db: AsyncSession, *, today: datetime.date) -> dict[str, Any]:
     the Mini App, so the backfill's guesses are out. Weeks are whole days to
     yesterday, as the bars are; a week before the starts were recorded is not
     compared, since everyone who used the bot earlier was dated to their first
-    start after it.
+    start after it. A guess who writes to the bot later is in the total but in
+    no week: they were here before, whenever they come back.
     """
     came = _came()
     first = select(came.c.user_id, func.min(came.c.at).label("at")).group_by(came.c.user_id).subquery()
+    # The source is never overwritten, so a guess stays one after they come.
+    guessed = select(AudienceMember.user_id).where(AudienceMember.source == ESTIMATE)
 
     def midnight(day: datetime.date) -> datetime.datetime:
         return datetime.datetime.combine(day, datetime.time())
@@ -328,9 +331,8 @@ async def overview(db: AsyncSession, *, today: datetime.date) -> dict[str, Any]:
     async def came_between(start: datetime.date, end: datetime.date) -> int | None:
         if start < STARTS_SINCE:
             return None
-        return (
-            await db.scalar(select(func.count()).where(first.c.at >= midnight(start), first.c.at < midnight(end))) or 0
-        )
+        new = (first.c.at >= midnight(start), first.c.at < midnight(end), first.c.user_id.not_in(guessed))
+        return await db.scalar(select(func.count()).where(*new)) or 0
 
     week = datetime.timedelta(days=WEEK)
     members = _members().subquery()

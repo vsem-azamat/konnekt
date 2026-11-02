@@ -447,6 +447,10 @@ msgstr "Na černou listinu"
 msgid "Отключить"
 msgstr "Vypnout"
 
+#: src/console/pages/Chat.tsx
+msgid "Сообщения по часам"
+msgstr "Zprávy podle hodin"
+
 #: src/console/TopSearch.tsx
 msgid "Не удалось найти. Попробуйте ещё раз."
 msgstr "Hledání selhalo. Zkuste to znovu."
@@ -995,7 +999,7 @@ msgstr "vypnutý"
 
 #: src/console/pages/Summary.tsx
 msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
-msgstr "lze jim napsat: povolili botovi psát a nezablokovali ho; dalších {opted} se odhlásilo z novinek"
+msgstr "lze napsat: dovolili botovi psát a nezablokovali ho; dalších {opted} se odhlásilo z novinek"
 
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
@@ -2390,8 +2394,8 @@ msgid "язык {0}"
 msgstr "jazyk {0}"
 
 #: src/console/pages/Chat.tsx
-msgid "сообщения — последние 7 дней"
-msgstr "zprávy — posledních 7 dní"
+#~ msgid "сообщения — последние 7 дней"
+#~ msgstr "zprávy — posledních 7 dní"
 
 #: src/pages/AdsChats.tsx
 msgid "Выходит в выбранных чатах один раз. Где он уместен, подскажем."
@@ -2949,6 +2953,10 @@ msgstr "Tvoje služba tady"
 #: src/pages/OfferPrices.tsx
 msgid "в месяц"
 msgstr "za měsíc"
+
+#: src/console/pages/Chat.tsx
+msgid "последние 7 дней"
+msgstr "posledních 7 dní"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx

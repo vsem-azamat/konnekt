@@ -89,19 +89,22 @@ def _members_week(by_chat: _Counts, now: datetime.datetime) -> list[int]:
     """Members summed over the chats counted all week, a day at a time from
     a week ago to now: the line under the week's change, and the same chats.
 
-    A chat counted for less than the week, or no longer counted, is left out;
-    with it the line would jump where its counts begin or stop. A person in
+    A chat counted for less than the week, or no longer counted, is left out
+    (and with none left there is no line); with it the line would jump where its counts begin or stop. A person in
     two chats is in both sums, as in the change.
     """
     days = [now - datetime.timedelta(days=age) for age in reversed(range(_WEEK_DAYS + 1))]
     week = [0] * len(days)
+    counted = False
     for points in by_chat.values():
         if points[-1][0] < now - _FRESH or _baseline(points[:-1], days[0]) is None:
             continue
+        counted = True
         for index, day in enumerate(days[:-1]):
             week[index] += _baseline(points, day) or 0
         week[-1] += points[-1][1]
-    return week
+    # None counted is no line, not a flat one: flat reads as "no change".
+    return week if counted else []
 
 
 async def _busiest_chats(session: AsyncSession, now: datetime.datetime) -> list[ChatHeatmapSummary]:
