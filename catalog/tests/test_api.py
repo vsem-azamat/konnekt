@@ -713,6 +713,9 @@ async def test_partner_blocks_are_matched_by_condition(client, session):
         offer_id=offer.id,
         slot=PlacementSlot.SCREEN_NOSTRIFICATION,
         conditions={"service_type": "nostrification"},
+        # Above anything else in the slot: `for_slot` keeps the top three, and
+        # a cut-off placement would pass the off-topic check for nothing.
+        priority=1000,
     )
     session.add(placement)
     await session.flush()
