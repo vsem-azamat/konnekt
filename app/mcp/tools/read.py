@@ -207,13 +207,13 @@ def register_read_tools(mcp: FastMCP[None]) -> None:
         """
         from app.chats.bot_rights import problems_of
         from app.db.models import Chat, ChatBotRights
-        from app.webapi.services.member_counts import latest_for
+        from app.webapi.services import member_counts
 
         async with session_maker()() as session:
             await managed_chat_id(session, chat_id)
             row = await session.get(Chat, chat_id)
             rights = await session.get(ChatBotRights, chat_id)
-            member_count = (await latest_for(session, [chat_id])).get(chat_id)
+            member_count = await member_counts.latest(session, chat_id)
         if row is None:
             raise ToolError("unknown_chat")
 

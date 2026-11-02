@@ -451,6 +451,21 @@ async def test_chat_info_is_what_the_bot_recorded_not_a_fresh_call(mcp_session) 
 
     data = await _call("get_chat_info", {"chat_id": MANAGED_CHAT_ID})
 
+    # This goes to an external runtime: a new field is a decision, not a side effect.
+    assert set(data) == {
+        "chat_id",
+        "title",
+        "type",
+        "username",
+        "member_count",
+        "description",
+        "linked_chat_id",
+        "resource_status",
+        "preview_only",
+        "synced_at",
+        "bot_status",
+        "bot_missing_rights",
+    }
     assert data["title"] == "Managed Chat"
     assert data["type"] == "supergroup"
     assert data["username"] == "managed"
