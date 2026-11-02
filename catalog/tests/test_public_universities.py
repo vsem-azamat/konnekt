@@ -8,6 +8,11 @@ belongs to a person.
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from students_cz.db.models import Institution
+from students_cz.db.models.enums import InstitutionKind
 
 pytestmark = pytest.mark.asyncio
 
@@ -56,3 +61,30 @@ async def test_an_unknown_language_is_refused(client: AsyncClient) -> None:
     response = await client.get("/api/v1/universities", params={"lang": "xx"})
 
     assert response.status_code == 422
+
+
+async def test_a_retired_university_is_not_listed(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    await session.execute(
+        update(Institution).where(Institution.code == "cvut").values(is_active=False)
+    )
+
+    response = await client.get("/api/v1/universities")
+
+    assert "cvut" not in {row["code"] for row in response.json()}
+
+
+async def test_only_a_university_is_one(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A school or an exam body at the top of the tree has no catalog page."""
+    await session.execute(
+        update(Institution)
+        .where(Institution.code == "vse")
+        .values(kind=InstitutionKind.SCHOOL)
+    )
+
+    response = await client.get("/api/v1/universities")
+
+    assert "vse" not in {row["code"] for row in response.json()}

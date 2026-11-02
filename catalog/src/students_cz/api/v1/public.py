@@ -5,13 +5,16 @@ request with, and no chat to be answered in. What they get is a redirect into
 the bot, derived from the bot's own token so the handle is never hardcoded.
 """
 
+import re
+
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from students_cz.api.deps import HandleDep, SessionDep, SettingsDep
 from students_cz.db.models import Institution
-from students_cz.db.models.enums import UiLang
+from students_cz.db.models.enums import InstitutionKind, UiLang
 from students_cz.schemas import AdsInfo, PublicUniversity
 from students_cz.services.naming import translated
 
@@ -20,16 +23,21 @@ router = APIRouter()
 # «Открыть в Konnekt» on a university's page: the app's own start parameter for
 # a university's chats (web/src/lib/startParam.ts), `uni-` and the code.
 UNIVERSITY_START = "uni-"
+# The code the app accepts after it (INSTITUTION_CODE in web/src/lib/chats.ts).
+# Checked before the database is asked: a NUL byte reaches asyncpg as a 500.
+_APP_CODE = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
 
 
 def _universities():
-    """The active universities: an institution with nothing above it."""
+    """The active universities, each at the top of the tree."""
     return select(Institution).where(
-        Institution.is_active.is_(True), Institution.parent_id.is_(None)
+        Institution.is_active.is_(True),
+        Institution.parent_id.is_(None),
+        Institution.kind == InstitutionKind.UNIVERSITY,
     )
 
 
-async def _known_start(session: SessionDep, start: str | None) -> str | None:
+async def _known_start(session: AsyncSession, start: str | None) -> str | None:
     """`start` when the app has a screen for it, which the catalog can vouch for.
 
     Only a university the catalog lists: anything else would be passed on to
@@ -38,6 +46,8 @@ async def _known_start(session: SessionDep, start: str | None) -> str | None:
     if start is None or not start.startswith(UNIVERSITY_START):
         return None
     code = start.removeprefix(UNIVERSITY_START)
+    if not _APP_CODE.fullmatch(code):
+        return None
     found = await session.scalar(
         _universities()
         .where(Institution.code == code)
@@ -94,15 +104,17 @@ async def ads(settings: SettingsDep) -> AdsInfo:
 
 @router.get("/universities", response_model=list[PublicUniversity], tags=["public"])
 async def universities(
-    session: SessionDep, lang: UiLang = UiLang.RU
+    session: SessionDep, settings: SettingsDep, lang: UiLang | None = None
 ) -> list[PublicUniversity]:
     """The universities, for the public site's catalog pages.
 
     Unauthenticated like `/open`: the site renders these pages for people who
     are not in Telegram and for search engines, and the rows are the same
     reference data every app user reads. The language is asked for in the
-    query, the page's own, since there is nobody whose setting it could be.
+    query, the page's own, since there is nobody whose setting it could be;
+    without one, the API's default, as for the console.
     """
+    lang = lang or UiLang(settings.default_ui_lang)
     rows = (
         await session.scalars(_universities().order_by(Institution.sort, Institution.id))
     ).all()

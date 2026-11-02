@@ -2,15 +2,17 @@
 
 The landing page's button points at `/api/v1/open`, so the bot's handle lives
 in the token the server already has rather than in the frontend bundle and the
-build. That makes this the only unauthenticated route in the API, which is
-worth pinning down.
+build. It answers without init data, which is worth pinning down.
 """
 
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from students_cz.db.models import Institution
 
 from .conftest import BrokenBot, StubBot, app_for
 
@@ -109,7 +111,9 @@ async def test_open_can_start_on_a_universitys_chats(app_with) -> None:
         "uni-nowhere",  # no such university
         "uni-cvut_fit",  # a faculty: the app's section screen is a university's
         "home",  # a screen the site has no business naming
-        "uni-cvut&startapp=x",  # anything else rides along into the link
+        "uni-CVUT",  # not the shape of a code, so not looked up
+        "uni-\x00",  # which the database would refuse with a 500
+        "uni-" + "x" * 5000,
     ],
 )
 async def test_open_starts_only_where_the_catalog_knows(app_with, start: str) -> None:
@@ -120,4 +124,16 @@ async def test_open_starts_only_where_the_catalog_knows(app_with, start: str) ->
         response = await http.get("/api/v1/open", params={"start": start})
 
     assert response.status_code == 302
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
+
+
+async def test_open_does_not_start_on_a_retired_university(app_with, session) -> None:
+    await session.execute(
+        update(Institution).where(Institution.code == "cvut").values(is_active=False)
+    )
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": "uni-cvut"})
+
     assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"

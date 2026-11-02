@@ -241,7 +241,7 @@ neighbours about where it lives.
 
 | Module | What it serves |
 | --- | --- |
-| `public.py` | `/open` — the only route without init data |
+| `public.py` | what answers without init data: `/open`, `/ads`, and the universities for the public site |
 | `me.py` | the account behind the init data |
 | `taxonomy.py` | service types, subjects, institutions, languages |
 | `search.py` | free-text parse — the rule is `services/search.py` — and the search it feeds |
