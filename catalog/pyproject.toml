@@ -17,6 +17,7 @@ dependencies = [
     "prometheus-client>=0.25,<1",
     "pydantic>=2.13",
     "pydantic-settings>=2.14",
+    "sentry-sdk>=2.40",
     "sqlalchemy[asyncio]>=2.0.51",
     "tokenizers>=0.23.1",
     "uvicorn[standard]>=0.51",

@@ -117,6 +117,14 @@ class Settings(BaseSettings):
     # means the ads page offers no contact. See docs/architecture.md.
     ads_contact: str | None = None
 
+    # Where errors are reported. Empty DSN: nowhere. See core/error_tracking.py.
+    sentry_dsn: SecretStr = SecretStr("")
+    sentry_environment: str = "production"
+    # The image's commit, which is what a regression is measured against.
+    sentry_release: str = ""
+    sentry_sample_rate: float = Field(default=1.0, ge=0, le=1)
+    sentry_traces_sample_rate: float = Field(default=0.0, ge=0, le=1)
+
     @field_validator("ads_contact", mode="before")
     @classmethod
     def _a_username_or_nobody(cls, value: object) -> object:
