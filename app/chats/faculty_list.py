@@ -139,13 +139,12 @@ async def listing_for(session: AsyncSession, chat_id: int) -> Listing | None:
     if code := await university_of(session, chat):
         return Listing(FACULTIES_HEADING, university_name(chat.title), code, await faculties(session, chat.id))
     parent = await session.get(Chat, chat.parent_chat_id) if chat.parent_chat_id else None
-    if parent is None or not parent.title or not (code := await university_of(session, parent)):
+    # An undecided university's Telegram title is not for an answer, whatever sits under it.
+    if parent is None or not parent.title or parent.resource_status not in Chat.LISTABLE_STATUSES:
         return None
-    own = (
-        [Faculty(parent.title, parent.public_link)]
-        if parent.public_link and parent.resource_status in Chat.LISTABLE_STATUSES
-        else []
-    )
+    if not (code := await university_of(session, parent)):
+        return None
+    own = [Faculty(parent.title, parent.public_link)] if parent.public_link else []
     return Listing(UNIVERSITY_HEADING, university_name(parent.title), code, own + await faculties(session, parent.id))
 
 

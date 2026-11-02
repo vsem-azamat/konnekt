@@ -188,10 +188,12 @@ async def get_chats(message: types.Message, bot: Bot, db: AsyncSession) -> None:
         text = CHATS_IN_APP
         markup = types.InlineKeyboardMarkup(inline_keyboard=[[catalogue]])
     answer = await message.answer(text, reply_markup=markup, disable_web_page_preview=True)
-    if (before := _chats_answers.get(message.chat.id)) is not None:
+    # Recorded before the await: two /chats at once must not both take down the same answer.
+    before = _chats_answers.get(message.chat.id)
+    _chats_answers[message.chat.id] = answer.message_id
+    if before is not None:
         with suppress(TelegramAPIError):
             await bot.delete_message(message.chat.id, before)
-    _chats_answers[message.chat.id] = answer.message_id
     other.sleep_and_delete(message, CHATS_ANSWER_SECONDS)
     other.sleep_and_delete(answer, CHATS_ANSWER_SECONDS)
 

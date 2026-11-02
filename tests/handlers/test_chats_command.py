@@ -181,3 +181,20 @@ async def test_a_faculty_chat_lists_its_university_even_when_the_university_chat
     assert text.splitlines()[0] == "<b>Чаты ČVUT</b>"
     assert "ČVUT FIT" in text
     assert button.url.endswith("startapp=uni-cvut")
+
+
+async def test_a_faculty_chat_of_an_undecided_university_is_pointed_at_the_catalogue(
+    session: AsyncSession, bot, deleted
+) -> None:
+    """Neither the university's link nor its Telegram title is ours to show until it is decided."""
+    await _seed(session)
+    university = await session.get(Chat, UNIVERSITY)
+    assert university is not None
+    university.resource_status = Chat.STATUS_DISCOVERED
+    await session.commit()
+    message = _message(FACULTY)
+
+    await start_handlers.get_chats(message, bot, session)
+
+    text, _ = _answered(message)
+    assert text == start_handlers.CHATS_IN_APP
