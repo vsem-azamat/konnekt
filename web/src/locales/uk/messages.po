@@ -998,8 +998,8 @@ msgid "отключён"
 msgstr "вимкнено"
 
 #: src/console/pages/Summary.tsx
-msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
-msgstr "можна написати: дозволили боту писати й не заблокували; ще {opted} відписалися від новин"
+#~ msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
+#~ msgstr "можна написати: дозволили боту писати й не заблокували; ще {opted} відписалися від новин"
 
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
@@ -1157,8 +1157,8 @@ msgid "Только наблюдать?"
 msgstr "Лише спостерігати?"
 
 #: src/console/pages/Summary.tsx
-msgid "всего {total}"
-msgstr "усього {total}"
+#~ msgid "всего {total}"
+#~ msgstr "усього {total}"
 
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
@@ -2705,6 +2705,10 @@ msgstr "Чт"
 msgid "Набег на {title}"
 msgstr "Набіг на {title}"
 
+#: src/console/pages/Summary.tsx
+msgid "дали писать и не заблокировали; ещё {opted} отписались от новостей"
+msgstr "дозволили писати й не заблокували; ще {opted} відписалися від новин"
+
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Познач усе, що вмієш. Ціни спитаємо на наступному екрані."
@@ -2825,6 +2829,10 @@ msgstr "У каталозі її немає. Повернути — у «Про 
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Лише забанити"
+
+#: src/console/pages/Summary.tsx
+msgid "за всё время {total}"
+msgstr "за весь час {total}"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -3134,6 +3142,10 @@ msgstr "Чекають на рішення"
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "Пара слів про себе — що береш і чого не береш"
+
+#: src/console/pages/Summary.tsx
+msgid "дали писать и не заблокировали"
+msgstr "дозволили писати й не заблокували"
 
 #: src/console/pages/Audience.tsx
 #~ msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
@@ -3508,6 +3520,10 @@ msgstr "За добу"
 msgid "Забанить и стереть все сообщения"
 msgstr "Забанити й стерти всі повідомлення"
 
+#: src/console/pages/Summary.tsx
+msgid "неделей раньше {before}"
+msgstr "тижнем раніше {before}"
+
 #: src/console/pages/Audience.tsx
 msgid "Пришедшие к нам — по ссылке, с которой они пришли впервые."
 msgstr "Ті, хто прийшов до нас, — за посиланням, з якого вони прийшли вперше."
@@ -3779,7 +3795,6 @@ msgid "договоримся"
 msgstr "домовимось"
 
 #: src/console/pages/Audience.tsx
-#: src/console/pages/Summary.tsx
 msgid "можно написать: дали боту писать и не заблокировали"
 msgstr "можна написати: дозволили боту писати й не заблокували"
 
@@ -4116,8 +4131,8 @@ msgid "Тексты сообщений не хранятся: только то,
 msgstr "Тексти повідомлень не зберігаються: лише те, що повідомляє Telegram, і коли людина приходила."
 
 #: src/console/pages/Summary.tsx
-msgid "{diff} к неделе раньше"
-msgstr "{diff} до тижня раніше"
+#~ msgid "{diff} к неделе раньше"
+#~ msgstr "{diff} до тижня раніше"
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"

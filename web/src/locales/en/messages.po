@@ -998,8 +998,8 @@ msgid "отключён"
 msgstr "disabled"
 
 #: src/console/pages/Summary.tsx
-msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
-msgstr "can be written to: let the bot write and did not block it; {opted} more unsubscribed from news"
+#~ msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
+#~ msgstr "can be written to: let the bot write and did not block it; {opted} more unsubscribed from news"
 
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
@@ -1157,8 +1157,8 @@ msgid "Только наблюдать?"
 msgstr "Only watch?"
 
 #: src/console/pages/Summary.tsx
-msgid "всего {total}"
-msgstr "{total} in all"
+#~ msgid "всего {total}"
+#~ msgstr "{total} in all"
 
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
@@ -2705,6 +2705,10 @@ msgstr "Thu"
 msgid "Набег на {title}"
 msgstr "Raid on {title}"
 
+#: src/console/pages/Summary.tsx
+msgid "дали писать и не заблокировали; ещё {opted} отписались от новостей"
+msgstr "let it write and did not block it; {opted} more unsubscribed from news"
+
 #: src/pages/Offer.tsx
 msgid "Отметь всё, что умеешь. Цены спросим на следующем экране."
 msgstr "Tick everything you can do. Prices come on the next screen."
@@ -2825,6 +2829,10 @@ msgstr "It isn’t in the catalog. Bring it back under “About me and how I wor
 #: src/console/BanSheet.tsx
 msgid "Только забанить"
 msgstr "Ban only"
+
+#: src/console/pages/Summary.tsx
+msgid "за всё время {total}"
+msgstr "{total} all time"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx
@@ -3134,6 +3142,10 @@ msgstr "Awaiting a decision"
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "A couple of words about you — what you take on and what you do not"
+
+#: src/console/pages/Summary.tsx
+msgid "дали писать и не заблокировали"
+msgstr "let it write and did not block it"
 
 #: src/console/pages/Audience.tsx
 #~ msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
@@ -3508,6 +3520,10 @@ msgstr "Last 24 hours"
 msgid "Забанить и стереть все сообщения"
 msgstr "Ban and delete all their messages"
 
+#: src/console/pages/Summary.tsx
+msgid "неделей раньше {before}"
+msgstr "week before: {before}"
+
 #: src/console/pages/Audience.tsx
 msgid "Пришедшие к нам — по ссылке, с которой они пришли впервые."
 msgstr "People who came to us, by the link that first brought them."
@@ -3779,7 +3795,6 @@ msgid "договоримся"
 msgstr "we will agree"
 
 #: src/console/pages/Audience.tsx
-#: src/console/pages/Summary.tsx
 msgid "можно написать: дали боту писать и не заблокировали"
 msgstr "can be written to: let the bot write and did not block it"
 
@@ -4116,8 +4131,8 @@ msgid "Тексты сообщений не хранятся: только то,
 msgstr "Message texts are not kept: only what Telegram tells us, and when the person came."
 
 #: src/console/pages/Summary.tsx
-msgid "{diff} к неделе раньше"
-msgstr "{diff} on the week before"
+#~ msgid "{diff} к неделе раньше"
+#~ msgstr "{diff} on the week before"
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"

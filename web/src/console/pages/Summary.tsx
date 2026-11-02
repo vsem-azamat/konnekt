@@ -50,7 +50,6 @@ import {
   type HomeStats,
 } from '@/console/session';
 import { elapsed, menuCounts, type WaveSignal } from '@/console/signals';
-import { change } from '@/console/trends';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -549,16 +548,15 @@ function MembersTile({ stats }: { stats: HomeStats }) {
 }
 
 /**
- * Who came to us in the last seven whole days, against the seven before: the
+ * Who came to us in the last seven whole days, and in the seven before: the
  * Audience page's «пришли к нам», so the backfill's guesses are not in it.
  */
 function CameTile({ came }: { came: AudienceOverview['came'] }) {
   const { i18n } = useLingui();
   const day = useDay();
-  const delta = change(came.now, came.before);
   const from = day(came.compare_from);
   const total = i18n.number(came.total);
-  const diff = delta === null ? '' : signed(delta.diff, (abs) => i18n.number(abs));
+  const before = came.before === null ? '' : i18n.number(came.before);
   return (
     <div className={ui.summaryTile} data-tone="0">
       <span>
@@ -566,14 +564,14 @@ function CameTile({ came }: { came: AudienceOverview['came'] }) {
       </span>
       <b>{came.now === null ? '—' : `+${i18n.number(came.now)}`}</b>
       <small>
-        {delta === null ? (
+        {came.before === null ? (
           <Trans>сравнение будет с {from}</Trans>
         ) : (
-          <Trans>{diff} к неделе раньше</Trans>
+          <Trans>неделей раньше {before}</Trans>
         )}
       </small>
       <small>
-        <Trans>всего {total}</Trans>
+        <Trans>за всё время {total}</Trans>
       </small>
     </div>
   );
@@ -807,12 +805,9 @@ function MainBotWho({ audience }: { audience: AudienceOverview }) {
   const { i18n } = useLingui();
   const opted = i18n.number(audience.main_bot.opted_out);
   return audience.main_bot.opted_out ? (
-    <Trans>
-      можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от
-      новостей
-    </Trans>
+    <Trans>дали писать и не заблокировали; ещё {opted} отписались от новостей</Trans>
   ) : (
-    <Trans>можно написать: дали боту писать и не заблокировали</Trans>
+    <Trans>дали писать и не заблокировали</Trans>
   );
 }
 
