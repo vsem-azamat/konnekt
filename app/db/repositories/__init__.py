@@ -2,7 +2,6 @@ from .admin import AdminRepository as AdminRepository
 from .admin import get_admin_repository as get_admin_repository
 from .chat import ChatRepository as ChatRepository
 from .chat import get_chat_repository as get_chat_repository
-from .chat_link import ChatLinkRepository as ChatLinkRepository
 from .message import MessageRepository as MessageRepository
 from .message import get_message_repository as get_message_repository
 from .user import UserRepository as UserRepository

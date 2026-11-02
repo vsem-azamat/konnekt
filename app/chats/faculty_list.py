@@ -35,6 +35,9 @@ if TYPE_CHECKING:
 logger = get_logger("chats.faculty_list")
 
 TITLE = "📌 <b>Чаты факультетов {university}</b>"
+# The same list as an answer to /chats: in a faculty's chat it is the whole university's.
+FACULTIES_HEADING = "<b>Чаты факультетов {university}</b>"
+UNIVERSITY_HEADING = "<b>Чаты {university}</b>"
 FOOTER = "Чаты других вузов и факультетов — тоже в Konnekt 👇"
 # Past the budget the rest is counted, not listed; the button leads to all of them.
 MORE = "…и ещё {count} — в Konnekt"
@@ -65,9 +68,9 @@ def _units(text: str) -> int:
     return len(text.encode("utf-16-le")) // 2
 
 
-def text(university: str, faculties: list[Faculty]) -> str:
+def text(university: str, faculties: list[Faculty], *, heading: str = TITLE) -> str:
     """The message: a heading, one linked line per chat, and the way to the rest."""
-    lines = [TITLE.format(university=html.escape(university)), ""]
+    lines = [heading.format(university=html.escape(university)), ""]
     # Counted as Telegram counts, in UTF-16 units of the text a reader sees.
     used = sum(_units(line) for line in (university, FOOTER, MORE))
     for index, f in enumerate(faculties):
@@ -116,6 +119,34 @@ async def university_of(session: AsyncSession, chat: Chat) -> str | None:
     if chat.parent_chat_id is not None or not chat.institution_code:
         return None
     return chat.institution_code if await faculties(session, chat.id) else None
+
+
+@dataclass(frozen=True)
+class Listing:
+    """What /chats answers in a university's chat."""
+
+    heading: str
+    university: str
+    code: str
+    chats: list[Faculty]
+
+
+async def listing_for(session: AsyncSession, chat_id: int) -> Listing | None:
+    """In a university's own chat its faculties; in a faculty's, the whole university; elsewhere None."""
+    chat = await session.get(Chat, chat_id)
+    if chat is None or not chat.title:
+        return None
+    if code := await university_of(session, chat):
+        return Listing(FACULTIES_HEADING, university_name(chat.title), code, await faculties(session, chat.id))
+    parent = await session.get(Chat, chat.parent_chat_id) if chat.parent_chat_id else None
+    if parent is None or not parent.title or not (code := await university_of(session, parent)):
+        return None
+    own = (
+        [Faculty(parent.title, parent.public_link)]
+        if parent.public_link and parent.resource_status in Chat.LISTABLE_STATUSES
+        else []
+    )
+    return Listing(UNIVERSITY_HEADING, university_name(parent.title), code, own + await faculties(session, parent.id))
 
 
 async def may_pin(session: AsyncSession, chat_id: int) -> bool:

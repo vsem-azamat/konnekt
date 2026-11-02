@@ -16,6 +16,8 @@ export interface StartRoute {
 
 const SCREENS: Record<string, string> = {
   offer: '/offer',
+  // /chats in a chat the bot knows no university for.
+  chats: '/chats',
 };
 
 /**

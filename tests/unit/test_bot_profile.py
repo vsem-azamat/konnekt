@@ -146,22 +146,21 @@ class TestCommands:
         assert offered <= _handled_commands()
         assert "spam" not in offered
 
-    async def test_a_private_chat_is_offered_three(self, site) -> None:
-        """/chats is the Mini App's catalogue now; typed, it still answers."""
+    async def test_a_private_chat_is_offered_four(self, site) -> None:
+        """/chats answers with the way into the catalogue, and is in the menu (Azamat, 9737)."""
         bot = FakeBot()
 
         await _publish(bot)
 
         for language in LANGUAGES:
-            assert _names(bot.commands[("default", language)]) == ["start", "help", "contacts"], language
-        assert "chats" in _handled_commands()
+            assert _names(bot.commands[("default", language)]) == ["start", "chats", "help", "contacts"], language
 
     async def test_each_language_reads_its_own(self, site) -> None:
         bot = FakeBot()
 
         await _publish(bot)
 
-        contacts = {lang: bot.commands[("default", lang)][2].description for lang in LANGUAGES}
+        contacts = {lang: bot.commands[("default", lang)][3].description for lang in LANGUAGES}
         assert contacts == {
             None: "Написать нам",
             "ru": "Написать нам",
@@ -183,13 +182,13 @@ class TestCommands:
         """Same commands, an old description: «Связаться» became «Написать нам»."""
         bot = FakeBot()
         await _publish(bot)
-        bot.commands[("default", "uk")][2] = BotCommand(command="contacts", description="Зв'язатися")
+        bot.commands[("default", "uk")][3] = BotCommand(command="contacts", description="Зв'язатися")
         bot.writes.clear()
 
         await _publish(bot)
 
         assert bot.writes == ["set_my_commands"]
-        assert bot.commands[("default", "uk")][2].description == "Написати нам"
+        assert bot.commands[("default", "uk")][3].description == "Написати нам"
 
     async def test_narrower_menus_are_cleared(self, site) -> None:
         """Set by hand, one would win over ours without anybody noticing."""

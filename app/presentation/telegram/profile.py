@@ -67,26 +67,30 @@ DESCRIPTION = {
 
 # What /help lists for everybody; moderator commands stay out of the menu,
 # because being a Telegram administrator of a chat grants nothing here. /chats
-# is left out of the private menu: the catalogue is the Mini App's, and typed,
-# /chats still answers. /contacts is named as the line in the Mini App profile.
+# answers in private with the way into the catalogue, so it is in the menu as
+# asked for. /contacts is named as the line in the Mini App profile.
 PRIVATE_COMMANDS = {
     "ru": [
         BotCommand(command="start", description="Что здесь есть"),
+        BotCommand(command="chats", description="Студенческие чаты"),
         BotCommand(command="help", description="Команды"),
         BotCommand(command="contacts", description="Написать нам"),
     ],
     "uk": [
         BotCommand(command="start", description="Що тут є"),
+        BotCommand(command="chats", description="Студентські чати"),
         BotCommand(command="help", description="Команди"),
         BotCommand(command="contacts", description="Написати нам"),
     ],
     "cs": [
         BotCommand(command="start", description="Co tu najdu"),
+        BotCommand(command="chats", description="Studentské chaty"),
         BotCommand(command="help", description="Příkazy"),
         BotCommand(command="contacts", description="Napsat nám"),
     ],
     "en": [
         BotCommand(command="start", description="What is here"),
+        BotCommand(command="chats", description="Student chats"),
         BotCommand(command="help", description="Commands"),
         BotCommand(command="contacts", description="Write to us"),
     ],
@@ -96,7 +100,7 @@ PRIVATE_COMMANDS = {
 # there: hiding it would take a scope per chat.
 GROUP_COMMANDS = [
     BotCommand(command="report", description="В ответ на сообщение: пожаловаться на него"),
-    BotCommand(command="chats", description="Чаты списком"),
+    BotCommand(command="chats", description="Чаты вуза и факультетов"),
     BotCommand(command="help", description="Команды"),
 ]
 
