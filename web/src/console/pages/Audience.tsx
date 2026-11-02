@@ -32,7 +32,6 @@ import {
   type AudienceTrends,
   barsOf,
   comparableFrom,
-  GOOD_WHEN_UP,
   METRICS,
   type Metric,
   PERIODS,
@@ -181,7 +180,6 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
       <Delta
         now={total.now}
         before={comparable(data, metric) ? total.before : null}
-        goodWhenUp={GOOD_WHEN_UP[metric]}
         pending={<Trans>сравнение будет с {from}</Trans>}
       />
     );
@@ -229,6 +227,7 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
               <span>{metrics[metric].title}</span>
               <span className={css.big}>{total.now ?? '—'}</span>
               {delta(metric)}
+              <Since data={data} metric={metric} />
               <Spark points={barsOf(now, metric)} />
               <span className={css.tileHint}>
                 {chosen ? <Trans>график ниже</Trans> : <Trans>показать график ↓</Trans>}
@@ -238,13 +237,11 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
         })}
       </div>
       <div className={css.card} style={{ marginTop: 12 }}>
-        <div className={css.chartHead}>
-          <h3>{metrics[picked].title}</h3>
+        <div className={css.chartTop}>
+          <h3 className={css.chartTitle}>{metrics[picked].title}</h3>
           <span className={css.big}>{data.totals[picked].now ?? '—'}</span>
-        </div>
-        <div className={css.chartHead}>
-          <span />
           {delta(picked)}
+          <Since data={data} metric={picked} />
         </div>
         <p className={css.who}>{metrics[picked].who}</p>
         <TrendBars
@@ -264,6 +261,20 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
       </div>
       <Links />
     </div>
+  );
+}
+
+/** «считаем с 2 нояб.» while the period began before its record: a total of «—» is not a fault. */
+function Since({ data, metric }: { data: AudienceTrends; metric: Metric }) {
+  const day = useDay();
+  const since = data.counted_since[metric];
+  const start = splitPeriods(data).now[0]?.from;
+  if (start === undefined || since <= start) return null;
+  const from = day(since);
+  return (
+    <span className={css.delta}>
+      <Trans>считаем с {from}</Trans>
+    </span>
   );
 }
 

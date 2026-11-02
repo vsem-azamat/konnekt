@@ -10,13 +10,8 @@ export const PERIODS: Period[] = [7, 30, 90];
 export type Metric = 'starts' | 'app_new' | 'joins' | 'blocks';
 export const METRICS: Metric[] = ['starts', 'app_new', 'joins', 'blocks'];
 
-/** Whether more of it is good news; only those may be shown in green. */
-export const GOOD_WHEN_UP: Record<Metric, boolean> = {
-  starts: true,
-  app_new: true,
-  joins: true,
-  blocks: false,
-};
+/** A change is given as a percentage only from this many in the period before: +575% of 12 says nothing. */
+export const SHARE_FROM = 50;
 
 /**
  * One bar: a day up to a month, a week past that, where 90 thin bars would

@@ -2160,6 +2160,10 @@ msgstr "How it works"
 msgid "новая, {when}"
 msgstr "new, {when}"
 
+#: src/console/pages/Audience.tsx
+msgid "считаем с {from}"
+msgstr "counted since {from}"
+
 #: src/components/Place.tsx
 msgid "Общее"
 msgstr "General"

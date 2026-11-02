@@ -2159,6 +2159,10 @@ msgstr "Как это работает"
 msgid "новая, {when}"
 msgstr "новая, {when}"
 
+#: src/console/pages/Audience.tsx
+msgid "считаем с {from}"
+msgstr "считаем с {from}"
+
 #: src/components/Place.tsx
 msgid "Общее"
 msgstr "Общее"

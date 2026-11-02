@@ -2,7 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { type ReactNode, useState } from 'react';
 
 import css from '@/console/Audience.module.css';
-import { type Bar, change, type Funnel, overlap } from '@/console/trends';
+import { type Bar, change, type Funnel, overlap, SHARE_FROM } from '@/console/trends';
 
 /** A UTC date as «3 ноя», in the reader's language. */
 export function useDay(): (date: string) => string {
@@ -120,16 +120,18 @@ export function TrendBars({
   );
 }
 
-/** «+12 (+40%) к прошлому периоду», green only when more is good news. */
+/**
+ * «↑ +12 к прошлому периоду», in the text's colour: green is kept for «fine»
+ * and red for what cannot be undone, and a rise is neither. A percentage only
+ * where the period before was large enough for one to mean something.
+ */
 export function Delta({
   now,
   before,
-  goodWhenUp,
   pending,
 }: {
   now: number | null;
   before: number | null;
-  goodWhenUp: boolean;
   /** Said instead while the period before was not wholly recorded. */
   pending: ReactNode;
 }) {
@@ -137,12 +139,11 @@ export function Delta({
   if (delta === null) return <span className={css.delta}>{pending}</span>;
   const sign = delta.diff > 0 ? '+' : delta.diff < 0 ? '−' : '±';
   const share =
-    delta.share === null || Math.abs(delta.diff) < 5
+    delta.share === null || (before ?? 0) < SHARE_FROM
       ? ''
       : ` (${sign}${Math.round(Math.abs(delta.share) * 100)}%)`;
-  const good = delta.diff > 0 && goodWhenUp;
   return (
-    <span className={css.delta} data-good={good || undefined}>
+    <span className={css.delta}>
       {delta.diff > 0 ? '↑' : delta.diff < 0 ? '↓' : ''} {sign}
       {Math.abs(delta.diff)}
       {share} <Trans>к прошлому периоду</Trans>
