@@ -385,6 +385,11 @@ msgstr "{0} today · {1} this week"
 msgid "Реклама и «вошёл/вышел» останутся в чате."
 msgstr "Ads and “joined/left” notices will stay in the chat."
 
+#. placeholder {0}: moment(chat.bot_absent_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Telegram не пускает бота в чат, последняя проверка {0}. Ничего из настроек ниже не работает, пока бота не вернут."
+msgstr "Telegram does not let the bot into the chat; last checked {0}. None of the settings below work until the bot is back."
+
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "blacklisted"
@@ -446,6 +451,10 @@ msgstr "Captcha in the chat"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Not done: the main administrator cannot be banned."
+
+#: src/console/BotInChat.tsx
+msgid "Команда /pin не сработает."
+msgstr "The /pin command will not work."
 
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
@@ -597,10 +606,6 @@ msgstr "can receive a message"
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Good at something others need?"
-
-#: src/console/BotInChat.tsx
-msgid "Бот не закрепит список чатов."
-msgstr "The bot cannot pin the list of chats."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -1633,11 +1638,6 @@ msgstr "Moderates"
 #: src/console/pages/AudiencePerson.tsx
 msgid "Рассылки"
 msgstr "Announcements"
-
-#. placeholder {0}: day(chat.bot_absent_at ?? bot?.changed_at ?? '')
-#: src/console/BotInChat.tsx
-msgid "Бота нет в чате · с {0}"
-msgstr "The bot is not in the chat · since {0}"
 
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
@@ -3407,6 +3407,11 @@ msgstr "Latest activity"
 msgid "Боты"
 msgstr "Bots"
 
+#. placeholder {0}: day(bot?.changed_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Бот вышел из чата · {0}"
+msgstr "The bot left the chat · {0}"
+
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"
 msgstr "Help on exam day"
@@ -3910,6 +3915,10 @@ msgstr "tutors, entrance exam preparation, nostrification"
 #: src/pages/Ads.tsx
 msgid "{0, plural, one {чат} few {чата} many {чатов} other {чата}}"
 msgstr "{0, plural, one {chat} other {chats}}"
+
+#: src/console/BotInChat.tsx
+msgid "Бота нет в чате"
+msgstr "The bot is not in the chat"
 
 #: src/console/pages/Signals.tsx
 msgid "Очереди пусты."

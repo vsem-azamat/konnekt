@@ -46,7 +46,7 @@ function WithoutIt({ right }: { right: UsedRight }) {
     case 'can_invite_users':
       return <Trans>Бот не одобрит заявки и не сделает ссылку для каталога.</Trans>;
     case 'can_pin_messages':
-      return <Trans>Бот не закрепит список чатов.</Trans>;
+      return <Trans>Команда /pin не сработает.</Trans>;
     case 'can_change_info':
       return <Trans>Описание чата не обновится по шаблону.</Trans>;
   }
@@ -84,11 +84,10 @@ function Standing({ chat }: { chat: ConsoleChatDetail }) {
     case 'removed':
       return <Trans>Бота удалили из чата · {day(bot?.changed_at ?? '')}</Trans>;
     case 'left':
-      return (
-        <Trans>
-          Бота нет в чате · с {day(chat.bot_absent_at ?? bot?.changed_at ?? '')}
-        </Trans>
-      );
+      return <Trans>Бот вышел из чата · {day(bot?.changed_at ?? '')}</Trans>;
+    case 'absent':
+      // The mark is stamped again at every daily ask: it is not since when.
+      return <Trans>Бота нет в чате</Trans>;
   }
 }
 
@@ -102,6 +101,14 @@ function StandingHint({ chat }: { chat: ConsoleChatDetail }) {
     case 'removed':
     case 'left':
       return <Trans>Ничего из настроек ниже не работает, пока бота не вернут.</Trans>;
+    case 'absent':
+      return (
+        <Trans>
+          Telegram не пускает бота в чат, последняя проверка{' '}
+          {moment(chat.bot_absent_at ?? '')}. Ничего из настроек ниже не работает, пока
+          бота не вернут.
+        </Trans>
+      );
     default:
       return chat.bot ? <Trans>Проверено {moment(chat.bot.known_at)}</Trans> : null;
   }
@@ -132,7 +139,13 @@ function HowToFix({ standing }: { standing: StandingKind }) {
   }
 }
 
-const PROBLEMS = new Set<StandingKind>(['lacking', 'not_admin', 'removed', 'left']);
+const PROBLEMS = new Set<StandingKind>([
+  'lacking',
+  'not_admin',
+  'removed',
+  'left',
+  'absent',
+]);
 
 /**
  * The bot's place in the chat: whether it is there and an administrator,
@@ -287,7 +300,7 @@ export function BotHistorySheet({
           }
           return (
             <Row
-              key={change.changed_at}
+              key={change.id}
               wrap
               title={
                 <>

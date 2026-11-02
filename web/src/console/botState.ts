@@ -31,24 +31,38 @@ export function missingRights(bot: BotRights): UsedRight[] {
   return USED_RIGHTS.filter((right) => !bot.rights[right]);
 }
 
-export type Standing = 'unknown' | 'ok' | 'lacking' | 'not_admin' | 'removed' | 'left';
+export type Standing =
+  | 'unknown'
+  | 'ok'
+  | 'lacking'
+  | 'not_admin'
+  | 'removed'
+  | 'left'
+  | 'absent';
 
 /**
  * The one thing to say about the bot in the chat, the worst first.
- * `absentAt` is the hourly loop's mark, which comes before the daily check
- * corrects the rights; the bot's own update that it is back comes at once,
- * and the mark waits for its next daily ask.
+ *
+ * A kick or a leave the bot was told of stands, with its own date. Without
+ * one, `absentAt` is the hourly loop's mark: it comes before the daily check
+ * corrects the rights, and is stamped again at every daily ask. The bot's own
+ * update that it is back comes at once, so rights newer than the mark win.
  */
 export function botStanding(
   bot: (BotRights & { known_at?: string }) | null,
   absentAt: string | null,
 ): Standing {
-  if (absentAt !== null && !(bot?.known_at && bot.known_at > absentAt)) return 'left';
+  if (bot?.status === 'kicked') return 'removed';
+  if (bot?.status === 'left') return 'left';
+  if (absentAt !== null && !(bot?.known_at && bot.known_at > absentAt)) return 'absent';
   if (bot === null) return 'unknown';
-  if (bot.status === 'kicked') return 'removed';
-  if (bot.status === 'left') return 'left';
   if (!ADMINISTRATORS.has(bot.status)) return 'not_admin';
   return missingRights(bot).length ? 'lacking' : 'ok';
+}
+
+/** Whether the standing says the bot is not in the chat at all. */
+export function isGone(standing: Standing): boolean {
+  return standing === 'removed' || standing === 'left' || standing === 'absent';
 }
 
 /** The rights the bot uses that one change in the history gave and took. */
@@ -57,8 +71,10 @@ export function rightsChange(
   after: BotRights,
 ): { gained: UsedRight[]; lost: UsedRight[] } {
   if (before === null) return { gained: [], lost: [] };
+  // A restricted member's permissions are not rights the bot holds.
   const had = (bot: BotRights, right: UsedRight) =>
-    bot.status === 'creator' || Boolean(bot.rights[right]);
+    bot.status === 'creator' ||
+    (bot.status === 'administrator' && Boolean(bot.rights[right]));
   return {
     gained: USED_RIGHTS.filter((right) => !had(before, right) && had(after, right)),
     lost: USED_RIGHTS.filter((right) => had(before, right) && !had(after, right)),

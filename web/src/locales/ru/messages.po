@@ -384,6 +384,11 @@ msgstr "{0} за сутки · {1} за неделю"
 msgid "Реклама и «вошёл/вышел» останутся в чате."
 msgstr "Реклама и «вошёл/вышел» останутся в чате."
 
+#. placeholder {0}: moment(chat.bot_absent_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Telegram не пускает бота в чат, последняя проверка {0}. Ничего из настроек ниже не работает, пока бота не вернут."
+msgstr "Telegram не пускает бота в чат, последняя проверка {0}. Ничего из настроек ниже не работает, пока бота не вернут."
+
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
 msgstr "в чёрном списке"
@@ -445,6 +450,10 @@ msgstr "Капча в чате"
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Не выполнено: главного администратора забанить нельзя."
+
+#: src/console/BotInChat.tsx
+msgid "Команда /pin не сработает."
+msgstr "Команда /pin не сработает."
 
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
@@ -596,10 +605,6 @@ msgstr "могут получить сообщение"
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Умеешь то, что нужно другим?"
-
-#: src/console/BotInChat.tsx
-msgid "Бот не закрепит список чатов."
-msgstr "Бот не закрепит список чатов."
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -1632,11 +1637,6 @@ msgstr "Модерирует"
 #: src/console/pages/AudiencePerson.tsx
 msgid "Рассылки"
 msgstr "Рассылки"
-
-#. placeholder {0}: day(chat.bot_absent_at ?? bot?.changed_at ?? '')
-#: src/console/BotInChat.tsx
-msgid "Бота нет в чате · с {0}"
-msgstr "Бота нет в чате · с {0}"
 
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
@@ -3406,6 +3406,11 @@ msgstr "Последняя активность"
 msgid "Боты"
 msgstr "Боты"
 
+#. placeholder {0}: day(bot?.changed_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Бот вышел из чата · {0}"
+msgstr "Бот вышел из чата · {0}"
+
 #: src/components/Phrase.tsx
 msgid "Помощь в день экзамена"
 msgstr "Помощь в день экзамена"
@@ -3909,6 +3914,10 @@ msgstr "репетиторы, подготовка к вступительным
 #: src/pages/Ads.tsx
 msgid "{0, plural, one {чат} few {чата} many {чатов} other {чата}}"
 msgstr "{0, plural, one {чат} few {чата} many {чатов} other {чата}}"
+
+#: src/console/BotInChat.tsx
+msgid "Бота нет в чате"
+msgstr "Бота нет в чате"
 
 #: src/console/pages/Signals.tsx
 msgid "Очереди пусты."

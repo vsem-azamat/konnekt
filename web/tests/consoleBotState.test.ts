@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { botStanding, missingRights, rightsChange } from '../src/console/botState.ts';
+import {
+  botStanding,
+  isGone,
+  missingRights,
+  rightsChange,
+} from '../src/console/botState.ts';
 
 const FULL = {
   can_delete_messages: true,
@@ -52,15 +57,30 @@ test('the standing says what is wrong first', () => {
   assert.equal(botStanding({ status: 'restricted', rights: {} }, null), 'not_admin');
   assert.equal(botStanding({ status: 'kicked', rights: {} }, null), 'removed');
   assert.equal(botStanding({ status: 'left', rights: {} }, null), 'left');
-  // The hourly loop's mark wins over rights not corrected since…
+});
+
+test('the hourly mark alone is its own state, and a recorded kick outlasts it', () => {
   const confirmed = {
     status: 'administrator',
     rights: FULL,
     known_at: '2026-11-01T09:00:00',
   };
-  assert.equal(botStanding(confirmed, '2026-11-01T10:00:00'), 'left');
-  // …but not over the bot's own word that it is back, which comes at once.
+  // A kick the updates missed: the mark is newer than the rights.
+  assert.equal(botStanding(confirmed, '2026-11-01T10:00:00'), 'absent');
+  // Added back since the mark: the bot's own update comes at once.
   assert.equal(botStanding(confirmed, '2026-11-01T08:00:00'), 'ok');
+  // The daily re-ask moves the mark past the recorded kick; still a kick, with its own date.
+  const kicked = { status: 'kicked', rights: {}, known_at: '2026-10-31T08:47:00' };
+  assert.equal(botStanding(kicked, '2026-11-02T07:00:00'), 'removed');
+  assert.equal(botStanding(null, '2026-11-02T07:00:00'), 'absent');
+});
+
+test('the bot is gone in every standing that says so, and nowhere else', () => {
+  for (const standing of ['removed', 'left', 'absent'] as const)
+    assert.equal(isGone(standing), true);
+  for (const standing of ['ok', 'lacking', 'not_admin', 'unknown'] as const) {
+    assert.equal(isGone(standing), false);
+  }
 });
 
 test('a change in the history is told by the rights it gave and took', () => {
@@ -80,4 +100,16 @@ test('a change in the history is told by the rights it gave and took', () => {
     lost: [],
   });
   assert.deepEqual(rightsChange(null, before), { gained: [], lost: [] });
+  // A restricted member's permissions are not rights the bot holds.
+  const restricted = {
+    status: 'restricted',
+    rights: { can_invite_users: true, can_pin_messages: true },
+  };
+  assert.deepEqual(rightsChange(before, restricted).lost, [
+    'can_delete_messages',
+    'can_restrict_members',
+    'can_invite_users',
+    'can_pin_messages',
+    'can_change_info',
+  ]);
 });

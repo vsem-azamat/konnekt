@@ -157,6 +157,8 @@ export interface ConsoleChat {
   is_service_cleanup_enabled: boolean;
   /** With the captcha: the applicant is let in muted and asked from a card in the chat. */
   captcha_in_chat: boolean;
+  /** A channel is somebody else's, listed only; the bot is asked about groups. */
+  kind: 'group' | 'channel';
   /** Since when Telegram says the bot is not in the chat; null while it is. */
   bot_absent_at: string | null;
 }
@@ -248,11 +250,13 @@ export interface ChatPerson {
 
 /** One change of the bot's status or rights, newest first; `changed_by` is null for the daily check. */
 export interface BotChange extends BotRights {
+  /** Two changes can share a second: added and promoted at once. */
+  id: number;
   changed_at: string;
   changed_by: ChatPerson | null;
 }
 
-/** An administrator of the chat other than a bot, which Telegram does not list. */
+/** An owner or administrator of the chat; another bot among them shows here too. */
 export interface ChatAdmin extends ChatPerson {
   status: 'creator' | 'administrator';
   known_at: string;
