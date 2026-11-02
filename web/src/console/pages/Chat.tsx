@@ -23,7 +23,6 @@ import { parentChoices } from '@/console/activity';
 import { BanOutcomeSheet, BanSheet } from '@/console/BanSheet';
 import { AdminRows, BotHistorySheet, BotRows } from '@/console/BotInChat';
 import { type BanOutcome, banOutcome } from '@/console/ban';
-import { botStanding, isGone } from '@/console/botState';
 import { Heatmap, MemberTrend } from '@/console/Charts';
 import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
@@ -218,7 +217,6 @@ function ChatScreen({ chatId }: { chatId: number }) {
   };
   const approved = chat.resource_status === 'approved';
   // The same rule the bot section below uses, so the header never says otherwise.
-  const botGone = isGone(botStanding(chat.bot, chat.bot_absent_at));
   // A decision was made about it, so the public tab may list it.
   const decided =
     chat.resource_status !== 'discovered' && chat.resource_status !== 'disabled';
@@ -283,10 +281,10 @@ function ChatScreen({ chatId }: { chatId: number }) {
           ) : (
             <Trans>отключён</Trans>
           )}
-          {botGone && chat.resource_status !== 'external' ? (
+          {chat.bot_gone && chat.resource_status !== 'external' ? (
             <>
               {' · '}
-              <Trans>бот вышел</Trans>
+              <Trans>бота нет в чате</Trans>
             </>
           ) : null}
           {chat.public_link ? (
@@ -348,7 +346,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
   // The bot is no longer in a chat nobody decided on: there is nothing to
   // list, protect or watch, only switching it off. The rest would be settings
   // that change nothing and a promise of approval that cannot come.
-  if (chat.resource_status === 'discovered' && botGone) {
+  if (chat.resource_status === 'discovered' && chat.bot_gone) {
     return (
       <>
         {head}

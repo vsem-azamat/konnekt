@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import {
-  botStanding,
-  isGone,
-  missingRights,
-  rightsChange,
-} from '../src/console/botState.ts';
+import { botStanding, missingRights, rightsChange } from '../src/console/botState.ts';
 
 const FULL = {
   can_delete_messages: true,
@@ -73,14 +68,6 @@ test('the hourly mark alone is its own state, and a recorded kick outlasts it', 
   const kicked = { status: 'kicked', rights: {}, known_at: '2026-10-31T08:47:00' };
   assert.equal(botStanding(kicked, '2026-11-02T07:00:00'), 'removed');
   assert.equal(botStanding(null, '2026-11-02T07:00:00'), 'absent');
-});
-
-test('the bot is gone in every standing that says so, and nowhere else', () => {
-  for (const standing of ['removed', 'left', 'absent'] as const)
-    assert.equal(isGone(standing), true);
-  for (const standing of ['ok', 'lacking', 'not_admin', 'unknown'] as const) {
-    assert.equal(isGone(standing), false);
-  }
 });
 
 test('a change in the history is told by the rights it gave and took', () => {

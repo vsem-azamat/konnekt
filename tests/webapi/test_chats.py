@@ -62,6 +62,31 @@ async def test_the_list_says_which_chats_the_bot_has_left(client_factory, db_ses
     assert detail["bot_absent_at"].startswith("2026-10-01T12:00")
 
 
+async def test_the_list_tells_the_bot_gone_by_the_rule_the_chat_page_uses(client_factory, db_session_maker) -> None:
+    """A kick the hourly loop has not marked yet, or a return it has not unmarked, shows at once."""
+    marked = datetime.datetime(2026, 10, 1, 12, 0)
+    later = marked + datetime.timedelta(hours=2)
+    async with db_session_maker() as session:
+        session.add(Chat(id=-1001, title="Kicked"))
+        session.add(ChatBotRights(chat_id=-1001, status="kicked", rights={}, changed_at=later, known_at=later))
+        back = Chat(id=-1002, title="Back")
+        back.bot_absent_at = marked
+        session.add(back)
+        session.add(ChatBotRights(chat_id=-1002, status="administrator", rights={}, changed_at=later, known_at=later))
+        refused = Chat(id=-1003, title="Refused")
+        refused.bot_absent_at = marked
+        session.add(refused)
+        session.add(Chat(id=-1004, title="Here"))
+        await session.commit()
+
+    async with client_factory() as client:
+        body = {c["title"]: c["bot_gone"] for c in (await client.get("/api/chats")).json()}
+        detail = (await client.get("/api/chats/-1001")).json()
+
+    assert body == {"Kicked": True, "Back": False, "Refused": True, "Here": False}
+    assert detail["bot_gone"] is True
+
+
 async def test_list_chats_returns_all(client_factory, db_session_maker) -> None:
     async with db_session_maker() as session:
         session.add(Chat(id=-1001, title="A"))

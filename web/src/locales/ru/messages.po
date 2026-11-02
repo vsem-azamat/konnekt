@@ -498,6 +498,11 @@ msgstr "Ничего не нашли. Попробуй сокращение — 
 msgid "Предмет"
 msgstr "Предмет"
 
+#: src/console/pages/Chat.tsx
+#: src/console/pages/Chats.tsx
+msgid "бота нет в чате"
+msgstr "бота нет в чате"
+
 #: src/pages/Helper.tsx
 msgid "Как проходит"
 msgstr "Как проходит"
@@ -3308,8 +3313,8 @@ msgstr "По этому запросу пока никого"
 
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
-msgid "бот вышел"
-msgstr "бот вышел"
+#~ msgid "бот вышел"
+#~ msgstr "бот вышел"
 
 #: src/pages/Mine.tsx
 msgid "Закрыта"

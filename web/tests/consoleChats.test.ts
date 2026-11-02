@@ -32,6 +32,7 @@ function chat(id: number, title: string, over: Partial<ConsoleChat> = {}): Conso
     captcha_in_chat: false,
     kind: 'group',
     bot_absent_at: null,
+    bot_gone: false,
     ...over,
   };
 }

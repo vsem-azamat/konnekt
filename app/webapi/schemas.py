@@ -144,6 +144,8 @@ class ChatRead(BaseModel):
     captcha_in_chat: bool
     # Since when Telegram says the bot is not in the chat; None while it is.
     bot_absent_at: datetime.datetime | None = None
+    # Whether the bot is not in the chat, by the rule the chat page's bot section follows.
+    bot_gone: bool
     created_at: datetime.datetime
 
 
