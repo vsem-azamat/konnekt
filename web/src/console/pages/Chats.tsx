@@ -282,19 +282,17 @@ function useGuardText(): (chat: ConsoleChat) => string | null {
  */
 function useChatWords() {
   const { t } = useLingui();
-  const mode = (chat: ConsoleChat): string => {
-    const word = {
+  const mode = (chat: ConsoleChat): string =>
+    ({
       approved: t`модерирует`,
       observed: t`наблюдает`,
       external: t`только ссылка`,
       discovered: t`ждёт решения`,
       disabled: t`отключён`,
-    }[chat.resource_status];
-    // A chat without the bot has nothing to moderate or watch any more.
-    return chat.bot_gone && chat.resource_status !== 'external'
-      ? `${word} · ${t`бота нет в чате`}`
-      : word;
-  };
+    })[chat.resource_status];
+  // A chat without the bot has nothing to moderate or watch any more; a listed-only one never had it.
+  const gone = (chat: ConsoleChat): string | null =>
+    chat.bot_gone && chat.resource_status !== 'external' ? t`бота нет в чате` : null;
   const place = (chat: ConsoleChat): string => {
     switch (catalogPlace(chat)) {
       case 'listed':
@@ -307,7 +305,7 @@ function useChatWords() {
         return t`не в каталоге`;
     }
   };
-  return { mode, place };
+  return { mode, gone, place };
 }
 
 /**
@@ -410,7 +408,7 @@ function ChatTable({ sections }: { sections: ConsoleSection[] }) {
                         .filter(Boolean)
                         .join(' ')}
                     >
-                      {words.mode(chat)}
+                      {[words.mode(chat), words.gone(chat)].filter(Boolean).join(' · ')}
                     </span>
                   </td>
                   <td className={table.num}>{count(chat.member_count)}</td>
@@ -450,14 +448,25 @@ function ChatLine({ chat, onOpen }: { chat: ConsoleChat; onOpen: () => void }) {
   const guardText = useGuardText();
   const words = useChatWords();
   const title = chat.title ?? String(chat.id);
+  const gone = words.gone(chat);
   return (
     <Row
       leading={<ChatFace chat={chat} size={34} tone={tileTone(chat)} />}
       title={title}
-      // Whether students see it first: on a phone the end of the line is cut.
+      // Whether students see it and whether the bot is there first: on a phone the end of the line is cut.
       hint={
         <>
           <span className={placeClass(chat)}>{words.place(chat)}</span>
+          {gone ? (
+            <>
+              {' · '}
+              <span
+                className={chat.resource_status === 'disabled' ? table.off : table.hidden}
+              >
+                {gone}
+              </span>
+            </>
+          ) : null}
           {[
             words.mode(chat),
             chat.member_count !== null ? i18n.number(chat.member_count) : null,
