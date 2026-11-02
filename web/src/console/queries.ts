@@ -149,16 +149,6 @@ export const consoleChanges = {
       body: JSON.stringify({ action }),
     }),
 
-  /** A proposal from MCP confirmed or rejected, as its buttons in the bot's message would. */
-  decideProposal: (pendingId: number, confirm: boolean) =>
-    consoleGet<{ outcome: 'confirmed' | 'rejected' }>(
-      `/api/signals/actions/${pendingId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ confirm }),
-      },
-    ),
-
   /** Banned in every chat the bot moderates, as /banall does; optionally
    *  with every message of theirs the bot recorded. `failed_chats` are the
    *  approved chats where Telegram refused. */
