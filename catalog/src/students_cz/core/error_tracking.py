@@ -39,25 +39,30 @@ _FILTERED = "[Filtered]"
 # the values a database error quotes; an address loses its query and the ids
 # in its path.
 _PATTERNS = (
-    (re.compile(r"\d{5,}:[A-Za-z0-9_-]{30,}"), _FILTERED),
+    (re.compile(r"(?<!\d)\d{5,}:[A-Za-z0-9_-]{30,}"), _FILTERED),
     (re.compile(r"(?i)\b(bearer|tma)\s+\S+"), _FILTERED),
     (re.compile(r"(?:tgWebAppData|init_?data)=\S+", re.IGNORECASE), _FILTERED),
-    (re.compile(r"\S*auth_date=\S*hash=\S*|\S*hash=\S*auth_date=\S*"), _FILTERED),
     (re.compile(r"\+\d[\d ()-]{7,}\d"), _FILTERED),
-    (re.compile(r"(Key \([^)]*\))=\([^)]*\)"), rf"\1=({_FILTERED})"),
     # A database error's DETAIL line quotes the row; validation errors their input.
-    # A value can span lines; the DETAIL runs to a HINT, the SQL or the end.
+    # A value can span lines, or hold "HINT:": the DETAIL runs to the last
+    # HINT or SQL line.
     (
-        re.compile(r"DETAIL:.*?(?=\n(?:HINT:|\[SQL: )|\Z)", re.DOTALL),
+        re.compile(r"DETAIL:.*(?=\n(?:HINT:|\[SQL: ))|DETAIL:.*", re.DOTALL),
         f"DETAIL: {_FILTERED}",
     ),
     (
-        re.compile(r"input_value=.*?(?=, input_type=|$)", re.MULTILINE),
+        re.compile(r"input_value=.*(?=, input_type=)|input_value=.*"),
         f"input_value={_FILTERED}",
     ),
     # FastAPI writes one error a line, its input (and ctx) to the end of it.
     (re.compile(r"'input': .*"), f"'input': {_FILTERED}"),
-    (re.compile(r"([a-z][a-z0-9+.-]*://[^\s?#]*)[?#]\S*", re.IGNORECASE), r"\1"),
+    (
+        re.compile(
+            r"(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*+://[^\s?#]*+)(?:[?#]\S*+)?",
+            re.IGNORECASE,
+        ),
+        r"\1",
+    ),
     (re.compile(r"(?<=/)-?\d{5,}(?=[/\s]|$)"), ":id"),
 )
 
@@ -69,13 +74,25 @@ _REQUEST_KEYS = ("method", "url")
 _QUERY_KEYS = ("http.query", "http.fragment")
 
 
+_TOKEN = re.compile(r"\S+")
+
+
+def _signed_init_data(token: re.Match[str]) -> str:
+    """initData in any spelling: a token carrying both its date and its signature.
+
+    By token rather than by one pattern, which took seconds on a long value.
+    """
+    text = token.group()
+    return _FILTERED if "auth_date=" in text and "hash=" in text else text
+
+
 def _scrub(value: Any, key: str | None = None) -> Any:
     if isinstance(value, str):
         if key in _OWN_KEYS:
             return value
         for pattern, replacement in _PATTERNS:
             value = pattern.sub(replacement, value)
-        return value
+        return _TOKEN.sub(_signed_init_data, value)
     if isinstance(value, dict):
         return {name: _scrub(item, name) for name, item in value.items()}
     if isinstance(value, list | tuple):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -222,6 +223,8 @@ def test_a_transaction_is_scrubbed_like_an_error(sentry: Captured) -> None:
         ("Value error [type=value_error, input_value=['x]', 'Ivan'], input_type=list]", "Ivan"),
         ("  {'type': 'dict_type', 'loc': ('response',), 'input': {'a': {}, 'bio': 'Ivan'}}", "Ivan"),
         ("  {'type': 'list_type', 'loc': ('response',), 'input': ['x', 'Ivan']}", "Ivan"),
+        ("DETAIL:  Failing row contains (1, a\nHINT: b Ivan, null).\n[SQL: INSERT]", "Ivan"),
+        ("Value error [type=value_error, input_value='a, input_type=b Ivan', input_type=str]", "Ivan"),
     ],
 )
 def test_errors_that_quote_their_input_lose_it(text: str, personal: str) -> None:
@@ -240,3 +243,14 @@ def test_a_request_is_named_by_its_route_when_the_route_is_known() -> None:
     scrubbed: Any = error_tracking._before_send(event, {})
 
     assert scrubbed["request"]["url"] == "https://konnekt.cz/api/public/avatars/{file_id}"
+
+
+def test_a_long_value_is_scrubbed_in_good_time() -> None:
+    """One pattern took seconds on a long run of non-space characters, on the event loop."""
+    event: Any = {"extra": {"blob": "a" * 400_000, "url": "https://x/?" + "auth_date=1&" * 20_000 + "hash=f"}}
+    started = time.perf_counter()
+
+    scrubbed: Any = error_tracking._before_send(event, {})
+
+    assert time.perf_counter() - started < 1
+    assert "hash=f" not in scrubbed["extra"]["url"]
