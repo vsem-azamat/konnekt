@@ -12,10 +12,10 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import case, func, null, update
+from sqlalchemy import case, func, null, select, update
 
 from app.core.enums import Touchpoint
-from app.db.models import AudienceMember, AudienceReach, AudienceTouch
+from app.db.models import AudienceDay, AudienceMember, AudienceReach, AudienceTouch
 from app.db.upsert import insert_for
 
 if TYPE_CHECKING:
@@ -150,6 +150,7 @@ async def seen(
         )
     )
 
+    await _day(db, person.id, touchpoint, "visit", at)
     if started is not None:
         await _reach(db, person.id, started, at=at, open_=True)
 
@@ -157,6 +158,8 @@ async def seen(
 async def started(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: datetime.datetime) -> None:
     """Record that `bot` may write to `user_id` from `at`, without it being a visit: an unblock."""
     await _member(db, user_id, at)
+    if await _blocked_before(db, user_id, bot, at):
+        await _day(db, user_id, bot, "unblock", at)
     await _reach(db, user_id, bot, at=at, open_=True)
 
 
@@ -164,9 +167,12 @@ async def blocked(db: AsyncSession, user_id: int, bot: Touchpoint, *, at: dateti
     """Record that `user_id` blocked `bot`: Telegram said so, or refused a send with 403.
 
     Somebody can block a bot before this table first saw them; they used it,
-    so they are audience from then.
+    so they are audience from then. A send refused again is the same block,
+    not another day of one.
     """
     await _member(db, user_id, at)
+    if not await _blocked_before(db, user_id, bot, at):
+        await _day(db, user_id, bot, "block", at)
     await _reach(db, user_id, bot, at=at, open_=False)
 
 
@@ -174,6 +180,22 @@ async def may_write(db: AsyncSession, user_id: int, bot: Touchpoint) -> bool:
     """Whether `bot` may start a conversation with `user_id`: they started it and have not blocked it since."""
     reach = await db.get(AudienceReach, (user_id, bot))
     return reach is not None and reach.started_at is not None and reach.blocked_at is None
+
+
+async def _blocked_before(db: AsyncSession, user_id: int, bot: Touchpoint, at: datetime.datetime) -> bool:
+    """Whether `bot` stood blocked by `user_id` just before `at`, as far as is known."""
+    blocked_at = await db.scalar(
+        select(AudienceReach.blocked_at).where(
+            AudienceReach.user_id == user_id, AudienceReach.bot == bot, AudienceReach.known_at <= at
+        )
+    )
+    return blocked_at is not None
+
+
+async def _day(db: AsyncSession, user_id: int, touchpoint: Touchpoint, event: str, at: datetime.datetime) -> None:
+    days = AudienceDay.__table__
+    insert = insert_for(db, days).values(user_id=user_id, day=at.date(), touchpoint=touchpoint, event=event)
+    await db.execute(insert.on_conflict_do_nothing())
 
 
 async def _member(db: AsyncSession, user_id: int, at: datetime.datetime) -> None:
