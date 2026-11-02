@@ -52,6 +52,8 @@ SOURCE = "welcome"
 # What became of a joiner's greeting, as `welcome_greetings_total` counts it.
 SENT = "sent"
 EXTENDED = "extended"
+# A joiner counted in while the edit naming them was refused, flood control typically.
+EDIT_SKIPPED = "edit_skipped"
 NOT_SENT = "not_sent"
 
 _sleep = asyncio.sleep
@@ -239,6 +241,8 @@ async def _add(bot: Bot, chat_id: int, greeting: _Greeting, user: User) -> bool:
         # Flood control, typically, which is what a burst of joins runs into.
         # The name is counted all the same and shows with the next edit.
         logger.warning("welcome_edit_skipped", chat_id=chat_id, error=str(err), error_type=type(err).__name__)
+        WELCOME_GREETINGS.labels(outcome=EDIT_SKIPPED).inc()
+        return True
     logger.info("welcome_extended", chat_id=chat_id, message_id=greeting.message_id)
     WELCOME_GREETINGS.labels(outcome=EXTENDED).inc()
     return True

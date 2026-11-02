@@ -663,3 +663,17 @@ async def test_a_greeting_telegram_refuses_is_counted_as_not_sent(session: Async
 
     assert _greetings(welcome.SENT) == sent
     assert _greetings(welcome.NOT_SENT) == not_sent + 1
+
+
+async def test_an_edit_flood_control_refused_is_not_counted_as_extended(session: AsyncSession, bot, timers) -> None:
+    await _seed(session, is_welcome_enabled=True)
+    await user_joined(_join(1, "Marek"), bot, session)
+    bot.edit_message_text.side_effect = TelegramRetryAfter(
+        method=MagicMock(), message="Too Many Requests", retry_after=5
+    )
+    extended, skipped = _greetings(welcome.EXTENDED), _greetings(welcome.EDIT_SKIPPED)
+
+    await user_joined(_join(2, "Tereza"), bot, session)
+
+    assert _greetings(welcome.EXTENDED) == extended
+    assert _greetings(welcome.EDIT_SKIPPED) == skipped + 1
