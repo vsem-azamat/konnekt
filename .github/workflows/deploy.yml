@@ -102,6 +102,7 @@ jobs:
           target: webui
           build-args: |
             WEB_VERSION=${{ github.sha }}
+            SITE_URL=${{ vars.WEBAPI_PUBLIC_URL }}
             VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEBUI }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_URL=${{ vars.SENTRY_URL }}

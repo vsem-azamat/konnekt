@@ -1393,8 +1393,8 @@ msgid "ещё чатов: {rest}"
 msgstr "další chaty: {rest}"
 
 #: src/pages/Landing.tsx
-msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
-msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a nostrifikace — od studentů, kteří si tím prošli."
+#~ msgid "Репетиторы, подготовка к вступительным экзаменам, помощь на экзамене и нострификация — от студентов, которые это уже прошли."
+#~ msgstr "Doučování, příprava na přijímací zkoušky, pomoc u zkoušky a nostrifikace — od studentů, kteří si tím prošli."
 
 #: src/console/pages/Summary.tsx
 msgid "Каталог за неделю"
@@ -2193,8 +2193,8 @@ msgid "Обновить из Telegram"
 msgstr "Obnovit z Telegramu"
 
 #: src/pages/Landing.tsx
-msgid "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
-msgstr "Žádná registrace — přihlásíš se svým účtem na Telegramu. Pomáhat ostatním můžeš odtamtud taky."
+#~ msgid "Регистрации нет — заходишь своим аккаунтом Telegram. Помогать другим можно оттуда же."
+#~ msgstr "Žádná registrace — přihlásíš se svým účtem na Telegramu. Pomáhat ostatním můžeš odtamtud taky."
 
 #: src/components/TabBar.tsx
 #: src/pages/Profile.tsx
@@ -2544,8 +2544,8 @@ msgid "Не в каталоге · чат не решён"
 msgstr "Není v katalogu · bez rozhodnutí"
 
 #: src/pages/Landing.tsx
-msgid "Кто поможет с учёбой в Чехии"
-msgstr "Kdo pomůže se studiem v Česku"
+#~ msgid "Кто поможет с учёбой в Чехии"
+#~ msgstr "Kdo pomůže se studiem v Česku"
 
 #: src/pages/Helper.tsx
 msgid "Срок: <0/>"
@@ -2945,8 +2945,8 @@ msgid "Как исправить: добавьте Konnekt в чат занов�
 msgstr "Oprava: přidejte Konnekt do chatu znovu a jmenujte ho správcem."
 
 #: src/pages/Landing.tsx
-msgid "Нострификация"
-msgstr "Nostrifikace"
+#~ msgid "Нострификация"
+#~ msgstr "Nostrifikace"
 
 #: src/console/pages/Audience.tsx
 #~ msgid "можно написать: запустили бота и не заблокировали"
@@ -3338,8 +3338,8 @@ msgid "С твоего факультета"
 msgstr "Z tvojí fakulty"
 
 #: src/pages/Landing.tsx
-msgid "Работы"
-msgstr "Práce"
+#~ msgid "Работы"
+#~ msgstr "Práce"
 
 #: src/console/pages/Audience.tsx
 #: src/console/pages/Chats.tsx
@@ -3602,7 +3602,6 @@ msgid "не отписывались"
 msgstr "neodhlásili se"
 
 #: src/console/pages/AudiencePerson.tsx
-#: src/pages/Landing.tsx
 msgid "Открыть в Telegram"
 msgstr "Otevřít v Telegramu"
 
@@ -3777,8 +3776,8 @@ msgid "Статистика"
 msgstr "Statistika"
 
 #: src/pages/Landing.tsx
-msgid "Вступительные экзамены"
-msgstr "Přijímací zkoušky"
+#~ msgid "Вступительные экзамены"
+#~ msgstr "Přijímací zkoušky"
 
 #: src/components/AppHeader.tsx
 msgid "Язык приложения"
@@ -4194,8 +4193,8 @@ msgid "Не удалось загрузить чаты"
 msgstr "Chaty se nepodařilo načíst"
 
 #: src/pages/Landing.tsx
-msgid "Репетиторы"
-msgstr "Doučování"
+#~ msgid "Репетиторы"
+#~ msgstr "Doučování"
 
 #: src/console/pages/Chat.tsx
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."

@@ -38,7 +38,7 @@ test('the pattern catches the old name in the shapes it has had', () => {
 test('no screen, stylesheet, catalog or first message says the old name', () => {
   const files = sources('src');
   // Reading nothing would pass too, and guard nothing.
-  assert.ok(files.includes(join('src', 'pages', 'Landing.tsx')), 'the walk reads src/');
+  assert.ok(files.includes(join('src', 'pages', 'Home.tsx')), 'the walk reads src/');
   const found = files.filter((path) => OLD_NAME.test(readFileSync(path, 'utf8')));
   assert.deepEqual(found, []);
 });

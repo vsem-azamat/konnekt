@@ -46,7 +46,13 @@ ARG VITE_SENTRY_DSN=
 ARG SENTRY_ORG=
 ARG SENTRY_URL=
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN SENTRY_ORG=$SENTRY_ORG SENTRY_URL=$SENTRY_URL
+# Where the public site lives (WEBAPI_PUBLIC_URL), for its canonical links,
+# hreflang and sitemap, which must be absolute. See web/site/astro.config.ts.
+# Required: without it the pages would name localhost as their own address.
+ARG SITE_URL
+ENV SITE_URL=$SITE_URL
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
+    : "${SITE_URL:?pass --build-arg SITE_URL=<the site's https origin>}" && \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || true)" pnpm run build
 
 # Production stage
@@ -92,6 +98,8 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 # The Mini App, public screens and console alike; docker/Caddyfile routes the
 # API paths around it.
 COPY --from=web-build /app/web/dist /srv/app
+# The public site beside it: the landing page and the guides (web/site/).
+COPY --from=web-build /app/web/site/dist /srv/site
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD caddy validate --config /etc/caddy/Caddyfile >/dev/null || exit 1
