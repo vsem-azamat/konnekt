@@ -270,6 +270,14 @@ The web is one Mini App in `web/`. Its console is `web/src/console/`, for
 super admins; everything else is the public half. The old console's `/admin`
 addresses redirect into it (`docker/Caddyfile`).
 
+**The Mini App has a host of its own, and its old addresses stay redirects.**
+It lives at `WEBAPI_PUBLIC_URL` (app.konnekt.cz); konnekt.cz is for the public
+site. Buttons already sent in Telegram name the old hosts — konnekt.cz and
+konnekt.azamat.io — so the edge answers those with a 301 to the app's host that
+keeps the path and the query. A redirect keeps the fragment too, and the
+fragment is where Telegram puts the launch data (`#tgWebAppData`): served a
+page there instead, an old button would open something other than the app.
+
 **The public half calls nothing of ours but `/api/public/*`, and does not
 import the console.** Only `web/src/console/` may use webapi's session, so a
 public screen cannot make a console request by accident; the shell mounts
