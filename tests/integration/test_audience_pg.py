@@ -8,7 +8,7 @@ tests/unit/test_audience.py, this pins that PostgreSQL agrees.
 import datetime
 
 import pytest
-from app.audience import record, views
+from app.audience import record, trends, views
 from app.audience.record import Person
 from app.core.enums import Touchpoint
 from app.db.models import AudienceMember, AudienceReach, AudienceTouch
@@ -52,12 +52,13 @@ class TestAudienceOnPostgres:
         await record.seen(pg_session, taras, Touchpoint.CONTACT_BOT, at=T1)
         await pg_session.commit()
 
-        summary = await views.summary(pg_session, now=T1)
+        overview = await trends.overview(pg_session, today=T1.date())
         found = await views.page(pg_session, now=T1, query="тарас")
         card = await views.person(pg_session, ANNA.id)
 
-        assert summary["reach"] == {"reachable": 1, "never_started": 1, "blocked": 0, "opted_out": 0}
-        assert summary["first_touch"]["contact_bot"] == 1
+        assert overview["came"]["total"] == 1
+        assert overview["main_bot"] == {"reachable": 1, "blocked": 0, "opted_out": 0}
+        assert overview["contact_bot"]["wrote"] == 1
         assert [p["user_id"] for p in found["items"]] == [2]
         assert card is not None
         assert card["status"] == "reachable"

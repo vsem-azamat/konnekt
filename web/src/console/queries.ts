@@ -10,9 +10,9 @@ import { api, rawInitData } from '@/lib/api';
 
 import {
   type AudienceFilters,
+  type AudienceOverview,
   type AudiencePage,
   type AudiencePerson,
-  type AudienceSummary,
   audiencePath,
 } from './audience';
 import { type SearchResults, searchPath } from './search';
@@ -264,11 +264,11 @@ export const spamCountQuery = (filters: PingFilters) => ({
   retryOnMount: false,
 });
 
-/** The top of the Audience screen: how many, who may be written to, where from. */
-export const audienceSummaryQuery = {
-  queryKey: ['console', 'audience', 'summary'] as const,
+/** The audience on the Overview: who came this week, and whom each bot reaches. */
+export const audienceOverviewQuery = {
+  queryKey: ['console', 'audience', 'overview'] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>
-    consoleGet<AudienceSummary>('/api/audience/summary', { signal }),
+    consoleGet<AudienceOverview>('/api/audience/overview', { signal }),
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 };

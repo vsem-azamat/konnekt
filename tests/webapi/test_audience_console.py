@@ -1,4 +1,4 @@
-"""The console's view of the audience: the summary, the list and one person's card."""
+"""The console's view of the audience: the Overview's numbers, the list and one person's card."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ PETR = Person(id=5, first_name="Petr", language_code="cs")
 
 @pytest.fixture
 async def audience(db_session_maker):
-    """Five people, one of each kind the summary tells apart."""
+    """Five people, one of each kind the console tells apart."""
     async with db_session_maker() as db:
         # Can be written to by the main bot; came by the bot weeks ago, uses the Mini App now.
         await record.seen(
@@ -60,31 +60,17 @@ def client(db_session_maker):
     app.dependency_overrides.pop(get_session, None)
 
 
-async def test_the_summary_splits_everyone_by_whether_the_bot_may_write(client, audience) -> None:
-    summary = (await client.get("/api/audience/summary")).json()
+async def test_the_overview_says_who_each_bot_reaches(client, audience) -> None:
+    overview = (await client.get("/api/audience/overview")).json()
 
-    assert summary["total"] == 5
-    assert summary["reach"] == {"reachable": 1, "never_started": 2, "blocked": 1, "opted_out": 1}
-    # Where each person came from first.
-    assert summary["first_touch"] == {"main_bot": 3, "contact_bot": 1, "mini_app": 1, "moved_bot": 0}
-    assert summary["languages"] == [{"code": "cs", "count": 2}, {"code": "ru", "count": 2}, {"code": "uk", "count": 1}]
-    # Eight weeks, oldest first; Anna came a month ago, so this week is the other three.
-    assert len(summary["new_by_week"]) == 8
-    assert summary["new_by_week"][-1] == 3
-    assert summary["new_this_week"] == 3
+    # Anna, Jan, Maria and Petr came; Taras wrote only to the contact bot.
+    assert overview["came"]["total"] == 4
+    assert overview["main_bot"] == {"reachable": 1, "blocked": 1, "opted_out": 1}
+    assert overview["contact_bot"] == {"wrote": 1, "blocked": 0, "ads_conversations": 0}
+    assert overview["moved_bot"] == 0
 
 
-async def test_an_empty_audience_still_names_every_status(client) -> None:
-    summary = (await client.get("/api/audience/summary")).json()
-
-    assert summary["total"] == 0
-    assert summary["reach"] == {"reachable": 0, "never_started": 0, "blocked": 0, "opted_out": 0}
-    assert summary["new_by_week"] == [0] * 8
-    assert summary["ads_conversations"] == 0
-    assert summary["contact_bot_blocked"] == 0
-
-
-async def test_the_summary_counts_people_who_wrote_to_the_ads_bot(client, db_session_maker) -> None:
+async def test_the_overview_counts_people_who_wrote_to_the_ads_bot(client, db_session_maker) -> None:
     async with db_session_maker() as db:
         # The ads bot is the contact bot: whoever writes to it joins the audience by it.
         for person, thread in ((ANNA, 10), (TARAS, 11)):
@@ -96,13 +82,11 @@ async def test_the_summary_counts_people_who_wrote_to_the_ads_bot(client, db_ses
         await record.blocked(db, TARAS.id, Touchpoint.CONTACT_BOT, at=NOW)
         await db.commit()
 
-    summary = (await client.get("/api/audience/summary")).json()
+    overview = (await client.get("/api/audience/overview")).json()
 
-    assert summary["ads_conversations"] == 2
-    assert summary["first_touch"]["contact_bot"] == 2
-    assert summary["contact_bot_blocked"] == 1
+    assert overview["contact_bot"] == {"wrote": 2, "blocked": 1, "ads_conversations": 2}
     # A block of the contact bot says nothing about the main bot.
-    assert summary["reach"]["blocked"] == 0
+    assert overview["main_bot"]["blocked"] == 0
 
 
 async def test_the_list_is_newest_activity_first_with_each_persons_status(client, audience) -> None:

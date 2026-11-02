@@ -694,7 +694,7 @@ function ChatScreen({ chatId }: { chatId: number }) {
         ))}
       </Rows>
 
-      <Label>
+      <Label aside={<Trans>сообщения — последние 7 дней</Trans>}>
         <Trans>Активность</Trans>
       </Label>
       <div className={ui.column}>

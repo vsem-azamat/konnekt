@@ -118,6 +118,7 @@ msgstr "Детектор здесь ничего не находил."
 #~ msgstr "{0, plural, one {человек} few {человека} many {человек} other {человека}}"
 
 #: src/console/pages/Audience.tsx
+#: src/console/pages/Summary.tsx
 msgid "сравнение будет с {from}"
 msgstr "сравнение будет с {from}"
 
@@ -585,6 +586,10 @@ msgstr "Добавить услугу"
 msgid "Скопировано"
 msgstr "Скопировано"
 
+#: src/console/pages/Summary.tsx
+msgid "Кого считаем"
+msgstr "Кого считаем"
+
 #: src/console/Charts.tsx
 msgid "Ср"
 msgstr "Ср"
@@ -635,8 +640,8 @@ msgid "Те же кнопки, что в личном сообщении бот�
 msgstr "Те же кнопки, что в личном сообщении бота; решение видно и там."
 
 #: src/console/pages/Summary.tsx
-msgid "могут получить сообщение"
-msgstr "могут получить сообщение"
+#~ msgid "могут получить сообщение"
+#~ msgstr "могут получить сообщение"
 
 #: src/pages/Home.tsx
 #: src/pages/Profile.tsx
@@ -664,6 +669,10 @@ msgstr "математический анализ на ČVUT к 14 феврал�
 #: src/pages/ChatSection.tsx
 msgid "Их ведёт не Konnekt: спам там чистим не мы, правила свои."
 msgstr "Их ведёт не Konnekt: спам там чистим не мы, правила свои."
+
+#: src/console/pages/Summary.tsx
+msgid "{counted, plural, one {по # чату с замером} few {по # чатам с замером} many {по # чатам с замером} other {по # чатам с замером}}"
+msgstr "{counted, plural, one {по # чату с замером} few {по # чатам с замером} many {по # чатам с замером} other {по # чатам с замером}}"
 
 #: src/pages/Chats.tsx
 msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
@@ -984,6 +993,10 @@ msgid "отключён"
 msgstr "отключён"
 
 #: src/console/pages/Summary.tsx
+msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
+msgstr "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
+
+#: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
 msgstr "Самые живые чаты, сообщения по часам"
 
@@ -1137,6 +1150,10 @@ msgstr "Заявку уже закрыли"
 #: src/console/pages/Chat.tsx
 msgid "Только наблюдать?"
 msgstr "Только наблюдать?"
+
+#: src/console/pages/Summary.tsx
+msgid "всего {total}"
+msgstr "всего {total}"
 
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
@@ -1568,8 +1585,8 @@ msgstr "Пусто — город родителя. Свой город нуже
 
 #. placeholder {0}: n(audience.ads_conversations)
 #: src/console/pages/Summary.tsx
-msgid "первых касаний; диалогов о рекламе: {0}"
-msgstr ""
+#~ msgid "первых касаний; диалогов о рекламе: {0}"
+#~ msgstr ""
 
 #: src/pages/Ads.tsx
 msgid "Форматы"
@@ -1639,6 +1656,10 @@ msgstr "И то, и другое"
 #: src/pages/OfferPrices.tsx
 msgid "за час"
 msgstr "за час"
+
+#: src/console/pages/Summary.tsx
+msgid "Пришли к нам за 7 дней"
+msgstr "Пришли к нам за 7 дней"
 
 #: src/components/RequestSheet.tsx
 msgid "Неважно"
@@ -2175,6 +2196,10 @@ msgstr "Предложи услугу — студенты напишут сам
 msgid "например: Страховка для студентов"
 msgstr "например: Страховка для студентов"
 
+#: src/console/pages/Summary.tsx
+msgid "пришли к нам через старых ботов"
+msgstr "пришли к нам через старых ботов"
+
 #: src/console/pages/Audience.tsx
 msgid "открывали Mini App, но писать боту не разрешили"
 msgstr "открывали Mini App, но писать боту не разрешили"
@@ -2362,6 +2387,10 @@ msgstr "Все новые анкеты просмотрены."
 #: src/console/pages/AudiencePerson.tsx
 msgid "язык {0}"
 msgstr "язык {0}"
+
+#: src/console/pages/Chat.tsx
+msgid "сообщения — последние 7 дней"
+msgstr "сообщения — последние 7 дней"
 
 #: src/pages/AdsChats.tsx
 msgid "Выходит в выбранных чатах один раз. Где он уместен, подскажем."
@@ -2726,10 +2755,8 @@ msgid "сейчас"
 msgstr "сейчас"
 
 #. placeholder {0}: data.total
-#. placeholder {0}: i18n.number(audience.data.total)
 #. placeholder {0}: i18n.number(total)
 #: src/console/pages/Chat.tsx
-#: src/console/pages/Summary.tsx
 #: src/pages/Ask.tsx
 msgid "всего {0}"
 msgstr "всего {0}"
@@ -3216,8 +3243,8 @@ msgid "Заявки без откликов"
 msgstr "Заявки без откликов"
 
 #: src/console/pages/Summary.tsx
-msgid "первых касаний"
-msgstr "первых касаний"
+#~ msgid "первых касаний"
+#~ msgstr "первых касаний"
 
 #: src/console/pages/Catalog.tsx
 msgid "без откликов"
@@ -3415,6 +3442,10 @@ msgstr "по любому вопросу"
 #: src/pages/Profile.tsx
 msgid "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
 msgstr "{0, plural, one {# отклик} few {# отклика} many {# откликов} other {# отклика}}"
+
+#: src/console/pages/Summary.tsx
+msgid "писали боту; из них о рекламе: {ads}"
+msgstr "писали боту; из них о рекламе: {ads}"
 
 #: src/console/pages/Chat.tsx
 msgid "Вопросы по поступлению — в тему #вопросы."
@@ -3681,8 +3712,8 @@ msgid "Сверху — кто ведёт «{0}»"
 msgstr "Сверху — кто ведёт «{0}»"
 
 #: src/console/pages/Summary.tsx
-msgid "Аудитория за неделю"
-msgstr "Аудитория за неделю"
+#~ msgid "Аудитория за неделю"
+#~ msgstr "Аудитория за неделю"
 
 #: src/components/AppHeader.tsx
 #: src/console/BrowserShell.tsx
@@ -3735,6 +3766,7 @@ msgid "договоримся"
 msgstr "договоримся"
 
 #: src/console/pages/Audience.tsx
+#: src/console/pages/Summary.tsx
 msgid "можно написать: дали боту писать и не заблокировали"
 msgstr "можно написать: дали боту писать и не заблокировали"
 
@@ -3932,6 +3964,10 @@ msgstr "как у родителя"
 msgid "Не указан"
 msgstr "Не указан"
 
+#: src/console/pages/Summary.tsx
+msgid "Аудитория подробно"
+msgstr "Аудитория подробно"
+
 #: src/console/pages/Catalog.tsx
 msgid "анкет за 7 дней"
 msgstr "анкет за 7 дней"
@@ -4065,6 +4101,10 @@ msgstr "Пусто — вся Чехия: чат виден в каталоге 
 #: src/console/pages/AudiencePerson.tsx
 msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
 msgstr "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
+
+#: src/console/pages/Summary.tsx
+msgid "{diff} к неделе раньше"
+msgstr "{diff} к неделе раньше"
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"
@@ -4357,8 +4397,8 @@ msgid "Чёрный список"
 msgstr "Чёрный список"
 
 #: src/console/pages/Summary.tsx
-msgid "Что считаем"
-msgstr "Что считаем"
+#~ msgid "Что считаем"
+#~ msgstr "Что считаем"
 
 #: src/pages/Profile.tsx
 msgid "все услуги выключены"

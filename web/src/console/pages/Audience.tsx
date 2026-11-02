@@ -34,6 +34,7 @@ import {
   comparableFrom,
   METRICS,
   type Metric,
+  mostlyRecorded,
   PERIODS,
   type Period,
   percent,
@@ -228,7 +229,9 @@ function Trends({ data, days, setDays, picked, setPicked }: TrendsProps) {
               <span className={css.big}>{total.now ?? '—'}</span>
               {delta(metric)}
               <Since data={data} metric={metric} />
-              <Spark points={barsOf(now, metric)} />
+              {mostlyRecorded(barsOf(now, metric)) ? (
+                <Spark points={barsOf(now, metric)} />
+              ) : null}
               <span className={css.tileHint}>
                 {chosen ? <Trans>график ниже</Trans> : <Trans>показать график ↓</Trans>}
               </span>

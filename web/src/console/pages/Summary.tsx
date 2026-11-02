@@ -26,15 +26,16 @@ import {
   Title,
   ui,
 } from '@/components/Ui';
-import { dayCells, memberChange, signed } from '@/console/activity';
-import type { AudienceSummary } from '@/console/audience';
+import { useDay } from '@/console/AudienceCharts';
+import { dayCells, memberChange, memberTrend, signed } from '@/console/activity';
+import type { AudienceOverview } from '@/console/audience';
 import { useBrowserConsole } from '@/console/browserContext';
 import table from '@/console/ChatTable.module.css';
 import { ConsoleFailure, ConsoleGate } from '@/console/ConsoleGate';
 import {
   adminCatalogQuery,
   adminPartnersQuery,
-  audienceSummaryQuery,
+  audienceOverviewQuery,
   blockedQuery,
   consoleChatsQuery,
   consoleSignalsQuery,
@@ -43,7 +44,12 @@ import {
   everyMinute,
 } from '@/console/queries';
 import css from '@/console/Summary.module.css';
-import { type AttentionKey, attention, type BusyChat } from '@/console/session';
+import {
+  type AttentionKey,
+  attention,
+  type BusyChat,
+  type HomeStats,
+} from '@/console/session';
 import {
   elapsed,
   menuCounts,
@@ -51,6 +57,7 @@ import {
   type PendingActionSignal,
   type WaveSignal,
 } from '@/console/signals';
+import { change } from '@/console/trends';
 import { hapticSelection } from '@/hooks/useTelegram';
 
 /**
@@ -70,14 +77,13 @@ export default function ConsoleSummaryPage() {
 
 function Summary() {
   const navigate = useNavigate();
-  const { i18n } = useLingui();
   // Read again every minute while it is open: it says how fresh it is.
   const stats = useQuery({ ...consoleStatsQuery, refetchInterval: everyMinute });
   const chats = useQuery(consoleChatsQuery);
   const catalog = useQuery(adminCatalogQuery);
   const partners = useQuery(adminPartnersQuery);
   const blocked = useQuery(blockedQuery);
-  const audience = useQuery(audienceSummaryQuery);
+  const audience = useQuery(audienceOverviewQuery);
   // The waves and the proposals, and whether the console's bot can act: the
   // same in both layouts. A browser's menu reads the signals too.
   const inBrowser = useBrowserConsole();
@@ -203,18 +209,8 @@ function Summary() {
     <>
       {stats.data || catalog.data ? (
         <div className={inBrowser ? css.kpis : ui.summaryTiles}>
-          {stats.data ? <MembersTile stats={stats.data.members_delta} /> : null}
-          {audience.data ? (
-            <div className={ui.summaryTile} data-tone="0">
-              <span>
-                <Trans>Аудитория за неделю</Trans>
-              </span>
-              <b>+{i18n.number(audience.data.new_this_week)}</b>
-              <small>
-                <Trans>всего {i18n.number(audience.data.total)}</Trans>
-              </small>
-            </div>
-          ) : null}
+          {stats.data ? <MembersTile stats={stats.data} /> : null}
+          {audience.data ? <CameTile came={audience.data.came} /> : null}
           {stats.data ? (
             <div className={ui.summaryTile} data-tone="1">
               <span>
@@ -298,6 +294,7 @@ function Summary() {
       retry={() => void audience.refetch()}
       ready={system.data?.publish_bot_ready}
       table={inBrowser}
+      more={() => open('/console/audience')}
     />
   );
 
@@ -516,9 +513,16 @@ function Updated({ at }: { at: number }) {
   );
 }
 
-function MembersTile({ stats }: { stats: Parameters<typeof memberChange>[0] }) {
+/**
+ * How far the members moved, summed over the chats with a count old enough
+ * to compare: a person in two chats is in both. The line is the week of those
+ * same chats.
+ */
+function MembersTile({ stats }: { stats: HomeStats }) {
   const { i18n } = useLingui();
-  const { day, week } = memberChange(stats);
+  const { day, week } = memberChange(stats.members_delta);
+  const counted = stats.members_delta.filter((entry) => entry.delta_7d !== null).length;
+  const line = memberTrend(stats.members_week);
   const write = (n: number) => signed(n, (abs) => i18n.number(abs));
   return (
     <div className={ui.summaryTile} data-tone="3">
@@ -532,6 +536,58 @@ function MembersTile({ stats }: { stats: Parameters<typeof memberChange>[0] }) {
         ) : (
           <Trans>за 7 дней {write(week)}</Trans>
         )}
+      </small>
+      {week === null ? null : (
+        <small>
+          <Plural
+            value={counted}
+            one="по # чату с замером"
+            few="по # чатам с замером"
+            many="по # чатам с замером"
+            other="по # чатам с замером"
+          />
+        </small>
+      )}
+      {line ? (
+        <svg
+          aria-hidden="true"
+          viewBox="-1 -2 102 36"
+          preserveAspectRatio="none"
+          className={css.tileLine}
+        >
+          <polyline points={line.points} vectorEffect="non-scaling-stroke" />
+        </svg>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Who came to us in the last seven whole days, against the seven before: the
+ * Audience page's «пришли к нам», so the backfill's guesses are not in it.
+ */
+function CameTile({ came }: { came: AudienceOverview['came'] }) {
+  const { i18n } = useLingui();
+  const day = useDay();
+  const delta = change(came.now, came.before);
+  const from = day(came.compare_from);
+  const total = i18n.number(came.total);
+  const diff = delta === null ? '' : signed(delta.diff, (abs) => i18n.number(abs));
+  return (
+    <div className={ui.summaryTile} data-tone="0">
+      <span>
+        <Trans>Пришли к нам за 7 дней</Trans>
+      </span>
+      <b>{came.now === null ? '—' : `+${i18n.number(came.now)}`}</b>
+      <small>
+        {delta === null ? (
+          <Trans>сравнение будет с {from}</Trans>
+        ) : (
+          <Trans>{diff} к неделе раньше</Trans>
+        )}
+      </small>
+      <small>
+        <Trans>всего {total}</Trans>
       </small>
     </div>
   );
@@ -685,9 +741,9 @@ function ProposalRow({
 }
 
 /**
- * Who each bot can reach. The main bot by whether it may write (the
- * announcements' measure); the others by the people they met first, as the
- * Audience screen counts them; the ads bot by the people who wrote to it.
+ * Who each bot can reach, each number with who it counts: the main bot by
+ * whether it may write now, as the Audience page says it; the contact bot by
+ * everyone who wrote to it; the old bots by who came through them.
  */
 function Bots({
   audience,
@@ -695,13 +751,16 @@ function Bots({
   retry,
   ready,
   table: asTable,
+  more,
 }: {
-  audience: AudienceSummary | undefined;
+  audience: AudienceOverview | undefined;
   error: Error | null;
   retry: () => void;
   ready: boolean | undefined;
   /** A table beside the queues in a browser; rows on a phone's width. */
   table: boolean;
+  /** Opens the Audience page, which the browser's table links to. */
+  more: () => void;
 }) {
   const { i18n } = useLingui();
   const n = (value: number) => i18n.number(value);
@@ -721,75 +780,78 @@ function Bots({
       {audience && !asTable ? (
         <BotRows audience={audience} />
       ) : audience ? (
-        <div className={css.tableWrap}>
-          <table className={css.table}>
-            <thead>
-              <tr>
-                <th>
-                  <Trans>Бот</Trans>
-                </th>
-                <th className={css.num}>
-                  <Trans>Число</Trans>
-                </th>
-                <th>
-                  <Trans>Что считаем</Trans>
-                </th>
-                <th>
-                  <Trans>Заблокировали</Trans>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <b>
-                    <Trans>Основной бот</Trans>
-                  </b>
-                  <small>
-                    <Trans>бот и Mini App</Trans>
-                  </small>
-                </td>
-                <td className={css.num}>{n(audience.reach.reachable)}</td>
-                <td>
-                  <Trans>могут получить сообщение</Trans>
-                </td>
-                <td>{n(audience.reach.blocked)}</td>
-              </tr>
-              <tr>
-                <td>
-                  <b>
-                    <Trans>Бот связи</Trans>
-                  </b>
-                  <small>
-                    <Trans>«Написать нам» и реклама</Trans>
-                  </small>
-                </td>
-                <td className={css.num}>{n(audience.first_touch.contact_bot ?? 0)}</td>
-                <td>
-                  <Trans>
-                    первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
-                  </Trans>
-                </td>
-                <td>{n(audience.contact_bot_blocked)}</td>
-              </tr>
-              <tr>
-                <td>
-                  <b>
-                    <Trans>Старые боты</Trans>
-                  </b>
-                  <small>
-                    <Trans>переехавшие подписчики</Trans>
-                  </small>
-                </td>
-                <td className={css.num}>{n(audience.first_touch.moved_bot ?? 0)}</td>
-                <td>
-                  <Trans>первых касаний</Trans>
-                </td>
-                <td>—</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className={css.tableWrap}>
+            <table className={css.table}>
+              <thead>
+                <tr>
+                  <th>
+                    <Trans>Бот</Trans>
+                  </th>
+                  <th className={css.num}>
+                    <Trans>Число</Trans>
+                  </th>
+                  <th>
+                    <Trans>Кого считаем</Trans>
+                  </th>
+                  <th>
+                    <Trans>Заблокировали</Trans>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <b>
+                      <Trans>Основной бот</Trans>
+                    </b>
+                    <small>
+                      <Trans>бот и Mini App</Trans>
+                    </small>
+                  </td>
+                  <td className={css.num}>{n(audience.main_bot.reachable)}</td>
+                  <td>
+                    <MainBotWho audience={audience} />
+                  </td>
+                  <td>{n(audience.main_bot.blocked)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <b>
+                      <Trans>Бот связи</Trans>
+                    </b>
+                    <small>
+                      <Trans>«Написать нам» и реклама</Trans>
+                    </small>
+                  </td>
+                  <td className={css.num}>{n(audience.contact_bot.wrote)}</td>
+                  <td>
+                    <ContactBotWho audience={audience} />
+                  </td>
+                  <td>{n(audience.contact_bot.blocked)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <b>
+                      <Trans>Старые боты</Trans>
+                    </b>
+                    <small>
+                      <Trans>переехавшие подписчики</Trans>
+                    </small>
+                  </td>
+                  <td className={css.num}>{n(audience.moved_bot)}</td>
+                  <td>
+                    <Trans>пришли к нам через старых ботов</Trans>
+                  </td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" className={css.more} onClick={more}>
+            <Trans>Аудитория подробно</Trans> <Chevron />
+          </button>
+        </>
       ) : error ? (
         <ConsoleFailure error={error} retry={retry} />
       ) : (
@@ -799,8 +861,29 @@ function Bots({
   );
 }
 
-/** The bots table as rows: who each bot is, the number, and what it counts. */
-function BotRows({ audience }: { audience: AudienceSummary }) {
+/** Who the main bot's number counts, as the Audience page words it. */
+function MainBotWho({ audience }: { audience: AudienceOverview }) {
+  const { i18n } = useLingui();
+  const opted = i18n.number(audience.main_bot.opted_out);
+  return audience.main_bot.opted_out ? (
+    <Trans>
+      можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от
+      новостей
+    </Trans>
+  ) : (
+    <Trans>можно написать: дали боту писать и не заблокировали</Trans>
+  );
+}
+
+/** Who the contact bot's number counts: everyone who wrote, whatever they used first. */
+function ContactBotWho({ audience }: { audience: AudienceOverview }) {
+  const { i18n } = useLingui();
+  const ads = i18n.number(audience.contact_bot.ads_conversations);
+  return <Trans>писали боту; из них о рекламе: {ads}</Trans>;
+}
+
+/** The bots table as rows: who each bot is, the number, and who it counts. */
+function BotRows({ audience }: { audience: AudienceOverview }) {
   const { i18n } = useLingui();
   const n = (value: number) => i18n.number(value);
   // Kept whole on its line: «заблокировали» alone above «1» reads as nothing.
@@ -816,39 +899,27 @@ function BotRows({ audience }: { audience: AudienceSummary }) {
         title={<Trans>Основной бот</Trans>}
         hint={
           <>
-            <Trans>бот и Mini App</Trans>
-            <br />
-            <Trans>могут получить сообщение</Trans> · {blocked(audience.reach.blocked)}
+            <MainBotWho audience={audience} /> · {blocked(audience.main_bot.blocked)}
           </>
         }
-        trailing={<Count>{n(audience.reach.reachable)}</Count>}
+        trailing={<Count>{n(audience.main_bot.reachable)}</Count>}
       />
       <Row
         wrap
         title={<Trans>Бот связи</Trans>}
         hint={
           <>
-            <Trans>«Написать нам» и реклама</Trans>
-            <br />
-            <Trans>
-              первых касаний; диалогов о рекламе: {n(audience.ads_conversations)}
-            </Trans>{' '}
-            · {blocked(audience.contact_bot_blocked)}
+            <ContactBotWho audience={audience} /> ·{' '}
+            {blocked(audience.contact_bot.blocked)}
           </>
         }
-        trailing={<Count>{n(audience.first_touch.contact_bot ?? 0)}</Count>}
+        trailing={<Count>{n(audience.contact_bot.wrote)}</Count>}
       />
       <Row
         wrap
         title={<Trans>Старые боты</Trans>}
-        hint={
-          <>
-            <Trans>переехавшие подписчики</Trans>
-            <br />
-            <Trans>первых касаний</Trans>
-          </>
-        }
-        trailing={<Count>{n(audience.first_touch.moved_bot ?? 0)}</Count>}
+        hint={<Trans>пришли к нам через старых ботов</Trans>}
+        trailing={<Count>{n(audience.moved_bot)}</Count>}
       />
     </Rows>
   );

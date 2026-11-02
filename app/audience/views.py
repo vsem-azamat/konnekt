@@ -1,4 +1,4 @@
-"""Reading the audience for the console: the summary, a filtered page, one person.
+"""Reading the audience for the console: a filtered page, one person.
 
 A person's status is about the main bot, the one any announcement would come
 from, and the four statuses do not overlap: opting out outranks a block,
@@ -13,14 +13,13 @@ from typing import TYPE_CHECKING, Any, Literal
 from sqlalchemy import and_, case, func, or_, select
 
 from app.core.enums import Touchpoint
-from app.db.models import AdsTopic, AudienceMember, AudienceReach, AudienceTouch
+from app.db.models import AudienceMember, AudienceReach, AudienceTouch
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 Status = Literal["reachable", "never_started", "blocked", "opted_out"]
 STATUSES: tuple[Status, ...] = ("reachable", "never_started", "blocked", "opted_out")
-WEEKS = 8
 
 _main = (
     select(AudienceReach.user_id, AudienceReach.started_at, AudienceReach.blocked_at)
@@ -41,67 +40,8 @@ def _members() -> Any:
 
 
 def new_since(now: datetime.datetime, days: int) -> datetime.datetime:
-    """Where "new in the last `days`" starts: one window for the summary and the list alike."""
+    """Where "new in the last `days`" starts."""
     return now - datetime.timedelta(days=days)
-
-
-async def summary(db: AsyncSession, *, now: datetime.datetime) -> dict[str, Any]:
-    members = _members().subquery()
-    reach = dict.fromkeys(STATUSES, 0)
-    for status, count in await db.execute(select(members.c.status, func.count()).group_by(members.c.status)):
-        reach[status] = count
-
-    # Weeks counted back from now, not calendar weeks: the last bar is always the latest seven days.
-    bounds = [new_since(now, 7 * weeks) for weeks in range(WEEKS + 1)]
-    weekly = await db.execute(
-        select(
-            *(
-                func.count().filter(
-                    AudienceMember.first_seen_at > bounds[age + 1], AudienceMember.first_seen_at <= bounds[age]
-                )
-                for age in reversed(range(WEEKS))
-            )
-        )
-    )
-    new_by_week = [count or 0 for count in weekly.one()]
-
-    # The touchpoint each person used first; a tie, as the backfill can leave, is broken by name.
-    first = (
-        select(
-            AudienceTouch.touchpoint,
-            func.row_number()
-            .over(partition_by=AudienceTouch.user_id, order_by=(AudienceTouch.first_at, AudienceTouch.touchpoint))
-            .label("rank"),
-        )
-    ).subquery()
-    first_touch = {touchpoint.value: 0 for touchpoint in Touchpoint}
-    for touchpoint, count in await db.execute(
-        select(first.c.touchpoint, func.count()).where(first.c.rank == 1).group_by(first.c.touchpoint)
-    ):
-        first_touch[touchpoint] = count
-
-    languages = await db.execute(
-        select(AudienceMember.language_code, func.count().label("n"))
-        .where(AudienceMember.language_code.is_not(None))
-        .group_by(AudienceMember.language_code)
-        .order_by(func.count().desc(), AudienceMember.language_code)
-    )
-    # People who wrote to the ads bot: each has a topic in the staff group, and
-    # one more if the desk moved groups, so count people rather than topics.
-    ads_conversations = await db.scalar(select(func.count(AdsTopic.user_id.distinct())))
-    contact_bot_blocked = await db.scalar(
-        select(func.count()).where(AudienceReach.bot == Touchpoint.CONTACT_BOT, AudienceReach.blocked_at.is_not(None))
-    )
-    return {
-        "total": sum(reach.values()),
-        "reach": reach,
-        "first_touch": first_touch,
-        "new_by_week": new_by_week,
-        "new_this_week": new_by_week[-1],
-        "languages": [{"code": code, "count": count} for code, count in languages],
-        "ads_conversations": ads_conversations or 0,
-        "contact_bot_blocked": contact_bot_blocked or 0,
-    }
 
 
 # A Telegram id fits a signed bigint; a longer run of digits is a name, not an id.

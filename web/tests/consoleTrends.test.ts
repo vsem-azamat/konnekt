@@ -6,6 +6,7 @@ import {
   barsOf,
   change,
   comparableFrom,
+  mostlyRecorded,
   overlap,
   percent,
   periodLength,
@@ -75,4 +76,11 @@ test('a period past a month is whole weeks', () => {
   assert.equal(periodLength(7), 7);
   assert.equal(periodLength(30), 30);
   assert.equal(periodLength(90), 91);
+});
+
+test('a sparkline needs half its bars recorded', () => {
+  const bar = (value: number | null) => ({ from: '2026-11-01', to: '2026-11-01', value });
+  assert.equal(mostlyRecorded([bar(null), bar(null), bar(3)]), false);
+  assert.equal(mostlyRecorded([bar(null), bar(2), bar(3)]), true);
+  assert.equal(mostlyRecorded([bar(null), bar(0)]), true);
 });

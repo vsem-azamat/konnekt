@@ -37,15 +37,8 @@ test('an empty week has nothing to scale by', () => {
 });
 
 test('a trend needs two counts, and says how far it moved', () => {
-  assert.equal(
-    memberTrend([{ captured_at: '2026-09-01T00:00:00', member_count: 10 }]),
-    null,
-  );
-  const trend = memberTrend([
-    { captured_at: '2026-09-01T00:00:00', member_count: 100 },
-    { captured_at: '2026-09-02T00:00:00', member_count: 120 },
-    { captured_at: '2026-09-03T00:00:00', member_count: 110 },
-  ]);
+  assert.equal(memberTrend([10]), null);
+  const trend = memberTrend([100, 120, 110]);
   assert.ok(trend);
   assert.equal(trend.change, 10);
   assert.equal(trend.first, 100);
@@ -55,10 +48,7 @@ test('a trend needs two counts, and says how far it moved', () => {
 });
 
 test('a flat trend is drawn through the middle, not along an edge', () => {
-  const trend = memberTrend([
-    { captured_at: '2026-09-01T00:00:00', member_count: 50 },
-    { captured_at: '2026-09-02T00:00:00', member_count: 50 },
-  ]);
+  const trend = memberTrend([50, 50]);
   assert.equal(trend?.points, '0,16 100,16');
 });
 

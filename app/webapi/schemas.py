@@ -467,6 +467,8 @@ class HomeStats(BaseModel):
 
     chat_heatmap: list[ChatHeatmapSummary] = []
     members_delta: list[MembersDeltaEntry] = []
+    # Members of the chats counted all week, a day apart from a week ago to now.
+    members_week: list[int] = []
     spam_pings: SpamPingsSummary = SpamPingsSummary(count_24h=0, count_7d=0, recent=[])
 
 
@@ -488,27 +490,41 @@ class AuthMeResponse(BaseModel):
 AudienceStatus = Literal["reachable", "never_started", "blocked", "opted_out"]
 
 
-class AudienceLanguage(BaseModel):
-    code: str
-    count: int
-
-
-class AudienceSummary(BaseModel):
-    """The top of the Audience page: how many, who may be written to, where they came from."""
+class AudienceCame(BaseModel):
+    """Gave the main bot leave to write or opened the Mini App: see app.audience.trends.overview."""
 
     total: int
-    # By status, about the main bot: see app.audience.views.
-    reach: dict[AudienceStatus, int]
-    # By the touchpoint each person used first.
-    first_touch: dict[str, int]
-    # New people per seven days, oldest first, the last entry ending now.
-    new_by_week: list[int]
-    new_this_week: int
-    languages: list[AudienceLanguage]
-    # People who have written to the ads bot, which is also the contact bot.
+    # The last seven whole days, and the seven before; None when not wholly recorded.
+    now: int | None
+    before: int | None
+    # The first day a week can be compared with the one before it.
+    compare_from: datetime.date
+
+
+class AudienceMainBot(BaseModel):
+    """Who the main bot may write to now, and who it may not."""
+
+    reachable: int
+    blocked: int
+    opted_out: int
+
+
+class AudienceContactBot(BaseModel):
+    # Everyone who has written to it, whatever they used first.
+    wrote: int
+    blocked: int
+    # People who have written to the ads desk, which is the same bot.
     ads_conversations: int
-    # People who blocked the contact bot; the main bot's blocks are in reach.
-    contact_bot_blocked: int
+
+
+class AudienceOverview(BaseModel):
+    """The audience on the console's Overview."""
+
+    came: AudienceCame
+    main_bot: AudienceMainBot
+    contact_bot: AudienceContactBot
+    # People who reached us through a retired bot.
+    moved_bot: int
 
 
 class AudienceTrendPoint(BaseModel):
