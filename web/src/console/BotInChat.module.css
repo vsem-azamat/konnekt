@@ -1,0 +1,43 @@
+/* The warning around what keeps the bot from its work; the colours are the notice's. */
+.problem {
+  gap: 8px;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title svg {
+  flex: none;
+}
+
+.rights {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rights li {
+  display: grid;
+  gap: 2px;
+}
+
+.rights b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.fix {
+  color: var(--ink);
+}
+
+.ok {
+  display: inline-flex;
+  color: var(--good);
+}

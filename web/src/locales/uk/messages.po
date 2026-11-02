@@ -120,9 +120,18 @@ msgstr "Період"
 msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
 msgstr "У каталозі чат буде позначено як не наш. Бот там нічого не робить; якщо він у чаті, видаліть його звідти."
 
+#. placeholder {0}: day(latest.changed_at)
+#: src/console/BotInChat.tsx
+msgid "последнее изменение {0}"
+msgstr "остання зміна {0}"
+
 #: src/components/Place.tsx
 msgid "Пардубице"
 msgstr "Пардубіце"
+
+#: src/console/BotInChat.tsx
+msgid "Пригласительные ссылки"
+msgstr "Запрошувальні посилання"
 
 #. placeholder {0}: formatDay( request.deadline_on ?? localDay(request.expires_at ?? ''), locale, )
 #: src/pages/Mine.tsx
@@ -132,6 +141,10 @@ msgstr "термін вийшов {0}"
 #: src/components/Phrase.tsx
 msgid "То, чем ты занимаешься"
 msgstr "Те, чим ти займаєшся"
+
+#: src/console/BotInChat.tsx
+msgid "Бот спросит Telegram в течение суток."
+msgstr "Бот запитає Telegram протягом доби."
 
 #: src/console/BanSheet.tsx
 msgid "Одобренных чатов нет: банить пока негде."
@@ -310,6 +323,10 @@ msgstr "Головні адміністратори"
 msgid "Вступление"
 msgstr "Вступ"
 
+#: src/console/BotInChat.tsx
+msgid "Как исправить: Telegram → чат → Администраторы → Konnekt → включите право."
+msgstr "Як виправити: Telegram → чат → Адміністратори → Konnekt → увімкніть право."
+
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "математичний аналіз ČVUT"
@@ -321,6 +338,10 @@ msgstr "Повернися до списку чатів."
 #: src/pages/MyHelperAbout.tsx
 msgid "Новые заявки в Telegram"
 msgstr "Нові заявки в Telegram"
+
+#: src/console/BotInChat.tsx
+msgid "Изменять профиль группы"
+msgstr "Змінювати профіль групи"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
@@ -350,11 +371,19 @@ msgstr "Ціна <0/>, Kč <1>з анкети, можна змінити</1>"
 msgid "Есть время {day}"
 msgstr "Є час {day}"
 
+#: src/console/BotInChat.tsx
+msgid "админ"
+msgstr "адмін"
+
 #. placeholder {0}: stats.data.spam_pings.count_24h
 #. placeholder {1}: stats.data.spam_pings.count_7d
 #: src/console/pages/Summary.tsx
 msgid "{0} за сутки · {1} за неделю"
 msgstr "{0} за добу · {1} за тиждень"
+
+#: src/console/BotInChat.tsx
+msgid "Реклама и «вошёл/вышел» останутся в чате."
+msgstr "Реклама й «увійшов/вийшов» залишаться в чаті."
 
 #: src/console/TopSearch.tsx
 msgid "в чёрном списке"
@@ -405,6 +434,14 @@ msgstr "Дії із заявкою"
 #: src/pages/MyHelperAbout.tsx
 msgid "Скрыть"
 msgstr "Сховати"
+
+#: src/console/BotInChat.tsx
+msgid "Нет права «<0/>»"
+msgstr "Немає права «<0/>»"
+
+#: src/console/pages/Chat.tsx
+msgid "Капча в чате"
+msgstr "Капча в чаті"
 
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: главного администратора забанить нельзя."
@@ -561,6 +598,10 @@ msgstr "можуть отримати повідомлення"
 msgid "Умеешь то, что нужно другим?"
 msgstr "Вмієш те, що потрібно іншим?"
 
+#: src/console/BotInChat.tsx
+msgid "Бот не закрепит список чатов."
+msgstr "Бот не закріпить список чатів."
+
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
 msgid "Снять бан во всех чатах?"
@@ -605,6 +646,11 @@ msgstr "ціну не вказано"
 #: src/console/pages/Chat.tsx
 msgid "В этот чат входят другие, поэтому он сам стоит отдельно."
 msgstr "До цього чату входять інші, тому він сам стоїть окремо."
+
+#. placeholder {0}: day(bot?.changed_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Бот в чате, но не админ · с {0}"
+msgstr "Бот у чаті, але не адмін · з {0}"
 
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
@@ -657,6 +703,10 @@ msgstr "де виконано вхід, налаштування"
 #: src/console/pages/Signals.tsx
 msgid "Не получилось связаться с сервером. Попробуйте ещё раз."
 msgstr "Не вдалося зв'язатися із сервером. Спробуйте ще раз."
+
+#: src/console/BotInChat.tsx
+msgid "вышел"
+msgstr "вийшов"
 
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
@@ -813,6 +863,10 @@ msgstr "Мова"
 msgid "Месяц"
 msgstr "Місяць"
 
+#: src/console/BotInChat.tsx
+msgid "ограничен"
+msgstr "обмежений"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "Пришли по ссылке"
 msgstr "Прийшли за посиланням"
@@ -821,6 +875,10 @@ msgstr "Прийшли за посиланням"
 #: src/pages/Request.tsx
 msgid "Без откликов"
 msgstr "Без відповідей"
+
+#: src/console/BotInChat.tsx
+msgid "Бота ещё не проверяли"
+msgstr "Бота ще не перевіряли"
 
 #: src/console/ConsoleGate.tsx
 msgid "Вход не сохранился"
@@ -850,6 +908,10 @@ msgstr "Реклама для студентів"
 #: src/console/pages/Summary.tsx
 msgid "Число"
 msgstr "Кількість"
+
+#: src/console/BotInChat.tsx
+msgid "удалён"
+msgstr "видалений"
 
 #: src/components/EmptyServiceSheet.tsx
 #: src/pages/Ask.tsx
@@ -1022,6 +1084,10 @@ msgstr "бот для дій консолі: не налаштований"
 msgid "{name} в чёрном списке"
 msgstr "{name} у чорному списку"
 
+#: src/console/pages/Chat.tsx
+msgid "Новичок входит без права писать и получает вопрос по кнопке в карточке. Не ответил — бот удалит его вместе с сообщениями."
+msgstr "Новачок входить без права писати й отримує питання за кнопкою в картці. Не відповів — бот видалить його разом із повідомленнями."
+
 #: src/console/pages/Summary.tsx
 msgid "Сейчас ничего не ждёт."
 msgstr "Зараз нічого не чекає."
@@ -1058,6 +1124,10 @@ msgstr "Мої заявки"
 #: src/components/ChatRow.tsx
 msgid "{0, plural, one {# подписчик} few {# подписчика} many {# подписчиков} other {# подписчика}}"
 msgstr "{0, plural, one {# підписник} few {# підписники} many {# підписників} other {# підписника}}"
+
+#: src/console/BotInChat.tsx
+msgid "Без прав админа бот не модерирует."
+msgstr "Без прав адміна бот не модерує."
 
 #: src/console/pages/Chat.tsx
 msgid "ни во что: стоит отдельно"
@@ -1356,6 +1426,10 @@ msgstr "Система"
 msgid "после заявки"
 msgstr "після заявки"
 
+#: src/console/BotInChat.tsx
+msgid "Бот — админ, но не хватает прав"
+msgstr "Бот — адмін, але бракує прав"
+
 #: src/components/ServiceSheet.tsx
 #: src/pages/OfferPrices.tsx
 msgid "За что цена"
@@ -1380,6 +1454,10 @@ msgstr "{0, plural, one {ще # день} few {ще # дні} many {ще # дн�
 #: src/pages/OfferPrices.tsx
 msgid "за работу"
 msgstr "за роботу"
+
+#: src/console/BotInChat.tsx
+msgid "Закреплять сообщения"
+msgstr "Закріплювати повідомлення"
 
 #: src/pages/Ask.tsx
 msgid "Посмотреть похожее"
@@ -1430,6 +1508,10 @@ msgstr "Німецька"
 #: src/console/pages/Chat.tsx
 msgid "Третья строка приветствия, под «добро пожаловать» и строкой про Konnekt. Можно оставить пустым."
 msgstr "Третій рядок привітання, під «добро пожаловать» і рядком про Konnekt. Можна залишити порожнім."
+
+#: src/console/BotInChat.tsx
+msgid "Список админов появится после первой проверки бота."
+msgstr "Список адмінів з’явиться після першої перевірки бота."
 
 #: src/console/BanSheet.tsx
 msgid "Сообщения останутся."
@@ -1552,6 +1634,11 @@ msgstr "Модерує"
 msgid "Рассылки"
 msgstr "Розсилки"
 
+#. placeholder {0}: day(chat.bot_absent_at ?? bot?.changed_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Бота нет в чате · с {0}"
+msgstr "Бота немає в чаті · з {0}"
+
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
 msgstr "Перевірка не пройшла"
@@ -1563,6 +1650,11 @@ msgstr "Потрібен заголовок."
 #: src/pages/Request.tsx
 msgid "Выбрать"
 msgstr "Обрати"
+
+#. placeholder {0}: moment(chat.bot.known_at)
+#: src/console/BotInChat.tsx
+msgid "Проверено {0}"
+msgstr "Перевірено {0}"
 
 #: src/console/pages/Signals.tsx
 msgid "Предложено через MCP. Ждёт нажатия админа, истекает через {left} мин."
@@ -1684,6 +1776,10 @@ msgstr "репетиторство, роботи, допомога"
 msgid "Дальше вопросов не будет."
 msgstr "Далі питань не буде."
 
+#: src/console/BotInChat.tsx
+msgid "замечено при проверке"
+msgstr "виявлено під час перевірки"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "оценка по старым данным"
 msgstr "оцінка за старими даними"
@@ -1792,6 +1888,10 @@ msgstr "Чернетка"
 msgid "Модерировать"
 msgstr "Модерувати"
 
+#: src/console/BotInChat.tsx
+msgid "Описание чата не обновится по шаблону."
+msgstr "Опис чату не оновиться за шаблоном."
+
 #: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
@@ -1822,6 +1922,10 @@ msgstr "Як займаєшся"
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
 msgstr "Мої послуги"
+
+#: src/console/BotInChat.tsx
+msgid "Ничего из настроек ниже не работает, пока бота не вернут."
+msgstr "Жодне з налаштувань нижче не працює, доки бота не повернуть."
 
 #: src/components/Incoming.tsx
 #: src/components/NoUsernameNotice.tsx
@@ -2025,6 +2129,10 @@ msgstr "Рядок під іменем"
 msgid "{0, plural, one {Заявку уже видит # помощник. Обычно первый отклик приходит за день.} few {Заявку уже видят # помощника. Обычно первый отклик приходит за день.} many {Заявку уже видят # помощников. Обычно первый отклик приходит за день.} other {Заявку уже видят # помощника. Обычно первый отклик приходит за день.}}"
 msgstr "{0, plural, one {Заявку вже бачить # помічник. Зазвичай перша відповідь приходить за день.} few {Заявку вже бачать # помічники. Зазвичай перша відповідь приходить за день.} many {Заявку вже бачать # помічників. Зазвичай перша відповідь приходить за день.} other {Заявку вже бачать # помічника. Зазвичай перша відповідь приходить за день.}}"
 
+#: src/console/BotInChat.tsx
+msgid "участник"
+msgstr "учасник"
+
 #: src/console/pages/Chat.tsx
 #: src/console/pages/PartnerNew.tsx
 msgid "Ссылка"
@@ -2045,6 +2153,10 @@ msgstr "Поки порожньо"
 #: src/console/pages/Signals.tsx
 msgid "Порог"
 msgstr "Поріг"
+
+#: src/console/BotInChat.tsx
+msgid "дали: <0/>"
+msgstr "надали: <0/>"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "например: Без страховки визу не продлят."
@@ -2079,6 +2191,10 @@ msgstr "Відповідних помічників поки немає. Зая�
 #: src/console/ProfileSheet.tsx
 msgid "Анкету уже изменили: вот какая она сейчас."
 msgstr "Анкету вже змінили: ось яка вона зараз."
+
+#: src/console/BotInChat.tsx
+msgid "Бот не одобрит заявки и не сделает ссылку для каталога."
+msgstr "Бот не схвалить заявки й не створить посилання для каталогу."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
@@ -2172,6 +2288,10 @@ msgstr "хто користувався ботами й Mini App"
 #: src/console/pages/Chat.tsx
 msgid "Ссылка для публичной вкладки"
 msgstr "Посилання для публічної вкладки"
+
+#: src/console/BotInChat.tsx
+msgid "Бот — админ, все права есть"
+msgstr "Бот — адмін, усі права є"
 
 #: src/components/TabBar.tsx
 #: src/pages/Mine.tsx
@@ -2342,6 +2462,11 @@ msgstr "Список порожній."
 msgid "Что нужно"
 msgstr "Що потрібно"
 
+#. placeholder {0}: day(bot?.changed_at ?? '')
+#: src/console/BotInChat.tsx
+msgid "Бота удалили из чата · {0}"
+msgstr "Бота видалили з чату · {0}"
+
 #: src/console/pages/Spam.tsx
 msgid "За 7 дней"
 msgstr "За 7 днів"
@@ -2370,6 +2495,14 @@ msgstr "Нд"
 #: src/components/Place.tsx
 msgid "Ческе-Будеёвице"
 msgstr "Чеські Будейовиці"
+
+#: src/console/pages/Chat.tsx
+msgid "Бот в чате"
+msgstr "Бот у чаті"
+
+#: src/console/BotInChat.tsx
+msgid "Бан не сработает, капча в чате не выключит новичку сообщения."
+msgstr "Бан не спрацює, капча в чаті не вимкне новачкові повідомлення."
 
 #: src/console/pages/Signals.tsx
 msgid "Не выполнено: Telegram отказал. Запрос закрыт."
@@ -2569,6 +2702,7 @@ msgstr "Реклама"
 #: src/components/ServiceSheet.tsx
 #: src/components/Showcase.tsx
 #: src/components/TabBar.tsx
+#: src/console/BotInChat.tsx
 #: src/console/pages/System.tsx
 #: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
@@ -2590,6 +2724,10 @@ msgstr "відкритих немає"
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"
 msgstr "Залишити прихованою"
+
+#: src/console/BotInChat.tsx
+msgid "Удалять сообщения"
+msgstr "Видаляти повідомлення"
 
 #: src/console/Charts.tsx
 msgid "Вт"
@@ -2624,8 +2762,16 @@ msgid "Бан {who} во всех чатах"
 msgstr "Бан {who} в усіх чатах"
 
 #: src/console/pages/Chat.tsx
+msgid "Админы чата"
+msgstr "Адміни чату"
+
+#: src/console/pages/Chat.tsx
 msgid "Отключить чат"
 msgstr "Вимкнути чат"
+
+#: src/console/BotInChat.tsx
+msgid "Как исправить: добавьте Konnekt в чат заново и назначьте администратором."
+msgstr "Як виправити: додайте Konnekt у чат знову й призначте адміністратором."
 
 #: src/pages/Landing.tsx
 msgid "Нострификация"
@@ -3019,9 +3165,17 @@ msgstr "Причина: <0/>"
 msgid "Реклама не разобрана"
 msgstr "Нерозібрана реклама"
 
+#: src/console/BotInChat.tsx
+msgid "Блокировать участников"
+msgstr "Блокувати учасників"
+
 #: src/console/pages/Chat.tsx
 msgid "Активность"
 msgstr "Активність"
+
+#: src/console/BotInChat.tsx
+msgid "владелец"
+msgstr "власник"
 
 #: src/console/pages/PartnerNew.tsx
 #: src/pages/OfferPrices.tsx
@@ -3309,6 +3463,10 @@ msgstr "Консоль"
 msgid "первое касание"
 msgstr "перший контакт"
 
+#: src/console/BotInChat.tsx
+msgid "История прав бота"
+msgstr "Історія прав бота"
+
 #: src/console/BrowserShell.tsx
 msgid "Суперадмин"
 msgstr "Суперадмін"
@@ -3526,6 +3684,10 @@ msgstr "анкет за 7 днів"
 #: src/console/ProfileSheet.tsx
 msgid "вчера"
 msgstr "учора"
+
+#: src/console/BotInChat.tsx
+msgid "забрали: <0/>"
+msgstr "забрали: <0/>"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Не присылать"
@@ -3762,6 +3924,10 @@ msgstr "Не вдалося завантажити чати"
 msgid "Репетиторы"
 msgstr "Репетитори"
 
+#: src/console/pages/Chat.tsx
+msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."
+msgstr "Питання приходить лише в особисті. Багато хто його не помічає: Telegram пише їм «адмін схвалить», і бота вони не відкривають."
+
 #: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx
 #: src/pages/Profile.tsx
@@ -3883,6 +4049,10 @@ msgstr "{0, plural, one {заняття з нами} few {заняття з на
 #: src/pages/MyHelperAbout.tsx
 msgid "Сохранено. Анкета по-прежнему скрыта, администратор посмотрит её ещё раз."
 msgstr "Збережено. Анкета й далі прихована, адміністратор перегляне її ще раз."
+
+#: src/console/BotInChat.tsx
+msgid "Как исправить: Telegram → чат → Администраторы → Добавить администратора → Konnekt."
+msgstr "Як виправити: Telegram → чат → Адміністратори → Додати адміністратора → Konnekt."
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Blacklist.tsx
