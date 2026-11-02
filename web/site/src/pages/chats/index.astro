@@ -1,0 +1,14 @@
+---
+/** Rendered on request (catalog/load.ts): see the component for what it shows. */
+import Chats from '../../catalog/Chats.astro';
+import { chatsPage } from '../../catalog/load.ts';
+import { CACHED } from '../../catalog/page.ts';
+
+export const prerender = false;
+
+const page = await chatsPage(undefined, Astro.url);
+if (page instanceof Response) return page;
+Astro.response.headers.set('Cache-Control', CACHED);
+---
+
+<Chats {...page} />

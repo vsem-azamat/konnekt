@@ -13,6 +13,7 @@ import {
   universitiesWithChats,
 } from '../site/src/catalog/catalog.ts';
 import { remembered } from '../site/src/catalog/remembered.ts';
+import { sanitizeUniversities } from '../site/src/catalog/source.ts';
 import type { PublicChat } from '../src/lib/chats.ts';
 
 const chat = (title: string, over: Partial<PublicChat> = {}): PublicChat => ({
@@ -248,4 +249,39 @@ test('with nothing to fall back on, a failure is the caller’s', async () => {
   );
 
   await assert.rejects(read(), /down/);
+});
+
+test('the universities are checked as they arrive, not trusted', () => {
+  const rows = sanitizeUniversities([
+    {
+      code: 'cvut',
+      name: 'ČVUT',
+      short_name: 'ČVUT',
+      city: 'Praha',
+      site_url: 'https://www.cvut.cz',
+    },
+    {
+      code: 'vse',
+      name: 'VŠE',
+      short_name: null,
+      city: null,
+      site_url: 'javascript:alert(1)',
+    },
+    { code: 'Bad Code', name: 'x' },
+    { code: 'uk', name: '' },
+    null,
+  ]);
+
+  assert.deepEqual(rows, [
+    {
+      code: 'cvut',
+      name: 'ČVUT',
+      short_name: 'ČVUT',
+      city: 'Praha',
+      site_url: 'https://www.cvut.cz',
+    },
+    // A link the page prints: https only.
+    { code: 'vse', name: 'VŠE', short_name: null, city: null, site_url: null },
+  ]);
+  assert.throws(() => sanitizeUniversities({ detail: 'down' }));
 });

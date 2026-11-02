@@ -1,0 +1,49 @@
+---
+/**
+ * One chat: the landing's row as a link to the chat itself, with the anchor
+ * that stands in for a page of its own.
+ */
+// The app's own letters, so a chat looks the same on the site and in the app.
+import { initials, type PublicChat } from '../../../src/lib/chats.ts';
+import type { Lang } from '../paths.ts';
+import { appOrigin, toneOf } from './page.ts';
+import { CATALOG_TEXTS, count } from './texts.ts';
+
+interface Props {
+  lang: Lang;
+  chat: PublicChat;
+  /** Its anchor on its university's page; none elsewhere. */
+  id?: string;
+  /** The second line's first words: the city on /chats/, nothing on a university's page. */
+  sub?: string | null;
+  /** Grey words after the count, «главный чат» on /chats/. */
+  note?: string | null;
+}
+
+const { lang, chat, id, sub = null, note = null } = Astro.props;
+const t = CATALOG_TEXTS[lang];
+const letters = initials(chat.title);
+const people =
+  chat.member_count === null
+    ? null
+    : count(lang, chat.member_count, chat.kind === 'channel' ? t.subscribers : t.members);
+// The photo is served on the app's host, supervisor's own route, where the
+// catalogue says it is.
+const avatar = chat.avatar ? `${appOrigin()}${chat.avatar}` : null;
+---
+
+<a class="row" id={id} href={chat.link} rel="nofollow" data-city={chat.city ?? ''} data-find={`${chat.title} ${chat.group ?? ''} ${chat.institution ?? ''} ${chat.city ?? ''}`}>
+  {avatar ? <img class="av" src={avatar} alt="" width="40" height="40" loading="lazy" decoding="async" /> : <span class={`letters tone${toneOf(chat.title)}`} data-long={letters.length > 3 || undefined} aria-hidden="true">{letters}</span>}
+  <span class="rt">
+    <b>{chat.title}</b>
+    <small>
+      {sub && <span>{sub}</span>}
+      {people && <span>{people}{note && ` · ${note}`}</span>}
+      {!people && note && <span>{note}</span>}
+      {chat.kind === 'channel' && <span class="tag">{t.channel}</span>}
+      {chat.is_forum && <span class="tag">{t.forum}</span>}
+      {chat.external && <span class="tag">{t.external}</span>}
+    </small>
+  </span>
+  <svg class="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+</a>

@@ -12,6 +12,8 @@ export const GET: APIRoute = ({ site }) =>
       'Disallow: /api/',
       '',
       `Sitemap: ${new URL('/sitemap-index.xml', site)}`,
+      // The catalog pages, rendered on request (sitemap-catalog.xml.ts).
+      `Sitemap: ${new URL('/sitemap-catalog.xml', site)}`,
       '',
     ].join('\n'),
     { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
