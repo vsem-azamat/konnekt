@@ -59,8 +59,8 @@ no interface layer without a real second implementation.
 - Make dangerous things unreachable by construction rather than guarded by a
   check — a check can be raced, a missing argument cannot.
 - Never log secrets, tokens, session strings, or credentials.
-- Telegram- and MCP-specific rules live in `docs/invariants.md`. Read it before
-  touching bot identities, the approval gate, or the control plane.
+- Telegram-specific rules live in `docs/invariants.md`. Read it before
+  touching bot identities or the approval gate.
 
 ## Database And Deployment
 
@@ -85,7 +85,7 @@ uv run ty check app tests
 uv run pytest                    # everything; the lanes below are subsets
 uv run pytest tests/unit tests/handlers tests/middleware tests/utils
 uv run pytest tests/integration  # needs PostgreSQL
-uv run pytest tests/e2e tests/webapi tests/mcp
+uv run pytest tests/e2e tests/webapi
 pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test
 ```
 

@@ -49,7 +49,7 @@ high-impact decisions.
 | --- | --- |
 | Community safety | Keep chats healthier with less repetitive administrator effort |
 | Entry control | Decide who gets in before they are in, rather than cleaning up afterwards |
-| Operator control | Let a small team run the supported workflows coherently from Telegram, a web surface, and an external agent runtime |
+| Operator control | Let a small team run the supported workflows coherently from Telegram and a web surface |
 | Public projection | Expose a curated read-only view of the community catalog without admin authority |
 | Enquiry intake | Let somebody who wants to reach these communities see the size of the offer and find the operator who can price it |
 
@@ -64,7 +64,6 @@ These matter to delivery, but they are not product promises on their own.
 | --- | --- |
 | Telegram API separation | Split bot and client-level responsibilities safely |
 | Persistence of observed activity | Give operators the record a decision needs |
-| An external control plane | Let an agent runtime drive admin work without widening what it can do |
 | Automated verification | Keep the system maintainable as behavior changes |
 
 ## In Scope
@@ -72,8 +71,8 @@ These matter to delivery, but they are not product promises on their own.
 - Telegram communities managed by platform operators.
 - Moderation workflows, including reports, spam handling, a cross-chat
   blacklist, and entry checks on join requests.
-- Administrator workflows exposed through Telegram commands, an authenticated
-  web surface, and an authenticated control plane for an external agent runtime.
+- Administrator workflows exposed through Telegram commands and an
+  authenticated web surface.
 - Public read-only views only where they are intentionally exposed.
 
 ## Out Of Scope
@@ -99,10 +98,9 @@ in [invariants](../invariants.md).
 
 - **"AI moderation"** does not describe this system. No model decides anything
   here; the moderation paths are deterministic, and the judgement calls belong
-  to an administrator or to a runtime outside this repository.
-- **"Automatic ban"** overstates what happens. Removals proposed through the
-  control plane wait for a super admin's confirmation or expire; only an
-  administrator's own command removes someone directly.
+  to an administrator.
+- **"Automatic ban"** overstates what happens. Only an administrator removes
+  someone: by a command, on the console, or by putting them on the blacklist.
 - **"General-purpose platform"** overstates the current evidence unless we can
   name supported audiences and workflows beyond the present operating model.
 - Database choices, Telegram client details, and the number of bot identities

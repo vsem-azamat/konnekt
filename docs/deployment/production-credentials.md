@@ -21,7 +21,6 @@ them again — rotate rather than recover.
 | `DB_HOST`, `DB_USER`, `DB_NAME` | The shared PostgreSQL server, which listens publicly, and the bot's role and database on it |
 | `DB_PASSWORD` | PostgreSQL password. The database runs beside this stack rather than in it, so this is the password that database already has — see [The Database](database.md). |
 | `MODERATOR_BOT_TOKEN` | Bot token from BotFather |
-| `MCP_TOKEN` | Bearer token for the control plane |
 | `ADS_BOT_TOKEN` | Optional. Token of @konnekt_ads_bot, the ads contact desk |
 | `ADS_BOT_GROUP_ID` | Optional. The staff forum supergroup where the ads desk opens a topic per person; the bot must be an admin there that can manage topics |
 | `ADMIN_SUPER_ADMINS` | Comma-separated Telegram IDs |
@@ -31,9 +30,6 @@ them again — rotate rather than recover.
 | `CATALOG_OWNER_TG_ID` | Optional. Who the catalog tells about a first profile or request; should be one of `ADMIN_SUPER_ADMINS` so the ping's console button opens |
 | `WEBAPI_OIDC_CLIENT_SECRET` | Optional. The Client Secret BotFather shows under the bot's Login Widget. Reaches only the webapi. See [The admin site](admin-site.md) |
 | `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` | Deploy target and key |
-
-`MCP_TOKEN` is the entire protection on a plane that can mute, unmute, unban and
-read what the bot recorded. Generate with `openssl rand -hex 32`.
 
 There is no Telegram **user session** in this deployment, deliberately. The
 maintenance scripts under `scripts/` use one and run from a developer's
@@ -68,7 +64,6 @@ and off otherwise:
 
 | Feature | On when |
 | --- | --- |
-| MCP control plane | `MCP_TOKEN` is set |
 | Ads contact desk | `ADS_BOT_TOKEN` and `ADS_BOT_GROUP_ID` are set |
 | Video in the greetings | `MODERATOR_BOT_INTRO_VIDEO` is set |
 | /start album | `MODERATOR_BOT_INTRO_PHOTO`, `MODERATOR_BOT_INTRO_VIDEO` and `WEBAPI_PUBLIC_URL` are set |
@@ -85,7 +80,7 @@ the direction that fails quietly: a flag saying a subsystem is on, over
 credentials that are absent, produces one that starts, fails, and says nothing.
 
 Some values are fixed in `docker-compose.yaml` rather than configured, because
-they cannot differ without breaking something: the MCP port and path are pinned
+they cannot differ without breaking something: the bot's metrics port is pinned
 to the container port mapping.
 
 Anything absent falls back to the default in `app/core/config.py`. The list is
@@ -127,10 +122,6 @@ production credentials is worth less than nothing.
 5. Confirm the containers came up: the deploy log shows `docker compose ps`;
    read the services' logs on the host, since the workflow log is public.
 
-Rotating `MCP_TOKEN` also means updating whatever client holds it.
-
 ## If a value leaks
 
-Rotate first, investigate after. For `MCP_TOKEN`, check `pending_actions` for
-proposals nobody made — the plane cannot ban on its own, so a leak shows up as
-requests awaiting confirmation rather than as damage already done.
+Rotate first, investigate after.
