@@ -46,7 +46,11 @@ function WithoutIt({ right }: { right: UsedRight }) {
     case 'can_invite_users':
       return <Trans>Бот не одобрит заявки и не сделает ссылку для каталога.</Trans>;
     case 'can_pin_messages':
-      return <Trans>Команда /pin не сработает.</Trans>;
+      return (
+        <Trans>
+          Команда /pin не сработает, и бот не закрепит список чатов факультетов.
+        </Trans>
+      );
     case 'can_change_info':
       return <Trans>Описание чата не обновится по шаблону.</Trans>;
   }

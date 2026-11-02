@@ -452,10 +452,6 @@ msgstr "Captcha in the chat"
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Not done: the main administrator cannot be banned."
 
-#: src/console/BotInChat.tsx
-msgid "Команда /pin не сработает."
-msgstr "The /pin command will not work."
-
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "No requests match this filter right now"
@@ -2475,6 +2471,10 @@ msgstr "Last 7 days"
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
 msgstr "Chats awaiting review"
+
+#: src/console/BotInChat.tsx
+msgid "Команда /pin не сработает, и бот не закрепит список чатов факультетов."
+msgstr "The /pin command will not work, and the bot will not pin the faculty chats list."
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Скрыта администратором"

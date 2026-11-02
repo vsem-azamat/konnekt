@@ -451,10 +451,6 @@ msgstr "Капча в чате"
 msgid "Не выполнено: главного администратора забанить нельзя."
 msgstr "Не выполнено: главного администратора забанить нельзя."
 
-#: src/console/BotInChat.tsx
-msgid "Команда /pin не сработает."
-msgstr "Команда /pin не сработает."
-
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "Под этот фильтр сейчас заявок нет"
@@ -2474,6 +2470,10 @@ msgstr "За 7 дней"
 #: src/console/pages/Summary.tsx
 msgid "Чаты на проверке"
 msgstr "Чаты на проверке"
+
+#: src/console/BotInChat.tsx
+msgid "Команда /pin не сработает, и бот не закрепит список чатов факультетов."
+msgstr "Команда /pin не сработает, и бот не закрепит список чатов факультетов."
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Скрыта администратором"
