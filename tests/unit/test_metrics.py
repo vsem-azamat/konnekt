@@ -157,7 +157,7 @@ def test_failure_counters_exist_before_the_first_failure() -> None:
             return REGISTRY.get_sample_value(name, labels) is not None
 
         statuses = {v for k, v in vars(JoinCaptcha).items() if k.startswith("STATUS_")} - {JoinCaptcha.STATUS_PENDING}
-        missing = [("captcha", e) for e in statuses | {"sent", "retry"} if not has("captcha_events_total", event=e)]
+        missing = [("captcha", e) for e in statuses | {"sent", "retry", "intro_sent", "intro_refused", "intro_skipped"} if not has("captcha_events_total", event=e)]
         missing += [
             ("client", k, p)
             for k in get_args(client_errors.Kind)
