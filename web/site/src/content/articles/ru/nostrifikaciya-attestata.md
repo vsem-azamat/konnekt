@@ -18,7 +18,6 @@ sources:
   - { url: "https://e-sbirka.gov.cz/sb/2004/634", title: "Zákon č. 634/2004 Sb., o správních poplatcích, sazebník, položka 10 (e-Sbírka)", checked_at: 2026-11-03 }
   - { url: "https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami", title: "Uznávání rovnocennosti a nostrifikace vysvědčení vydaných zahraničními školami (Magistrát hl. m. Prahy)", checked_at: 2026-11-03 }
   - { url: "https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu", title: "Ověřování podmínky přijetí ke studiu (Masarykova univerzita)", checked_at: 2026-11-03 }
-  - { url: "https://fhs.cuni.cz/FHS-1027.html", title: "Uznání předchozího studia / Nostrifikace (Fakulta humanitních studií UK)", checked_at: 2026-11-03 }
   - { url: "https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028", title: "Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK)", checked_at: 2026-11-03 }
   - { url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41", title: "Status table: Apostille Convention (HCCH)", checked_at: 2026-11-03 }
 draft: true
@@ -115,11 +114,9 @@ draft: true
 
 ### Пошлина
 
-Пошлина за нострификацию: [3 000 Kč](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101) (так в тарифе закона о сборах).[^2] Её платят краевой управе при подаче заявления, и она не связана с платой факультету за оценку аттестатацию (шаг 1).
+Пошлина за нострификацию: [3 000 Kč](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101) (так в тарифе закона о сборах).[^2] Её платят краевой управе при подаче заявления, и она не связана с платой факультету за оценку аттестата (шаг 1).
 
-В Праге по [данным Магистрата](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami) пошлину повысили с 1 000 Kč до 3 000 Kč с 1 марта 2025. На старых сайтах ещё встречается 1 000 Kč.
-
-> **Важно.** Страница [Fakulty humanitních studií UK](https://fhs.cuni.cz/FHS-1027.html) на 3 ноября 2026 тоже пишет 1 000 Kč.[^w4] Действует сумма из закона и портала: 3 000 Kč.
+В Праге по [данным Магистрата](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami) пошлину повысили с 1 000 Kč до 3 000 Kč с 1 марта 2025. На старых сайтах ещё встречается 1 000 Kč, но действует сумма из закона: 3 000 Kč.
 
 Украинцы с временной защитой освобождены от пошлины, если на день подачи защита длится меньше 12 месяцев.[^13] Условия уточните в управе.
 
@@ -172,7 +169,7 @@ draft: true
 
 ## 7. Согласуйте сроки с поступлением (пример MFF UK)
 
-Вуз определяет, к какой дате ему нужен документ. Для примера, [MFF UK в приёме 2027/28](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)[^w5]:
+Вуз определяет, к какой дате ему нужен документ. Для примера, MFF UK в приёме 2027/28:[^w5]
 
 - документ об образовании нужно прислать как можно скорее и не позже 30 сентября 2027;
 - для тех, кто сдаёт выпускные экзамены в зарубежной школе, срок продлён до 22 октября 2027;
@@ -181,7 +178,7 @@ draft: true
 
 Другие факультеты называют свои даты, смотрите страницу своего факультета на нужный год.
 
-Нострификацию можно начать [в любой момент после получения аттестата](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101), поэтому подавайте заявление, как только он на руках. Если не успеваете, спросите факультет, оценивает ли он аттестат саутреннюю нострификацию (шаг 1).
+Нострификацию можно начать [в любой момент после получения аттестата](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101), поэтому подавайте заявление, как только он на руках. Если не успеваете, спросите факультет, оценивает ли он аттестат сам (шаг 1).
 
 ## Куда дальше
 
@@ -206,6 +203,5 @@ draft: true
 [^w1]: Uznávání základního, středního nebo vyššího odborného vzdělání dosaženého v zahraničních školách (Portál veřejné správy) — [portal.gov.cz](https://portal.gov.cz/informace/INF-97)
 [^w2]: Uznávání rovnocennosti a nostrifikace vysvědčení vydaných zahraničními školami (Magistrát hl. m. Prahy) — [praha.eu](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami)
 [^w3]: Ověřování podmínky přijetí ke studiu (Masarykova univerzita) — [muni.cz](https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu)
-[^w4]: Uznání předchozího studia / Nostrifikace (Fakulta humanitních studií UK) — [fhs.cuni.cz](https://fhs.cuni.cz/FHS-1027.html)
 [^w5]: Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK) — [mff.cuni.cz](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)
 [^w6]: Status table: Apostille Convention (HCCH) — [hcch.net](https://www.hcch.net/en/instruments/conventions/status-table/?cid=41)
