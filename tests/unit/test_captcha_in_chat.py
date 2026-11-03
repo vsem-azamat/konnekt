@@ -286,7 +286,7 @@ async def test_the_card_gives_the_time_of_those_it_mentions(session: AsyncSessio
     tereza = await _let_in(session, bot, 4343)
     now = utc_now() + BATCH
     marek.expires_at = now + datetime.timedelta(minutes=3)
-    tereza.expires_at = now + datetime.timedelta(hours=2)
+    tereza.expires_at = now + datetime.timedelta(minutes=100)
     await session.commit()
 
     await in_chat.announce_due(bot, session, now)
@@ -294,10 +294,10 @@ async def test_the_card_gives_the_time_of_those_it_mentions(session: AsyncSessio
     # The mention is what Tereza reads, and her two hours are hers; Marek was told his own.
     card = _sent(bot, CHAT_ID)[-1]["text"]
     assert card.startswith('👋 Marek, <a href="tg://user?id=4343">Tereza</a>,')
-    assert card.endswith("⏱ На это 2 часа, потом бот уберёт из чата.")
+    assert card.endswith("⏱ На это 1 час 40 минут, потом бот уберёт из чата.")
 
 
-async def test_an_edited_card_gives_the_time_they_have_left(session: AsyncSession, bot) -> None:
+async def test_an_edited_card_gives_the_time_of_those_it_still_mentions(session: AsyncSession, bot) -> None:
     await _seed(session)
     await _let_in(session, bot, 4242)
     await _let_in(session, bot, 4343)
@@ -305,16 +305,32 @@ async def test_an_edited_card_gives_the_time_they_have_left(session: AsyncSessio
     now = utc_now() + BATCH
     await in_chat.announce_due(bot, session, now)
     marek, tereza, jakub = await _rows(session)
-    tereza.expires_at = now + datetime.timedelta(minutes=45)
-    jakub.expires_at = now + datetime.timedelta(minutes=50)
+    marek.expires_at = now + datetime.timedelta(minutes=3)
+    tereza.expires_at = now + datetime.timedelta(minutes=100)
+    jakub.expires_at = now + datetime.timedelta(minutes=110)
     await session.commit()
-    await _ask(session, bot, 4242)
-    bot.edit_message_text.reset_mock()
 
-    await service.answer(bot, session, challenge_id=marek.id, user_id=4242, pick=_right(marek), now=now)
+    def last_card() -> str:
+        return [c.kwargs for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == CHAT_ID][-1]["text"]
 
-    edits = [c.kwargs for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == CHAT_ID]
-    assert edits[-1]["text"].endswith("⏱ На это 45 минут, потом бот уберёт из чата.")
+    await _ask(session, bot, 4444)
+    await service.answer(bot, session, challenge_id=jakub.id, user_id=4444, pick=_right(jakub), now=now)
+    # Marek, carried by name, runs out first; Tereza is the one the card notified.
+    assert last_card().endswith("⏱ На это 1 час 40 минут, потом бот уберёт из чата.")
+
+    await _ask(session, bot, 4343)
+    await service.answer(bot, session, challenge_id=tereza.id, user_id=4343, pick=_right(tereza), now=now)
+    # Nobody it mentions is left: the time is Marek's.
+    assert last_card().endswith("⏱ На это 3 минуты, потом бот уберёт из чата.")
+
+
+def test_the_time_on_a_card_rounds_up_and_is_never_nothing() -> None:
+    now = utc_now()
+    row = MagicMock(spec=JoinCaptcha, expires_at=now + datetime.timedelta(minutes=119, seconds=30))
+    overdue = MagicMock(spec=JoinCaptcha, expires_at=now - datetime.timedelta(seconds=5))
+
+    assert in_chat._minutes_left([row], now) == 120
+    assert in_chat._minutes_left([overdue], now) == 1
 
 
 async def test_ten_names_still_make_one_card(session: AsyncSession, bot) -> None:
