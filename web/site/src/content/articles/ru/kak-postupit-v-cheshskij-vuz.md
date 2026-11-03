@@ -8,6 +8,7 @@ translationKey: kak-postupit-v-cheshskij-vuz
 published: 2026-11-03
 updated: 2026-11-03
 author: konnekt
+reviewedBy: azamat
 sources:
   - { url: "https://e-sbirka.gov.cz/sb/1998/111", title: "Zákon č. 111/1998 Sb., o vysokých školách, § 48, § 58, § 59 (e-Sbírka)", checked_at: 2026-11-03 }
   - { url: "https://studyin.gov.cz/plan-your-studies/how-to-apply", title: "How to Apply (Study in Czechia, Czech National Agency for International Education and Research)", checked_at: 2026-11-03 }
@@ -34,7 +35,7 @@ sources:
   - { url: "https://mzv.gov.cz/astana/ru/vizy_i_konzulskie/index.html", title: "Визы и консульская информация (Посольство Чехии в Астане)", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf", title: "Kódy víz a povolení k pobytu (MV ČR)", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf", title: "Vzory dokladů vydávaných cizincům (MV ČR)", checked_at: 2026-11-03 }
-draft: true
+draft: false
 ---
 
 ## Коротко
