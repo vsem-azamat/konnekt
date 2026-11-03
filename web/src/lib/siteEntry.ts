@@ -13,7 +13,7 @@
  */
 
 const LEFT = 'konnekt.leftForSite';
-/** How soon a third return counts as a loop rather than a person. */
+/** How soon a third return counts as a loop rather than a person: a loop slower than half this goes on. */
 const LOOP_WINDOW_MS = 10_000;
 /** How many times a tab is sent on within that window before it is kept: the third return stays. */
 const SENT_ON_BEFORE_KEPT = 2;

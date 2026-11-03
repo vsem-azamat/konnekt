@@ -53,7 +53,9 @@ import './index.css';
 async function renderOpenInTelegram(site: string): Promise<void> {
   const container = document.getElementById('root');
   if (!container) throw new Error('#root is missing from index.html');
-  await activateLocale(resolveLocale(navigator.language));
+  const locale = resolveLocale(navigator.language);
+  await activateLocale(locale);
+  document.documentElement.lang = locale;
   document.title = 'Konnekt';
   const { default: OpenInTelegram } = await import('@/pages/OpenInTelegram');
   createRoot(container).render(

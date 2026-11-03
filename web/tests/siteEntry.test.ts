@@ -79,6 +79,7 @@ test('a browser that stays is shown the app’s own screen, not a bare link', ()
   assert.match(main, /<OpenInTelegram site=\{site\} \/>/);
   assert.match(main, /else await renderOpenInTelegram\(site\)/);
   assert.match(main, /document\.title = 'Konnekt'/);
+  assert.match(main, /document\.documentElement\.lang = locale;\n {2}document\.title/);
   assert.doesNotMatch(main, /showSiteLink|style\.cssText/);
   const screen = readFileSync(join(src, 'pages', 'OpenInTelegram.tsx'), 'utf8');
   assert.match(screen, /href=\{botEntry\(site\)\}/);
