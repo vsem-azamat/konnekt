@@ -28,7 +28,9 @@ export function siteRedirect(
   try {
     const tab = session();
     const left = Number(tab.getItem(LEFT));
-    if (left && now - left < LOOP_WINDOW_MS) return null;
+    // A gap below zero is a clock set back, not a loop.
+    const gap = now - left;
+    if (left && gap >= 0 && gap < LOOP_WINDOW_MS) return null;
     tab.setItem(LEFT, String(now));
   } catch {
     // No storage to remember in: the address alone breaks the loop we know of.

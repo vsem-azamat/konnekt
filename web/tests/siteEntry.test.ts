@@ -35,6 +35,13 @@ test('a browser back within seconds stays, one back later is sent on again', () 
   );
 });
 
+test('a clock set back does not keep the browser here', () => {
+  const session = tab();
+  const at = (now: number) => siteRedirect('https://konnekt.cz', () => session, now);
+  assert.equal(at(3_600_000), 'https://konnekt.cz/?from=app');
+  assert.equal(at(300_000), 'https://konnekt.cz/?from=app');
+});
+
 test('with no storage to remember in, the browser is still sent on', () => {
   const blocked = () => {
     throw new DOMException('denied', 'SecurityError');
