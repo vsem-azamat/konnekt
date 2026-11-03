@@ -42,11 +42,22 @@ import {
 } from '@/lib/clientErrors';
 import { captureError, startErrorTracking } from '@/lib/errorTracking';
 import { followKeyboard } from '@/lib/keyboard';
+import { siteEntry, siteRedirect } from '@/lib/siteEntry';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
 import { router } from '@/router';
 
 import './index.css';
+
+/** What a browser sent here twice is shown: the site, as a plain link. */
+function showSiteLink(root: HTMLElement, site: string): void {
+  const link = document.createElement('a');
+  link.href = siteEntry(site);
+  link.textContent = new URL(site).host;
+  link.style.cssText =
+    'display:block;margin:40vh auto 0;text-align:center;font:600 18px system-ui';
+  root.replaceChildren(link);
+}
 
 /**
  * Startup, in order: fake the Telegram environment if we are not in it, bring
@@ -74,7 +85,12 @@ async function bootstrap(): Promise<void> {
       // The public site (web/site/), on its own host. A build that names none,
       // the dev server's, leaves the browser where it is.
       const site = import.meta.env.VITE_SITE_URL;
-      if (site) window.location.replace(site);
+      if (site) {
+        const to = siteRedirect(site, () => window.sessionStorage);
+        const root = document.getElementById('root');
+        if (to) window.location.replace(to);
+        else if (root) showSiteLink(root, site);
+      }
     }
     return;
   }
