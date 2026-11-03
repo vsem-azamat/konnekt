@@ -2,6 +2,7 @@ import { globSync, readFileSync } from 'node:fs';
 import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
+import { parse } from 'yaml';
 
 import {
   type ArticleEntry,
@@ -47,7 +48,13 @@ function articles(): ArticleEntry[] {
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     };
   });
-  checkArticles(entries);
+  const tags = (parse(readFileSync(`${root}src/content/tags.yaml`, 'utf8')) ?? []) as {
+    id: string;
+  }[];
+  checkArticles(
+    entries,
+    tags.map((tag) => tag.id),
+  );
   return entries;
 }
 

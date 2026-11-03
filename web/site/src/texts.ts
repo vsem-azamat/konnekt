@@ -24,7 +24,6 @@ export interface Texts {
   tags: string;
   /** Above a tag's articles: «Статьи с тегом». */
   tagged: string;
-  allIn: string;
 }
 
 export const TEXTS: Record<Lang, Texts> = {
@@ -60,7 +59,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Читайте также',
     tags: 'Теги',
     tagged: 'Статьи с тегом',
-    allIn: 'Все статьи',
   },
   uk: {
     articles: 'Статті',
@@ -94,7 +92,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Читайте також',
     tags: 'Теги',
     tagged: 'Статті з тегом',
-    allIn: 'Усі статті',
   },
   cs: {
     articles: 'Články',
@@ -128,7 +125,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Číst dál',
     tags: 'Štítky',
     tagged: 'Články se štítkem',
-    allIn: 'Všechny články',
   },
   en: {
     articles: 'Articles',
@@ -163,7 +159,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Read next',
     tags: 'Tags',
     tagged: 'Articles tagged',
-    allIn: 'All articles',
   },
 };
 

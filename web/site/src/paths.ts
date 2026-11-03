@@ -150,12 +150,20 @@ export const RESERVED_SLUGS = ['topics', 'tags'];
  * Refuses what would break an address or a translation: a file name that is
  * not already a slug (Astro would rewrite it into one, and the config, which
  * reads file names, would then name a page that does not exist), an article
- * under a reserved slug, or two articles in one language sharing a
- * translation key (which of them would the others name?).
+ * under a reserved slug, two articles in one language sharing a translation
+ * key (which of them would the others name?), or a tag `tags` does not list
+ * (Astro only logs an unknown reference, and would build its page).
  */
-export function checkArticles(articles: readonly ArticleEntry[]): void {
+export function checkArticles(
+  articles: readonly ArticleEntry[],
+  tags?: readonly string[],
+): void {
   const seen = new Map<string, string>();
-  for (const { id, translationKey } of articles) {
+  for (const { id, translationKey, tags: carried = [] } of articles) {
+    const unknown = tags ? carried.filter((tag) => !tags.includes(tag)) : [];
+    if (unknown.length > 0) {
+      throw new Error(`article ${id}: no tag ${unknown.join(', ')} in content/tags.yaml`);
+    }
     if (!SLUG.test(slugOf(id))) {
       throw new Error(
         `article ${id}: the file name is not a slug (lowercase latin, hyphens)`,

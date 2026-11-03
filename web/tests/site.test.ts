@@ -287,3 +287,14 @@ test('the config reads frontmatter the way Astro does, or refuses', () => {
   });
   assert.throws(() => readFrontmatter('draft: true\n', 'ru/a.md'), /ru\/a.md/);
 });
+
+test('an article may carry only a tag the tags file lists', () => {
+  const tagged = {
+    id: 'ru/viza',
+    draft: false,
+    translationKey: 'visa',
+    tags: ['vnzh', 'nope'],
+  };
+  checkArticles([{ ...tagged, tags: ['vnzh'] }], ['vnzh']);
+  assert.throws(() => checkArticles([tagged], ['vnzh']), /ru\/viza.*nope/);
+});

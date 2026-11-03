@@ -48,7 +48,12 @@ const tags = await Promise.all(
     };
   }),
 );
-const listed = new Set(listings(all).map((page) => page.path));
+// A tag links to its page only where search engines may keep that page.
+const listed = new Set(
+  listings(all)
+    .filter((page) => !page.hidden)
+    .map((page) => page.path),
+);
 const collection = await getCollection('articles');
 const next = related(entry(article), all, 3).map(
   ({ id }) => collection.find((other) => other.id === id) as CollectionEntry<'articles'>,
