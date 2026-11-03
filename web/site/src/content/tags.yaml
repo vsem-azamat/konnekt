@@ -1,0 +1,8 @@
+# The tags an article may carry: the id is the tag's address
+# (/articles/tags/<id>/), `names` what a reader sees in each language.
+- id: primer
+  names:
+    ru: Пример
+    uk: Приклад
+    cs: Ukázka
+    en: Example

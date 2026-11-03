@@ -9,6 +9,8 @@ export function entry({ id, data }: CollectionEntry<'articles'>): ArticleEntry {
     draft: data.draft,
     translationKey: data.translationKey,
     people: [data.author.id, ...(data.reviewedBy ? [data.reviewedBy.id] : [])],
+    rubric: data.rubric,
+    tags: data.tags.map((tag) => tag.id),
   };
 }
 

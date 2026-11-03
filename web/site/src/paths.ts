@@ -106,6 +106,8 @@ export interface ArticleEntry {
   translationKey: string;
   /** Who wrote it and who checked it, by their ids in the authors collection. */
   people?: readonly string[];
+  rubric?: string;
+  tags?: readonly string[];
 }
 
 /** The sections an article belongs to, one each; their names are in texts.ts. */
@@ -171,10 +173,76 @@ export function translationsOf(
     .map((other) => ({ lang: langOf(other.id), path: articlePath(other.id) }));
 }
 
+/** A tag's page is kept out of search until this many published articles carry it: a thinner one is a thin page. */
+export const TAG_MIN = 3;
+
+export interface Listing {
+  kind: 'topics' | 'tags';
+  key: string;
+  lang: Lang;
+  path: string;
+  /** The published articles on it. */
+  count: number;
+  hidden: boolean;
+}
+
+/**
+ * The pages that list articles by rubric (`/articles/topics/<rubric>/`) and
+ * by tag (`/articles/tags/<tag>/`), in each language that has an article on
+ * them. A rubric's is hidden while it lists only examples; a tag's until
+ * TAG_MIN published articles carry it.
+ */
+export function listings(articles: readonly ArticleEntry[]): Listing[] {
+  const pages = new Map<string, Listing>();
+  const add = (kind: Listing['kind'], key: string, lang: Lang, draft: boolean) => {
+    const path = localePath(lang, `/articles/${kind}/${key}/`);
+    const page = pages.get(path) ?? { kind, key, lang, path, count: 0, hidden: true };
+    if (!draft) page.count += 1;
+    page.hidden = page.count < (kind === 'tags' ? TAG_MIN : 1);
+    pages.set(path, page);
+  };
+  for (const article of articles) {
+    const lang = langOf(article.id);
+    if (article.rubric) add('topics', article.rubric, lang, article.draft);
+    for (const tag of article.tags ?? []) add('tags', tag, lang, article.draft);
+  }
+  const all = [...pages.values()];
+  return [
+    ...all.filter((p) => p.kind === 'topics'),
+    ...all.filter((p) => p.kind === 'tags'),
+  ];
+}
+
+/**
+ * What to read next after `article`: published articles in its language,
+ * those of its rubric first, then by how many tags they share with it.
+ */
+export function related<T extends ArticleEntry>(
+  article: ArticleEntry,
+  articles: readonly T[],
+  limit: number,
+): T[] {
+  const lang = langOf(article.id);
+  const tags = new Set(article.tags ?? []);
+  const score = (other: ArticleEntry) =>
+    (other.rubric === article.rubric ? tags.size + 1 : 0) +
+    (other.tags ?? []).filter((tag) => tags.has(tag)).length;
+  return articles
+    .filter(
+      (other) => other.id !== article.id && !other.draft && langOf(other.id) === lang,
+    )
+    .map((other) => ({ other, score: score(other) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ other }) => other);
+}
+
 /**
  * Pages that carry `noindex`: every example article, the list of articles in
- * every language that has no published one yet, and an author's page with
- * nothing but examples on it. The sitemap leaves them out.
+ * every language that has no published one yet, an author's page with
+ * nothing but examples on it, and the listings `listings` hides. The sitemap
+ * leaves them out.
  */
 export function hiddenPaths(articles: readonly ArticleEntry[]): string[] {
   const published = new Set(articles.filter((a) => !a.draft).map((a) => langOf(a.id)));
@@ -185,5 +253,8 @@ export function hiddenPaths(articles: readonly ArticleEntry[]): string[] {
   const authors = authorPages(articles)
     .filter((page) => page.hidden)
     .map((page) => authorPath(page.lang, page.id));
-  return [...drafts, ...emptyLists, ...authors];
+  const lists = listings(articles)
+    .filter((page) => page.hidden)
+    .map((page) => page.path);
+  return [...drafts, ...emptyLists, ...authors, ...lists];
 }

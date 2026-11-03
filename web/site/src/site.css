@@ -185,6 +185,37 @@
   list-style: none;
 }
 
+h1 + .lede {
+  margin-bottom: 24px;
+}
+
+.kicker a {
+  color: inherit;
+}
+
+.page h2 a {
+  color: inherit;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.tags :is(a, span) {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.next {
+  margin-top: 48px;
+}
+
 /* Links in a text look like links: the landing's are bare. */
 .article :is(p, li, dd) a {
   color: inherit;

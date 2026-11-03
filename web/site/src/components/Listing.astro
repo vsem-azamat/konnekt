@@ -1,0 +1,56 @@
+---
+/** The articles of one rubric or one tag, in one language. */
+import { getCollection, getEntry } from 'astro:content';
+
+import '../site.css';
+import Base from '../layouts/Base.astro';
+import { type Lang, type Listing, langOf, localePath, type Rubric } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  listing: Listing;
+  langs: readonly Lang[];
+}
+
+const { listing, langs } = Astro.props;
+const { kind, key, lang } = listing;
+const t = TEXTS[lang];
+const tag = kind === 'tags' ? await getEntry('tags', key) : undefined;
+const name =
+  kind === 'topics' ? t.rubrics[key as Rubric] : (tag?.data.names[lang] ?? key);
+const heading = kind === 'topics' ? name : `${t.tagged} «${name}»`;
+const description = kind === 'topics' ? t.rubricIntros[key as Rubric] : heading;
+const articles = (await getCollection('articles'))
+  .filter((article) => langOf(article.id) === lang)
+  .filter((article) =>
+    kind === 'topics'
+      ? article.data.rubric === key
+      : article.data.tags.some((one) => one.id === key),
+  )
+  .sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
+const path = `/articles/${kind}/${key}/`;
+---
+
+<Base
+  lang={lang}
+  path={path}
+  langs={langs}
+  title={`${heading} — Konnekt`}
+  description={description}
+  noindex={listing.hidden}
+>
+  <Header lang={lang} path={path} langs={langs} />
+  <main class="page">
+    <nav class="crumbs" aria-label="breadcrumbs">
+      <a href={localePath(lang, '/')}>Konnekt</a>
+      <a href={localePath(lang, '/articles/')}>{t.articles}</a>
+    </nav>
+    <h1>{heading}</h1>
+    {kind === 'topics' && <p class="lede">{description}</p>}
+    <ArticleCards lang={lang} articles={articles} />
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>

@@ -5,14 +5,23 @@
  * as JSON-LD (articles/structured.ts).
  */
 import { Image } from 'astro:assets';
-import { type CollectionEntry, getEntry, render } from 'astro:content';
+import { type CollectionEntry, getCollection, getEntry, render } from 'astro:content';
 
 import '../site.css';
 import { entries, entry } from '../articles/entries.ts';
 import { articleGraph, day, jsonLd, type Party } from '../articles/structured.ts';
 import Base from '../layouts/Base.astro';
-import { articlePath, authorPath, langOf, localePath, translationsOf } from '../paths.ts';
+import {
+  articlePath,
+  authorPath,
+  langOf,
+  listings,
+  localePath,
+  related,
+  translationsOf,
+} from '../paths.ts';
 import { longDate, TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
 import Footer from './Footer.astro';
 import Header from './Header.astro';
 
@@ -27,7 +36,23 @@ const t = TEXTS[lang];
 const path = articlePath(article.id);
 const site = Astro.site?.href ?? '/';
 const url = new URL(path, site).href;
-const versions = translationsOf(entry(article), await entries());
+const all = await entries();
+const versions = translationsOf(entry(article), all);
+const rubricPath = localePath(lang, `/articles/topics/${data.rubric}/`);
+const tags = await Promise.all(
+  data.tags.map(async ({ id }) => {
+    const tag = await getEntry('tags', id);
+    return {
+      name: tag?.data.names[lang] ?? id,
+      path: localePath(lang, `/articles/tags/${id}/`),
+    };
+  }),
+);
+const listed = new Set(listings(all).map((page) => page.path));
+const collection = await getCollection('articles');
+const next = related(entry(article), all, 3).map(
+  ({ id }) => collection.find((other) => other.id === id) as CollectionEntry<'articles'>,
+);
 const { Content } = await render(article);
 
 /** An author as the page and the structured data name them: a person with their page. */
@@ -45,6 +70,7 @@ const reviewer = data.reviewedBy && (await party(data.reviewedBy));
 const crumbs = [
   { name: 'Konnekt', url: new URL(localePath(lang, '/'), site).href },
   { name: t.articles, url: new URL(localePath(lang, '/articles/'), site).href },
+  { name: t.rubrics[data.rubric], url: new URL(rubricPath, site).href },
 ];
 const graph = articleGraph(
   {
@@ -89,7 +115,7 @@ const graph = articleGraph(
       <header class="head">
         <p class="kicker">
           {data.draft && <span class="badge">{t.example}</span>}
-          <span>{t.rubrics[data.rubric]}</span>
+          <a href={rubricPath}>{t.rubrics[data.rubric]}</a>
         </p>
         <h1>{data.title}</h1>
         <p class="lede">{data.description}</p>
@@ -152,7 +178,22 @@ const graph = articleGraph(
           </section>
         )
       }
+      {
+        tags.length > 0 && (
+          <nav class="tags" aria-label={t.tags}>
+            {tags.map((tag) => (listed.has(tag.path) ? <a href={tag.path}>{tag.name}</a> : <span>{tag.name}</span>))}
+          </nav>
+        )
+      }
     </article>
+    {
+      next.length > 0 && (
+        <section class="next">
+          <h2>{t.readNext}</h2>
+          <ArticleCards lang={lang} articles={next} />
+        </section>
+      )
+    }
   </main>
   <Footer lang={lang} path={path} />
 </Base>

@@ -1,0 +1,10 @@
+---
+import { listingPaths } from '../../../articles/listings.ts';
+import Listing from '../../../components/Listing.astro';
+
+export function getStaticPaths() {
+  return listingPaths('topics', true);
+}
+---
+
+<Listing {...Astro.props} />

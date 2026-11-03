@@ -9,7 +9,9 @@ import {
   hiddenPaths,
   indexed,
   langOf,
+  listings,
   localePath,
+  related,
   telegramHome,
   translationsOf,
   versionsOf,
@@ -164,4 +166,77 @@ test('an author has a page in each language they wrote or checked in, hidden whi
   ]);
   assert.ok(hiddenPaths(articles).includes('/en/authors/azamat/'));
   assert.ok(!hiddenPaths(articles).includes('/authors/azamat/'));
+});
+
+const listed = [
+  {
+    id: 'ru/a',
+    draft: false,
+    translationKey: 'a',
+    rubric: 'visa',
+    tags: ['vnzh', 'prodlenie'],
+  },
+  { id: 'ru/b', draft: false, translationKey: 'b', rubric: 'visa', tags: ['vnzh'] },
+  { id: 'ru/c', draft: false, translationKey: 'c', rubric: 'housing', tags: ['vnzh'] },
+  { id: 'ru/d', draft: true, translationKey: 'd', rubric: 'study', tags: ['prodlenie'] },
+  { id: 'en/a', draft: false, translationKey: 'a', rubric: 'visa', tags: ['prodlenie'] },
+];
+
+test('a rubric has a page in each language it has an article in, hidden while all are examples', () => {
+  const rubrics = listings(listed).filter((page) => page.kind === 'topics');
+  assert.deepEqual(rubrics, [
+    {
+      kind: 'topics',
+      key: 'visa',
+      lang: 'ru',
+      path: '/articles/topics/visa/',
+      count: 2,
+      hidden: false,
+    },
+    {
+      kind: 'topics',
+      key: 'housing',
+      lang: 'ru',
+      path: '/articles/topics/housing/',
+      count: 1,
+      hidden: false,
+    },
+    {
+      kind: 'topics',
+      key: 'study',
+      lang: 'ru',
+      path: '/articles/topics/study/',
+      count: 0,
+      hidden: true,
+    },
+    {
+      kind: 'topics',
+      key: 'visa',
+      lang: 'en',
+      path: '/en/articles/topics/visa/',
+      count: 1,
+      hidden: false,
+    },
+  ]);
+});
+
+test('a tag is kept out of search until three published articles carry it', () => {
+  const tags = listings(listed).filter((page) => page.kind === 'tags');
+  const hidden = Object.fromEntries(tags.map((page) => [page.path, page.hidden]));
+  assert.deepEqual(hidden, {
+    '/articles/tags/vnzh/': false,
+    '/articles/tags/prodlenie/': true,
+    '/en/articles/tags/prodlenie/': true,
+  });
+  assert.ok(hiddenPaths(listed).includes('/articles/tags/prodlenie/'));
+  assert.ok(!hiddenPaths(listed).includes('/articles/tags/vnzh/'));
+  assert.ok(hiddenPaths(listed).includes('/articles/topics/study/'));
+});
+
+test('read next: the same rubric first, then shared tags, never itself, examples, or another language', () => {
+  const a = listed[0] as (typeof listed)[number];
+  assert.deepEqual(
+    related(a, listed, 3).map((x) => x.id),
+    ['ru/b', 'ru/c'],
+  );
 });

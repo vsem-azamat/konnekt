@@ -3,6 +3,7 @@ title: Пример статьи Konnekt
 description: Образец страницы статьи Konnekt. Настоящие статьи о жизни и учёбе в Чехии появятся здесь позже.
 type: guide
 rubric: study
+tags: [primer]
 translationKey: primer
 published: 2026-11-03
 author: konnekt

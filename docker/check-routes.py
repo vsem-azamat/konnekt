@@ -63,6 +63,8 @@ SITE_PATHS = {
     "/articles/",
     "/articles/primer/",
     "/authors/azamat/",
+    "/articles/topics/visa/",
+    "/uk/articles/tags/vnzh/",
     "/en/authors/azamat/",
     "/robots.txt",
     "/sitemap-index.xml",

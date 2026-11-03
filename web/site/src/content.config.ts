@@ -1,5 +1,5 @@
 import { defineCollection, reference } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
 import { LANGS, RUBRICS } from './paths.ts';
@@ -30,7 +30,8 @@ const articles = defineCollection({
         // only news gets NewsArticle and the news sitemap.
         type: z.enum(['guide', 'news']).default('guide'),
         rubric: z.enum(RUBRICS),
-        tags: z.array(slug).default([]),
+        // From content/tags.yaml, where a tag gets its name in each language.
+        tags: z.array(reference('tags')).default([]),
         translationKey: slug,
         published: z.coerce.date(),
         // Moved only by a change of substance, not a typo: it is what readers
@@ -103,4 +104,16 @@ const authors = defineCollection({
   }),
 });
 
-export const collections = { articles, authors };
+/**
+ * The tags, in one file (`content/tags.yaml`): the id is the tag's address,
+ * `names` what a reader sees. An article may carry only a tag listed here.
+ */
+const tags = defineCollection({
+  loader: file('src/content/tags.yaml'),
+  schema: z.object({
+    id: slug,
+    names: z.partialRecord(z.enum(LANGS), z.string().min(1)),
+  }),
+});
+
+export const collections = { articles, authors, tags };
