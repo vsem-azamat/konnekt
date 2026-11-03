@@ -1,35 +1,35 @@
 import type { Lang } from './paths.ts';
 
 /**
- * The guide pages' own words. The landing page's, and the header's and
+ * The article pages' own words. The landing page's, and the header's and
  * footer's, are landing F's (landing/data.ts).
  */
 export interface Texts {
-  guides: string;
+  articles: string;
   example: string;
-  noGuides: string;
+  noArticles: string;
 }
 
 export const TEXTS: Record<Lang, Texts> = {
   ru: {
-    guides: 'Гайды',
+    articles: 'Статьи',
     example: 'Пример',
-    noGuides: 'Гайды на этом языке скоро появятся.',
+    noArticles: 'Статьи на этом языке скоро появятся.',
   },
   uk: {
-    guides: 'Гайди',
+    articles: 'Статті',
     example: 'Приклад',
-    noGuides: 'Гайди цією мовою скоро з’являться.',
+    noArticles: 'Статті цією мовою скоро з’являться.',
   },
   cs: {
-    guides: 'Průvodce',
+    articles: 'Články',
     example: 'Ukázka',
-    noGuides: 'Průvodce v tomto jazyce brzy přibudou.',
+    noArticles: 'Články v tomto jazyce brzy přibudou.',
   },
   en: {
-    guides: 'Guides',
+    articles: 'Articles',
     example: 'Example',
-    noGuides: 'Guides in this language are coming soon.',
+    noArticles: 'Articles in this language are coming soon.',
   },
 };
 

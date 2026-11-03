@@ -18,10 +18,10 @@ export function localePath(lang: Lang, path: string): string {
   return lang === DEFAULT_LANG ? path : `/${lang}${path}`;
 }
 
-/** The language of a guide from its content id, `<lang>/<slug>`. */
+/** The language of an article from its content id, `<lang>/<slug>`. */
 export function langOf(id: string): Lang {
   const lang = id.split('/')[0];
-  if (!LANGS.includes(lang as Lang)) throw new Error(`guide ${id} is in no language`);
+  if (!LANGS.includes(lang as Lang)) throw new Error(`article ${id} is in no language`);
   return lang as Lang;
 }
 
@@ -29,8 +29,22 @@ export function slugOf(id: string): string {
   return id.slice(id.indexOf('/') + 1);
 }
 
-export function guidePath(id: string): string {
-  return localePath(langOf(id), `/guides/${slugOf(id)}/`);
+export function articlePath(id: string): string {
+  return localePath(langOf(id), `/articles/${slugOf(id)}/`);
+}
+
+/** One language's version of a page, at its full path (prefix included). */
+export interface Version {
+  lang: Lang;
+  path: string;
+}
+
+/** The versions of a page that has the same path, `path` in Russian, in each of `langs`. */
+export function versionsOf(path: string, langs: readonly Lang[]): Version[] {
+  return LANGS.filter((lang) => langs.includes(lang)).map((lang) => ({
+    lang,
+    path: localePath(lang, path),
+  }));
 }
 
 export interface Alternate {
@@ -38,36 +52,28 @@ export interface Alternate {
   href: string;
 }
 
-/** The `hreflang` links of a page that exists in `langs`, with Russian as the default. */
-export function alternates(
-  path: string,
-  langs: readonly Lang[],
-  site: string,
-): Alternate[] {
+/** The `hreflang` links of a page's versions, with Russian as the default. */
+export function alternates(versions: readonly Version[], site: string): Alternate[] {
   const origin = site.replace(/\/+$/, '');
-  const links = LANGS.filter((lang) => langs.includes(lang)).map((lang) => ({
-    hreflang: lang,
-    href: `${origin}${localePath(lang, path)}`,
-  }));
-  return langs.includes(DEFAULT_LANG)
-    ? [
-        ...links,
-        { hreflang: 'x-default', href: `${origin}${localePath(DEFAULT_LANG, path)}` },
-      ]
-    : links;
+  const links = LANGS.flatMap((lang) =>
+    versions
+      .filter((version) => version.lang === lang)
+      .map(({ path }) => ({ hreflang: lang, href: `${origin}${path}` })),
+  );
+  const russian = links.find((link) => link.hreflang === DEFAULT_LANG);
+  return russian ? [...links, { hreflang: 'x-default', href: russian.href }] : links;
 }
 
 /**
- * The languages of a page whose versions search engines may keep: a noindex
+ * The versions of a page whose search engines may keep: a noindex
  * translation (an example, an empty list) prints no hreflang of its own, so
  * naming it would be a link it never returns.
  */
-export function indexedLangs(
-  path: string,
-  langs: readonly Lang[],
+export function indexed(
+  versions: readonly Version[],
   hidden: readonly string[],
-): Lang[] {
-  return langs.filter((lang) => !hidden.includes(localePath(lang, path)));
+): Version[] {
+  return versions.filter((version) => !hidden.includes(version.path));
 }
 
 /**
@@ -93,20 +99,57 @@ export function telegramHome(
     : null;
 }
 
-export interface GuideEntry {
+export interface ArticleEntry {
   id: string;
   draft: boolean;
+  /** The same in every translation of one article; each has a slug in its own language. */
+  translationKey: string;
+}
+
+/** Slugs the section's own pages take: an article by one of these names would hide them. */
+export const RESERVED_SLUGS = ['topics', 'tags'];
+
+/**
+ * Refuses what would break an address or a translation: an article under a
+ * reserved slug, or two articles in one language sharing a translation key
+ * (which of them would the others name?).
+ */
+export function checkArticles(articles: readonly ArticleEntry[]): void {
+  const seen = new Map<string, string>();
+  for (const { id, translationKey } of articles) {
+    if (RESERVED_SLUGS.includes(slugOf(id))) {
+      throw new Error(`article ${id}: the slug ${slugOf(id)} is the section's own`);
+    }
+    const key = `${langOf(id)}/${translationKey}`;
+    const other = seen.get(key);
+    if (other) {
+      throw new Error(
+        `articles ${other} and ${id} are both the ${langOf(id)} ${translationKey}`,
+      );
+    }
+    seen.set(key, id);
+  }
+}
+
+/** Every language's version of `article`, itself included, by its translation key. */
+export function translationsOf(
+  article: ArticleEntry,
+  articles: readonly ArticleEntry[],
+): Version[] {
+  return articles
+    .filter((other) => other.translationKey === article.translationKey)
+    .map((other) => ({ lang: langOf(other.id), path: articlePath(other.id) }));
 }
 
 /**
- * Pages that carry `noindex`: every example guide, and the list of guides in
- * every language that has no published one yet. The sitemap leaves them out.
+ * Pages that carry `noindex`: every example article, and the list of articles
+ * in every language that has no published one yet. The sitemap leaves them out.
  */
-export function hiddenPaths(guides: readonly GuideEntry[]): string[] {
-  const published = new Set(guides.filter((g) => !g.draft).map((g) => langOf(g.id)));
-  const drafts = guides.filter((g) => g.draft).map((g) => guidePath(g.id));
+export function hiddenPaths(articles: readonly ArticleEntry[]): string[] {
+  const published = new Set(articles.filter((a) => !a.draft).map((a) => langOf(a.id)));
+  const drafts = articles.filter((a) => a.draft).map((a) => articlePath(a.id));
   const emptyLists = LANGS.filter((lang) => !published.has(lang)).map((lang) =>
-    localePath(lang, '/guides/'),
+    localePath(lang, '/articles/'),
   );
   return [...drafts, ...emptyLists];
 }

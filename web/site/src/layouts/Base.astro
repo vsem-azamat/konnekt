@@ -14,20 +14,27 @@ import { getCollection } from 'astro:content';
 import {
   alternates,
   hiddenPaths,
-  indexedLangs,
+  indexed,
   LANGS,
   type Lang,
   localePath,
   telegramHome,
+  type Version,
+  versionsOf,
 } from '../paths.ts';
 import { OG_LOCALES } from '../texts.ts';
 
 interface Props {
   lang: Lang;
-  /** The page's path in Russian, from the root; each language adds its prefix. */
+  /**
+   * The page's path in Russian, from the root; each language adds its prefix.
+   * With `versions`, this page's own path instead, prefix and all.
+   */
   path: string;
-  /** The languages this page exists in. */
+  /** The languages this page exists in, at the same path in each. */
   langs?: readonly Lang[];
+  /** For a page whose path differs between languages (an article): each version's own. */
+  versions?: readonly Version[];
   title: string;
   description: string;
   /** For an example or an empty list: a page search engines must not keep. */
@@ -35,12 +42,17 @@ interface Props {
 }
 
 const { lang, path, langs = LANGS, title, description, noindex = false } = Astro.props;
+const versions = Astro.props.versions ?? versionsOf(path, langs);
 const site = Astro.site?.href ?? '/';
-const canonical = new URL(localePath(lang, path), site).href;
+const canonical = new URL(Astro.props.versions ? path : localePath(lang, path), site)
+  .href;
 const hidden = hiddenPaths(
-  (await getCollection('guides')).map(({ id, data }) => ({ id, draft: data.draft })),
+  (await getCollection('articles')).map(({ id, data }) => ({
+    id,
+    draft: data.draft,
+    translationKey: data.translationKey,
+  })),
 );
-const indexed = indexedLangs(path, langs, hidden);
 
 // The tested function itself, not a copy of its logic: it has to run before the
 // first paint, so inline, and it refers to nothing outside its arguments.
@@ -71,7 +83,7 @@ const handOff = `(() => {
     {noindex && <meta name="robots" content="noindex" />}
     {
       !noindex &&
-        alternates(path, indexed, site).map(({ hreflang, href }) => (
+        alternates(indexed(versions, hidden), site).map(({ hreflang, href }) => (
           <link rel="alternate" hreflang={hreflang} href={href} />
         ))
     }

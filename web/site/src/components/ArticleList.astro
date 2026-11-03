@@ -1,0 +1,55 @@
+---
+/** The articles in one language, examples marked as such. */
+import { getCollection } from 'astro:content';
+
+import '../site.css';
+import Base from '../layouts/Base.astro';
+import { articlePath, hiddenPaths, type Lang, langOf, localePath } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = TEXTS[lang];
+const all = await getCollection('articles');
+const articles = all.filter((article) => langOf(article.id) === lang);
+const hidden = hiddenPaths(
+  all.map(({ id, data }) => ({
+    id,
+    draft: data.draft,
+    translationKey: data.translationKey,
+  })),
+);
+---
+
+<Base
+  lang={lang}
+  path="/articles/"
+  title={`${t.articles} — Konnekt`}
+  description={t.articles}
+  noindex={hidden.includes(localePath(lang, '/articles/'))}
+>
+  <Header lang={lang} path="/articles/" />
+  <main class="page">
+    <h1>{t.articles}</h1>
+    {articles.length === 0 && <p>{t.noArticles}</p>}
+    <ul class="articles-list">
+      {
+        articles.map((article) => (
+          <li>
+            <a href={articlePath(article.id)}>
+              {article.data.draft && <span class="badge">{t.example}</span>}
+              <strong>{article.data.title}</strong>
+              <p>{article.data.description}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+  <Footer lang={lang} path="/articles/" />
+</Base>

@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { indexable, universitiesWithChats } from '../catalog/catalog.ts';
 import { CACHED } from '../catalog/page.ts';
 import { publicChats, universities } from '../catalog/source.ts';
-import { alternates, DEFAULT_LANG, LANGS, localePath } from '../paths.ts';
+import { alternates, DEFAULT_LANG, LANGS, localePath, versionsOf } from '../paths.ts';
 
 /**
  * The catalog pages search engines may keep, rendered on request like the
@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ site }) => {
   ];
   const urls = paths.flatMap((path) =>
     LANGS.map((lang) => {
-      const links = alternates(path, LANGS, origin)
+      const links = alternates(versionsOf(path, LANGS), origin)
         .map(
           ({ hreflang, href }) =>
             `<xhtml:link rel="alternate" hreflang="${hreflang}" href="${xml(href)}"/>`,

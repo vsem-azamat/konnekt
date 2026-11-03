@@ -1,0 +1,48 @@
+---
+/** One article, with links to its translations. */
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+
+import '../site.css';
+import Base from '../layouts/Base.astro';
+import { articlePath, langOf, translationsOf } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  article: CollectionEntry<'articles'>;
+}
+
+const { article } = Astro.props;
+const lang = langOf(article.id);
+const path = articlePath(article.id);
+const entry = ({ id, data }: CollectionEntry<'articles'>) => ({
+  id,
+  draft: data.draft,
+  translationKey: data.translationKey,
+});
+const versions = translationsOf(
+  entry(article),
+  (await getCollection('articles')).map(entry),
+);
+const { Content } = await render(article);
+---
+
+<Base
+  lang={lang}
+  path={path}
+  versions={versions}
+  title={`${article.data.title} — Konnekt`}
+  description={article.data.description}
+  noindex={article.data.draft}
+>
+  <Header lang={lang} path={path} versions={versions} />
+  <main class="page">
+    {article.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
+    <article class="article">
+      <h1>{article.data.title}</h1>
+      <Content />
+    </article>
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>

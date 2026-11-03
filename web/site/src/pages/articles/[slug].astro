@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+
+import Article from '../../components/Article.astro';
+import { DEFAULT_LANG, langOf, slugOf } from '../../paths.ts';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles
+    .filter((article) => langOf(article.id) === DEFAULT_LANG)
+    .map((article) => ({ params: { slug: slugOf(article.id) }, props: { article } }));
+}
+
+const { article } = Astro.props;
+---
+
+<Article article={article} />

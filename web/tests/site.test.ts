@@ -3,39 +3,83 @@ import { test } from 'node:test';
 
 import {
   alternates,
-  guidePath,
+  articlePath,
+  checkArticles,
   hiddenPaths,
-  indexedLangs,
+  indexed,
   langOf,
   localePath,
   telegramHome,
+  translationsOf,
+  versionsOf,
 } from '../site/src/paths.ts';
 
 test('Russian lives at the root, the other languages under their prefix', () => {
   assert.equal(localePath('ru', '/'), '/');
   assert.equal(localePath('uk', '/'), '/uk/');
-  assert.equal(localePath('cs', '/guides/'), '/cs/guides/');
-  assert.equal(localePath('en', '/guides/visa/'), '/en/guides/visa/');
+  assert.equal(localePath('cs', '/articles/'), '/cs/articles/');
+  assert.equal(localePath('en', '/articles/visa/'), '/en/articles/visa/');
 });
 
-test('a guide is addressed by its language and slug', () => {
-  assert.equal(guidePath('ru/visa'), '/guides/visa/');
-  assert.equal(guidePath('cs/visa'), '/cs/guides/visa/');
-  assert.equal(langOf('uk/visa'), 'uk');
+test('an article is addressed by its language and slug', () => {
+  assert.equal(articlePath('ru/viza'), '/articles/viza/');
+  assert.equal(articlePath('en/visa'), '/en/articles/visa/');
+  assert.equal(langOf('uk/viza'), 'uk');
 });
 
-test('hreflang names every translation, and Russian as the default', () => {
-  assert.deepEqual(alternates('/guides/visa/', ['ru', 'cs'], 'https://konnekt.cz'), [
-    { hreflang: 'ru', href: 'https://konnekt.cz/guides/visa/' },
-    { hreflang: 'cs', href: 'https://konnekt.cz/cs/guides/visa/' },
-    { hreflang: 'x-default', href: 'https://konnekt.cz/guides/visa/' },
-  ]);
+test('hreflang names every version, and Russian as the default', () => {
+  assert.deepEqual(
+    alternates(versionsOf('/chats/', ['ru', 'cs']), 'https://konnekt.cz'),
+    [
+      { hreflang: 'ru', href: 'https://konnekt.cz/chats/' },
+      { hreflang: 'cs', href: 'https://konnekt.cz/cs/chats/' },
+      { hreflang: 'x-default', href: 'https://konnekt.cz/chats/' },
+    ],
+  );
 });
 
 test('a page with no Russian version has no default to point at', () => {
-  assert.deepEqual(alternates('/guides/x/', ['en'], 'https://konnekt.cz/'), [
-    { hreflang: 'en', href: 'https://konnekt.cz/en/guides/x/' },
+  assert.deepEqual(
+    alternates(versionsOf('/articles/x/', ['en']), 'https://konnekt.cz/'),
+    [{ hreflang: 'en', href: 'https://konnekt.cz/en/articles/x/' }],
+  );
+});
+
+const russian = { id: 'ru/viza-studenta', draft: false, translationKey: 'student-visa' };
+const english = { id: 'en/student-visa', draft: false, translationKey: 'student-visa' };
+const visa = [
+  russian,
+  english,
+  { id: 'ru/zhile', draft: false, translationKey: 'housing' },
+];
+
+test('the translations of an article are found by its key, each at its own slug', () => {
+  const versions = translationsOf(english, visa);
+  assert.deepEqual(versions, [
+    { lang: 'ru', path: '/articles/viza-studenta/' },
+    { lang: 'en', path: '/en/articles/student-visa/' },
   ]);
+  assert.deepEqual(alternates(versions, 'https://konnekt.cz'), [
+    { hreflang: 'ru', href: 'https://konnekt.cz/articles/viza-studenta/' },
+    { hreflang: 'en', href: 'https://konnekt.cz/en/articles/student-visa/' },
+    { hreflang: 'x-default', href: 'https://konnekt.cz/articles/viza-studenta/' },
+  ]);
+});
+
+test('two articles in one language may not share a translation key', () => {
+  checkArticles(visa);
+  const twice = [
+    ...visa,
+    { id: 'ru/viza-2027', draft: false, translationKey: 'student-visa' },
+  ];
+  assert.throws(() => checkArticles(twice), /ru\/viza-studenta and ru\/viza-2027/);
+});
+
+test('an article may not take a slug of the section’s own pages', () => {
+  for (const slug of ['topics', 'tags']) {
+    const article = { id: `ru/${slug}`, draft: false, translationKey: slug };
+    assert.throws(() => checkArticles([article]), /the section's own/);
+  }
 });
 
 test('the site hands a Telegram launch on to the app, launch data and all', () => {
@@ -59,29 +103,39 @@ test('a browser stays on the site', () => {
   assert.equal(telegramHome('#guides', '?q=1', 'https://app.konnekt.cz'), null);
 });
 
-test('draft guides and an index with no published guide are kept out of search', () => {
-  const guides = [
-    { id: 'ru/primer', draft: true },
-    { id: 'ru/visa', draft: false },
-    { id: 'cs/primer', draft: true },
+test('draft articles and an index with no published article are kept out of search', () => {
+  const articles = [
+    { id: 'ru/primer', draft: true, translationKey: 'primer' },
+    { id: 'ru/viza', draft: false, translationKey: 'visa' },
+    { id: 'en/example', draft: true, translationKey: 'primer' },
   ];
-  assert.deepEqual(hiddenPaths(guides).sort(), [
-    '/cs/guides/',
-    '/cs/guides/primer/',
-    '/en/guides/',
-    '/guides/primer/',
-    '/uk/guides/',
+  assert.deepEqual(hiddenPaths(articles).sort(), [
+    '/articles/primer/',
+    '/cs/articles/',
+    '/en/articles/',
+    '/en/articles/example/',
+    '/uk/articles/',
   ]);
 });
 
-test('hreflang names only the translations search engines may keep', () => {
-  const hidden = ['/cs/guides/visa/', '/uk/guides/', '/cs/guides/', '/en/guides/'];
-  assert.deepEqual(indexedLangs('/guides/visa/', ['ru', 'cs'], hidden), ['ru']);
-  assert.deepEqual(indexedLangs('/guides/', ['ru', 'uk', 'cs', 'en'], hidden), ['ru']);
-  assert.deepEqual(indexedLangs('/', ['ru', 'uk', 'cs', 'en'], hidden), [
-    'ru',
-    'uk',
-    'cs',
-    'en',
+test('hreflang names only the versions search engines may keep', () => {
+  const hidden = [
+    '/en/articles/student-visa/',
+    '/uk/articles/',
+    '/cs/articles/',
+    '/en/articles/',
+  ];
+  assert.deepEqual(indexed(translationsOf(russian, visa), hidden), [
+    { lang: 'ru', path: '/articles/viza-studenta/' },
   ]);
+  assert.deepEqual(
+    indexed(versionsOf('/articles/', ['ru', 'uk', 'cs', 'en']), hidden).map(
+      (v) => v.lang,
+    ),
+    ['ru'],
+  );
+  assert.deepEqual(
+    indexed(versionsOf('/', ['ru', 'uk', 'cs', 'en']), hidden).map((v) => v.lang),
+    ['ru', 'uk', 'cs', 'en'],
+  );
 });

@@ -18,7 +18,7 @@
   text-wrap: balance;
 }
 
-.guides-list {
+.articles-list {
   display: grid;
   gap: 10px;
   margin: 0;
@@ -26,7 +26,7 @@
   list-style: none;
 }
 
-.guides-list a {
+.articles-list a {
   display: grid;
   gap: 4px;
   padding: 16px;
@@ -36,7 +36,7 @@
   text-decoration: none;
 }
 
-.guides-list p {
+.articles-list p {
   margin: 0;
   color: var(--soft);
   font-size: 14px;

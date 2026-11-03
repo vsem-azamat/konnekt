@@ -1,5 +1,5 @@
 ---
-import GuideList from '../../../components/GuideList.astro';
+import ArticleList from '../../../components/ArticleList.astro';
 import { DEFAULT_LANG, LANGS, type Lang } from '../../../paths.ts';
 
 export function getStaticPaths() {
@@ -11,4 +11,4 @@ export function getStaticPaths() {
 const { lang } = Astro.params as { lang: Lang };
 ---
 
-<GuideList lang={lang} />
+<ArticleList lang={lang} />

@@ -4,10 +4,16 @@ import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
 import { parse } from 'yaml';
 
-import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.ts';
+import {
+  type ArticleEntry,
+  checkArticles,
+  DEFAULT_LANG,
+  hiddenPaths,
+  LANGS,
+} from './src/paths.ts';
 
 /**
- * The public site: the landing page and the guides, built to plain HTML for
+ * The public site: the landing page and the articles, built to plain HTML for
  * search engines and link previews, served on konnekt.cz by a container of its
  * own (docker/site/). The catalog pages (/universities/, /chats/) are the
  * exception, rendered on request from the APIs by the Node server the same
@@ -22,21 +28,26 @@ import { DEFAULT_LANG, type GuideEntry, hiddenPaths, LANGS } from './src/paths.t
 const root = new URL('.', import.meta.url).pathname;
 
 /**
- * The guides as the sitemap needs them: the same files and the same `draft`
- * field the content collection reads, parsed as YAML from the frontmatter alone.
+ * The articles as the sitemap needs them: the same files and the same fields
+ * the content collection reads, parsed as YAML from the frontmatter alone.
+ * Checked here, before any page is built: a reserved slug or a translation
+ * key taken twice in one language stops the build.
  */
-function guides(): GuideEntry[] {
-  return globSync('src/content/guides/*/*.md', { cwd: root }).map((file) => {
+function articles(): ArticleEntry[] {
+  const entries = globSync('src/content/articles/*/*.md', { cwd: root }).map((file) => {
     const text = readFileSync(`${root}${file}`, 'utf8');
-    const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '';
+    const frontmatter = parse(text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '') ?? {};
     return {
-      id: file.replace(/^src\/content\/guides\//, '').replace(/\.md$/, ''),
-      draft: parse(frontmatter)?.draft === true,
+      id: file.replace(/^src\/content\/articles\//, '').replace(/\.md$/, ''),
+      draft: frontmatter.draft === true,
+      translationKey: String(frontmatter.translationKey),
     };
   });
+  checkArticles(entries);
+  return entries;
 }
 
-const hidden = hiddenPaths(guides());
+const hidden = hiddenPaths(articles());
 const building = process.argv.includes('build');
 const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
 
@@ -46,7 +57,7 @@ export default defineConfig({
   site,
   // The icons, one copy for both builds: the Mini App's is web/public/.
   publicDir: '../public',
-  // /uk/ and /guides/x/: one address per page, the one the canonical link names.
+  // /uk/ and /articles/x/: one address per page, the one the canonical link names.
   // The dev server is what uiux compares with the prototype: no toolbar over the page.
   devToolbar: { enabled: false },
   trailingSlash: 'always',
