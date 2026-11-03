@@ -70,7 +70,8 @@ def test_an_error_is_sent_by_its_event_name_not_its_line(sentry: Captured) -> No
     assert event["message"] == "intro_failed"
     assert event["tags"]["update_id"] == "7"
     assert "Привет" not in _text(sentry.events)
-    assert "777" not in _text(sentry.events)
+    # The whole number: bare «777» turns up in a timestamp or a random event id.
+    assert "777 123 456" not in _text(sentry.events)
 
 
 def test_a_logged_exception_keeps_its_traceback(sentry: Captured) -> None:
