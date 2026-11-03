@@ -102,7 +102,8 @@ def public_site() -> dict[str, str]:
         "/en/universities/cvut": SLASHED.format("/en/universities/cvut"),
         "/api/v1/open": CATALOG,
         # The guides' old addresses, to the articles' in the same language.
-        "/guides": "301 /articles{http.request.uri.prefixed_query}",
+        "/guides": "301 /articles/{http.request.uri.prefixed_query}",
+        "/uk/guides": "301 /uk/articles/{http.request.uri.prefixed_query}",
         "/guides/": "301 /articles/{http.request.uri.prefixed_query}",
         "/guides/primer/": "301 /articles/primer/{http.request.uri.prefixed_query}",
         "/uk/guides/": "301 /uk/articles/{http.request.uri.prefixed_query}",
