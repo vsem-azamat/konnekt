@@ -3,7 +3,7 @@ title: "Работа студента в Чехии: что разрешено"
 description: "Можно ли иностранному студенту работать в Чехии без разрешения, какие бывают договоры, сколько часов можно и что меняется после выпуска."
 type: guide
 rubric: work
-tags: [rabota, studenty, viza]
+tags: [rabota, viza]
 published: 2026-11-03
 updated: 2026-11-03
 author: konnekt
