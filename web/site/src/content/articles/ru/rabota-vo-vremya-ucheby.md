@@ -11,7 +11,7 @@ translationKey: rabota-vo-vremya-ucheby
 sources:
   - { url: "https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01", title: "Zákon č. 435/2004 Sb., o zaměstnanosti (§ 5, § 87, § 98)", checked_at: 2026-11-03 }
   - { url: "https://e-sbirka.gov.cz/eli/cz/sb/2006/262/2026-08-29", title: "Zákon č. 262/2006 Sb., zákoník práce (§ 75, § 76, § 77, § 79)", checked_at: 2026-11-03 }
-  - { url: "https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12", title: "Zákon č. 326/1999 Sb., o pobytu cizinců na území ČR (§ 37, § 46)", checked_at: 2026-11-03 }
+  - { url: "https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12", title: "Zákon č. 326/1999 Sb., o pobytu cizinců na území ČR (§ 37, § 46, § 64, § 117b)", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-studia/", title: "ipc.gov.cz: povolení k dlouhodobému pobytu za účelem studia", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/pro-zamestnavatele/moznosti-pobytu-cizincu-a-jejich-pristupu-na-trh-prace-cr/", title: "ipc.gov.cz: Možnosti pobytu cizinců a jejich přístupu na trh práce", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-hledani-zamestnani-nebo-zahajeni-podnikatelske-cinnosti/", title: "ipc.gov.cz: pobyt za účelem hledání zaměstnání po studiu", checked_at: 2026-11-03 }
@@ -21,6 +21,10 @@ sources:
   - { url: "https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou", title: "MPSV: Zaměstnávání osob přicházejících do ČR v souvislosti s válkou na Ukrajině", checked_at: 2026-11-03 }
   - { url: "https://mv.gov.cz/odbor-azylove-a-migracni-politiky", title: "Odbor azylové a migrační politiky (Ministerstvo vnitra)", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/kontakty/", title: "ipc.gov.cz: kontakty (pracoviště Ministerstva vnitra)", checked_at: 2026-11-03 }
+  - { url: "https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf", title: "ipc.gov.cz: Kódy víz a povolení k pobytu", checked_at: 2026-11-03 }
+  - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf", title: "ipc.gov.cz: Vzory dokladů vydávaných cizincům (aktualizovaná verze 6. 8. 2025)", checked_at: 2026-11-03 }
+  - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Moznosti-pobytu-cizincu-ve-vztahu-k-pristupu-na-trh-prace.pdf", title: "ipc.gov.cz: Možnosti pobytu cizinců ve vztahu k přístupu na trh práce (aktualizovaná verze 6. 8. 2025)", checked_at: 2026-11-03 }
+  - { url: "https://policie.gov.cz/reditelstvi-sluzby-cizinecke-policie/kody-viz-a-povoleni-k-pobytu-udelovanych-organy-sluzby-cizinecke-policie", title: "Policie ČR: Kódy víz a povolení k pobytu udělovaných orgány služby cizinecké policie", checked_at: 2026-11-03 }
 draft: true
 ---
 
@@ -29,6 +33,7 @@ draft: true
 ## Коротко
 
 - Очный студент вуза: разрешение на работу не нужно.[^1]
+- Право на работу зависит от кода цели пребывания на визе или карте: 23 и 24 с пометкой «вуз» дают свободный доступ при очной форме, 99 («прочее») как правило нет.[^k1],[^k3]
 - Часы ограничены договором. DPP: до 300 часов в год у одного работодателя.[^2] DPČ: в среднем половина полной недели, то есть около 20 часов.[^3] Трудовой договор: стандартная неделя 40 часов.[^4]
 - Работодатель сообщает о начале работы до выхода.[^5],[^w7]
 - Учёба должна оставаться целью пребывания.[^6],[^10]
@@ -40,9 +45,32 @@ draft: true
 
 Вы учитесь очно (prezenční) в вузе? Тогда разрешение на работу (povolení k zaměstnání) и карта сотрудника (zaměstnanecká karta) вам не нужны. Так сказано в законе о занятости.[^1]
 
-Право даёт учёба, а не вид визы. Закон считает такой учёбой очное обучение в вузе вместе с каникулами, которые входят в академический год.[^1]
+Право даёт учёба, а какая именно, показывает код цели пребывания на визе или карте (таблица ниже). Закон считает такой учёбой очное обучение в вузе вместе с каникулами, которые входят в академический год.[^1]
 
-Информационный портал МВД[^w1] (Министерство внутренних дел, MV ČR) подтверждает: с пребыванием с целью учёбы можно работать без особого разрешения (volný přístup na trh práce). По типу визы или карточки ответ не определить: общего правила нет[^w2] (neexistuje obecné pravidlo). Смотрите на школу и форму обучения.
+Информационный портал МВД[^w1] (Министерство внутренних дел, MV ČR) подтверждает: с пребыванием с целью учёбы можно работать без особого разрешения (volný přístup na trh práce). Одного типа документа для ответа мало: общего правила нет[^w2] (neexistuje obecné pravidlo). Смотрите на код цели пребывания, школу и форму обучения.
+
+### Код цели пребывания на визе или карте
+
+Выдавая визу или карту, МВД записывает цель пребывания двузначным кодом (kód účelu pobytu).
+
+- На биометрической карте код стоит в графе «Poznámky» (примечания). У карт не по работе рядом написано «Volný přístup na trh práce – ANO/NE», то есть «свободный доступ на рынок труда: да или нет».[^k2] Закон обязывает МВД вносить в карту запись о доступе на рынок труда.[^k6]
+- На долгосрочной визе (наклейка в паспорте) код тоже в «Poznámky». Он записан частями через косую черту, например D/VC/27/WH, и третья часть означает цель пребывания.[^k2] Для учёбы там будет номер из таблицы.
+
+Официальный список кодов ведёт МВД.[^k1] Для студента важны эти:
+
+| Код на визе или карте | Кто его получает | Работа без разрешения |
+| --- | --- | --- |
+| **23** (23A «vysoká škola»): Studium – student (směrnice EU)[^k1] | Студент аккредитованной программы вуза[^k5] | Да, если очная форма (prezenční)[^1],[^w5] |
+| **24** (24A «vysoká škola»): Studium[^k1] | Тоже студент вуза. В списке полиции 24 описан как учёба не по директиве ЕС (список старый, без даты)[^k4] | Да, если очно учитесь по аккредитованной программе вуза. Отдельного правила для кода 24 источники не дают: решает учёба[^1],[^w5] |
+| **23B**, **24B** («jazyková příprava», языковая подготовка)[^k1] | Участник языковой и подготовительной программы к вузу, которую организует государственный вуз, или курса по программе ЕС или международному договору[^k5] | Не опубликовано. МВД про эти коды отдельно не пишет, а закон называет только языковые школы с правом принимать государственный экзамен[^1]. Смотрите «ANO/NE» на карте и спрашивайте в МВД |
+| **21**, **24C** («žák», ученик)[^k1] | Ученик средней школы или высшей профессиональной школы по обменной программе[^k5] | Да, если обучение очное (denní) в средней или высшей профессиональной школе[^k3] |
+| **22**, **23D**, **24D**, **23G**, **24E**, **24F**, **24G**, **30** (стажёр, стипендиат, обмен опытом, волонтёр)[^k1] | Те, кому учёба выдана как стипендия, стажировка, обмен или волонтёрская служба[^k5] | Не опубликовано. Смотрите «ANO/NE» на карте |
+| **26** (поиск работы или бизнеса)[^k1] | Выпускник чешского вуза, до 9 месяцев[^w3] | Да, если получено вузовское образование в Чехии. Для завершивших научное исследование нет[^k3] |
+| **99** (99A «ostatní», 99B «jiné vzdělávací aktivity»)[^k1] | Остальные цели. МВД относит сюда, например, неаккредитованные программы вузов, школы и языковые курсы[^k3] | Как правило нет, нужно povolení k zaměstnání от Úřad práce. Исключение: очная средняя или высшая профессиональная школа[^k3] |
+
+Коды с буквой (23A, 99B) присваивают только на территории Чехии.[^k1] В визе из посольства вы, скорее всего, увидите номер без буквы.
+
+Номер сам по себе право не даёт. Решает учёба, а для вуза очная форма,[^1] поэтому сверяйте код с записью «ANO/NE» на карте.[^k2]
 
 ### Какие школы подходят
 
@@ -169,6 +197,12 @@ draft: true
 [^8]: Zákon č. 262/2006 Sb., zákoník práce, § 77 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/2006/262/2026-08-29)
 [^10]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky, § 46 odst. 5 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
 [^11]: Zákon č. 435/2004 Sb., o zaměstnanosti, § 5 písm. e) — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01)
+[^k1]: ipc.gov.cz: Kódy víz a povolení k pobytu — [ipc.gov.cz](https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf)
+[^k2]: ipc.gov.cz: Vzory dokladů vydávaných cizincům — [ipc.gov.cz](https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf)
+[^k3]: ipc.gov.cz: Možnosti pobytu cizinců ve vztahu k přístupu na trh práce — [ipc.gov.cz](https://ipc.gov.cz/wp-content/uploads/2025/08/Moznosti-pobytu-cizincu-ve-vztahu-k-pristupu-na-trh-prace.pdf)
+[^k4]: Policie ČR: Kódy víz a povolení k pobytu udělovaných orgány služby cizinecké policie — [policie.gov.cz](https://policie.gov.cz/reditelstvi-sluzby-cizinecke-policie/kody-viz-a-povoleni-k-pobytu-udelovanych-organy-sluzby-cizinecke-policie)
+[^k5]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky, § 64 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
+[^k6]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky, § 117b odst. 4 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
 [^w1]: ipc.gov.cz: povolení k dlouhodobému pobytu za účelem studia — [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-studia/)
 [^w2]: ipc.gov.cz: Možnosti pobytu cizinců a jejich přístupu na trh práce — [ipc.gov.cz](https://ipc.gov.cz/pro-zamestnavatele/moznosti-pobytu-cizincu-a-jejich-pristupu-na-trh-prace-cr/)
 [^w3]: ipc.gov.cz: pobyt za účelem hledání zaměstnání po studiu — [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-hledani-zamestnani-nebo-zahajeni-podnikatelske-cinnosti/)
