@@ -129,21 +129,26 @@
 	# console inside the Mini App: a chat's page to the same chat, the lists
 	# and the hierarchy (now the chat list grouped by parent) to the chats,
 	# settings to the system screen, anything else to the summary. Permanent,
-	# so browsers remember them: change them knowing that.
+	# but kept an hour: a browser keeps a 301 with no Cache-Control for good,
+	# and one kept past a later move can send it round in a loop.
 	@oldChat path_regexp oldChat ^/admin/chats/(-?[0-9]+)/?$
 	handle @oldChat {
+		header Cache-Control "public, max-age=3600"
 		redir * /console/chats/{re.oldChat.1} permanent
 	}
 	@oldChats path /admin/chats /admin/chats/* /admin/hierarchy /admin/hierarchy/* /admin/catalog /admin/catalog/*
 	handle @oldChats {
+		header Cache-Control "public, max-age=3600"
 		redir * /console/chats permanent
 	}
 	@oldSettings path /admin/settings /admin/settings/
 	handle @oldSettings {
+		header Cache-Control "public, max-age=3600"
 		redir * /console/system permanent
 	}
 	@oldConsole path /admin /admin/*
 	handle @oldConsole {
+		header Cache-Control "public, max-age=3600"
 		redir * /console permanent
 	}
 

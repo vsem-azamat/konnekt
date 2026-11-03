@@ -116,8 +116,12 @@
 
 	# The app's paths (/chats, /join, /console…) and the API it calls are the
 	# app's host's now. Compose refuses to start the site without APP_URL; run
-	# by hand without it, the fallback is a name nobody resolves.
+	# by hand without it, the fallback is a name nobody resolves. Kept an hour,
+	# not for good as a bare 301 is: one this host once sent for its root
+	# (konnekt.cz/ → the app) sent browsers round in a loop when the app began
+	# sending them back here.
 	handle {
+		header Cache-Control "public, max-age=3600"
 		redir {$APP_URL:https://app.invalid}{uri} permanent
 	}
 }
