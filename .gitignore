@@ -190,7 +190,9 @@ scripts/*
 !scripts/tg_promote.py
 !scripts/tg_add_bot.py
 !scripts/tg_prehistory.py
-.claude/
+# Local Claude Code state; the project's own agents are tracked.
+.claude/*
+!.claude/agents/
 
 # Local credential drops — never tracked.
 .creds/
