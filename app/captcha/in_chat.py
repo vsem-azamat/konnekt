@@ -136,7 +136,7 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     body = challenge.card_text(
         [html.escape(names[row.user_id]) for row in carried]
         + [_mention(row.user_id, names[row.user_id]) for row in new],
-        settings.captcha.answer_minutes,
+        _minutes_left(new, now),
     )
     markup = await _markup(bot)
     try:
@@ -169,7 +169,7 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
         await _delete(bot, chat_id, message_id)
     # Somebody passed or left while it was being posted: named on it all the same.
     if settled_meanwhile:
-        await refresh(bot, db, chat_id, sent.message_id)
+        await refresh(bot, db, chat_id, sent.message_id, now)
 
 
 async def announce_due(bot: Bot, db: AsyncSession, now: datetime.datetime) -> None:
@@ -190,7 +190,9 @@ async def announce_due(bot: Bot, db: AsyncSession, now: datetime.datetime) -> No
         await announce(bot, db, chat_id, now)
 
 
-async def refresh(bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int | None) -> None:
+async def refresh(
+    bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int | None, now: datetime.datetime
+) -> None:
     """The card again after somebody in it stopped waiting: without them, or gone when nobody is left."""
     if card_message_id is None:
         return
@@ -207,13 +209,14 @@ async def refresh(bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int
         return
     # Those the card named with a link keep it; an edit notifies nobody either way.
     newest = max(row.announced_at for row in rows if row.announced_at is not None)
+    mentioned = [row for row in waiting if row.announced_at == newest]
     names = await _first_names(bot, chat_id, waiting)
     body = challenge.card_text(
         [
             _mention(row.user_id, names[row.user_id]) if row.announced_at == newest else html.escape(names[row.user_id])
             for row in waiting
         ],
-        settings.captcha.answer_minutes,
+        _minutes_left(mentioned or waiting, now),
     )
     try:
         await bot.edit_message_text(
@@ -284,6 +287,17 @@ async def _first_names(bot: Bot, chat_id: int, rows: Sequence[JoinCaptcha]) -> d
         else:
             names[row.user_id] = user.first_name or _UNNAMED
     return names
+
+
+def _minutes_left(rows: Sequence[JoinCaptcha], now: datetime.datetime) -> int:
+    """The time the card gives: what is left to the first of `rows` to run out.
+
+    Given the people the card mentions, since the mention is what makes them
+    read it. Those carried from an earlier card were told their own time there
+    and in the private message; the line is not theirs to go by.
+    """
+    soonest = min(row.expires_at for row in rows)
+    return max(1, math.ceil((soonest - now) / datetime.timedelta(minutes=1)))
 
 
 def _mention(user_id: int, name: str) -> str:

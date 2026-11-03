@@ -405,6 +405,13 @@ class CaptchaSettings(Settings):
         lt=5,
         description="When an applicant who has not answered gets one reminder",
     )
+    # Asked in the chat, they are muted and named on a card meanwhile, so a day
+    # left the card standing a day. Everyone who passed on 2-3.11 did within two hours.
+    in_chat_answer_minutes: int = Field(
+        default=120,
+        ge=1,
+        description="With the captcha in the chat, how long somebody let in muted has to answer before they are removed",
+    )
     # Asked in the chat, the bot may write to the person any time after they
     # open it, so their one reminder can wait longer than the five minutes above.
     in_chat_remind_after_minutes: int = Field(
@@ -439,6 +446,8 @@ class CaptchaSettings(Settings):
     def _reminder_inside_window(self) -> CaptchaSettings:
         if self.remind_after_minutes >= self.answer_minutes:
             raise ValueError("CAPTCHA_REMIND_AFTER_MINUTES must be shorter than CAPTCHA_ANSWER_MINUTES")
+        if self.in_chat_remind_after_minutes >= self.in_chat_answer_minutes:
+            raise ValueError("CAPTCHA_IN_CHAT_REMIND_AFTER_MINUTES must be shorter than CAPTCHA_IN_CHAT_ANSWER_MINUTES")
         return self
 
     model_config = SettingsConfigDict(

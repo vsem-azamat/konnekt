@@ -198,12 +198,21 @@ async def test_a_card_in_the_chat_names_them_with_a_mention_and_a_button(session
     [card] = _sent(bot, CHAT_ID)
     assert card["text"] == (
         '👋 <a href="tg://user?id=4242">Marek</a>, чтобы писать в чат, нажми «Пройти капчу»: '
-        "бот задаст один вопрос в личке.\n\n⏱ На это 24 часа, потом бот уберёт из чата."
+        "бот задаст один вопрос в личке.\n\n⏱ На это 2 часа, потом бот уберёт из чата."
     )
     [[button]] = card["reply_markup"].inline_keyboard
     assert (button.text, button.url) == ("Пройти капчу", CARD_URL)
     assert row.card_message_id is not None
     assert row.announced_at is not None
+
+
+async def test_in_the_chat_they_have_two_hours_not_the_day_a_request_waits(session: AsyncSession, bot) -> None:
+    await _seed(session)
+
+    row = await _let_in(session, bot)
+
+    # Muted in the chat and named on a card the whole time: a day of that is a day of a stale card.
+    assert row.expires_at - row.created_at == datetime.timedelta(hours=2)
 
 
 async def test_without_the_right_to_mute_the_request_waits_for_the_admins(session: AsyncSession, bot) -> None:
@@ -234,6 +243,7 @@ async def test_the_dm_captcha_stays_for_chats_without_the_switch(session: AsyncS
     bot.restrict_chat_member.assert_not_awaited()
     bot.approve_chat_join_request.assert_not_awaited()
     assert len(_sent(bot, 4242)) == 1
+    assert row.expires_at - row.created_at == datetime.timedelta(minutes=settings.captcha.answer_minutes)
 
 
 # --- the card: one per window ------------------------------------------------
@@ -268,6 +278,59 @@ async def test_the_next_card_mentions_the_new_and_carries_the_rest_without_a_pin
     bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=first_card)
     rows = await _rows(session)
     assert len({r.card_message_id for r in rows}) == 1
+
+
+async def test_the_card_gives_the_time_of_those_it_mentions(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    marek = await _let_in(session, bot, 4242)
+    tereza = await _let_in(session, bot, 4343)
+    now = utc_now() + BATCH
+    marek.expires_at = now + datetime.timedelta(minutes=3)
+    tereza.expires_at = now + datetime.timedelta(minutes=100)
+    await session.commit()
+
+    await in_chat.announce_due(bot, session, now)
+
+    # The mention is what Tereza reads, and her two hours are hers; Marek was told his own.
+    card = _sent(bot, CHAT_ID)[-1]["text"]
+    assert card.startswith('👋 Marek, <a href="tg://user?id=4343">Tereza</a>,')
+    assert card.endswith("⏱ На это 1 час 40 минут, потом бот уберёт из чата.")
+
+
+async def test_an_edited_card_gives_the_time_of_those_it_still_mentions(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    await _let_in(session, bot, 4242)
+    await _let_in(session, bot, 4343)
+    await _let_in(session, bot, 4444)
+    now = utc_now() + BATCH
+    await in_chat.announce_due(bot, session, now)
+    marek, tereza, jakub = await _rows(session)
+    marek.expires_at = now + datetime.timedelta(minutes=3)
+    tereza.expires_at = now + datetime.timedelta(minutes=100)
+    jakub.expires_at = now + datetime.timedelta(minutes=110)
+    await session.commit()
+
+    def last_card() -> str:
+        return [c.kwargs for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == CHAT_ID][-1]["text"]
+
+    await _ask(session, bot, 4444)
+    await service.answer(bot, session, challenge_id=jakub.id, user_id=4444, pick=_right(jakub), now=now)
+    # Marek, carried by name, runs out first; Tereza is the one the card notified.
+    assert last_card().endswith("⏱ На это 1 час 40 минут, потом бот уберёт из чата.")
+
+    await _ask(session, bot, 4343)
+    await service.answer(bot, session, challenge_id=tereza.id, user_id=4343, pick=_right(tereza), now=now)
+    # Nobody it mentions is left: the time is Marek's.
+    assert last_card().endswith("⏱ На это 3 минуты, потом бот уберёт из чата.")
+
+
+def test_the_time_on_a_card_rounds_up_and_is_never_nothing() -> None:
+    now = utc_now()
+    row = MagicMock(spec=JoinCaptcha, expires_at=now + datetime.timedelta(minutes=119, seconds=30))
+    overdue = MagicMock(spec=JoinCaptcha, expires_at=now - datetime.timedelta(seconds=5))
+
+    assert in_chat._minutes_left([row], now) == 120
+    assert in_chat._minutes_left([overdue], now) == 1
 
 
 async def test_ten_names_still_make_one_card(session: AsyncSession, bot) -> None:

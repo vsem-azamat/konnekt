@@ -677,6 +677,12 @@ def test_the_answer_window_outlasts_the_reminder() -> None:
         CaptchaSettings(answer_minutes=4, remind_after_minutes=4)
 
 
+def test_in_the_chat_the_answer_window_outlasts_its_reminder() -> None:
+    assert CaptchaSettings().in_chat_answer_minutes == 120
+    with pytest.raises(ValidationError):
+        CaptchaSettings(in_chat_answer_minutes=10, in_chat_remind_after_minutes=10)
+
+
 async def test_an_unanswered_captcha_is_reminded_once_with_the_time_left(session: AsyncSession, bot) -> None:
     await _seed_chat(session)
     await join_requested(_request(), bot, session)

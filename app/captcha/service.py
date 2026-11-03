@@ -87,6 +87,7 @@ async def admit(
     # does not wait in one.
     wave, opened = await waves.surge(db, chat, user_id, now)
     answer, options = challenge.draw()
+    minutes = settings.captcha.in_chat_answer_minutes if chat.captcha_in_chat else settings.captcha.answer_minutes
     row = JoinCaptcha(
         chat_id=chat.id,
         user_id=user_id,
@@ -96,7 +97,7 @@ async def admit(
         options=options,
         attempts_left=challenge.ATTEMPTS,
         created_at=now,
-        expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
+        expires_at=now + datetime.timedelta(minutes=minutes),
         in_chat=chat.captcha_in_chat,
     )
     # Asked in this order so that a pass the person did not need is not spent.
@@ -546,7 +547,7 @@ async def let_go(
         if unmute:
             await in_chat.unmute(bot, row)
         await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.no_longer_needed_text(title))
-        await in_chat.refresh(bot, db, chat_id, row.card_message_id)
+        await in_chat.refresh(bot, db, chat_id, row.card_message_id, now)
     logger.info("captcha_in_chat_let_go", chat_id=chat_id, user_id=user_id, count=len(rows))
 
 
@@ -562,7 +563,7 @@ async def _unmute_on_pass(bot: Bot, db: AsyncSession, row: JoinCaptcha, chat: Ch
     text = challenge.unmuted_text(title, _link(chat))
     await _close(bot, db, row, JoinCaptcha.STATUS_PASSED, now, text, await _app_markup(bot))
     logger.info("captcha_passed", chat_id=row.chat_id, user_id=row.user_id, in_chat=True)
-    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id, now)
     await _introduce(bot, db, row)
     # The join itself was not greeted: they could not have answered.
     if chat.is_welcome_enabled and (user := await in_chat.member(bot, row)):
@@ -598,14 +599,14 @@ async def _remove(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.da
         may_return=removal is in_chat.Removal.DONE,
     )
     await _close(bot, db, row, status, now, text)
-    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id, now)
 
 
 async def _release(bot: Bot, db: AsyncSession, row: JoinCaptcha, now: datetime.datetime, title: str) -> None:
     """The chat stopped checking: whoever it muted for the captcha may write, and the admins decide the rest."""
     await in_chat.unmute(bot, row)
     await _close(bot, db, row, JoinCaptcha.STATUS_GONE, now, challenge.no_longer_needed_text(title))
-    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id)
+    await in_chat.refresh(bot, db, row.chat_id, row.card_message_id, now)
 
 
 async def _introduce(bot: Bot, db: AsyncSession, row: JoinCaptcha) -> None:
