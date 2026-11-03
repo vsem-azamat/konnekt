@@ -243,7 +243,7 @@ const graph = articleGraph(
 
 <script>
   // The section being read, marked in the contents: the last heading above the
-  // top third of the screen.
+  // top third of the screen, or the last one at the bottom of the page.
   const links = [...document.querySelectorAll<HTMLAnchorElement>('.contents-rail a')];
   const targets = links
     .map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
@@ -255,6 +255,10 @@ const graph = articleGraph(
       targets.forEach((target, index) => {
         if (target.getBoundingClientRect().top <= line) current = index;
       });
+      // At the very bottom a short last section never reaches the line: it is the one being read.
+      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 1) {
+        current = targets.length - 1;
+      }
       links.forEach((link, index) => {
         if (index === current) link.setAttribute('aria-current', 'true');
         else link.removeAttribute('aria-current');

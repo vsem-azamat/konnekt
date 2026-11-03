@@ -55,6 +55,15 @@ function all(node: El, test: (el: El) => boolean): El[] {
   return found;
 }
 
+/** Two addresses of one page: Markdown percent-encodes a link, the frontmatter keeps it as written. */
+function same(a: string, b: string): boolean {
+  try {
+    return new URL(a).href === new URL(b).href;
+  } catch {
+    return a === b;
+  }
+}
+
 function notes(section: El, lang: Lang, sources: readonly Source[]): void {
   const t = TEXTS[lang];
   for (const heading of all(section, (el) => el.tagName === 'h2')) {
@@ -62,18 +71,25 @@ function notes(section: El, lang: Lang, sources: readonly Source[]): void {
     delete heading.properties.className;
   }
   const cited = new Set<string>();
-  for (const item of all(section, (el) => el.tagName === 'li')) {
+  // The notes are the items of the section's own list; a list inside a note is part of it.
+  const list = section.children.find(
+    (child): child is El => isEl(child) && child.tagName === 'ol',
+  );
+  const items = (list?.children ?? []).filter(
+    (child): child is El => isEl(child) && child.tagName === 'li',
+  );
+  for (const item of items) {
     const link = all(item, (el) => el.tagName === 'a').find((a) =>
       /^https?:/.test(String(a.properties.href)),
     );
     const url = String(link?.properties.href ?? '');
-    const source = sources.find((one) => one.url === url);
+    const source = sources.find((one) => same(one.url, url));
     if (!source) {
       throw new Error(
         `footnote ${String(item.properties.id)} links to ${url || 'nothing'}, not to a listed source`,
       );
     }
-    cited.add(url);
+    cited.add(source.url);
     const paragraph = all(item, (el) => el.tagName === 'p').at(-1) ?? item;
     const index = paragraph.children.findIndex(
       (child) => isEl(child) && 'dataFootnoteBackref' in child.properties,

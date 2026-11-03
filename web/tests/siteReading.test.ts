@@ -111,3 +111,18 @@ test('a table scrolls in a box of its own', () => {
   assert.deepEqual(box.properties.className, ['table']);
   assert.equal(box.children[0], table);
 });
+
+test('a list inside a note is part of the note, not a note of its own', () => {
+  const root = el('root', {}, [notes(law.url)]);
+  const note = find(root, (e) => e.tagName === 'li') as El;
+  note.children.unshift(el('ul', {}, [el('li', {}, [text('a point')])]));
+  assert.doesNotThrow(() => reading(root, { lang: 'ru', sources: [law] }));
+});
+
+test('a source is found whether or not its address is percent-encoded', () => {
+  const raw = { ...law, url: 'https://cs.wikipedia.org/wiki/Nostrifikace_(školství)' };
+  const root = el('root', {}, [
+    notes('https://cs.wikipedia.org/wiki/Nostrifikace_(%C5%A1kolstv%C3%AD)'),
+  ]);
+  assert.doesNotThrow(() => reading(root, { lang: 'ru', sources: [raw] }));
+});

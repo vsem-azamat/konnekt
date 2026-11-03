@@ -83,6 +83,9 @@ export default defineConfig({
   // the CommonJS among them bundled.
   vite: { ssr: { noExternal: building || undefined } },
   // An article's notes are its sources, and a table scrolls in its own box (articles/reading.ts).
+  // Astro keeps rendered Markdown by the file's content in site/node_modules/.astro, and
+  // a plugin's code is not part of that key: after changing reading.ts or texts.ts,
+  // delete that directory (and site/.astro) before a local build. CI builds clean.
   // biome-ignore lint/suspicious/noExplicitAny: Sätteri's node types are its own; the plugin reads the shape it needs.
   markdown: { processor: satteri({ hastPlugins: [readingPlugin as any] }) },
   integrations: [
