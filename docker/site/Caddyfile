@@ -115,6 +115,7 @@
 	# Their addresses without the slash, which a page names with it. Not /chats.
 	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/universities|/(?:uk|cs|en)/chats)$
 	handle @bare {
+		header Cache-Control "public, max-age=3600"
 		redir {re.bare.1}/ 308
 	}
 

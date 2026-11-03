@@ -49,8 +49,10 @@ def test_a_permanent_redirect_is_kept_a_while_not_for_good() -> None:
     # A browser keeps a 301 with no Cache-Control indefinitely. konnekt.cz/
     # once redirected to the app this way, and when the app began sending
     # browsers back to konnekt.cz, those that kept it went round between the two.
-    for name, caddyfile, count in (("site", SITE, 1), ("webui", WEBUI, 4)):
-        handles = re.findall(r"handle[^{\n]*\{[^{}]*\bredir [^\n]*permanent[^{}]*\}", caddyfile)
-        assert len(handles) == caddyfile.count(" permanent\n") == count, name
+    # A 308 is kept the same way.
+    permanent = r"(?:permanent|301|308)\n"
+    for name, caddyfile, count in (("site", SITE, 2), ("webui", WEBUI, 4)):
+        handles = re.findall(rf"handle[^{{\n]*\{{[^{{}}]*\bredir [^\n]* {permanent}[^{{}}]*\}}", caddyfile)
+        assert len(handles) == len(re.findall(rf"\bredir [^\n]* {permanent}", caddyfile)) == count, name
         for handle in handles:
             assert 'header Cache-Control "public, max-age=3600"' in handle, (name, handle)
