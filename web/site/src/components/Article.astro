@@ -10,6 +10,7 @@ import { type CollectionEntry, getCollection, getEntry, render } from 'astro:con
 import '../site.css';
 import { entries, entry } from '../articles/entries.ts';
 import { articleGraph, day, jsonLd, type Party } from '../articles/structured.ts';
+import { articleSource } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import {
   articlePath,
@@ -18,6 +19,7 @@ import {
   listings,
   localePath,
   related,
+  slugOf,
   translationsOf,
 } from '../paths.ts';
 import { longDate, TEXTS } from '../texts.ts';
@@ -121,7 +123,7 @@ const graph = articleGraph(
     {data.cover && <meta property="og:image" content={new URL(data.cover.src, site).href} />}
     <script type="application/ld+json" set:html={jsonLd(graph)} />
   </Fragment>
-  <Header lang={lang} path={path} versions={versions} />
+  <Header lang={lang} path={path} versions={versions} source={articleSource(slugOf(article.id))} />
   <main class:list={['page', { 'with-contents': contents }]}>
     <nav class="crumbs" aria-label="breadcrumbs">
       {crumbs.map((crumb) => <a href={new URL(crumb.url).pathname}>{crumb.name}</a>)}

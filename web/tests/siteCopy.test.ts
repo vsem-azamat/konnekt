@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { num, phone, t, v } from '../site/src/landing/copy.ts';
+import { articleSource, num, openLink, phone, t, v } from '../site/src/landing/copy.ts';
 import { COPY, STATS } from '../site/src/landing/data.ts';
 
 test('a number reads the way its language writes it, with no line break inside', () => {
@@ -32,4 +32,16 @@ test('a missing key is loud, not a blank on the page', () => {
 test('the phone shows the app in the page language', () => {
   assert.match(phone('cs'), /Co potřebuješ\?/);
   assert.match(phone('cs'), /<span class="am-pill">CS<\/span>/);
+});
+
+test('each way into the app says which button it was, in a shape the catalog passes on', () => {
+  assert.equal(openLink('site_header'), '/api/v1/open?app=1&from=site_header');
+  assert.equal(
+    articleSource('nostrifikaciya-attestata'),
+    'site_article_nostrifikaciya-attestata',
+  );
+  // Telegram takes 64 characters of a start parameter; a long slug is cut, not refused.
+  const long = articleSource('x'.repeat(80));
+  assert.equal(long.length, 64);
+  assert.match(long, /^site_[a-z0-9][a-z0-9_-]{0,58}$/);
 });
