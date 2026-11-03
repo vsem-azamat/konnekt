@@ -174,6 +174,27 @@ Every review Azamat gives on an article becomes a note here or a row in the
   konnekt-market on 2026-11-03.
 - **Date:** 2026-11-03.
 
+### The right to work follows the purpose code, not the fact of studying
+
+- **Note:** whether a student may work without a work permit depends on the
+  purpose-of-stay code (kód účelu pobytu) on the visa or residence card, not
+  only on being a student. Codes 23 «Studium – student (směrnice EU)» and 24
+  «Studium» take a letter for the kind of study: A for a university, B for
+  language preparation, and so on; 99 is «Jiné / ostatní». On the card the
+  code is under «Poznámky», next to «Volný přístup na trh práce – ANO/NE».
+  With 23A or 24A and full-time study no permit is needed (zákon 435/2004
+  Sb. § 98 písm. j); with 99 one usually is. No separate rule is published
+  for language or preparatory courses, so the ANO/NE entry on the card
+  decides. An article on work says how to read one's own card.
+- **Source:** Azamat, review of the student work article (#502); the codes:
+  https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf; the card:
+  https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf;
+  both read by konnekt-market on 2026-11-03.
+- **Date:** 2026-11-03.
+- **To check:** how 23 differs from 24 (only an old police list says 23 is
+  under the EU directive); § 98 písm. j read in e-Sbírka; «with 99 one
+  usually is» against an official source.
+
 ## visa
 
 ### After 60 days without a decision
