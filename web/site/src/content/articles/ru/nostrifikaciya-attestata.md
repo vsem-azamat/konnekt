@@ -30,12 +30,12 @@ draft: true
 
 ## Коротко
 
-- Решает краевая управа (krajský úřad, региональное управление) по месту вашего пребывания в Чехии, а не вуз.[^1]
+- Решает краевая управа (krajský úřad, региональное управление) по месту вашего пребывания в Чехии (без адреса в Чехии: по месту подачи), а не вуз.[^1]
 - Пошлина: 3 000 Kč.[^2] Её платят управе при подаче заявления.
 - Срок решения: 30 дней, в сложных случаях до 60.[^3]
 - Экзамен, если его назначат: [от 1 до 5 предметов](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101).
 - Апелляция: 15 дней со дня, когда вам объявили решение.[^4]
-- Есть замена: плата факультету за оценку аттестата вместо нострификации. На [FHS UK](https://fhs.cuni.cz/FHS-1027.html) 990 Kč, на [MFF UK](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028) 0 Kč.
+- Есть замена: плата факультету за оценку аттестата вместо нострификации. На [FHS UK](https://fhs.cuni.cz/FHS-1027.html)[^w4] 990 Kč (приём 2026/27), на [MFF UK](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)[^w5] 0 Kč.
 
 > **Важно.** Это не юридическая консультация. Проверено 3 ноября 2026, официальная страница: [Portál veřejné správy, nostrifikace zahraničního vysvědčení](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101). Текст описывает приём на 2027/28 учебный год по законам в редакции на эту дату.
 
@@ -45,7 +45,7 @@ draft: true
 
 | Ваша ситуация | Что предъявить вузу |
 | --- | --- |
-| Аттестат из Словакии, Венгрии, Польши, Словении или Германии | Сам аттестат: по [договорам о взаимном признании](https://portal.gov.cz/informace/INF-97) он действует в Чехии без нострификации. Договор действует не для всех документов, поэтому проверьте свой |
+| Аттестат из Словакии, Венгрии, Польши, Словении или Германии | Сам аттестат: по [договорам о взаимном признании](https://portal.gov.cz/informace/INF-97)[^w1] он действует в Чехии без нострификации. Договор действует не для всех документов, поэтому проверьте свой |
 | Европейский бакалавриат (European Baccalaureate) или International Baccalaureate | Сам диплом: закон допускает это напрямую[^5] |
 | Любой другой иностранный аттестат | Нострификация (решение краевой управы) **или** оценка аттестата самим факультетом |
 
@@ -57,7 +57,7 @@ draft: true
 
 Плата факультету за оценку по закону не больше 20 % от базовой суммы.[^7] Это другая плата, чем пошлина за нострификацию (шаг 4). Правила и сумма у факультетов разные:
 
-- [Masarykova univerzita](https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu): факультет проверяет аттестат сам, это быстрее нострификации, но проверка действует только для одного приёма на этом факультете;
+- [Masarykova univerzita](https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu)[^w3]: факультет проверяет аттестат сам, это быстрее нострификации, но проверка действует только для одного приёма на этом факультете;
 - [Fakulta humanitních studií UK](https://fhs.cuni.cz/FHS-1027.html): на странице приёма 2026/27 плата факультету за оценку 990 Kč, срок обычно 30 дней, результат действует для одного приёма. Данные на 2027/28 проверьте на странице факультета;
 - [MFF UK](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028): плата факультету за оценку 0 Kč в приёме 2027/28.
 
@@ -93,7 +93,7 @@ draft: true
 К заявлению прилагают:[^10]
 
 - оригинал аттестата или его заверенную копию;
-- документ о содержании и объёме обучения (Магистрат Праги описывает его как [перечень предметов с количеством часов по годам обучения](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami));
+- документ о содержании и объёме обучения (Магистрат Праги описывает его как [перечень предметов с количеством часов по годам обучения](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami)[^w2]);
 - документ о том, что школа признана государством выдачи как часть его системы образования, если это не видно из самого аттестата.
 
 Три требования к оформлению: заверение, перевод и копии.
@@ -109,7 +109,7 @@ draft: true
 
 > **Важно.** Какой вариант примет ваша управа, уточните в ней до заверения.
 
-Если нужен апостиль, учтите: по [таблице Гаагской конференции](https://www.hcch.net/en/instruments/conventions/status-table/?cid=41) (обновление от 30 июня 2026) участниками конвенции значатся Россия, Украина, Беларусь, Казахстан, Армения, Грузия и Молдова. У Кыргызстана, Узбекистана, Таджикистана и Азербайджана в таблице стоит отметка о возражении (A**), поэтому про них здесь ничего не утверждаем. Другие страны проверьте в той же таблице.
+Если нужен апостиль, учтите: по [таблице Гаагской конференции](https://www.hcch.net/en/instruments/conventions/status-table/?cid=41)[^w6] (обновление от 30 июня 2026) участниками конвенции значатся Россия, Украина, Беларусь, Казахстан, Армения, Грузия и Молдова. У Кыргызстана, Узбекистана, Таджикистана и Азербайджана в таблице стоит отметка о возражении (A**), поэтому про них здесь ничего не утверждаем. Другие страны проверьте в той же таблице.
 
 ### Перевод
 
@@ -206,7 +206,7 @@ draft: true
 [^5]: Zákon č. 111/1998 Sb., o vysokých školách, § 48 odst. 4 písm. b, c — [e-Sbírka](https://e-sbirka.gov.cz/sb/1998/111)
 [^6]: Zákon č. 111/1998 Sb., o vysokých školách, § 48 odst. 4 písm. e — [e-Sbírka](https://e-sbirka.gov.cz/sb/1998/111)
 [^7]: Zákon č. 111/1998 Sb., o vysokých školách, § 48 odst. 7 (základ podle § 58 odst. 2) — [e-Sbírka](https://e-sbirka.gov.cz/sb/1998/111)
-[^8]: Zákon č. 561/2004 Sb., školský zákon, § 108 — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
+[^8]: Zákon č. 561/2004 Sb., školský zákon, § 108 odst. 1 věta druhá — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
 [^9]: Zákon č. 561/2004 Sb., školský zákon, § 108a — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
 [^10]: Zákon č. 561/2004 Sb., školský zákon, § 108 odst. 3 a 4; viz také [stránka portálu](https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101) — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
 [^11]: Zákon č. 561/2004 Sb., školský zákon, § 108 odst. 4 — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
@@ -214,3 +214,9 @@ draft: true
 [^13]: Zákon č. 67/2022 Sb., § 9 — [e-Sbírka](https://e-sbirka.gov.cz/sb/2022/67)
 [^14]: Zákon č. 561/2004 Sb., školský zákon, § 108 odst. 5 — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
 [^15]: Zákon č. 561/2004 Sb., školský zákon, § 108 odst. 6 — [e-Sbírka](https://e-sbirka.gov.cz/sb/2004/561)
+[^w1]: Uznávání základního, středního nebo vyššího odborného vzdělání dosaženého v zahraničních školách (Portál veřejné správy) — [portal.gov.cz](https://portal.gov.cz/informace/INF-97)
+[^w2]: Uznávání rovnocennosti a nostrifikace vysvědčení vydaných zahraničními školami (Magistrát hl. m. Prahy) — [praha.eu](https://praha.eu/uznavani-rovnocennosti-a-nostrifikace-vysvedceni-vydanych-zahranicnimi-skolami)
+[^w3]: Ověřování podmínky přijetí ke studiu (Masarykova univerzita) — [muni.cz](https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu)
+[^w4]: Uznání předchozího studia / Nostrifikace (Fakulta humanitních studií UK) — [fhs.cuni.cz](https://fhs.cuni.cz/FHS-1027.html)
+[^w5]: Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK) — [mff.cuni.cz](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)
+[^w6]: Status table: Apostille Convention (HCCH) — [hcch.net](https://www.hcch.net/en/instruments/conventions/status-table/?cid=41)
