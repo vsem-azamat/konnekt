@@ -1274,11 +1274,6 @@ footer .links span {
   background: var(--card);
   border: 1px solid var(--hair);
 }
-.g-sample {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-}
 .guide h3 {
   margin: 0;
   font-size: 20px;
@@ -1307,14 +1302,19 @@ footer .links span {
   text-align: center;
   margin-top: 20px;
 }
+/* As many columns as there are articles, up to the row's count, each a
+   half the row (from 1040px a quarter) at most, centred: one article is not a lone card at
+   the left of an empty row. The page sets --cols2 and --cols4, the counts
+   for a row of two and of four. */
 @media (min-width: 720px) {
   .guides {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(var(--cols2, 2), minmax(0, calc((100% - 12px) / 2)));
+    justify-content: center;
   }
 }
 @media (min-width: 1040px) {
   .guides {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--cols4, 4), minmax(0, calc((100% - 36px) / 4)));
   }
   .guide {
     min-height: 240px;

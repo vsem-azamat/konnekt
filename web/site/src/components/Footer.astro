@@ -1,5 +1,6 @@
 ---
 /** Landing F's footer, on every page of the site. */
+import { published } from '../articles/published.ts';
 import { t as copy, OPEN } from '../landing/copy.ts';
 import { type Lang, localePath } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
@@ -11,6 +12,7 @@ interface Props {
 
 const { lang, path = '/' } = Astro.props;
 const t = (key: string) => copy(lang, key);
+const articles = (await published(lang)).length > 0;
 const home = path === '/' ? '' : localePath(lang, '/');
 ---
 
@@ -18,6 +20,6 @@ const home = path === '/' ? '' : localePath(lang, '/');
   <div class="wrap">
     <span class="logo"><img src="/favicon.svg" alt="" />Konnekt</span>
     <span>{t("footer.tag")}</span>
-    <nav class="links"><a href={localePath(lang, "/articles/")}>{TEXTS[lang].articles}</a><a href={`${home}#offer`}>{t("footer.tutors")}</a><a href={OPEN}>{t("footer.contact")}</a><span>© 2026</span></nav>
+    <nav class="links">{articles && <a href={localePath(lang, "/articles/")}>{TEXTS[lang].articles}</a>}<a href={`${home}#offer`}>{t("footer.tutors")}</a><a href={OPEN}>{t("footer.contact")}</a><span>© 2026</span></nav>
   </div>
 </footer>
