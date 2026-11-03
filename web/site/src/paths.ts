@@ -9,6 +9,8 @@
  * Pure functions, shared by the pages, the config and the tests.
  */
 
+import { parse } from 'yaml';
+
 export const LANGS = ['ru', 'uk', 'cs', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
 export const DEFAULT_LANG: Lang = 'ru';
@@ -106,17 +108,27 @@ export interface ArticleEntry {
   translationKey: string;
 }
 
+/** A slug, a translation key, a tag: lowercase latin words joined by hyphens. */
+export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 /** Slugs the section's own pages take: an article by one of these names would hide them. */
 export const RESERVED_SLUGS = ['topics', 'tags'];
 
 /**
- * Refuses what would break an address or a translation: an article under a
- * reserved slug, or two articles in one language sharing a translation key
- * (which of them would the others name?).
+ * Refuses what would break an address or a translation: a file name that is
+ * not already a slug (Astro would rewrite it into one, and the config, which
+ * reads file names, would then name a page that does not exist), an article
+ * under a reserved slug, or two articles in one language sharing a
+ * translation key (which of them would the others name?).
  */
 export function checkArticles(articles: readonly ArticleEntry[]): void {
   const seen = new Map<string, string>();
   for (const { id, translationKey } of articles) {
+    if (!SLUG.test(slugOf(id))) {
+      throw new Error(
+        `article ${id}: the file name is not a slug (lowercase latin, hyphens)`,
+      );
+    }
     if (RESERVED_SLUGS.includes(slugOf(id))) {
       throw new Error(`article ${id}: the slug ${slugOf(id)} is the section's own`);
     }
@@ -139,6 +151,38 @@ export function translationsOf(
   return articles
     .filter((other) => other.translationKey === article.translationKey)
     .map((other) => ({ lang: langOf(other.id), path: articlePath(other.id) }));
+}
+
+/**
+ * A file's frontmatter, read as Astro reads it (a leading BOM allowed, any
+ * line ending). A file without it is refused rather than read as empty: the
+ * config would take it for a published article Astro may see as a draft.
+ */
+export function readFrontmatter(text: string, file: string): Record<string, unknown> {
+  const found = text
+    .replace(/^\uFEFF/, '')
+    .match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!found) throw new Error(`${file}: no frontmatter`);
+  return parse(found[1] ?? '') ?? {};
+}
+
+/**
+ * An article's hreflang links in the sitemap, by its translation key, as its
+ * page names them; undefined for any other page, which the sitemap pairs by
+ * path itself. Pairing an article by path would name as translations two
+ * articles that only share a slug, and miss real ones with slugs of their own.
+ */
+export function sitemapLinks(
+  path: string,
+  articles: readonly ArticleEntry[],
+  hidden: readonly string[],
+  site: string,
+): { lang: string; url: string }[] | undefined {
+  const article = articles.find((one) => articlePath(one.id) === path);
+  if (!article) return undefined;
+  return alternates(indexed(translationsOf(article, articles), hidden), site).map(
+    ({ hreflang, href }) => ({ lang: hreflang, url: href }),
+  );
 }
 
 /**

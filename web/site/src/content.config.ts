@@ -2,14 +2,12 @@ import { defineCollection, reference } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-import { LANGS } from './paths.ts';
+import { LANGS, SLUG } from './paths.ts';
 
 /** The sections an article belongs to, one each; their names are in texts.ts. */
 export const RUBRICS = ['admission', 'visa', 'housing', 'study', 'work'] as const;
 
-const slug = z
-  .string()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'lowercase latin words joined by hyphens');
+const slug = z.string().regex(SLUG, 'lowercase latin words joined by hyphens');
 
 /**
  * Articles, one Markdown file per language: `articles/<lang>/<slug>.md`, the

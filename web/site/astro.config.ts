@@ -2,7 +2,6 @@ import { globSync, readFileSync } from 'node:fs';
 import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
-import { parse } from 'yaml';
 
 import {
   type ArticleEntry,
@@ -10,6 +9,8 @@ import {
   DEFAULT_LANG,
   hiddenPaths,
   LANGS,
+  readFrontmatter,
+  sitemapLinks,
 } from './src/paths.ts';
 
 /**
@@ -36,7 +37,7 @@ const root = new URL('.', import.meta.url).pathname;
 function articles(): ArticleEntry[] {
   const entries = globSync('src/content/articles/*/*.md', { cwd: root }).map((file) => {
     const text = readFileSync(`${root}${file}`, 'utf8');
-    const frontmatter = parse(text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '') ?? {};
+    const frontmatter = readFrontmatter(text, file);
     return {
       id: file.replace(/^src\/content\/articles\//, '').replace(/\.md$/, ''),
       draft: frontmatter.draft === true,
@@ -47,7 +48,8 @@ function articles(): ArticleEntry[] {
   return entries;
 }
 
-const hidden = hiddenPaths(articles());
+const entries = articles();
+const hidden = hiddenPaths(entries);
 const building = process.argv.includes('build');
 const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
 
@@ -73,6 +75,11 @@ export default defineConfig({
       // sitemap, which knows which of them may be indexed (sitemap-catalog.xml).
       // The index names it too, for a search engine given only the index.
       customSitemaps: [new URL('/sitemap-catalog.xml', site).href],
+      // An article's translations are found by key, not by path (sitemapLinks).
+      serialize: (item) => {
+        const links = sitemapLinks(new URL(item.url).pathname, entries, hidden, site);
+        return links ? { ...item, links } : item;
+      },
       filter: (page) => {
         const { pathname } = new URL(page);
         return !hidden.includes(pathname) && !CATALOG.test(pathname);
