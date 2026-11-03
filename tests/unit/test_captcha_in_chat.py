@@ -280,15 +280,41 @@ async def test_the_next_card_mentions_the_new_and_carries_the_rest_without_a_pin
     assert len({r.card_message_id for r in rows}) == 1
 
 
-async def test_the_card_gives_the_time_left_to_whoever_runs_out_first(session: AsyncSession, bot) -> None:
+async def test_the_card_gives_the_time_of_those_it_mentions(session: AsyncSession, bot) -> None:
+    await _seed(session)
+    marek = await _let_in(session, bot, 4242)
+    tereza = await _let_in(session, bot, 4343)
+    now = utc_now() + BATCH
+    marek.expires_at = now + datetime.timedelta(minutes=3)
+    tereza.expires_at = now + datetime.timedelta(hours=2)
+    await session.commit()
+
+    await in_chat.announce_due(bot, session, now)
+
+    # The mention is what Tereza reads, and her two hours are hers; Marek was told his own.
+    card = _sent(bot, CHAT_ID)[-1]["text"]
+    assert card.startswith('👋 Marek, <a href="tg://user?id=4343">Tereza</a>,')
+    assert card.endswith("⏱ На это 2 часа, потом бот уберёт из чата.")
+
+
+async def test_an_edited_card_gives_the_time_they_have_left(session: AsyncSession, bot) -> None:
     await _seed(session)
     await _let_in(session, bot, 4242)
     await _let_in(session, bot, 4343)
+    await _let_in(session, bot, 4444)
+    now = utc_now() + BATCH
+    await in_chat.announce_due(bot, session, now)
+    marek, tereza, jakub = await _rows(session)
+    tereza.expires_at = now + datetime.timedelta(minutes=45)
+    jakub.expires_at = now + datetime.timedelta(minutes=50)
+    await session.commit()
+    await _ask(session, bot, 4242)
+    bot.edit_message_text.reset_mock()
 
-    # Marek, carried from the first card, has half an hour of his two left; the card must not promise more.
-    await in_chat.announce_due(bot, session, utc_now() + datetime.timedelta(minutes=90))
+    await service.answer(bot, session, challenge_id=marek.id, user_id=4242, pick=_right(marek), now=now)
 
-    assert _sent(bot, CHAT_ID)[-1]["text"].endswith("⏱ На это 30 минут, потом бот уберёт из чата.")
+    edits = [c.kwargs for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == CHAT_ID]
+    assert edits[-1]["text"].endswith("⏱ На это 45 минут, потом бот уберёт из чата.")
 
 
 async def test_ten_names_still_make_one_card(session: AsyncSession, bot) -> None:
@@ -409,7 +435,6 @@ async def test_a_pass_takes_one_name_off_a_shared_card(session: AsyncSession, bo
 
     edits = [c.kwargs for c in bot.edit_message_text.await_args_list if c.kwargs["chat_id"] == CHAT_ID]
     assert edits[-1]["text"].startswith('👋 <a href="tg://user?id=4343">Tereza</a>, чтобы писать в чат, нажми')
-    assert edits[-1]["text"].endswith("⏱ На это 2 часа, потом бот уберёт из чата.")
     bot.delete_message.assert_awaited_once()  # the first card only
 
 
