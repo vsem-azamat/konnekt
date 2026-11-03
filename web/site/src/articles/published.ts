@@ -1,10 +1,14 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
 
-import { type Lang, langOf } from '../paths.ts';
+import { type Lang, newestPublished } from '../paths.ts';
 
-/** The published articles in `lang`, newest first. */
+/** The published articles in `lang`, newest first (newestPublished on the collection). */
 export async function published(lang: Lang): Promise<CollectionEntry<'articles'>[]> {
-  return (await getCollection('articles'))
-    .filter((article) => !article.data.draft && langOf(article.id) === lang)
-    .sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
+  const articles = (await getCollection('articles')).map((article) => ({
+    article,
+    id: article.id,
+    draft: article.data.draft,
+    published: article.data.published,
+  }));
+  return newestPublished(articles, lang).map(({ article }) => article);
 }

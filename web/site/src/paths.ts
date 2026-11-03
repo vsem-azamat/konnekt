@@ -143,6 +143,15 @@ export function authorPages(
 /** A slug, a translation key, a tag: lowercase latin words joined by hyphens. */
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** The published articles in `lang`, newest first: the landing's and the menu's. */
+export function newestPublished<
+  T extends { id: string; draft: boolean; published: Date },
+>(articles: readonly T[], lang: Lang): T[] {
+  return articles
+    .filter((article) => !article.draft && langOf(article.id) === lang)
+    .sort((a, b) => b.published.valueOf() - a.published.valueOf());
+}
+
 /** Slugs the section's own pages take: an article by one of these names would hide them. */
 export const RESERVED_SLUGS = ['topics', 'tags'];
 

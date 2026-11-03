@@ -166,7 +166,8 @@ const avatar = (name: string) => {
   // prototype. Chats and tutors share a row on wide screens, so a click picks.
   const head = document.querySelector<HTMLElement>('.top');
   const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a');
-  const ids = ['chats', 'tutors', 'help', 'how'];
+  // «guides» is no menu item now, but reaching it ends «how»'s mark.
+  const ids = ['chats', 'tutors', 'help', 'how', 'guides'];
   let picked: string | null = null;
   let current: string | null | undefined;
   const mark = (id: string | null) => {
