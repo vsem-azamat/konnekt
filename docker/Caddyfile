@@ -221,6 +221,7 @@ http://{$ADMIN_HOST:admin.invalid} {
 	@icon path /favicon.ico /favicon.svg /apple-touch-icon.png
 	handle @icon {
 		root * /srv/app
+		header Cache-Control "no-cache"
 		file_server
 	}
 
