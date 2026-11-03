@@ -32,6 +32,8 @@ sources:
   - { url: "https://ujop.cuni.cz/UJOP-119.html", title: "Příprava na VŠ pro zahraniční studenty v českém jazyce (ÚJOP UK)", checked_at: 2026-11-03 }
   - { url: "https://ujop.cuni.cz/UJOP-1.html", title: "ÚJOP UK, úvodní stránka", checked_at: 2026-11-03 }
   - { url: "https://mzv.gov.cz/astana/ru/vizy_i_konzulskie/index.html", title: "Визы и консульская информация (Посольство Чехии в Астане)", checked_at: 2026-11-03 }
+  - { url: "https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf", title: "Kódy víz a povolení k pobytu (MV ČR)", checked_at: 2026-11-03 }
+  - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf", title: "Vzory dokladů vydávaných cizincům (MV ČR)", checked_at: 2026-11-03 }
 draft: true
 ---
 
@@ -211,6 +213,10 @@ draft: true
 
 > **Важно.** Граждане России и Беларуси. На странице MZV «[Vízové služby pro občany Ruska a Běloruska](https://mzv.gov.cz/jnp/cz/informace_pro_cizince/aktuality/vizove_sluzby_pro_obcany_ruska_a.html)» (обновлена 9 февраля 2026) перечислены группы, чьи заявления консульства Чехии принимают. Для долгосрочной визы и пребывания, связанных с учёбой, там названы граждане Беларуси с одной из четырёх стипендий (по международным договорам MŠMT, программа MŠMT, программа ЕС или стипендия по решению правительства Чехии). Ещё в списке есть люди, которым из-за репрессий грозит опасность, и участники программы «Гражданское общество»; остальные группы (воссоединение семьи, постоянное пребывание и другие) читайте на самой странице. Отдельной категории для российских студентов в списке нет. В конце перечня сказано, что в остальных случаях консульства заявления граждан России и Беларуси не принимают (Ve všech ostatních případech … nepřijímají). Речь о гражданстве, о стране проживания на странице не сказано.
 
+### Виза и право на работу
+
+Можно ли работать без разрешения, зависит от цели пребывания: её код стоит на визе и на карте (kód účelu pobytu).[^kody] На карте его пишут в графе «Poznámky», а рядом стоит запись «Volný přístup na trh práce – ANO/NE», то есть «свободный доступ к работе: да или нет».[^vzory] Коды 23A и 24A означают учёбу в вузе.[^kody] Когда с ними можно работать без разрешения, какие бывают договоры и что значат другие коды, разобрано в статье [работа студента в Чехии](/articles/rabota-vo-vremya-ucheby/).
+
 ### Медицинская страховка
 
 Медицинская страховка (cestovní zdravotní pojištění) нужна, когда визу одобрили: при получении визы показывают заверенный перевод договора ([MZV](https://mzv.gov.cz/jnp/cz/informace_pro_cizince/pobytova_opravneni_k_pobytu_nad_90_dnu/studium_dlouhodobe.html)).
@@ -275,3 +281,5 @@ draft: true
 [^w20]: ÚJOP UK, úvodní stránka — [ujop.cuni.cz](https://ujop.cuni.cz/UJOP-1.html)
 [^w21]: Визы и консульская информация (Посольство Чехии в Астане) — [mzv.gov.cz](https://mzv.gov.cz/astana/ru/vizy_i_konzulskie/index.html)
 [^w4]: Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK) — [mff.cuni.cz](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)
+[^kody]: Kódy víz a povolení k pobytu (MV ČR) — [ipc.gov.cz](https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf)
+[^vzory]: Vzory dokladů vydávaných cizincům (MV ČR) — [ipc.gov.cz](https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf)
