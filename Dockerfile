@@ -54,6 +54,10 @@ ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN SENTRY_ORG=$SENTRY_ORG SENTRY_URL=$SENTRY_U
 ARG SITE_URL
 ARG APP_URL
 ENV SITE_URL=$SITE_URL APP_URL=$APP_URL VITE_SITE_URL=$SITE_URL
+# Yandex Webmaster's verification code, printed in the site's pages (the
+# repository variable YANDEX_VERIFICATION). Optional: without it, no tag.
+ARG YANDEX_VERIFICATION=
+ENV YANDEX_VERIFICATION=$YANDEX_VERIFICATION
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     : "${SITE_URL:?pass --build-arg SITE_URL=<the site's https origin>}" && \
     : "${APP_URL:?pass --build-arg APP_URL=<the app's https origin>}" && \

@@ -10,14 +10,16 @@ import Header from '../components/Header.astro';
 import {
   t as copy,
   num as number,
-  OPEN,
+  openLink,
   phone as phoneOf,
   v as variant,
 } from '../landing/copy.ts';
 import { CHATS, STATS } from '../landing/data.ts';
 import '../landing/phone.css';
+import { published } from '../articles/published.ts';
 import Base from '../layouts/Base.astro';
-import { type Lang, localePath } from '../paths.ts';
+import { articlePath, type Lang, localePath } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
 
 interface Props {
   lang: Lang;
@@ -28,6 +30,9 @@ const t = (key: string) => copy(lang, key);
 const v = (key: string) => variant(lang, key);
 const num = (n: number) => number(lang, n);
 const phone = phoneOf(lang);
+// The newest articles in this language; the block is left out while there are none.
+const articles = (await published(lang)).slice(0, 4);
+const WASHES = ['wash3', 'wash2', 'wash0', 'wash1'];
 
 // The chats' own avatars and the drawn tutors, emitted with hashed names.
 const files = import.meta.glob<string>('../landing/av/*.{jpg,svg}', {
@@ -50,7 +55,7 @@ const avatar = (name: string) => {
       <h1>{t("hero.short")}</h1>
       <p class="lead">{t("hero.subShort")}</p>
       <div class="actions">
-        <a class="btn" href={OPEN}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href={openLink("site_hero")}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <div class="later"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg><span>{t("cta.note")}</span></div>
       </div>
     </div>
@@ -67,7 +72,7 @@ const avatar = (name: string) => {
       <span class="eyebrow"><svg viewBox="0 0 24 24"><path d="M4 12a8 7 0 1 1 3.5 5.8L4 19l1-3.2A6.6 6.6 0 0 1 4 12z"/></svg><span>{t("nav.chats")}</span></span>
       <h3>{t("chats.title")}</h3>
       <div class="rows" id="rows">{CHATS.map((x) => <div class="row"><img class="av" src={avatar(`${x.av}.jpg`)} alt="" width="40" height="40" loading="lazy" /><span class="rt"><b>{x.title}</b><small>{x.city}</small></span><span class="n"><i></i>{num(x.members)}</span></div>)}</div>
-      <a class="all" href={OPEN}><span>{v("allChats")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="all" href={openLink("site_chats")}><span>{v("allChats")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="card h-tutors wash1" id="tutors">
       <span class="eyebrow"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>{v("sample")}</span></span>
@@ -108,23 +113,31 @@ const avatar = (name: string) => {
     </div>
   </section>
 
-  <section class="wrap" id="guides">
-    <div class="sec-head"><h2>{t("guides.title")}</h2><p class="sec-sub">{t("guides.text")}</p></div>
-    <div class="guides">
-      <a class="guide wash3" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.1.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.1.title")}</h3><p>{t("guides.1.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash2" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.2.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.2.title")}</h3><p>{t("guides.2.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash0" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.3.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.3.title")}</h3><p>{t("guides.3.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash1" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.4.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.4.title")}</h3><p>{t("guides.4.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-    </div>
-    <div class="more"><a class="ghost" href={localePath(lang, "/articles/")}>{t("guides.all")}</a></div>
-  </section>
+  {
+    articles.length > 0 && (
+      <section class="wrap" id="guides">
+        <div class="sec-head"><h2>{t("guides.title")}</h2><p class="sec-sub">{t("guides.text")}</p></div>
+        <div class="guides" style={`--cols2: ${Math.min(articles.length, 2)}; --cols4: ${Math.min(articles.length, 4)}`}>
+          {articles.map((article, index) => (
+            <a class={`guide ${WASHES[index % WASHES.length]}`} href={articlePath(article.id)}>
+              <span class="g-top"><span class="g-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span></span>
+              <h3>{article.data.title}</h3>
+              <p>{article.data.description}</p>
+              <span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+          ))}
+        </div>
+        <div class="more"><a class="ghost" href={localePath(lang, "/articles/")}>{t("guides.all")}</a></div>
+      </section>
+    )
+  }
 
   <div class="wrap">
     <div class="offer" id="offer">
       <div>
         <h2>{t("offer.title")}</h2>
         <p>{t("offer.text")}</p>
-        <a class="ghost" href={OPEN}>{t("offer.cta")}</a>
+        <a class="ghost" href={openLink("site_offer")}>{t("offer.cta")}</a>
       </div>
       <div class="request" aria-hidden="true">
         <div class="head"><i></i><span>{v("reqHead")}</span></div>
@@ -139,7 +152,7 @@ const avatar = (name: string) => {
       <h2>{t("final.title")}</h2>
       <p>{t("final.text")}</p>
       <div class="actions">
-        <a class="btn" href={OPEN}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href={openLink("site_final")}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <div class="later">{t("cta.note")}</div>
       </div>
     </div>
@@ -152,12 +165,14 @@ const avatar = (name: string) => {
   // The link of the section being read is marked in both navs, as in the
   // prototype. Chats and tutors share a row on wide screens, so a click picks.
   const head = document.querySelector<HTMLElement>('.top');
-  const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a');
+  const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a, .menu-panel a');
+  // «guides» is no menu item now, but reaching it ends «how»'s mark.
   const ids = ['chats', 'tutors', 'help', 'how', 'guides'];
   let picked: string | null = null;
   let current: string | null | undefined;
   const mark = (id: string | null) => {
     for (const a of links) {
+      if (!a.hash) continue; // a section of its own (the articles), not a part of this page
       if (a.hash === `#${id}`) a.setAttribute('aria-current', 'true');
       else a.removeAttribute('aria-current');
     }
@@ -176,8 +191,11 @@ const avatar = (name: string) => {
     let top = Number.NEGATIVE_INFINITY;
     let row: string[] = [];
     for (const id of ids) {
-      const y = Math.round(document.getElementById(id)?.getBoundingClientRect().top ?? line + 1);
-      if (y > line) continue;
+      const box = document.getElementById(id)?.getBoundingClientRect();
+      // Marked only while the reading line is inside it, or in the gap of up to
+      // 32px before the next section; past that, nothing.
+      if (!box || box.top > line || box.bottom + 32 <= line) continue;
+      const y = Math.round(box.top);
       if (y > top) {
         top = y;
         row = [id];

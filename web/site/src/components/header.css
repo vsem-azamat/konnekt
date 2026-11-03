@@ -1,0 +1,174 @@
+/*
+ * The header between 720 and 1119px, where its sections and languages no
+ * longer fit beside the logo and the button and used to wrap into a second
+ * row of buttons (Azamat chose this, uiux's variant C, 10786):
+ *   720–1119px: the languages fold into «RU ▾»;
+ *   960–1119px: the sections in the one row, closer together;
+ *   720–959px:  the sections behind «Меню», opening a panel under the bar.
+ * Below 720px and from 1120px the header is landing F's (landing/f.css).
+ */
+
+.lang-dd,
+.menu-btn,
+.menu-panel {
+  display: none;
+}
+
+.lang-dd {
+  position: relative;
+}
+.lang-dd summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 10px 0 14px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.lang-dd summary::-webkit-details-marker {
+  display: none;
+}
+.lang-dd summary:hover {
+  background: var(--surface);
+}
+.lang-dd svg,
+.menu-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.lang-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 6;
+  min-width: 188px;
+  padding: 6px;
+  display: grid;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.lang-list a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--soft);
+}
+.lang-list a b {
+  width: 22px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.lang-list a:hover {
+  background: var(--surface);
+}
+.lang-list a[aria-current='page'] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.menu-btn {
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 13px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 999px;
+  background: none;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+.menu-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.lang-dd[open] svg {
+  transform: rotate(180deg);
+}
+.menu-btn .close,
+.menu-btn[aria-expanded='true'] .burger {
+  display: none;
+}
+.menu-btn[aria-expanded='true'] .close {
+  display: block;
+}
+.menu-btn:hover,
+.menu-btn[aria-expanded='true'] {
+  background: var(--surface);
+}
+.menu-panel {
+  padding: 4px 0 14px;
+}
+.menu-panel:not([hidden]) {
+  display: grid;
+}
+.menu-panel a {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  border-top: 1px solid var(--hair);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.menu-panel a[aria-current] {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+}
+
+@media (min-width: 720px) and (max-width: 1119px) {
+  .top .langs {
+    display: none;
+  }
+  .lang-dd {
+    display: block;
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1119px) {
+  .top .nav {
+    display: flex;
+    gap: 18px;
+    margin-left: 20px;
+  }
+  .top nav.subnav {
+    display: none;
+  }
+}
+
+@media (min-width: 720px) and (max-width: 959px) {
+  .top nav.subnav {
+    display: none;
+  }
+  .menu-btn {
+    display: inline-flex;
+  }
+}
+
+/* Where the button is not shown, its panel stays shut. */
+@media (max-width: 719px), (min-width: 960px) {
+  .menu-panel:not([hidden]) {
+    display: none;
+  }
+}

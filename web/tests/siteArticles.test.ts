@@ -7,6 +7,7 @@ import {
   jsonLd,
   profileGraph,
 } from '../site/src/articles/structured.ts';
+import { newestPublished } from '../site/src/paths.ts';
 
 const site = 'https://konnekt.cz/';
 const azamat = {
@@ -112,4 +113,24 @@ test('structured data cannot close its script element', () => {
 
 test('a day is written the way schema.org reads it, in UTC', () => {
   assert.equal(day(new Date('2026-11-03')), '2026-11-03');
+});
+
+test('the landing shows the newest published articles in its language only', () => {
+  const at = (id: string, draft: boolean, published: string) => ({
+    id,
+    draft,
+    translationKey: id,
+    published: new Date(published),
+  });
+  const articles = [
+    at('ru/old', false, '2026-10-01'),
+    at('ru/draft', true, '2026-11-02'),
+    at('en/visa', false, '2026-11-03'),
+    at('ru/new', false, '2026-11-01'),
+  ];
+  assert.deepEqual(
+    newestPublished(articles, 'ru').map((a) => a.id),
+    ['ru/new', 'ru/old'],
+  );
+  assert.deepEqual(newestPublished(articles, 'cs'), []);
 });

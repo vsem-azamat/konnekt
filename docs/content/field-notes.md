@@ -174,6 +174,37 @@ Every review Azamat gives on an article becomes a note here or a row in the
   konnekt-market on 2026-11-03.
 - **Date:** 2026-11-03.
 
+### The right to work follows the study, and the card shows it
+
+- **Note:** whether a student may work without a work permit is decided by
+  the law, not by the purpose-of-stay code (kód účelu pobytu): full-time
+  (prezenční) study at a university needs no permit (zákon 435/2004 Sb.
+  § 98 písm. j with § 5 písm. d); the code only shows the purpose. On the
+  card the two-digit code is under «Poznámky», and a card not issued for
+  work also says «Volný přístup na trh práce – ANO/NE». Students have 23
+  «Studium – student (směrnice EU)» or 24 «Studium». MV's list splits them
+  into lettered subcodes (23A university, 23B language preparation and so
+  on), but the letter is MV's own and is not printed: the card and the visa
+  show only the number. Code 99 («ostatní», «jiné vzdělávací aktivity»)
+  covers, among others, non-accredited programmes and language courses, and
+  as a rule needs a work permit. The law names full-time study at a language
+  school with the right to hold the state language exam; other language
+  schools and preparatory courses under 23 or 24 have no published rule, so
+  the reader checks ANO/NE on the card and asks MV.
+- **Source:** Azamat, review of the student work article (#502); the law:
+  https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01; the codes:
+  https://ipc.gov.cz/wp-content/uploads/2025/10/kody-viz.pdf and the
+  undated police list:
+  https://policie.gov.cz/reditelstvi-sluzby-cizinecke-policie/kody-viz-a-povoleni-k-pobytu-udelovanych-organy-sluzby-cizinecke-policie;
+  the card:
+  https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf;
+  code 99: https://ipc.gov.cz/wp-content/uploads/2025/08/Moznosti-pobytu-cizincu-ve-vztahu-k-pristupu-na-trh-prace.pdf;
+  all read by konnekt-market on 2026-11-03.
+- **Date:** 2026-11-03.
+- **To check:** how 23 differs from 24. MV's list labels 23 «směrnice EU»
+  without saying what changes; the police list describes 24 as study
+  outside directive 2004/114/ES.
+
 ## visa
 
 ### After 60 days without a decision

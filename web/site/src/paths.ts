@@ -20,6 +20,19 @@ export function localePath(lang: Lang, path: string): string {
   return lang === DEFAULT_LANG ? path : `/${lang}${path}`;
 }
 
+/**
+ * The menu item a page belongs to, by its path (with or without its
+ * language's prefix): the articles for an article, a rubric, a tag or an
+ * author; the chats for the catalogue of chats and of universities. The
+ * landing's own sections are anchors, marked as they are scrolled to.
+ */
+export function navSection(path: string): 'articles' | 'chats' | null {
+  const own = path.replace(/^\/(?:uk|cs|en)(?=\/)/, '');
+  if (/^\/(?:articles|authors)\//.test(own)) return 'articles';
+  if (/^\/(?:chats|universities)\//.test(own)) return 'chats';
+  return null;
+}
+
 /** The language of an article from its content id, `<lang>/<slug>`. */
 export function langOf(id: string): Lang {
   const lang = id.split('/')[0];
@@ -142,6 +155,15 @@ export function authorPages(
 
 /** A slug, a translation key, a tag: lowercase latin words joined by hyphens. */
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** The published articles in `lang`, newest first: the landing's and the menu's. */
+export function newestPublished<
+  T extends { id: string; draft: boolean; published: Date },
+>(articles: readonly T[], lang: Lang): T[] {
+  return articles
+    .filter((article) => !article.draft && langOf(article.id) === lang)
+    .sort((a, b) => b.published.valueOf() - a.published.valueOf());
+}
 
 /** Slugs the section's own pages take: an article by one of these names would hide them. */
 export const RESERVED_SLUGS = ['topics', 'tags'];

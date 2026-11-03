@@ -12,7 +12,7 @@
  */
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { OPEN } from '../landing/copy.ts';
+import { openLink } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import { localePath } from '../paths.ts';
 import ChatRow from './ChatRow.astro';
@@ -103,7 +103,7 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
         </section>
       ))
     }
-    <p class="empty sec" data-empty hidden>{t.empty} <a class="all" href={OPEN}>{t.emptyLink}</a>.</p>
+    <p class="empty sec" data-empty hidden>{t.empty} <a class="all" href={openLink("site_chats_empty")}>{t.emptyLink}</a>.</p>
 
     <p class="note">{t.note}</p>
   </main>
