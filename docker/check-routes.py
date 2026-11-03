@@ -62,6 +62,7 @@ SITE_PATHS = {
     "/articles",
     "/articles/",
     "/articles/primer/",
+    "/authors",
     "/authors/azamat/",
     "/en/authors/azamat/",
     "/robots.txt",

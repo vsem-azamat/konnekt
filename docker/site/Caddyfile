@@ -136,7 +136,7 @@
 	# what search engines read, and the icon a browser's tab asks for at the root. A page the site
 	# lacks is a 404, never the app. A language prefix is a whole path segment,
 	# so /ukraine goes to the app like any other path.
-	@site path / /uk /uk/* /cs /cs/* /en /en/* /articles /articles/* /authors/* /_astro/* /robots.txt /sitemap-*.xml /favicon.ico /favicon.svg /apple-touch-icon.png
+	@site path / /uk /uk/* /cs /cs/* /en /en/* /articles /articles/* /authors /authors/* /_astro/* /robots.txt /sitemap-*.xml /favicon.ico /favicon.svg /apple-touch-icon.png
 	handle @site {
 		root * /srv/site
 		# Hashed assets for good, but only those that exist: a missing one is a
