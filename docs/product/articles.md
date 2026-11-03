@@ -88,7 +88,22 @@ usually end up doing. Two files in `docs/content/` keep that:
 The writer reads both before drafting, and the fact checker checks the article
 against them. Every review Azamat gives on an article becomes a glossary row
 or a field note, not only a fix in that article, so the next article starts
-from it.
+from it, and is applied to every open article it bears on, not only the one
+it was about.
+
+**Newest notes.** An article's branch may be older than the notes, so the
+agents do not read them from their own checkout. They run `git fetch origin`
+and read each file with `git show <ref>:docs/content/<file>`, where `<ref>` is
+`origin/<branch>` of the open pull request that changes `docs/content/`, if
+there is one, and `origin/main` otherwise:
+
+```bash
+gh pr list --state open --json headRefName,files \
+  -q '.[] | select(any(.files[]; .path | startswith("docs/content/"))) | .headRefName'
+```
+
+If that lists more than one branch, read each. A note added after the draft
+was written still counts: the fact check is against the newest notes.
 
 ## Authors and dates
 

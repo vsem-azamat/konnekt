@@ -164,11 +164,14 @@ Every review Azamat gives on an article becomes a note here or a row in the
 ### The «20 hours a week on DPP» belief is common
 
 - **Note:** students repeat that a DPP allows at most 20 hours a week. The
-  law appears to set 300 hours a year per employer for DPP (zákon 262/2006
-  Sb. § 75) and to limit DPČ to half the weekly working time (§ 76), which is
-  where the «20 hours» comes from; both not yet checked. An article on work
-  answers this belief directly.
-- **Source:** chat: https://t.me/karlov_chat/104460; the law, not yet read.
+  limit is real, but it belongs to DPČ: on average at most half the set
+  weekly working time (§ 76 odst. 2), averaged over the whole agreement and
+  at most 52 weeks (§ 76 odst. 3); at the usual 40 hours (§ 79 odst. 1) that
+  is 20. A DPP has 300 hours a year per employer (§ 75) and no weekly limit.
+  An article on work corrects the belief without denying the 20 hours.
+- **Source:** chat: https://t.me/karlov_chat/104460; zákon 262/2006 Sb.
+  (zákoník práce) in e-Sbírka, version of 29 August 2026, read by
+  konnekt-market on 2026-11-03.
 - **Date:** 2026-11-03.
 
 ## visa

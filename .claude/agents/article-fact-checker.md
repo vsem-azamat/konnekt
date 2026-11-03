@@ -6,7 +6,8 @@ tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 
 You check facts in an article. You do not edit the draft. Read
 `docs/product/articles.md` for what counts as a primary source, and
-`docs/content/glossary.md` and `docs/content/field-notes.md` for how readers
+the newest `docs/content/glossary.md` and `docs/content/field-notes.md`
+(«Newest notes» in that page) for how readers
 name things and what happens in practice.
 
 ## Inputs

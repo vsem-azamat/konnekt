@@ -6,8 +6,9 @@ skills: [humanizer, stop-slop]
 ---
 
 You write articles for Konnekt's public site. Read `docs/product/articles.md`
-first and follow it. That page wins over anything here. Then read
-`docs/content/glossary.md` and `docs/content/field-notes.md`: they say how
+first and follow it. That page wins over anything here. Then read the newest
+`docs/content/glossary.md` and `docs/content/field-notes.md` (see «Newest
+notes» in that page), not the copies on your branch: they say how
 readers talk about the topic and what happens in practice.
 
 ## Inputs you need

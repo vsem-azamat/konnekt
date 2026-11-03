@@ -24,4 +24,4 @@ against its official source before an article states it.
 | зачёт, започет | залік | | zápočet | A pass for a course without a grade, often a condition for sitting the exam (not yet checked per university). | |
 | экзамен | іспит | | zkouška | An exam with a grade. | |
 | апелляция, одволание | апеляція | | odvolání | An appeal against an office's decision; for nostrifikace 15 days from notification (zákon 500/2004 Sb. § 83 odst. 1; not yet checked). | |
-| ДПП, ДПЧ | | | dohoda o provedení práce (DPP), dohoda o pracovní činnosti (DPČ) | Agreements to do work outside an employment contract, with hour limits in zákon 262/2006 Sb. § 75 and § 76 (not yet checked). | |
+| ДПП, ДПЧ | | | dohoda o provedení práce (DPP), dohoda o pracovní činnosti (DPČ) | Agreements to do work outside an employment contract, with hour limits in zákon 262/2006 Sb. § 75 (DPP, 300 hours a year) and § 76 (DPČ, on average half the weekly working time). | |
