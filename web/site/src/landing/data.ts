@@ -54,6 +54,10 @@ export const COPY: Record<Lang, Record<string, string>> = {
     'hero.subShort':
       'Чат факультета, репетиторы и помощь с документами в одном приложении.',
     'cta.open': 'Открыть Konnekt',
+    // The header between 720 and 1119px: its own name in the language list, the sections' button, the list's label.
+    'lang.name': 'Русский',
+    'nav.menu': 'Меню',
+    'nav.language': 'Язык',
     'cta.note': 'Бесплатно. Работает в Telegram, скоро и в браузере.',
     'stats.students': 'участников в {botChats} чатах с Konnekt',
     'stats.chats': 'чатов в каталоге: вузы, факультеты, общежития',
@@ -101,6 +105,10 @@ export const COPY: Record<Lang, Record<string, string>> = {
     'hero.subShort':
       'Чат факультету, репетитори й допомога з документами в одному застосунку.',
     'cta.open': 'Відкрити Konnekt',
+    // The header between 720 and 1119px: its own name in the language list, the sections' button, the list's label.
+    'lang.name': 'Українська',
+    'nav.menu': 'Меню',
+    'nav.language': 'Мова',
     'cta.note': 'Безкоштовно. Працює в Telegram, скоро й у браузері.',
     'stats.students': 'учасників у {botChats} чатах з Konnekt',
     'stats.chats': 'чатів у каталозі: виші, факультети, гуртожитки',
@@ -147,6 +155,10 @@ export const COPY: Record<Lang, Record<string, string>> = {
     'hero.short': 'Vše pro studenty v Česku',
     'hero.subShort': 'Chat fakulty, doučování a pomoc s papíry v jedné aplikaci.',
     'cta.open': 'Otevřít Konnekt',
+    // The header between 720 and 1119px: its own name in the language list, the sections' button, the list's label.
+    'lang.name': 'Čeština',
+    'nav.menu': 'Menu',
+    'nav.language': 'Jazyk',
     'cta.note': 'Zdarma. Funguje v Telegramu, brzy i v prohlížeči.',
     'stats.students': 'členů ve {botChats} chatech s Konnektem',
     'stats.chats': 'chatů v katalogu: školy, fakulty, koleje',
@@ -193,6 +205,10 @@ export const COPY: Record<Lang, Record<string, string>> = {
     'hero.short': 'Everything for students in Czechia',
     'hero.subShort': 'Your faculty chat, tutors and help with paperwork in one app.',
     'cta.open': 'Open Konnekt',
+    // The header between 720 and 1119px: its own name in the language list, the sections' button, the list's label.
+    'lang.name': 'English',
+    'nav.menu': 'Menu',
+    'nav.language': 'Language',
     'cta.note': 'Free. Works in Telegram, in the browser soon.',
     'stats.students': 'members in {botChats} chats with Konnekt',
     'stats.chats': 'chats in the catalog: universities, faculties, dorms',

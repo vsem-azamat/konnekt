@@ -11,6 +11,7 @@ import {
   langOf,
   listings,
   localePath,
+  navSection,
   readFrontmatter,
   related,
   sitemapLinks,
@@ -297,4 +298,23 @@ test('an article may carry only a tag the tags file lists', () => {
   };
   checkArticles([{ ...tagged, tags: ['vnzh'] }], ['vnzh']);
   assert.throws(() => checkArticles([tagged], ['vnzh']), /ru\/viza.*nope/);
+});
+
+test('the menu item of the section a page is in, by its path in any language', () => {
+  const cases: [string, string | null][] = [
+    ['/', null],
+    ['/uk/', null],
+    ['/articles/', 'articles'],
+    ['/articles/nostrifikaciya-attestata/', 'articles'],
+    ['/en/articles/topics/visa/', 'articles'],
+    ['/articles/tags/vuzy/', 'articles'],
+    ['/authors/azamat/', 'articles'],
+    ['/cs/authors/azamat/', 'articles'],
+    ['/chats/', 'chats'],
+    ['/uk/chats/', 'chats'],
+    ['/universities/', 'chats'],
+    ['/en/universities/cvut/', 'chats'],
+    ['/articlesx/', null],
+  ];
+  for (const [path, section] of cases) assert.equal(navSection(path), section, path);
 });

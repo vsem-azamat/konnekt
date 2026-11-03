@@ -165,13 +165,14 @@ const avatar = (name: string) => {
   // The link of the section being read is marked in both navs, as in the
   // prototype. Chats and tutors share a row on wide screens, so a click picks.
   const head = document.querySelector<HTMLElement>('.top');
-  const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a');
+  const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a, .menu-panel a');
   // «guides» is no menu item now, but reaching it ends «how»'s mark.
   const ids = ['chats', 'tutors', 'help', 'how', 'guides'];
   let picked: string | null = null;
   let current: string | null | undefined;
   const mark = (id: string | null) => {
     for (const a of links) {
+      if (!a.hash) continue; // a section of its own (the articles), not a part of this page
       if (a.hash === `#${id}`) a.setAttribute('aria-current', 'true');
       else a.removeAttribute('aria-current');
     }
@@ -190,8 +191,11 @@ const avatar = (name: string) => {
     let top = Number.NEGATIVE_INFINITY;
     let row: string[] = [];
     for (const id of ids) {
-      const y = Math.round(document.getElementById(id)?.getBoundingClientRect().top ?? line + 1);
-      if (y > line) continue;
+      const box = document.getElementById(id)?.getBoundingClientRect();
+      // Marked only while the reading line is inside it, or in the gap of up to
+      // 32px before the next section; past that, nothing.
+      if (!box || box.top > line || box.bottom + 32 <= line) continue;
+      const y = Math.round(box.top);
       if (y > top) {
         top = y;
         row = [id];
