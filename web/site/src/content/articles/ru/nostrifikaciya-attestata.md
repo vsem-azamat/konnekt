@@ -3,7 +3,7 @@ title: "Нострификация аттестата в Чехии: шаги"
 description: "Как признать школьный аттестат из-за рубежа для поступления в чешский вуз: кто решает, документы, пошлина 3 000 Kč, экзамен, сроки и апелляция."
 type: guide
 rubric: admission
-tags: [nostrifikace, postuplenie]
+tags: [nostrifikace, vuzy]
 published: 2026-11-03
 updated: 2026-11-03
 author: konnekt
