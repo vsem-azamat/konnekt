@@ -62,6 +62,22 @@ Sources go stale: deadlines and fees change every year. A guide says which
 academic year it describes, and a source read more than six months before
 publication is read again and its `checked_at` moved.
 
+## Glossary and field notes
+
+The law says what is allowed; it does not say how readers talk or what they
+usually end up doing. Two files in `docs/content/` keep that:
+
+- [glossary.md](../content/glossary.md): each term as readers say it, its
+  official name, a short explanation and the article that explains it.
+- [field-notes.md](../content/field-notes.md): practical things that are not
+  in the law, each with where it comes from and when. Experience is written as
+  experience, not as a rule.
+
+The writer reads both before drafting, and the fact checker checks the article
+against them. Every review Azamat gives on an article becomes a glossary row
+or a field note, not only a fix in that article, so the next article starts
+from it.
+
 ## Authors and dates
 
 - `author` is `konnekt` (Редакция Konnekt) for an article the editorial team
@@ -90,10 +106,14 @@ publication is read again and its `checked_at` moved.
 
 - Short, plain sentences. Friendly, not familiar; no sales tone and at most one
   exclamation mark in an article.
-- Official Czech names stay in Czech, explained the first time they appear, for
-  example «nostrifikace (признание иностранного диплома)», «Odbor azylové a
-  migrační politiky (OAMP, миграционный отдел МВД)». A form or office is named
-  as it is written on the official page, so the reader can find it there.
+- A term is the word readers use, from the glossary: «нострифицировать
+  аттестат», not «оценить аттестат». The official Czech name follows in
+  brackets at its first use, «нострификация (nostrifikace)», and an office is
+  explained the same way, «миграционный отдел МВД (Odbor azylové a migrační
+  politiky, OAMP)». A form or office is named as it is written on the official
+  page, so the reader can find it there.
+- An article that uses a term links the published article that explains it,
+  as the glossary names it.
 - Numbers follow the language: in Russian and Ukrainian a decimal comma and a
   space before the unit, «1 500 Kč», «0,5 л».
 - Phrases that mark machine-written text are removed: «в современном мире»,
@@ -123,8 +143,8 @@ publication is read again and its `checked_at` moved.
   section's own.
 - `tags` and `translationKey` are lowercase Latin words joined by hyphens in
   every language, Russian included; the build refuses anything else.
-- Each article links the related universities or chats on konnekt.cz and
-  related articles.
+- Each article links the related universities or chats on konnekt.cz and the
+  published articles it builds on.
 
 ## From draft to production
 
@@ -137,7 +157,8 @@ publication is read again and its `checked_at` moved.
    newcomer and reports where they get stuck.
 4. The dev page is looked at in a browser at 1280 px and 390 px.
 5. Findings are fixed. Any rewrite after the fact check sends the article
-   through the fact check again.
+   through the fact check again. What Azamat says in review goes into the
+   glossary or the field notes in the same pull request.
 6. Azamat approves the article. Then, on the same branch, `reviewedBy: azamat`
    is set, `published` moves to the day of the merge, `draft: true` is removed,
    and the pull request is merged.

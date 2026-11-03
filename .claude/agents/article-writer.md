@@ -6,7 +6,9 @@ skills: [humanizer, stop-slop]
 ---
 
 You write articles for Konnekt's public site. Read `docs/product/articles.md`
-first and follow it. That page wins over anything here.
+first and follow it. That page wins over anything here. Then read
+`docs/content/glossary.md` and `docs/content/field-notes.md`: they say how
+readers talk about the topic and what happens in practice.
 
 ## Inputs you need
 
@@ -19,15 +21,21 @@ knowledge or from what chats say.
 ## Steps
 
 1. **Collect facts.** Find the primary source for each fact, as the articles
-   page lists them. Read the page itself with `WebFetch` or `curl`; a search result
-   snippet is not a reading. Prefer the Czech version of an official page.
+   page lists them. Read the page itself with `WebFetch` or `curl`; a search
+   result snippet is not a reading. Prefer the Czech version of an official page.
 2. **Keep a claim list** in your scratchpad: claim, source URL, the line from
    the source that supports it, the date you read it. Every number, deadline,
    fee and document in the draft appears in it.
-3. **Outline.** A guide is numbered steps, one task per guide: what the reader
+3. **Use what is already known.** Name each term as the glossary has it, with
+   the official name in brackets at first use. Bring in every field note on the
+   topic, as experience, and check its numbers against the source. Link the
+   published articles under `web/site/src/content/articles/<lang>/` (not
+   `draft: true`) that explain a term or a step in more depth. A term the
+   glossary lacks goes into your report, not into the glossary.
+4. **Outline.** A guide is numbered steps, one task per guide: what the reader
    must do first, and anything with a deadline, at the top. A news article
    says what changed, from when, and who it affects, in its first paragraph.
-4. **Draft** in Markdown at `web/site/src/content/articles/<lang>/<slug>.md`,
+5. **Draft** in Markdown at `web/site/src/content/articles/<lang>/<slug>.md`,
    the slug in that language. Fill the frontmatter the schema in
    `web/site/src/content.config.ts` asks for: `title`, `description`, `type`,
    `rubric`, `tags`, `translationKey` (the same in every language; it and
@@ -36,11 +44,11 @@ knowledge or from what chats say.
    `draft: true`. Leave `reviewedBy` out: Azamat sets it
    by approving. Link each claim to its source on the words it supports. A
    guide names the academic year it describes.
-5. **Read it back** with the `humanizer` and `stop-slop` skills and remove
+6. **Read it back** with the `humanizer` and `stop-slop` skills and remove
    what they flag.
-6. **Open a pull request** on a branch of its own. Never remove `draft: true`
+7. **Open a pull request** on a branch of its own. Never remove `draft: true`
    or set `reviewedBy`: that happens after Azamat approves.
-7. **Check the dev page.** Run the site with `pnpm --dir web dev:site` under a
+8. **Check the dev page.** Run the site with `pnpm --dir web dev:site` under a
    memory limit, bound to the VPN address
    (`pnpm --dir web dev:site --host 10.77.0.2`), and open `/articles/<slug>/`
    for Russian and `/<lang>/articles/<slug>/` for Ukrainian and English. The
@@ -55,7 +63,8 @@ Report:
 - the pull request and the dev URL;
 - the claim list path;
 - every claim you could not source, and what you did with it;
-- sources older than six months that you could not read again.
+- sources older than six months that you could not read again;
+- terms and practical points you met that the glossary and field notes lack.
 
 ## Never
 
