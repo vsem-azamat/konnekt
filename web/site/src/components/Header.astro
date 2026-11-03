@@ -24,7 +24,7 @@ const localePathFor = (l: Lang) => localePath(l, langs.includes(l) ? path : '/')
 <header class="top">
   <div class="wrap">
     <div class="bar">
-      <a class="logo" href={localePath(lang, "/")} aria-label="Konnekt"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="26" fill="var(--tile-white)" stroke="var(--hair)" stroke-width="3"/><path d="M0 50H100V74Q100 100 74 100H26Q0 100 0 74Z" fill="#d7141a"/><path d="M0 26Q0 0 26 0H30L62 50 30 100H26Q0 100 0 74Z" fill="#11457e"/></svg><span>Konnekt</span></a>
+      <a class="logo" href={localePath(lang, "/")} aria-label="Konnekt"><img src="/favicon.svg" alt="" /><span>Konnekt</span></a>
       <nav class="nav"><a href={`${home}#chats`}>{t("nav.chats")}</a><a href={`${home}#tutors`}>{t("nav.tutors")}</a><a href={`${home}#help`}>{t("nav.help")}</a><a href={`${home}#how`}>{t("nav.how")}</a><a href={`${home}#guides`}>{t("nav.guides")}</a></nav>
       <div class="tools">
         <div class="langs">{LANGS.map((l) => <a href={localePathFor(l)} hreflang={l} lang={l} aria-current={l === lang ? "page" : undefined}>{l.toUpperCase()}</a>)}</div>

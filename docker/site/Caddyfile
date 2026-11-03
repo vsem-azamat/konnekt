@@ -124,9 +124,10 @@
 	}
 
 	# The landing page in each language, the guides, and what search engines
-	# read. A page the site lacks is a 404, never the app. A language prefix is
-	# a whole path segment, so /ukraine goes to the app like any other path.
-	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml
+	# read, and the icon a browser's tab asks for at the root. A page the site
+	# lacks is a 404, never the app. A language prefix is a whole path segment,
+	# so /ukraine goes to the app like any other path.
+	@site path / /uk /uk/* /cs /cs/* /en /en/* /guides /guides/* /_astro/* /robots.txt /sitemap-*.xml /favicon.ico /favicon.svg /apple-touch-icon.png
 	handle @site {
 		root * /srv/site
 		# Hashed assets for good, but only those that exist: a missing one is a
