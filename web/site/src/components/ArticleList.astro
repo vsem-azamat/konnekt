@@ -1,0 +1,64 @@
+---
+/** The articles in one language. */
+import { getCollection } from 'astro:content';
+
+import { entry } from '../articles/entries.ts';
+import '../site.css';
+import Base from '../layouts/Base.astro';
+import { hiddenPaths, type Lang, langOf, localePath, RUBRICS } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = TEXTS[lang];
+const all = await getCollection('articles');
+const articles = all
+  .filter((article) => langOf(article.id) === lang)
+  .sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
+const hidden = hiddenPaths(
+  all.map(({ id, data }) => ({
+    id,
+    draft: data.draft,
+    translationKey: data.translationKey,
+  })),
+);
+---
+
+<Base
+  lang={lang}
+  path="/articles/"
+  title={`${t.articles} — Konnekt`}
+  description={t.articles}
+  noindex={hidden.includes(localePath(lang, '/articles/'))}
+>
+  <Header lang={lang} path="/articles/" />
+  <main class="page">
+    <nav class="crumbs" aria-label="breadcrumbs">
+      <a href={localePath(lang, '/')}>Konnekt</a>
+    </nav>
+    <h1>{t.articles}</h1>
+    {articles.length === 0 && <p>{t.noArticles}</p>}
+    {
+      RUBRICS.map((rubric) => ({
+        rubric,
+        list: articles.filter((article) => article.data.rubric === rubric),
+      }))
+        .filter(({ list }) => list.length > 0)
+        .map(({ rubric, list }) => (
+          <section>
+            <h2>
+              <a href={localePath(lang, `/articles/topics/${rubric}/`)}>{t.rubrics[rubric]}</a>
+            </h2>
+            <ArticleCards lang={lang} articles={list} />
+          </section>
+        ))
+    }
+  </main>
+  <Footer lang={lang} path="/articles/" />
+</Base>

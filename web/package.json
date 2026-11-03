@@ -24,6 +24,7 @@
     "api:generate": "openapi-ts"
   },
   "dependencies": {
+    "@astrojs/markdown-satteri": "0.4.4",
     "@lingui/core": "^6.10.0",
     "@lingui/react": "^6.10.0",
     "@sentry/react": "^11.10.0",

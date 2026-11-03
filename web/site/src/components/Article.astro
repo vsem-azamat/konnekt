@@ -1,0 +1,270 @@
+---
+/**
+ * One article: where it sits in the site, who wrote it and who checked it,
+ * when, the text, and what it rests on. The same facts go to search engines
+ * as JSON-LD (articles/structured.ts).
+ */
+import { Image } from 'astro:assets';
+import { type CollectionEntry, getCollection, getEntry, render } from 'astro:content';
+
+import '../site.css';
+import { entries, entry } from '../articles/entries.ts';
+import { articleGraph, day, jsonLd, type Party } from '../articles/structured.ts';
+import Base from '../layouts/Base.astro';
+import {
+  articlePath,
+  authorPath,
+  langOf,
+  listings,
+  localePath,
+  related,
+  translationsOf,
+} from '../paths.ts';
+import { longDate, TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  article: CollectionEntry<'articles'>;
+}
+
+const { article } = Astro.props;
+const { data } = article;
+const lang = langOf(article.id);
+const t = TEXTS[lang];
+const path = articlePath(article.id);
+const site = Astro.site?.href ?? '/';
+const url = new URL(path, site).href;
+const all = await entries();
+const versions = translationsOf(entry(article), all);
+const rubricPath = localePath(lang, `/articles/topics/${data.rubric}/`);
+const tags = await Promise.all(
+  data.tags.map(async ({ id }) => {
+    const tag = await getEntry('tags', id);
+    return {
+      name: tag?.data.names[lang] ?? id,
+      path: localePath(lang, `/articles/tags/${id}/`),
+    };
+  }),
+);
+// A tag links to its page only where search engines may keep that page.
+const listed = new Set(
+  listings(all)
+    .filter((page) => !page.hidden)
+    .map((page) => page.path),
+);
+const collection = await getCollection('articles');
+const next = related(entry(article), all, 3).map(
+  ({ id }) => collection.find((other) => other.id === id) as CollectionEntry<'articles'>,
+);
+const { Content, headings, remarkPluginFrontmatter } = await render(article);
+// Its notes, when it has them, are its sources (articles/reading.ts).
+const notes = remarkPluginFrontmatter.notes === true;
+// The contents, for an article long enough to need them.
+const sections = headings.filter(
+  (heading) => heading.depth === 2 && heading.slug !== 'footnote-label',
+);
+const contents = sections.length >= 3;
+
+/** An author as the page and the structured data name them: a person with their page. */
+async function party(ref: { id: string }): Promise<Party & { path?: string }> {
+  const author = await getEntry('authors', ref.id);
+  if (!author) throw new Error(`article ${article.id}: no author ${ref.id}`);
+  const name = author.data.names[lang] ?? author.data.name;
+  // The editorial team is Konnekt itself: its address is the site's.
+  if (author.data.kind === 'organization') {
+    return { kind: 'organization', name, url: new URL(localePath(lang, '/'), site).href };
+  }
+  const own = authorPath(lang, ref.id);
+  return { kind: 'person', name, path: own, url: new URL(own, site).href };
+}
+const author = await party(data.author);
+const reviewer = data.reviewedBy && (await party(data.reviewedBy));
+
+const crumbs = [
+  { name: 'Konnekt', url: new URL(localePath(lang, '/'), site).href },
+  { name: t.articles, url: new URL(localePath(lang, '/articles/'), site).href },
+  { name: t.rubrics[data.rubric], url: new URL(rubricPath, site).href },
+];
+const graph = articleGraph(
+  {
+    type: data.type,
+    url,
+    lang,
+    headline: data.title,
+    description: data.description,
+    published: data.published,
+    updated: data.updated,
+    author,
+    reviewer,
+    image: data.cover && new URL(data.cover.src, site).href,
+    crumbs,
+  },
+  site,
+);
+---
+
+<Base
+  lang={lang}
+  path={path}
+  versions={versions}
+  title={`${data.title} — Konnekt`}
+  description={data.description}
+  noindex={data.draft}
+  ogType="article"
+>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={day(data.published)} />
+    <meta property="article:modified_time" content={day(data.updated ?? data.published)} />
+    <meta property="article:section" content={t.rubrics[data.rubric]} />
+    {data.cover && <meta property="og:image" content={new URL(data.cover.src, site).href} />}
+    <script type="application/ld+json" set:html={jsonLd(graph)} />
+  </Fragment>
+  <Header lang={lang} path={path} versions={versions} />
+  <main class:list={['page', { 'with-contents': contents }]}>
+    <nav class="crumbs" aria-label="breadcrumbs">
+      {crumbs.map((crumb) => <a href={new URL(crumb.url).pathname}>{crumb.name}</a>)}
+    </nav>
+    <article class="article">
+      <header class="head">
+        <p class="kicker">
+          {data.draft && <span class="badge">{t.example}</span>}
+          <a class="rubric" href={rubricPath}>{t.rubrics[data.rubric]}</a>
+        </p>
+        <h1>{data.title}</h1>
+        <p class="lede">{data.description}</p>
+        <dl class="byline">
+          <div>
+            <dt>{t.author}</dt>
+            <dd>{author.path ? <a href={author.path}>{author.name}</a> : author.name}</dd>
+          </div>
+          {
+            reviewer && (
+              <div>
+                <dt>{t.reviewedBy}</dt>
+                <dd>{reviewer.path ? <a href={reviewer.path}>{reviewer.name}</a> : reviewer.name}</dd>
+              </div>
+            )
+          }
+          <div>
+            <dt>{t.published}</dt>
+            <dd><time datetime={day(data.published)}>{longDate(lang, data.published)}</time></dd>
+          </div>
+          {
+            data.updated && day(data.updated) !== day(data.published) && (
+              <div>
+                <dt>{t.updated}</dt>
+                <dd><time datetime={day(data.updated)}>{longDate(lang, data.updated)}</time></dd>
+              </div>
+            )
+          }
+        </dl>
+      </header>
+      {
+        data.cover && (
+          <Image
+            class="cover"
+            src={data.cover}
+            alt={data.coverAlt ?? ''}
+            widths={[720, 1440]}
+            sizes="(min-width: 46rem) 44rem, 100vw"
+            loading="eager"
+            fetchpriority="high"
+          />
+        )
+      }
+      {
+        contents && (
+          <details class="contents-inline">
+            <summary>{t.contents}</summary>
+            <ol>
+              {sections.map((section) => (
+                <li>
+                  <a href={`#${section.slug}`}>{section.text}</a>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )
+      }
+      <Content />
+      {
+        !notes && data.sources.length > 0 && (
+          <section class="sources">
+            <h2>{t.sources}</h2>
+            <ol>
+              {data.sources.map((source) => (
+                <li>
+                  <a href={source.url}>{source.title}</a>
+                  <span>
+                    {t.checked}{' '}
+                    <time datetime={day(source.checked_at)}>{longDate(lang, source.checked_at)}</time>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
+      {
+        tags.length > 0 && (
+          <nav class="tags" aria-label={t.tags}>
+            {tags.map((tag) => (listed.has(tag.path) ? <a href={tag.path}>{tag.name}</a> : <span>{tag.name}</span>))}
+          </nav>
+        )
+      }
+    </article>
+    {
+      contents && (
+        <nav class="contents-rail" aria-label={t.contents}>
+          <p>{t.contents}</p>
+          <ol>
+            {sections.map((section) => (
+              <li>
+                <a href={`#${section.slug}`}>{section.text}</a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )
+    }
+    {
+      next.length > 0 && (
+        <section class="next">
+          <h2>{t.readNext}</h2>
+          <ArticleCards lang={lang} articles={next} />
+        </section>
+      )
+    }
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>
+
+<script>
+  // The section being read, marked in the contents: the last heading above the
+  // top third of the screen, or the last one at the bottom of the page.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.contents-rail a')];
+  const targets = links
+    .map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
+    .filter((el): el is HTMLElement => el !== null);
+  if (targets.length > 0) {
+    const mark = () => {
+      const line = innerHeight / 3;
+      let current = 0;
+      targets.forEach((target, index) => {
+        if (target.getBoundingClientRect().top <= line) current = index;
+      });
+      // At the very bottom a short last section never reaches the line: it is the one being read.
+      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 1) {
+        current = targets.length - 1;
+      }
+      links.forEach((link, index) => {
+        if (index === current) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    addEventListener('scroll', mark, { passive: true });
+    mark();
+  }
+</script>

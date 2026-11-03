@@ -1,0 +1,26 @@
+# The tags an article may carry: the id is the tag's address
+# (/articles/tags/<id>/), `names` what a reader sees in each language.
+- id: nostrifikace
+  names:
+    ru: Нострификация
+    uk: Нострифікація
+    cs: Nostrifikace
+    en: Nostrification
+- id: vuzy
+  names:
+    ru: Вузы
+    uk: ЗВО
+    cs: Vysoké školy
+    en: Universities
+- id: viza
+  names:
+    ru: Виза и ВНЖ
+    uk: Віза і посвідка
+    cs: Víza a pobyt
+    en: Visa and residence
+- id: rabota
+  names:
+    ru: Работа
+    uk: Робота
+    cs: Práce
+    en: Work

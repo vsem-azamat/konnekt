@@ -1,16 +1,19 @@
 /*
- * The guide pages' own layout, on landing F's tokens (landing/f.css): its
+ * The article pages' own layout, on landing F's tokens (landing/f.css): its
  * header, footer and type are theirs too.
  */
 
 .page {
-  max-width: 44rem;
+  /* One column for every page of the section: 46rem of text, about 75 characters. */
+  max-width: calc(46rem + 32px);
   margin: 0 auto;
   padding: 24px max(16px, env(safe-area-inset-right))
     max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
 .page h1 {
+  /* The landing's hero title is held to 11ch; a page's takes the column. */
+  max-width: none;
   margin: 0 0 16px;
   font-size: clamp(26px, 6vw, 34px);
   line-height: 1.15;
@@ -18,7 +21,7 @@
   text-wrap: balance;
 }
 
-.guides-list {
+.articles-list {
   display: grid;
   gap: 10px;
   margin: 0;
@@ -26,7 +29,7 @@
   list-style: none;
 }
 
-.guides-list a {
+.articles-list a {
   display: grid;
   gap: 4px;
   padding: 16px;
@@ -36,7 +39,7 @@
   text-decoration: none;
 }
 
-.guides-list p {
+.articles-list p {
   margin: 0;
   color: var(--soft);
   font-size: 14px;
@@ -52,17 +55,357 @@
   font-weight: 560;
 }
 
-.article {
-  max-width: 65ch;
-}
-
 .article :is(h2, h3) {
   margin: 1.6em 0 0.4em;
   line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* The landing's sections are bands of the page; here they are parts of a text. */
+.page section {
+  padding-block: 0;
+}
+
+/* The landing's section headings are display size; here they are subheadings, below the title. */
+.page h2 {
+  margin: 32px 0 12px;
+  font-size: clamp(21px, 4.4vw, 24px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.article h3 {
+  margin-top: 1.8em;
+  font-size: 20px;
 }
 
 .article p,
 .article ul,
 .article ol {
   margin: 0 0 1em;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.crumbs a {
+  color: inherit;
+}
+
+.crumbs a + a::before {
+  content: '›';
+  margin-right: 8px;
+  color: var(--muted);
+}
+
+.head {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.head h1 {
+  margin: 0;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  color: var(--soft);
+}
+
+.lede {
+  margin: 0;
+  font-size: 18px;
+  color: var(--soft);
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 4px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  font-size: 14px;
+}
+
+.byline dt {
+  color: var(--muted);
+}
+
+.byline dd {
+  margin: 0;
+}
+
+/* The author's name stands alone: a taller target than a link in a sentence. */
+.byline dd a {
+  display: inline-block;
+  padding-block: 4px;
+  margin-block: -4px;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 28px;
+  border-radius: 14px;
+}
+
+.sources {
+  margin-top: 40px;
+  padding-top: 4px;
+  border-top: 1px solid var(--hair);
+  font-size: 15px;
+}
+
+.sources ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+
+.sources li span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+h1 + .lede {
+  margin-bottom: 24px;
+}
+
+.page h2 a {
+  color: inherit;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.tags :is(a, span) {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.next {
+  margin-top: 48px;
+}
+
+/* A table scrolls in its own box; on a wide screen it may be wider than the text. */
+.article .table {
+  /* As wide as its table needs: the column's width at least, up to 56rem,
+     growing to the right only and never past the screen's edge: on a narrow
+     screen the column starts 16px in, on a wide one at 50vw - 23rem. */
+  width: max-content;
+  min-width: 100%;
+  max-width: min(56rem, calc(50vw + 23rem - 16px), calc(100vw - 32px));
+  margin: 0 0 1.2em;
+  overflow-x: auto;
+}
+
+.article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.article :is(th, td) {
+  padding: 8px 12px;
+  border: 1px solid var(--hair);
+  text-align: left;
+  vertical-align: top;
+}
+
+.article th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+/* A callout: «> **Важно.** …» in the Markdown. */
+.article blockquote {
+  margin: 0 0 1.2em;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.article blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* A footnote's mark, and the notes, which are the article's sources. */
+.article sup a {
+  /* A target of about 24px around a small digit, the line left as it is. */
+  padding: 6px 5px;
+  margin: 0 -3px;
+  text-decoration: none;
+}
+
+.footnotes {
+  margin-top: 40px;
+  padding-top: 4px;
+  border-top: 1px solid var(--hair);
+  font-size: 15px;
+}
+
+.footnotes ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+
+.footnotes li p {
+  margin: 0;
+}
+
+:is(.footnotes, .sources) .checked {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.footnotes [data-footnote-backref] {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: -4px 0;
+  text-decoration: none;
+}
+
+/* At 16px the 46rem column holds ~85 characters a line; larger type brings it to ~72. */
+@media (min-width: 1024px) {
+  .article {
+    font-size: 17.5px;
+    line-height: 1.6;
+  }
+}
+
+/* The contents: folded above the text, or a rail beside it on a wide screen. */
+.contents-inline {
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+}
+
+.contents-inline summary {
+  font-weight: 560;
+  cursor: pointer;
+}
+
+:is(.contents-inline, .contents-rail) ol {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  font-size: 15px;
+}
+
+.contents-rail {
+  display: none;
+}
+
+@media (min-width: 1240px) {
+  .page.with-contents {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 46rem) 14rem;
+    max-width: calc(74rem + 32px);
+  }
+
+  .page.with-contents > * {
+    grid-column: 2;
+  }
+
+  .page.with-contents > .contents-rail {
+    display: block;
+    grid-column: 1;
+    grid-row: 2 / span 2;
+    align-self: start;
+    position: sticky;
+    top: calc(var(--head-h, 64px) + 24px);
+    padding-right: 32px;
+    font-size: 14px;
+  }
+
+  .contents-rail p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 560;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .contents-rail ol {
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+  }
+
+  .contents-rail a {
+    display: block;
+    padding: 2px 0 2px 10px;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .contents-rail a[aria-current] {
+    border-left-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .contents-inline {
+    display: none;
+  }
+}
+
+/* Links in a text look like links: the landing's are bare. */
+.article :is(p, li, dd) a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 3px;
+}
+
+.kicker .rubric {
+  color: inherit;
+}
+
+/* A footnote mark is a link without the underline: «60.³» must not read as a typo. */
+.article sup a[data-footnote-ref] {
+  text-decoration: none;
+}
+
+.article sup a[data-footnote-ref]:is(:hover, :focus-visible) {
+  text-decoration: underline;
 }

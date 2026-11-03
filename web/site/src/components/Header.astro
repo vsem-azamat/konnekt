@@ -5,20 +5,25 @@
  * into the app.
  */
 import { t as copy, OPEN } from '../landing/copy.ts';
-import { LANGS, type Lang, localePath } from '../paths.ts';
+import { LANGS, type Lang, localePath, type Version } from '../paths.ts';
 
 interface Props {
   lang: Lang;
   /** The page's path in Russian; a language link keeps it when the page exists in that language. */
   path?: string;
   langs?: readonly Lang[];
+  /** For a page whose path differs between languages (an article): each version's own. */
+  versions?: readonly Version[];
 }
 
-const { lang, path = '/', langs = LANGS } = Astro.props;
+const { lang, path = '/', langs = LANGS, versions } = Astro.props;
 const t = (key: string) => copy(lang, key);
 // On the landing page the sections are anchors; elsewhere they lead back to it.
 const home = path === '/' ? '' : localePath(lang, '/');
-const localePathFor = (l: Lang) => localePath(l, langs.includes(l) ? path : '/');
+const localePathFor = (l: Lang) =>
+  versions
+    ? (versions.find((version) => version.lang === l)?.path ?? localePath(l, '/'))
+    : localePath(l, langs.includes(l) ? path : '/');
 ---
 
 <header class="top">

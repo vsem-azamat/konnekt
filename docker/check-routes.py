@@ -58,10 +58,15 @@ SITE_PATHS = {
     "/uk",
     "/uk/",
     "/cs/",
-    "/en/guides/visa/",
-    "/guides",
-    "/guides/",
-    "/guides/primer/",
+    "/en/articles/student-visa/",
+    "/articles",
+    "/articles/",
+    "/articles/primer/",
+    "/authors",
+    "/authors/azamat/",
+    "/articles/topics/visa/",
+    "/uk/articles/tags/vnzh/",
+    "/en/authors/azamat/",
     "/robots.txt",
     "/sitemap-index.xml",
     "/sitemap-0.xml",
@@ -99,6 +104,15 @@ def public_site() -> dict[str, str]:
         "/universities/cvut": SLASHED.format("/universities/cvut"),
         "/en/universities/cvut": SLASHED.format("/en/universities/cvut"),
         "/api/v1/open": CATALOG,
+        # The guides' old addresses, to the articles' in the same language.
+        "/guides": "301 /articles/{http.request.uri.prefixed_query}",
+        "/uk/guides": "301 /uk/articles/{http.request.uri.prefixed_query}",
+        "/guides/": "301 /articles/{http.request.uri.prefixed_query}",
+        "/guides/primer/": "301 /articles/primer/{http.request.uri.prefixed_query}",
+        "/uk/guides/": "301 /uk/articles/{http.request.uri.prefixed_query}",
+        "/en/guides/visa/": "301 /en/articles/visa/{http.request.uri.prefixed_query}",
+        # Not a guide: a word that merely starts so is the app's.
+        "/guidesx": TO_APP,
         # Old buttons in Telegram name this host; the app is on its own now.
         "/home": TO_APP,
         "/chats": TO_APP,
@@ -261,13 +275,13 @@ def matches(route: dict, path: str) -> bool:
 
 
 def expand(location: str, route: dict, path: str) -> str:
-    """Fill a redirect's `{http.regexp.<name>.<n>}` from the path it matched."""
+    """Fill a redirect's `{http.regexp.<name>.<n>}` from the path it matched (empty, as in Caddy, when a group took no part)."""
     for match in route.get("match", []):
         regexp = match.get("path_regexp")
         found = regexp and re.search(regexp["pattern"], path)
         if found:
             for index, group in enumerate(found.groups(), start=1):
-                location = location.replace(f"{{http.regexp.{regexp['name']}.{index}}}", group)
+                location = location.replace(f"{{http.regexp.{regexp['name']}.{index}}}", group or "")
     return location
 
 
