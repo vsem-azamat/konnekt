@@ -24,7 +24,6 @@ export interface Texts {
   tags: string;
   /** Above a tag's articles: «Статьи с тегом». */
   tagged: string;
-  allIn: string;
   /** A footnote's way back to where it is cited, for a screen reader. */
   backToText: string;
   contents: string;
@@ -63,8 +62,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Читайте также',
     tags: 'Теги',
     tagged: 'Статьи с тегом',
-    allIn: 'Все статьи',
-
     backToText: 'Назад к тексту',
     contents: 'Содержание',
   },
@@ -100,8 +97,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Читайте також',
     tags: 'Теги',
     tagged: 'Статті з тегом',
-    allIn: 'Усі статті',
-
     backToText: 'Назад до тексту',
     contents: 'Зміст',
   },
@@ -137,8 +132,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Číst dál',
     tags: 'Štítky',
     tagged: 'Články se štítkem',
-    allIn: 'Všechny články',
-
     backToText: 'Zpět do textu',
     contents: 'Obsah',
   },
@@ -175,8 +168,6 @@ export const TEXTS: Record<Lang, Texts> = {
     readNext: 'Read next',
     tags: 'Tags',
     tagged: 'Articles tagged',
-    allIn: 'All articles',
-
     backToText: 'Back to the text',
     contents: 'Contents',
   },

@@ -3,6 +3,7 @@ import { satteri } from '@astrojs/markdown-satteri';
 import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
+import { parse } from 'yaml';
 
 import { readingPlugin } from './src/articles/reading.ts';
 
@@ -50,7 +51,13 @@ function articles(): ArticleEntry[] {
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     };
   });
-  checkArticles(entries);
+  const tags = (parse(readFileSync(`${root}src/content/tags.yaml`, 'utf8')) ?? []) as {
+    id: string;
+  }[];
+  checkArticles(
+    entries,
+    tags.map((tag) => tag.id),
+  );
   return entries;
 }
 
