@@ -37,19 +37,6 @@ Every review Azamat gives on an article becomes a note here or a row in the
   1 000 Kč instead.
 - **Date:** 2026-11-03.
 
-### What a university's assessment costs (not for articles)
-
-- **Note:** ČVUT assesses the certificate centrally, through the rectorate,
-  for 950 Kč; applications for 2027/28 are taken from 1 December 2026. FF UK
-  asks 960 Kč, on a page for 2025/26. Kept for writers' context only: by
-  Azamat's correction above, articles name no fees for this.
-- **Source:** official pages, as read by konnekt-market:
-  https://www.cvut.cz/posouzeni-vzdelani-pro-prijimaci-rizeni-na-cvut (ČVUT);
-  the FF UK page is not linked yet.
-- **Date:** 2026-11-03.
-- **To check:** the ČVUT page read again by a second reader; the FF UK page
-  for 2026/27 and its URL.
-
 ### Students call the faculty route «внутренняя нострификация»
 
 - **Note:** in chats the faculty's own assessment is called «внутренняя
