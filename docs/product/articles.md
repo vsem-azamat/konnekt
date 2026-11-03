@@ -67,8 +67,8 @@ publication is read again and its `checked_at` moved.
 - `author` is `konnekt` (Редакция Konnekt) for an article the editorial team
   wrote, agents included, or `azamat` for one Azamat wrote. Never an
   invented person.
-- `reviewedBy` is `azamat`: Azamat is the one who checked it, and the page is
-  to name Azamat as such (the byline is not rendered yet). A
+- `reviewedBy` is `azamat`: the page names Azamat as the one who checked it,
+  under «Проверил». A
   published article without it does not build, so it is set only once Azamat
   has read the article.
 - `published` is the day the article first goes public. A draft must have one
