@@ -1,0 +1,85 @@
+---
+/**
+ * Every university with chats, by city. The city is a filter (?city=),
+ * rendered here on the server, noindex with the clean address as canonical.
+ */
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import Base from '../layouts/Base.astro';
+import { localePath } from '../paths.ts';
+import { citySlug, mainChat } from './catalog.ts';
+import './catalog.css';
+import type { UniversitiesProps } from './load.ts';
+import { toneOf } from './page.ts';
+import { CATALOG_TEXTS, count } from './texts.ts';
+
+type Props = UniversitiesProps;
+
+const { lang, list, cities, city, filtered, loose } = Astro.props;
+const t = CATALOG_TEXTS[lang];
+const path = '/universities/';
+const here = localePath(lang, path);
+---
+
+<Base
+  lang={lang}
+  path={path}
+  title={t.universitiesTitle}
+  description={t.universitiesDescription}
+  noindex={filtered}
+>
+  <Header lang={lang} path={path} />
+  <main class="wrap cat">
+    <ol class="crumbs" aria-label={t.nav}>
+      <li><a href={localePath(lang, '/')}>{t.home}</a></li>
+      <li aria-current="page">{t.topics.university}</li>
+    </ol>
+    <div class="cat-hero">
+      <h1>{t.universitiesH1}</h1>
+      <p class="lead">{t.universitiesLead(list.length)}</p>
+    </div>
+    <nav class="chips" aria-label={t.cityNav}>
+      <a href={here} aria-current={city === null ? 'page' : undefined}>{t.allCities}</a>
+      {cities.map((c) => <a href={`${here}?city=${citySlug(c)}`} aria-current={c === city ? 'page' : undefined}>{c}</a>)}
+    </nav>
+
+    <div class="cat-grid three">
+      {
+        list.map(({ university: u, chats }) => {
+          const short = u.short_name ?? u.name;
+          // Only a main chat's count, which is said so: a sum would count one
+          // student many times, and another chat's might be a dorm's.
+          const main = mainChat(chats);
+          return (
+            <a class="card uni" href={localePath(lang, `/universities/${u.code}/`)}>
+              <span class={`mono tone${toneOf(u.code)}`} data-long={short.length > 4 || undefined} aria-hidden="true">{short}</span>
+              <span class="ut">
+                <b>{short}</b>
+                <span>{u.name}</span>
+                <small>
+                  {[u.city, count(lang, chats.length, t.chats), main?.member_count != null && main.kind === 'group' ? `${count(lang, main.member_count, t.members)} ${t.inMain}` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
+              </span>
+            </a>
+          );
+        })
+      }
+    </div>
+
+    {
+      loose > 0 && (
+        <a class="card sec uni wash3" href={localePath(lang, '/chats/')}>
+          <span class="ut">
+            <b>{t.looseCard}</b>
+            <span>{t.looseText(count(lang, loose, t.chats))}</span>
+          </span>
+        </a>
+      )
+    }
+
+    <p class="note">{t.note}</p>
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>

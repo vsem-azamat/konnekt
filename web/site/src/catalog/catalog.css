@@ -1,0 +1,351 @@
+/*
+ * The catalog pages (/universities/, a university, /chats/) on landing F's
+ * tokens, cards and rows (landing/f.css).
+ */
+
+.cat {
+  padding-block: 20px 56px;
+}
+@media (min-width: 960px) {
+  .cat {
+    padding-block: 28px 80px;
+  }
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+.crumbs li + li::before {
+  content: '›';
+  margin-right: 6px;
+}
+.crumbs a {
+  color: var(--soft);
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}
+
+/* the page's first card: what it is, its numbers and the way into the app */
+.cat-hero {
+  display: grid;
+  gap: 18px;
+}
+.cat-hero h1 {
+  font-size: clamp(30px, 7.5vw, 52px);
+  line-height: 1.04;
+  /* Tighter, and the space between words goes: «ЧатыČVUT» (uiux 10266). */
+  letter-spacing: -0.01em;
+  font-weight: 800;
+  margin: 0;
+  text-wrap: balance;
+}
+.cat-hero .lead {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--soft);
+  font-size: 17px;
+}
+.cat-hero .facts {
+  margin: 0;
+  color: var(--soft);
+  font-size: 15px;
+}
+/* Breaks fall between the parts, and each «·» stays at the end of the line
+   rather than opening the next (uiux 10157, 10161); the name itself may wrap,
+   «Vysoká škola chemicko-technologická v Praze». */
+.cat-hero .facts span {
+  white-space: nowrap;
+}
+.cat-hero .facts a {
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}
+.cat-hero .nums {
+  display: flex;
+  gap: 28px;
+}
+.cat-hero .nums b {
+  display: block;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.cat-hero .nums span {
+  color: var(--soft);
+  font-size: 14px;
+}
+.cat-hero .actions {
+  margin-top: 0;
+}
+@media (min-width: 960px) {
+  .cat-hero.with-side {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+
+.mono {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  flex: none;
+}
+/* «VŠCHT»: five letters need a smaller size to keep off the tile's edges. */
+.mono[data-long] {
+  font-size: 12px;
+}
+.mono.small[data-long] {
+  font-size: 9.5px;
+}
+.mono.small {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+
+.cat-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 720px) {
+  .cat-grid.two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 1040px) {
+  .cat-grid.three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cat-grid.two {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+.cat h2 {
+  font-size: clamp(22px, 5vw, 28px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0;
+}
+.sec {
+  margin-top: 36px;
+}
+/* F pads every <section> for the landing's big blocks; here they sit close. */
+.cat section.sec {
+  padding-block: 0;
+}
+.sec > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.sec > header .count {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* a university in the list */
+.uni {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: border-color 0.15s;
+}
+.uni:hover {
+  border-color: var(--hair-strong);
+}
+.uni .ut {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.uni .ut b {
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.uni .ut span {
+  color: var(--soft);
+  font-size: 14px;
+}
+.uni .ut small {
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* chat rows: the landing's, as links, with what a stranger needs to know */
+.cat .rows {
+  margin-top: 12px;
+}
+/* Every row on a catalog page, not the landing's first three; a filter still hides one. */
+.cat .rows .row:nth-child(n + 4):not([hidden]) {
+  display: flex;
+}
+a.row {
+  transition: background 0.15s;
+  scroll-margin-top: calc(var(--head-h, 116px) + 12px);
+}
+a.row:hover {
+  background: color-mix(in srgb, var(--surface) 70%, var(--hair));
+}
+a.row:target {
+  outline: 2px solid var(--t3f);
+  outline-offset: 2px;
+}
+.row .letters {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+/* «FBMI», «VŠCHT»: the app's letters stay whole, smaller (uiux 10236). */
+.row .letters[data-long] {
+  font-size: 10px;
+}
+.row .rt small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+/* Toned rather than a card's white: on a row's surface in the dark theme the
+   card colour all but vanished (uiux 10129). */
+.tag {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  background: var(--t5b);
+  color: var(--t5f);
+}
+.row .go {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.more-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+.more-link svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* filters: query links (noindex, canonical to the clean address) */
+.chips {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cat .chips > a {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--hair-strong);
+  background: var(--card);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--soft);
+  cursor: pointer;
+}
+.chips [aria-current='page'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 0 14px;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid var(--hair-strong);
+  background: var(--card);
+}
+.search svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ink);
+}
+
+.empty {
+  color: var(--soft);
+}
+
+.thin {
+  display: grid;
+  gap: 8px;
+}
+
+.cat .note {
+  margin-top: 28px;
+}
+
+/* A filtered-out row or card: the rows' own display: flex would show it. */
+.cat [hidden] {
+  display: none;
+}

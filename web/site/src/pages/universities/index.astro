@@ -1,0 +1,14 @@
+---
+import { universitiesPage } from '../../catalog/load.ts';
+import { CACHED } from '../../catalog/page.ts';
+/** Rendered on request (catalog/load.ts): see the component for what it shows. */
+import Universities from '../../catalog/Universities.astro';
+
+export const prerender = false;
+
+const page = await universitiesPage(undefined, Astro.url);
+if (page instanceof Response) return page;
+Astro.response.headers.set('Cache-Control', CACHED);
+---
+
+<Universities {...page} />

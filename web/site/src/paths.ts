@@ -76,12 +76,20 @@ export function indexedLangs(
  * The app has its own host (`app`), but buttons already sent in Telegram name
  * this one, and the catalog's notifications named its bare root. Telegram puts
  * the launch data in the fragment, which the server never sees, so the page
- * itself sends it on: to the app's first screen, fragment and all. A browser
+ * itself sends it on: to the app's first screen, fragment and all, or from
+ * the public catalogue (`path`, /chats/ in any language) to the app's chats,
+ * which those buttons named while the address was the app's. A browser
  * without it stays.
  */
-export function telegramHome(hash: string, search: string, app: string): string | null {
+export function telegramHome(
+  hash: string,
+  search: string,
+  app: string,
+  path = '/',
+): string | null {
+  const screen = /^(\/[a-z]{2})?\/chats\/?$/.test(path) ? '/chats' : '/home';
   return hash.includes('tgWebAppData')
-    ? `${app.replace(/\/+$/, '')}/home${search}${hash}`
+    ? `${app.replace(/\/+$/, '')}${screen}${search}${hash}`
     : null;
 }
 

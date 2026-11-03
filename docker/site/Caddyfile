@@ -61,7 +61,8 @@
 	log_skip @quiet
 }
 
-# konnekt.cz: the public site (web/site/), built to plain HTML. The Mini App
+# konnekt.cz: the public site (web/site/), built to plain HTML but for the
+# catalog pages, which its Node server renders. The Mini App
 # lives on its own host (APP_URL, the deploy's WEBAPI_PUBLIC_URL); buttons
 # already sent in Telegram still name this one, so every path that is not the
 # site's goes there with its path and query, and the fragment that carries
@@ -91,6 +92,33 @@
 			header_up -X-Catalog-Service
 			header_up -X-Catalog-Operator
 			header_up -X-Catalog-Lang
+			header_down -Set-Cookie
+		}
+	}
+
+	# The catalog's addresses without the final slash, which a page names with
+	# it, a university's included: answered here, kept an hour, before the
+	# render server's own redirect, which a browser would keep for good. Not
+	# /chats, which is the app's.
+	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/universities(?:/.*[^/])?|/(?:uk|cs|en)/chats)$
+	handle @bare {
+		header Cache-Control "public, max-age=3600"
+		redir {re.bare.1}/{?query} 308
+	}
+
+	# The catalog pages, rendered on request by the site's own Node server
+	# (site-render, the same build), each with the Cache-Control Cloudflare
+	# keeps it by. /chats/ is the public catalogue; /chats itself, which old
+	# buttons in Telegram name, still goes to the app below, and so does any
+	# deeper path of the app's (/chats/cvut). Nothing of a browser's reaches the
+	# server but the request: it reads public data and sets nothing.
+	@catalog path /universities/* /chats/ /sitemap-catalog.xml /uk/universities/* /uk/chats/ /cs/universities/* /cs/chats/ /en/universities/* /en/chats/
+	handle @catalog {
+		log_append handler render
+		reverse_proxy site-render:4321 {
+			header_up X-Request-Id {http.request.uuid}
+			header_up -Cookie
+			header_up -Authorization
 			header_down -Set-Cookie
 		}
 	}

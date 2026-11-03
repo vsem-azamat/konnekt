@@ -281,7 +281,10 @@ notifications opened the bare host, and once the site owns `/` an old button
 and a visitor are the same request. Whatever serves `/` on konnekt.cz must
 send a `#tgWebAppData` fragment on to the app's host in the browser: the site
 (`web/site/`, its own container, `docker/site/`) does, from every page, and
-answers every path that is not its own with that 301.
+answers every path that is not its own with that 301. `/chats/`, with the
+slash, is the site's public catalogue; `/chats` itself stays the app's 301,
+and a launch that lands on `/chats/` anyway goes to the app's chats, not its
+first screen.
 
 **The public half calls nothing of ours but `/api/public/*`, and does not
 import the console.** Only `web/src/console/` may use webapi's session, so a

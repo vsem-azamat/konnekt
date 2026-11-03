@@ -48,7 +48,7 @@ const indexed = indexedLangs(path, langs, hidden);
 // refuses to run without it. The dev server falls back to the app's dev server.
 const app = process.env.APP_URL || 'https://localhost:5173';
 const handOff = `(() => {
-  const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)});
+  const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)}, location.pathname);
   if (to) location.replace(to);
 })();`;
 ---

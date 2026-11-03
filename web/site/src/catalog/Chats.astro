@@ -1,0 +1,194 @@
+---
+/**
+ * The public chat catalogue, variant A (Azamat, agora 10228): under one
+ * «Вузы», a university's line with its main chat and the way to the rest on
+ * its page; then the chats that are no university's, under the app's
+ * headings. The city is a filter (?city=) rendered on the server, noindex with
+ * the clean address as canonical; the search is the page's one script, and
+ * without it the whole list is there.
+ *
+ * Telegram's old buttons name this address too: the layout's hand-off sends a
+ * launch on to the app's chats before the page paints.
+ */
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { OPEN } from '../landing/copy.ts';
+import Base from '../layouts/Base.astro';
+import { localePath } from '../paths.ts';
+import ChatRow from './ChatRow.astro';
+import { citySlug } from './catalog.ts';
+import './catalog.css';
+import type { ChatsProps } from './load.ts';
+import { CATALOG_TEXTS, count } from './texts.ts';
+
+type Props = ChatsProps;
+
+const { lang, catalogue, cities, city, filtered, total } = Astro.props;
+const t = CATALOG_TEXTS[lang];
+const path = '/chats/';
+const here = localePath(lang, path);
+const { universities, loose, topics } = catalogue;
+const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
+---
+
+<Base
+  lang={lang}
+  path={path}
+  title={t.chatsTitle}
+  description={t.chatsDescription(count(lang, total, t.chats))}
+  noindex={filtered}
+>
+  <Header lang={lang} path={path} />
+  <main class="wrap cat">
+    <ol class="crumbs" aria-label={t.nav}>
+      <li><a href={localePath(lang, '/')}>{t.home}</a></li>
+      <li aria-current="page">{t.chatsH1}</li>
+    </ol>
+    <div class="cat-hero">
+      <h1>{t.chatsH1}</h1>
+      <p class="lead">{t.chatsLead(count(lang, total, t.chats))}</p>
+    </div>
+
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input type="search" placeholder={t.searchPlaceholder} aria-label={t.search} data-search />
+    </label>
+    <nav class="chips" aria-label={t.cityNav}>
+      <a href={here} aria-current={city === null ? 'page' : undefined}>{t.all}</a>
+      {cities.map((c) => <a href={`${here}?city=${citySlug(c)}`} aria-current={c === city ? 'page' : undefined}>{c}</a>)}
+    </nav>
+
+    {
+      (universities.length > 0 || loose.length > 0) && (
+        <section class="sec" data-groups>
+          <header><h2>{t.topics.university}</h2><span class="count">{universities.length + loose.length}</span></header>
+          <div class="unis-one">
+            {universities.map((line) => (
+              <div class="one" data-group>
+                <header>
+                  <h3>{line.code ? <a href={localePath(lang, `/universities/${line.code}/`)}>{line.name}</a> : line.name}</h3>
+                  {line.city && <span class="count">{line.city}</span>}
+                </header>
+                <div class="rows">
+                  {(line.code ? line.chats : line.chats.slice(0, 1)).map((chat) => <ChatRow lang={lang} chat={chat} note={chat === line.main ? t.main : null} />)}
+                </div>
+                {line.code && line.chats.length > 1 && (
+                  <a class="more-link" href={localePath(lang, `/universities/${line.code}/`)} data-more>{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true" set:html={arrow} /></a>
+                )}
+                {!line.code && line.chats.length > 1 && (
+                  <details class="rest">
+                    <summary class="more-link">{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                    <div class="rows">
+                      {line.chats.slice(1).map((chat) => <ChatRow lang={lang} chat={chat} />)}
+                    </div>
+                  </details>
+                )}
+              </div>
+            ))}
+            {loose.length > 0 && (
+              <div class="one open-all" data-group>
+                <header><h3>{t.moreUniversities}</h3></header>
+                <div class="rows">{loose.map((chat) => <ChatRow lang={lang} chat={chat} sub={chat.city ?? t.allCzechia} />)}</div>
+              </div>
+            )}
+          </div>
+        </section>
+      )
+    }
+    {
+      topics.map(({ topic, chats }) => (
+        <section class="sec" data-group>
+          <header><h2>{t.topics[topic]}</h2><span class="count">{count(lang, chats.length, t.chats)}</span></header>
+          <div class="rows">{chats.map((chat) => <ChatRow lang={lang} chat={chat} sub={chat.city ?? t.allCzechia} />)}</div>
+        </section>
+      ))
+    }
+    <p class="empty sec" data-empty hidden>{t.empty} <a class="all" href={OPEN}>{t.emptyLink}</a>.</p>
+
+    <p class="note">{t.note}</p>
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>
+
+<style is:global>
+  /* One line a university under a single «Вузы», two abreast on a wide
+     screen on the rows' own gap, so the columns line up with the headings below. */
+  .unis-one .one {
+    margin-top: 20px;
+  }
+  .unis-one .one > header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .unis-one h3 {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+  }
+  .unis-one .count {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .unis-one .rows {
+    margin-top: 8px;
+  }
+  @media (min-width: 960px) {
+    .unis-one {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 8px;
+    }
+    .unis-one .rows {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* A university shows its main chat until a search asks for more: the rest
+     are on its page, or, with no page, a tap away below it (uiux 10266). */
+  [data-group].one:not(.open-all) > .rows:not(.open) .row:nth-child(n + 2) {
+    display: none;
+  }
+  .rest > summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .rest > summary::-webkit-details-marker {
+    display: none;
+  }
+  .rest[open] > summary svg {
+    transform: rotate(180deg);
+  }
+</style>
+
+<script>
+  // The search: the server rendered every chat, this only hides the others.
+  const input = document.querySelector<HTMLInputElement>('[data-search]');
+  const fold = (text: string) =>
+    text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  const apply = () => {
+    const words = fold(input?.value ?? '').split(/\s+/).filter(Boolean);
+    let any = false;
+    for (const group of document.querySelectorAll<HTMLElement>('[data-group]')) {
+      group.querySelector('.rows')?.classList.toggle('open', words.length > 0);
+      let shown = 0;
+      for (const row of group.querySelectorAll<HTMLElement>('.row')) {
+        const text = fold(row.dataset.find ?? '');
+        const hit = words.every((word) => text.includes(word));
+        row.hidden = !hit;
+        if (hit) shown++;
+      }
+      group.hidden = shown === 0;
+      const more = group.querySelector<HTMLElement>('[data-more]');
+      if (more) more.hidden = words.length > 0;
+      // A university with no page keeps the rest folded; a search unfolds it.
+      const rest = group.querySelector<HTMLDetailsElement>('details.rest');
+      if (rest) rest.open = words.length > 0 && shown > 0;
+      any ||= shown > 0;
+    }
+    for (const outer of document.querySelectorAll<HTMLElement>('[data-groups]'))
+      outer.hidden = !outer.querySelector('[data-group]:not([hidden])');
+    const empty = document.querySelector<HTMLElement>('[data-empty]');
+    if (empty) empty.hidden = any;
+  };
+  input?.addEventListener('input', apply);
+</script>

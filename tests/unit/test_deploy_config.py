@@ -975,8 +975,25 @@ def test_the_site_is_its_own_small_container_that_sends_the_app_on() -> None:
     # Required: empty, the redirect would name this host again and loop.
     assert site["environment"]["APP_URL"].startswith("${WEBAPI_PUBLIC_URL:?")
     assert site["ports"] == ["127.0.0.1:18092:80"]
-    assert site["mem_limit"] == "256m"
     assert "{$APP_URL:https://app.invalid}{uri}" in (ROOT / "docker" / "site" / "Caddyfile").read_text()
+
+
+def test_the_sites_catalog_pages_have_a_server_of_their_own() -> None:
+    """The catalog pages' Node server (site-render): the site's own image, so a
+    release is one tag; not root, reachable only through the site's Caddy, and
+    with the site's Caddy within the 256 MB Azamat allowed the site (agora
+    10022, 10252)."""
+    services = yaml.safe_load(COMPOSE.read_text())["services"]
+    site, render = services["site"], services["site-render"]
+
+    assert render["image"] == site["image"]
+    assert render["user"] == "node"
+    assert "ports" not in render
+    assert render["environment"]["APP_URL"].startswith("${WEBAPI_PUBLIC_URL:?")
+    assert "healthcheck" in render
+    megabytes = [int(str(s["mem_limit"]).removesuffix("m")) for s in (site, render)]
+    assert sum(megabytes) <= 256
+    assert "reverse_proxy site-render:4321" in (ROOT / "docker" / "site" / "Caddyfile").read_text()
 
 
 def test_the_site_image_is_built_published_and_kept_like_the_others() -> None:
