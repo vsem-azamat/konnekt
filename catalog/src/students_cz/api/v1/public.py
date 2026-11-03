@@ -6,8 +6,9 @@ the bot, derived from the bot's own token so the handle is never hardcoded.
 """
 
 import re
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,11 @@ UNIVERSITY_START = "uni-"
 # The code the app accepts after it (INSTITUTION_CODE in web/src/lib/chats.ts).
 # Checked before the database is asked: a NUL byte reaches asyncpg as a 500.
 _APP_CODE = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
+# Which of the site's buttons was pressed (`site_header`, `site_article_<slug>`):
+# passed on as the start parameter, which the Mini App opens nothing for and
+# the audience keeps as where somebody came from (app/audience/record.py).
+# Only the site's own shape, and no longer than Telegram's 64 characters.
+_SITE_SOURCE = re.compile(r"site_[a-z0-9][a-z0-9_-]{0,58}")
 
 
 def _universities():
@@ -62,11 +68,14 @@ async def open_in_telegram(
     session: SessionDep,
     app: bool = False,
     start: str | None = None,
+    source: Annotated[str | None, Query(alias="from")] = None,
 ) -> RedirectResponse:
     """Send a browser to the bot, or with `app` straight into its Mini App.
 
     `start` opens the Mini App on one screen, a university's chats
-    (`uni-cvut`); one the catalog does not know opens the app itself.
+    (`uni-cvut`); one the catalog does not know opens the app itself. `from`
+    says which of the site's buttons it was (`site_header`), for the app to
+    record as the source when it opens on no screen.
 
     Unauthenticated on purpose: this is what the landing page's button points
     at, and the landing is what someone sees who has never opened Telegram
@@ -82,6 +91,10 @@ async def open_in_telegram(
     if (screen := await _known_start(session, start)) is not None:
         return RedirectResponse(
             f"https://t.me/{username}?startapp={screen}", status_code=302
+        )
+    if app and source is not None and _SITE_SOURCE.fullmatch(source):
+        return RedirectResponse(
+            f"https://t.me/{username}?startapp={source}", status_code=302
         )
     # `startapp` with no value opens the bot's main Mini App (BotFather's URL).
     opens_app = app or start is not None

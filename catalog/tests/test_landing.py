@@ -137,3 +137,51 @@ async def test_open_does_not_start_on_a_retired_university(app_with, session) ->
         response = await http.get("/api/v1/open", params={"start": "uni-cvut"})
 
     assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
+
+
+async def test_open_carries_where_on_the_site_it_was_pressed(app_with) -> None:
+    """The site's buttons say which they are, and the app records it as the source."""
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get(
+            "/api/v1/open",
+            params={"app": "1", "from": "site_article_nostrifikaciya-attestata"},
+        )
+
+    assert response.status_code == 302
+    assert (
+        response.headers["location"]
+        == "https://t.me/student_cz_bot?startapp=site_article_nostrifikaciya-attestata"
+    )
+
+
+async def test_a_screen_to_open_comes_before_where_it_was_pressed(app_with) -> None:
+    """A university's chats are the start; it is a source of its own."""
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get(
+            "/api/v1/open", params={"start": "uni-cvut", "from": "site_university"}
+        )
+
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp=uni-cvut"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "header",  # not one of the site's own
+        "site_",  # nothing after the prefix
+        "site_Header",  # not the shape the site writes
+        "site_a b",  # a start parameter may not hold it
+        "site_" + "x" * 60,  # longer than Telegram takes (64)
+    ],
+)
+async def test_open_passes_on_only_the_sites_own_sources(app_with, source: str) -> None:
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"app": "1", "from": source})
+
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
