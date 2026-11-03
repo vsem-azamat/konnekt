@@ -86,7 +86,7 @@ async function bootstrap(): Promise<void> {
       // the dev server's, leaves the browser where it is.
       const site = import.meta.env.VITE_SITE_URL;
       if (site) {
-        const to = siteRedirect(site, () => window.sessionStorage);
+        const to = siteRedirect(site, () => window.sessionStorage, Date.now());
         const root = document.getElementById('root');
         if (to) window.location.replace(to);
         else if (root) showSiteLink(root, site);
