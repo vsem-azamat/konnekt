@@ -15,6 +15,8 @@ Use it to answer:
 
 - [Product Overview](overview.md) - target users, jobs-to-be-done, outcomes,
   promises, enablers, and scope boundaries.
+- [Guides](guides.md) - how a guide on konnekt.cz is sourced, written and
+  reviewed before it is published.
 
 ## Relationship To Other Docs
 
