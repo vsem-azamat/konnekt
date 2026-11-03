@@ -57,14 +57,16 @@ file and is not committed.
 
 Each source the article relies on goes into `sources` in the frontmatter, with
 its `title` and `checked_at`, the date it was last read to confirm the claim.
-The footnotes link exactly those sources: a note linking a URL that is not in
-`sources`, or a source no note cites, stops the build. A published article
-without `sources` does not build either.
+Each footnote links one of those sources. When an article has footnotes, a
+note whose link is not in `sources`, or a listed source no note cites, stops
+the build; an article with `sources` and no footnotes still builds, so the
+fact checker looks for that. A published article without `sources` does not
+build.
 
-A comparison names its rule for what it includes. Two faculties' fees with no
-reason for those two read as a random pick: either say why these, or list
-every option the reader is likely to face. Where an option publishes nothing,
-its row stays and says «не опубликовано».
+A comparison names its rule for what it includes. Two universities' deadlines
+with no reason for those two read as a random pick: either say why these, or
+list every option the reader is likely to face. Where an option publishes
+nothing, its row stays and says «не опубликовано».
 
 Sources go stale: deadlines and fees change every year. A guide says which
 academic year it describes, and a source read more than six months before
@@ -80,7 +82,8 @@ usually end up doing. Two files in `docs/content/` keep that:
   term with no word yet in the article's language is reported, not guessed.
 - [field-notes.md](../content/field-notes.md): practical things that are not
   in the law, each with where it comes from and when. Experience is written as
-  experience, not as a rule. Notes are grouped by rubric.
+  experience, not as a rule. Notes are grouped by rubric. A note marked
+  «Context only» informs the writer and never goes into an article.
 
 The writer reads both before drafting, and the fact checker checks the article
 against them. Every review Azamat gives on an article becomes a glossary row
@@ -140,8 +143,8 @@ from it.
   gives the range and points to the section with the full list.
 - Sources are GFM footnotes, `[^mv]`, with the note at the end of the file
   linking the source. A footnote mark goes at the end of the phrase or after
-  the number, never between a name and its number: «FHS UK[^fhs] 990 Kč»
-  renders as «FHS UK⁵ 990 Kč» and reads as 5 990 Kč.
+  the number, never between a name and its number: «poplatek MV[^mv] 300 Kč»
+  renders as «poplatek MV⁵ 300 Kč» and reads as 5 300 Kč.
 - Other links (konnekt.cz pages, other articles) are inline on the words they
   support, not bare URLs.
 - A screenshot is from the official site itself and has alternative text in the

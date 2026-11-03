@@ -5,6 +5,9 @@ choose and why. The article writer reads them before drafting, and the fact
 checker checks an article against them. The rules for using this file are in
 [articles.md](../product/articles.md).
 
+A note marked «Context only» informs the writer and never goes into an
+article.
+
 Each note says where it comes from: Azamat, a message in a chat (a `t.me` link
 to the message, never a person's name) or an official source. Experience is
 written as experience («часто», «многие выбирают»), never as a rule; an
@@ -41,26 +44,26 @@ Every review Azamat gives on an article becomes a note here or a row in the
 
 - **Note:** in chats the faculty's own assessment is called «внутренняя
   нострификация» and is often recommended over the krajský úřad route. An
-  article still does not present it as a replacement for nostrifikace: it
-  counts only for that faculty's admission (see «A faculty's assessment is not
-  nostrification» above). At ČVUT students say the faculty lists the documents
-  on its site and decides within about a month, without an exam; one student sent a certified
-  translation of the certificate and its supplement with grades and hours by
-  post. Some went to the faculty in person and asked for a faster review when
-  the deadline was close.
+  article still does not present it as a replacement for nostrifikace: it counts
+  only for that faculty's admission (see «A faculty's assessment is not
+  nostrification» above). At ČVUT students say the documents are listed on the
+  site and the decision comes within about a month, without an exam (the
+  official page says the rectorate decides, not the faculty: see the next note);
+  one student sent a certified translation of the certificate and its supplement
+  with grades and hours by post. Some went to the faculty in person and asked
+  for a faster review when the deadline was close.
 - **Source:** chats: https://t.me/cvut_fa/8088, https://t.me/cvut_chat/167056,
   https://t.me/cvut_fel/42299.
 - **Date:** 2026-11-03.
-- **To check:** the document list and the time at each faculty an article names.
 
 ### ČVUT checks a foreign certificate centrally
 
 - **Note:** at ČVUT the rectorate, not each faculty, assesses a foreign
   certificate for admission to any of its faculties (FIT, FEL, FS and the
   others). The fee is 950 Kč, paid once; applications for 2027/28 open on
-  1 December 2026. At FF UK the page names 960 Kč, but for 2025/26. Kept for
-  writers' context only: by Azamat's correction above, articles name no
-  faculties or fees for this and send the reader to the admission page.
+  1 December 2026. At FF UK the page names 960 Kč, but for 2025/26.
+- **Context only:** by Azamat's correction above, articles name no faculties
+  or fees for this and send the reader to the admission page.
 - **Source:** official: https://www.cvut.cz/posouzeni-vzdelani-pro-prijimaci-rizeni-na-cvut
   (read 2026-11-03).
 - **Date:** 2026-11-03.
@@ -70,15 +73,16 @@ Every review Azamat gives on an article becomes a note here or a row in the
 
 - **Note:** students say the office sends a list of subjects to sit in
   Czechia, usually 3–4, depending on the subjects with fewer hours than the
-  Czech programme. The law allows 1 to 5.
-- **Source:** chat: https://t.me/cvut_fa/8082; the 1–5 range is on
-  portal.gov.cz (nostrifikace zahraničního vysvědčení).
+  Czech programme. The 1 to 5 range the law allows is not yet checked.
+- **Source:** chat: https://t.me/cvut_fa/8082; the 1–5 range from
+  portal.gov.cz (nostrifikace zahraničního vysvědčení), URL not yet recorded.
 - **Date:** 2026-11-03.
 
 ### Without the document there is no enrolment
 
-- **Note:** applicants allowed to bring the certificate later still need the
-  nostrifikace or the faculty's assessment uploaded before enrolment; at
+- **Note:** students say that applicants allowed to bring the certificate
+  later still had to upload the nostrifikace or the faculty's assessment
+  before enrolment; at
   VŠCHT students mention a July deadline to attach it in SIS.
 - **Source:** chat: https://t.me/vscht_chat/63844, https://t.me/vscht_chat/63841.
 - **Date:** 2026-11-03.
@@ -98,7 +102,7 @@ Every review Azamat gives on an article becomes a note here or a row in the
   confirmation that the certificate gives the right to enter university. One
   student calls such extra demands unlawful and appealable. Write it as
   experience; the documents the law asks for are in zákon 561/2004 Sb. § 108
-  odst. 3–4.
+  odst. 3–4 (not yet checked).
 - **Source:** chat: https://t.me/masaryk_chat/40152, https://t.me/cvut_fit/241176.
 - **Date:** 2026-11-03.
 
@@ -160,10 +164,11 @@ Every review Azamat gives on an article becomes a note here or a row in the
 ### The «20 hours a week on DPP» belief is common
 
 - **Note:** students repeat that a DPP allows at most 20 hours a week. The
-  law sets 300 hours a year per employer for DPP (zákon 262/2006 Sb. § 75);
-  the 20 hours belong to DPČ (§ 76). An article on work answers this belief
-  directly.
-- **Source:** chat: https://t.me/karlov_chat/104460; the law as cited.
+  law appears to set 300 hours a year per employer for DPP (zákon 262/2006
+  Sb. § 75) and to limit DPČ to half the weekly working time (§ 76), which is
+  where the «20 hours» comes from; both not yet checked. An article on work
+  answers this belief directly.
+- **Source:** chat: https://t.me/karlov_chat/104460; the law, not yet read.
 - **Date:** 2026-11-03.
 
 ## visa

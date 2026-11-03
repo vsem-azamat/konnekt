@@ -29,13 +29,13 @@ knowledge or from what chats say.
    fee and document in the draft appears in it.
 3. **Use what is already known.** Name each term as the glossary has it, with
    the official name in brackets at first use. Bring in every field note under
-   the article's rubric that bears on it, as experience, and check its numbers
-   against the source. Link the published articles under
-   `web/site/src/content/articles/<lang>/` (not `draft: true`) that explain a
-   term or a step in more depth. A term the
-   glossary lacks in your language goes into your report, not into the
-   glossary. When you rework an article after Azamat's review, add each point
-   of that review to the glossary or the field notes as well.
+   the article's rubric that bears on it, except those marked «Context only», as
+   experience, and check its numbers against the source. Link the published
+   articles under `web/site/src/content/articles/<lang>/` (not `draft: true`)
+   that explain a term or a step in more depth. A term the glossary lacks in
+   your language goes into your report, not into the glossary. When you rework
+   an article after Azamat's review, add each point of that review to the
+   glossary or the field notes as well.
 4. **Outline.** A guide is numbered steps, one task per guide: what the reader
    must do first, and anything with a deadline, at the top. A news article
    says what changed, from when, and who it affects, in its first paragraph.
