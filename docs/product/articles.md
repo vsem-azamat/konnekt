@@ -67,11 +67,13 @@ publication is read again and its `checked_at` moved.
 - `author` is `konnekt` (Редакция Konnekt) for an article the editorial team
   wrote, agents included, or `azamat` for one Azamat wrote. Never an
   invented person.
-- `reviewedBy` is `azamat`: the page names Azamat as the one who checked it. A
+- `reviewedBy` is `azamat`: Azamat is the one who checked it, and the page is
+  to name Azamat as such (the byline is not rendered yet). A
   published article without it does not build, so it is set only once Azamat
   has read the article.
 - `published` is the day the article first goes public. A draft must have one
-  too; it is the day of drafting until the article is approved. `updated` moves only
+  too: the writer puts the day of drafting, and it moves to the day of the
+  merge. `updated` moves only
   for a change of substance (a new fee, deadline, step or source), never for a
   typo, and is not earlier than `published`.
 
@@ -116,17 +118,20 @@ publication is read again and its `checked_at` moved.
   within 60.
 - `description` is 120 to 155 characters and says what the reader can do after
   reading.
-- The slug is lowercase Latin words joined by hyphens, without diacritics.
-  `topics` and `tags` are the section's own and cannot be slugs.
+- The slug is lowercase Latin words joined by hyphens, without diacritics. An
+  article's slug cannot be `topics` or `tags`: those addresses are the
+  section's own.
+- `tags` and `translationKey` are lowercase Latin words joined by hyphens in
+  every language, Russian included; the build refuses anything else.
 - Each article links the related universities or chats on konnekt.cz and
   related articles.
 
 ## From draft to production
 
 1. The writer adds the article with `draft: true` on a branch and opens a pull
-   request. A draft is still built: it appears on konnekt.cz with an «Пример»
-   badge and is kept out of search. So a draft is not merged before approval
-   either; every merge to main deploys konnekt.cz.
+   request. A draft is still built: it appears on konnekt.cz with an «Example»
+   badge («Пример» in Russian) and is kept out of search. So a draft is not
+   merged before approval either; every merge to main deploys konnekt.cz.
 2. A fact-checker checks the claim list and the draft against the sources.
 3. A fresh reader, who sees only the rendered dev page, follows the steps as a
    newcomer and reports where they get stuck.

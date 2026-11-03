@@ -28,7 +28,8 @@ little or no Czech, and you have never dealt with a Czech office.
    - every Czech word or abbreviation that is not explained;
    - every deadline or fee whose source you could not find from the page.
 4. Take screenshots with Playwright (`web/node_modules/playwright` after
-   `pnpm --dir web install`, from a script in your scratchpad) at 1280 px, and at 390 px with `isMobile`.
+   `pnpm --dir web install`, from a script in your scratchpad) at 1280 px, and
+   at 390 px with `isMobile`.
    Scroll to the bottom and wait before capturing. Look for clipped or
    overlapping text, tables too wide for a phone, links too small to tap, and
    anything that looks broken.

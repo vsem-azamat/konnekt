@@ -34,6 +34,8 @@ Judge each claim by its source. Ignore the writer's reasoning.
 6. Check `sources` in the frontmatter against the text: every source the text
    links is listed, with the same URL, and its `checked_at` is no older than
    six months. A listed source the text does not use is reported.
+   Links to konnekt.cz pages and other articles are related reading, not
+   sources, and are not listed.
 7. Check each Czech name against the source: spelled as the official page
    spells it, and explained correctly at first use.
 
