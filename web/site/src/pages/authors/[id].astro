@@ -1,0 +1,10 @@
+---
+import { authorPaths } from '../../articles/authors.ts';
+import Author from '../../components/Author.astro';
+
+export function getStaticPaths() {
+  return authorPaths(true);
+}
+---
+
+<Author {...Astro.props} />

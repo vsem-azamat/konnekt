@@ -62,6 +62,8 @@ SITE_PATHS = {
     "/articles",
     "/articles/",
     "/articles/primer/",
+    "/authors/azamat/",
+    "/en/authors/azamat/",
     "/robots.txt",
     "/sitemap-index.xml",
     "/sitemap-0.xml",

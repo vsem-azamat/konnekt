@@ -1,5 +1,5 @@
 /*
- * The guide pages' own layout, on landing F's tokens (landing/f.css): its
+ * The article pages' own layout, on landing F's tokens (landing/f.css): its
  * header, footer and type are theirs too.
  */
 
@@ -59,10 +59,136 @@
 .article :is(h2, h3) {
   margin: 1.6em 0 0.4em;
   line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* The landing's sections are bands of the page; here they are parts of a text. */
+.page section {
+  padding-block: 0;
+}
+
+/* The landing's section headings are display size; here they are subheadings, below the title. */
+.page h2 {
+  margin: 32px 0 12px;
+  font-size: clamp(21px, 4.4vw, 24px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.article h3 {
+  font-size: 18px;
 }
 
 .article p,
 .article ul,
 .article ol {
   margin: 0 0 1em;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.crumbs a {
+  color: inherit;
+}
+
+.crumbs a + a::before {
+  content: '›';
+  margin-right: 8px;
+  color: var(--muted);
+}
+
+.head {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.head h1 {
+  margin: 0;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  color: var(--soft);
+}
+
+.lede {
+  margin: 0;
+  font-size: 18px;
+  color: var(--soft);
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 4px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  font-size: 14px;
+}
+
+.byline dt {
+  color: var(--muted);
+}
+
+.byline dd {
+  margin: 0;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 28px;
+  border-radius: 14px;
+}
+
+.sources {
+  margin-top: 40px;
+  padding-top: 4px;
+  border-top: 1px solid var(--hair);
+  font-size: 15px;
+}
+
+.sources ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+
+.sources li span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+/* Links in a text look like links: the landing's are bare. */
+.article :is(p, li, dd) a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 3px;
 }

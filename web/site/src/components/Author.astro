@@ -1,0 +1,79 @@
+---
+/** A person who writes or checks articles: who they are, and what they wrote or checked. */
+import { getCollection, getEntry } from 'astro:content';
+
+import '../site.css';
+import { jsonLd, profileGraph } from '../articles/structured.ts';
+import Base from '../layouts/Base.astro';
+import { authorPath, type Lang, langOf } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+
+interface Props {
+  id: string;
+  lang: Lang;
+  hidden: boolean;
+  langs: readonly Lang[];
+}
+
+const { id, lang, hidden, langs } = Astro.props;
+const t = TEXTS[lang];
+const author = await getEntry('authors', id);
+if (!author) throw new Error(`no author ${id}`);
+const name = author.data.names[lang] ?? author.data.name;
+const bio = author.data.bio[lang];
+const own = (await getCollection('articles')).filter((a) => langOf(a.id) === lang);
+const wrote = own.filter((a) => a.data.author.id === id);
+const checked = own.filter((a) => a.data.reviewedBy?.id === id);
+const path = authorPath(lang, id);
+const url = new URL(path, Astro.site?.href ?? '/').href;
+const graph = profileGraph({ kind: 'person', name, url, links: author.data.links });
+---
+
+<Base
+  lang={lang}
+  path={`/authors/${id}/`}
+  langs={langs}
+  title={`${name} — Konnekt`}
+  description={bio ?? name}
+  noindex={hidden}
+>
+  <script slot="head" type="application/ld+json" set:html={jsonLd(graph)} />
+  <Header lang={lang} path={`/authors/${id}/`} langs={langs} />
+  <main class="page">
+    <h1>{name}</h1>
+    {bio && <p class="lede">{bio}</p>}
+    {
+      author.data.links.length > 0 && (
+        <ul class="links">
+          {author.data.links.map((link) => (
+            <li>
+              <a href={link} rel="me">
+                {new URL(link).hostname}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    {
+      wrote.length > 0 && (
+        <section>
+          <h2>{t.wrote}</h2>
+          <ArticleCards lang={lang} articles={wrote} />
+        </section>
+      )
+    }
+    {
+      checked.length > 0 && (
+        <section>
+          <h2>{t.checkedArticles}</h2>
+          <ArticleCards lang={lang} articles={checked} />
+        </section>
+      )
+    }
+  </main>
+  <Footer lang={lang} path={`/authors/${id}/`} />
+</Base>

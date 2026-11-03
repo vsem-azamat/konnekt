@@ -1,11 +1,13 @@
 ---
-/** The articles in one language, examples marked as such. */
+/** The articles in one language. */
 import { getCollection } from 'astro:content';
 
+import { entry } from '../articles/entries.ts';
 import '../site.css';
 import Base from '../layouts/Base.astro';
-import { articlePath, hiddenPaths, type Lang, langOf, localePath } from '../paths.ts';
+import { hiddenPaths, type Lang, langOf, localePath } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
+import ArticleCards from './ArticleCards.astro';
 import Footer from './Footer.astro';
 import Header from './Header.astro';
 
@@ -37,19 +39,7 @@ const hidden = hiddenPaths(
   <main class="page">
     <h1>{t.articles}</h1>
     {articles.length === 0 && <p>{t.noArticles}</p>}
-    <ul class="articles-list">
-      {
-        articles.map((article) => (
-          <li>
-            <a href={articlePath(article.id)}>
-              {article.data.draft && <span class="badge">{t.example}</span>}
-              <strong>{article.data.title}</strong>
-              <p>{article.data.description}</p>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+    <ArticleCards lang={lang} articles={articles} />
   </main>
   <Footer lang={lang} path="/articles/" />
 </Base>

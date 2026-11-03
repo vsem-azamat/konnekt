@@ -1,11 +1,18 @@
 ---
-/** One article, with links to its translations. */
-import { type CollectionEntry, getCollection, render } from 'astro:content';
+/**
+ * One article: where it sits in the site, who wrote it and who checked it,
+ * when, the text, and what it rests on. The same facts go to search engines
+ * as JSON-LD (articles/structured.ts).
+ */
+import { Image } from 'astro:assets';
+import { type CollectionEntry, getEntry, render } from 'astro:content';
 
 import '../site.css';
+import { entries, entry } from '../articles/entries.ts';
+import { articleGraph, day, jsonLd, type Party } from '../articles/structured.ts';
 import Base from '../layouts/Base.astro';
-import { articlePath, langOf, translationsOf } from '../paths.ts';
-import { TEXTS } from '../texts.ts';
+import { articlePath, authorPath, langOf, localePath, translationsOf } from '../paths.ts';
+import { longDate, TEXTS } from '../texts.ts';
 import Footer from './Footer.astro';
 import Header from './Header.astro';
 
@@ -14,34 +21,137 @@ interface Props {
 }
 
 const { article } = Astro.props;
+const { data } = article;
 const lang = langOf(article.id);
+const t = TEXTS[lang];
 const path = articlePath(article.id);
-const entry = ({ id, data }: CollectionEntry<'articles'>) => ({
-  id,
-  draft: data.draft,
-  translationKey: data.translationKey,
-});
-const versions = translationsOf(
-  entry(article),
-  (await getCollection('articles')).map(entry),
-);
+const site = Astro.site?.href ?? '/';
+const url = new URL(path, site).href;
+const versions = translationsOf(entry(article), await entries());
 const { Content } = await render(article);
+
+/** An author as the page and the structured data name them: a person with their page. */
+async function party(ref: { id: string }): Promise<Party & { path?: string }> {
+  const author = await getEntry('authors', ref.id);
+  if (!author) throw new Error(`article ${article.id}: no author ${ref.id}`);
+  const name = author.data.names[lang] ?? author.data.name;
+  if (author.data.kind === 'organization') return { kind: 'organization', name };
+  const own = authorPath(lang, ref.id);
+  return { kind: 'person', name, path: own, url: new URL(own, site).href };
+}
+const author = await party(data.author);
+const reviewer = data.reviewedBy && (await party(data.reviewedBy));
+
+const crumbs = [
+  { name: 'Konnekt', url: new URL(localePath(lang, '/'), site).href },
+  { name: t.articles, url: new URL(localePath(lang, '/articles/'), site).href },
+];
+const graph = articleGraph(
+  {
+    type: data.type,
+    url,
+    lang,
+    headline: data.title,
+    description: data.description,
+    published: data.published,
+    updated: data.updated,
+    author,
+    reviewer,
+    image: data.cover && new URL(data.cover.src, site).href,
+    crumbs,
+  },
+  site,
+);
 ---
 
 <Base
   lang={lang}
   path={path}
   versions={versions}
-  title={`${article.data.title} — Konnekt`}
-  description={article.data.description}
-  noindex={article.data.draft}
+  title={`${data.title} — Konnekt`}
+  description={data.description}
+  noindex={data.draft}
+  ogType="article"
 >
+  <Fragment slot="head">
+    <meta property="article:published_time" content={day(data.published)} />
+    <meta property="article:modified_time" content={day(data.updated ?? data.published)} />
+    <meta property="article:section" content={t.rubrics[data.rubric]} />
+    {data.cover && <meta property="og:image" content={new URL(data.cover.src, site).href} />}
+    <script type="application/ld+json" set:html={jsonLd(graph)} />
+  </Fragment>
   <Header lang={lang} path={path} versions={versions} />
   <main class="page">
-    {article.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
+    <nav class="crumbs" aria-label="breadcrumbs">
+      {crumbs.map((crumb) => <a href={new URL(crumb.url).pathname}>{crumb.name}</a>)}
+    </nav>
     <article class="article">
-      <h1>{article.data.title}</h1>
+      <header class="head">
+        <p class="kicker">
+          {data.draft && <span class="badge">{t.example}</span>}
+          <span>{t.rubrics[data.rubric]}</span>
+        </p>
+        <h1>{data.title}</h1>
+        <p class="lede">{data.description}</p>
+        <dl class="byline">
+          <div>
+            <dt>{t.author}</dt>
+            <dd>{author.path ? <a href={author.path}>{author.name}</a> : author.name}</dd>
+          </div>
+          {
+            reviewer && (
+              <div>
+                <dt>{t.reviewedBy}</dt>
+                <dd>{reviewer.path ? <a href={reviewer.path}>{reviewer.name}</a> : reviewer.name}</dd>
+              </div>
+            )
+          }
+          <div>
+            <dt>{t.published}</dt>
+            <dd><time datetime={day(data.published)}>{longDate(lang, data.published)}</time></dd>
+          </div>
+          {
+            data.updated && (
+              <div>
+                <dt>{t.updated}</dt>
+                <dd><time datetime={day(data.updated)}>{longDate(lang, data.updated)}</time></dd>
+              </div>
+            )
+          }
+        </dl>
+      </header>
+      {
+        data.cover && (
+          <Image
+            class="cover"
+            src={data.cover}
+            alt={data.coverAlt ?? ''}
+            widths={[720, 1440]}
+            sizes="(min-width: 46rem) 44rem, 100vw"
+            loading="eager"
+            fetchpriority="high"
+          />
+        )
+      }
       <Content />
+      {
+        data.sources.length > 0 && (
+          <section class="sources">
+            <h2>{t.sources}</h2>
+            <ol>
+              {data.sources.map((source) => (
+                <li>
+                  <a href={source.url}>{source.title}</a>
+                  <span>
+                    {t.checked}{' '}
+                    <time datetime={day(source.checked_at)}>{longDate(lang, source.checked_at)}</time>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
     </article>
   </main>
   <Footer lang={lang} path={path} />

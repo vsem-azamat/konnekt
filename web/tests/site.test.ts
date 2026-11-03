@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   alternates,
   articlePath,
+  authorPages,
   checkArticles,
   hiddenPaths,
   indexed,
@@ -138,4 +139,29 @@ test('hreflang names only the versions search engines may keep', () => {
     indexed(versionsOf('/', ['ru', 'uk', 'cs', 'en']), hidden).map((v) => v.lang),
     ['ru', 'uk', 'cs', 'en'],
   );
+});
+
+test('an author has a page in each language they wrote or checked in, hidden while all are examples', () => {
+  const articles = [
+    {
+      id: 'ru/primer',
+      draft: true,
+      translationKey: 'primer',
+      people: ['konnekt', 'azamat'],
+    },
+    {
+      id: 'ru/viza',
+      draft: false,
+      translationKey: 'visa',
+      people: ['konnekt', 'azamat'],
+    },
+    { id: 'en/visa', draft: true, translationKey: 'visa', people: ['azamat'] },
+  ];
+  assert.deepEqual(authorPages(articles), [
+    { id: 'konnekt', lang: 'ru', hidden: false },
+    { id: 'azamat', lang: 'ru', hidden: false },
+    { id: 'azamat', lang: 'en', hidden: true },
+  ]);
+  assert.ok(hiddenPaths(articles).includes('/en/authors/azamat/'));
+  assert.ok(!hiddenPaths(articles).includes('/authors/azamat/'));
 });

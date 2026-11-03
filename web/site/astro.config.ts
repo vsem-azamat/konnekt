@@ -41,6 +41,7 @@ function articles(): ArticleEntry[] {
       id: file.replace(/^src\/content\/articles\//, '').replace(/\.md$/, ''),
       draft: frontmatter.draft === true,
       translationKey: String(frontmatter.translationKey),
+      people: [frontmatter.author, frontmatter.reviewedBy].filter(Boolean).map(String),
     };
   });
   checkArticles(entries);

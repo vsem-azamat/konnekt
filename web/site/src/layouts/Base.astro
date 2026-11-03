@@ -9,8 +9,7 @@ import '@fontsource-variable/inter-tight';
 import latinFont from '@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2?url';
 import '../landing/f.css';
 
-import { getCollection } from 'astro:content';
-
+import { entries } from '../articles/entries.ts';
 import {
   alternates,
   hiddenPaths,
@@ -39,20 +38,24 @@ interface Props {
   description: string;
   /** For an example or an empty list: a page search engines must not keep. */
   noindex?: boolean;
+  /** Open Graph's kind of page: an article's says so, with its dates in the `head` slot. */
+  ogType?: 'website' | 'article';
 }
 
-const { lang, path, langs = LANGS, title, description, noindex = false } = Astro.props;
+const {
+  lang,
+  path,
+  langs = LANGS,
+  title,
+  description,
+  noindex = false,
+  ogType = 'website',
+} = Astro.props;
 const versions = Astro.props.versions ?? versionsOf(path, langs);
 const site = Astro.site?.href ?? '/';
 const canonical = new URL(Astro.props.versions ? path : localePath(lang, path), site)
   .href;
-const hidden = hiddenPaths(
-  (await getCollection('articles')).map(({ id, data }) => ({
-    id,
-    draft: data.draft,
-    translationKey: data.translationKey,
-  })),
-);
+const hidden = hiddenPaths(await entries());
 
 // The tested function itself, not a copy of its logic: it has to run before the
 // first paint, so inline, and it refers to nothing outside its arguments.
@@ -87,12 +90,13 @@ const handOff = `(() => {
           <link rel="alternate" hreflang={hreflang} href={href} />
         ))
     }
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="Konnekt" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={OG_LOCALES[lang]} />
+    <slot name="head" />
     <script is:inline set:html={handOff} />
     <script is:inline>
       // The palette before the first paint: ?theme= (screenshots), then the

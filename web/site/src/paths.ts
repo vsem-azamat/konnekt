@@ -104,6 +104,36 @@ export interface ArticleEntry {
   draft: boolean;
   /** The same in every translation of one article; each has a slug in its own language. */
   translationKey: string;
+  /** Who wrote it and who checked it, by their ids in the authors collection. */
+  people?: readonly string[];
+}
+
+/** The sections an article belongs to, one each; their names are in texts.ts. */
+export const RUBRICS = ['admission', 'visa', 'housing', 'study', 'work'] as const;
+export type Rubric = (typeof RUBRICS)[number];
+
+export function authorPath(lang: Lang, id: string): string {
+  return localePath(lang, `/authors/${id}/`);
+}
+
+/**
+ * The authors' pages: one for each person in each language they wrote or
+ * checked an article in, `hidden` while every one of those is an example.
+ */
+export function authorPages(
+  articles: readonly ArticleEntry[],
+): { id: string; lang: Lang; hidden: boolean }[] {
+  const pages = new Map<string, { id: string; lang: Lang; hidden: boolean }>();
+  for (const article of articles) {
+    const lang = langOf(article.id);
+    for (const id of article.people ?? []) {
+      const key = authorPath(lang, id);
+      const page = pages.get(key) ?? { id, lang, hidden: true };
+      page.hidden &&= article.draft;
+      pages.set(key, page);
+    }
+  }
+  return [...pages.values()];
 }
 
 /** Slugs the section's own pages take: an article by one of these names would hide them. */
@@ -142,8 +172,9 @@ export function translationsOf(
 }
 
 /**
- * Pages that carry `noindex`: every example article, and the list of articles
- * in every language that has no published one yet. The sitemap leaves them out.
+ * Pages that carry `noindex`: every example article, the list of articles in
+ * every language that has no published one yet, and an author's page with
+ * nothing but examples on it. The sitemap leaves them out.
  */
 export function hiddenPaths(articles: readonly ArticleEntry[]): string[] {
   const published = new Set(articles.filter((a) => !a.draft).map((a) => langOf(a.id)));
@@ -151,5 +182,8 @@ export function hiddenPaths(articles: readonly ArticleEntry[]): string[] {
   const emptyLists = LANGS.filter((lang) => !published.has(lang)).map((lang) =>
     localePath(lang, '/articles/'),
   );
-  return [...drafts, ...emptyLists];
+  const authors = authorPages(articles)
+    .filter((page) => page.hidden)
+    .map((page) => authorPath(page.lang, page.id));
+  return [...drafts, ...emptyLists, ...authors];
 }

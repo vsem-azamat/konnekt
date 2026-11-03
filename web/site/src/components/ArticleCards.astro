@@ -1,0 +1,28 @@
+---
+/** Articles as a list of cards, examples marked as such. */
+import type { CollectionEntry } from 'astro:content';
+
+import { articlePath, type Lang } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+
+interface Props {
+  lang: Lang;
+  articles: readonly CollectionEntry<'articles'>[];
+}
+
+const { lang, articles } = Astro.props;
+---
+
+<ul class="articles-list">
+  {
+    articles.map((article) => (
+      <li>
+        <a href={articlePath(article.id)}>
+          {article.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
+          <strong>{article.data.title}</strong>
+          <p>{article.data.description}</p>
+        </a>
+      </li>
+    ))
+  }
+</ul>

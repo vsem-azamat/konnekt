@@ -2,10 +2,7 @@ import { defineCollection, reference } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-import { LANGS } from './paths.ts';
-
-/** The sections an article belongs to, one each; their names are in texts.ts. */
-export const RUBRICS = ['admission', 'visa', 'housing', 'study', 'work'] as const;
+import { LANGS, RUBRICS } from './paths.ts';
 
 const slug = z
   .string()
@@ -100,6 +97,8 @@ const authors = defineCollection({
     kind: z.enum(['person', 'organization']),
     name: z.string().min(1),
     names: z.partialRecord(z.enum(LANGS), z.string().min(1)).default({}),
+    // A line or two on who they are, in each language their page is in.
+    bio: z.partialRecord(z.enum(LANGS), z.string().min(1)).default({}),
     links: z.array(z.string().url()).default([]),
   }),
 });
