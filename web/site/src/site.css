@@ -221,10 +221,11 @@ h1 + .lede {
 /* A table scrolls in its own box; on a wide screen it may be wider than the text. */
 .article .table {
   /* As wide as its table needs: the column's width at least, up to 56rem,
-     growing to the right only and never past the screen's edge. */
+     growing to the right only and never past the screen's edge: on a narrow
+     screen the column starts 16px in, on a wide one at 50vw - 23rem. */
   width: max-content;
   min-width: 100%;
-  max-width: min(56rem, calc(50vw + 23rem - 16px));
+  max-width: min(56rem, calc(50vw + 23rem - 16px), calc(100vw - 32px));
   margin: 0 0 1.2em;
   overflow-x: auto;
 }
