@@ -193,6 +193,7 @@ scripts/*
 # Local Claude Code state; the project's own agents are tracked.
 .claude/*
 !.claude/agents/
+*/**/.claude/
 
 # Local credential drops — never tracked.
 .creds/

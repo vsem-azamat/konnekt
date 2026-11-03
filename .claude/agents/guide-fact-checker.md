@@ -22,7 +22,8 @@ Judge each claim by its source. Ignore the writer's reasoning.
    is reported.
 2. Open the link the draft gives for each claim and find the line that
    supports it. Prefer the Czech version of an official page. A link that
-   redirects, needs a login or does not contain the claim is not a source.
+   lands somewhere other than the cited page, needs a login or does not
+   contain the claim is not a source.
 3. A claim without a primary source is UNSUPPORTED, even if you believe it.
    Never mark a claim correct from memory.
 4. A source that describes another academic year, or that you cannot confirm

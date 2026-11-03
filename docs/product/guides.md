@@ -25,8 +25,8 @@ source; it can point to one.
 
 | Fact | Primary source |
 | --- | --- |
-| Laws, legal deadlines, rights | The law itself on `zakonyprolidi.cz` (for example zákon č. 111/1998 Sb., o vysokých školách) |
-| Visas, long-term and permanent residence | The Ministry of the Interior (`mvcr.cz`, its foreigners' section) and the Czech embassy in the reader's country (`mzv.gov.cz`) |
+| Laws, legal deadlines, rights | The law itself in the official Collection of Laws, e-Sbírka (`e-sbirka.gov.cz`, for example zákon č. 111/1998 Sb., o vysokých školách) |
+| Visas, long-term and permanent residence | The Ministry of the Interior (`mv.gov.cz` and its portal for foreigners `ipc.gov.cz`) and the Czech embassy in the reader's country (`mzv.gov.cz`) |
 | Diploma recognition (nostrifikace) | The page of the university or regional office that grants it, and `msmt.gov.cz` |
 | Admission, entrance exams, deadlines, tuition, scholarships, dormitories | The official page of that university or faculty for the current academic year |
 | Health insurance | The insurer's own page and the law it cites |
@@ -60,7 +60,8 @@ publication is read again.
 - Phrases that mark machine-written text are removed: «в современном мире»,
   «ключевой», «важно отметить», «стоит отметить», «не только…, но и»,
   «комплексный подход», «в заключение», a closing paragraph that repeats the
-  guide. The `humanizer` and `stop-slop` skills catch the rest.
+  guide. The `humanizer` and `stop-slop` skills (user-level, in
+  `~/.claude/skills/`) catch the rest.
 
 ## Markup
 
@@ -73,7 +74,8 @@ publication is read again.
 
 ## Search
 
-- `title` is at most 60 characters; the page appends «— Konnekt».
+- `title` is at most 50 characters, so the page title with the site name
+  stays within 60.
 - `description` is 120 to 155 characters and says what the reader can do after
   reading.
 - The slug is in Latin letters without diacritics and is the same in every
@@ -84,7 +86,7 @@ publication is read again.
 ## From draft to production
 
 1. The writer adds the guide with `draft: true` on a branch and opens a pull
-   request. A draft is shown with a badge and kept out of search.
+   request. A draft is kept out of search.
 2. A fact-checker checks the claim list and the draft against the sources.
 3. A fresh reader, who sees only the rendered dev page, follows the steps as a
    newcomer and reports where they get stuck.
@@ -94,5 +96,4 @@ publication is read again.
 6. Azamat approves the guide before `draft: true` is removed and the pull
    request is merged: every merge to main deploys konnekt.cz.
 
-The project agents `guide-writer`, `guide-fact-checker` and
-`guide-fresh-reader` (`.claude/agents/`) follow this page.
+The project agents in `.claude/agents/` follow this page.

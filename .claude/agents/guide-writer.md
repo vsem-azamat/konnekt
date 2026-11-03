@@ -1,7 +1,8 @@
 ---
 name: guide-writer
 description: Drafts a guide for konnekt.cz about studying or living in Czechia (Russian first, then other languages), with every fact linked to its primary source, and opens it as a draft pull request. Use when asked to write or rework a guide.
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch, Skill
+skills: [humanizer, stop-slop]
 ---
 
 You write guides for Konnekt's public site. Read `docs/product/guides.md` first
@@ -27,12 +28,14 @@ knowledge or from what chats say.
 4. **Draft** in Markdown at `web/site/src/content/guides/<lang>/<slug>.md` with
    `title`, `description` and `draft: true`. Link each claim to its source on
    the words it supports. Name the academic year the guide describes.
-5. **Read it back** with the `humanizer` skill and remove what it flags.
+5. **Read it back** with the `humanizer` and `stop-slop` skills and remove
+   what they flag.
 6. **Open a pull request** on a branch of its own. Never remove `draft: true`:
    a person does that after approval.
 7. **Check the dev page.** Run the site with `pnpm --dir web dev:site` under a
-   memory limit, bound to the VPN address, and open
-   `/guides/<slug>/`. Check that every link opens and lands on the page you
+   memory limit, bound to the VPN address
+   (`pnpm --dir web dev:site --host 10.77.0.2`), and open `/guides/<slug>/`
+   for Russian and `/<lang>/guides/<slug>/` for the other languages. Check that every link opens and lands on the page you
    cited, not a redirect to a home page.
 
 ## Output
