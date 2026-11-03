@@ -15,6 +15,8 @@
 const LEFT = 'konnekt.leftForSite';
 /** How soon a third return counts as a loop rather than a person. */
 const LOOP_WINDOW_MS = 10_000;
+/** How many times a tab is sent on within that window before it is kept: the third return stays. */
+const SENT_ON_BEFORE_KEPT = 2;
 
 export function siteEntry(site: string): string {
   return `${site.replace(/\/+$/, '')}/?from=app`;
@@ -28,12 +30,17 @@ export function siteRedirect(
 ): string | null {
   try {
     const tab = session();
-    // The last two times this tab was sent on, oldest first.
-    const times = (tab.getItem(LEFT) ?? '').split(',').map(Number).filter(Boolean);
+    // The last times this tab was sent on, oldest first.
+    const times = (tab.getItem(LEFT) ?? '')
+      .split(',')
+      .map(Number)
+      .filter(Boolean)
+      .slice(-SENT_ON_BEFORE_KEPT);
     // A gap below zero is a clock set back, not a loop.
     const gap = now - (times[0] ?? 0);
-    if (times.length === 2 && gap >= 0 && gap < LOOP_WINDOW_MS) return null;
-    tab.setItem(LEFT, [...times.slice(-1), now].join(','));
+    if (times.length === SENT_ON_BEFORE_KEPT && gap >= 0 && gap < LOOP_WINDOW_MS)
+      return null;
+    tab.setItem(LEFT, [...times.slice(1 - SENT_ON_BEFORE_KEPT), now].join(','));
   } catch {
     // No storage to remember in: the address alone breaks the loop we know of.
   }
