@@ -53,7 +53,14 @@ const collection = await getCollection('articles');
 const next = related(entry(article), all, 3).map(
   ({ id }) => collection.find((other) => other.id === id) as CollectionEntry<'articles'>,
 );
-const { Content } = await render(article);
+const { Content, headings, remarkPluginFrontmatter } = await render(article);
+// Its notes, when it has them, are its sources (articles/reading.ts).
+const notes = remarkPluginFrontmatter.notes === true;
+// The contents, for an article long enough to need them.
+const sections = headings.filter(
+  (heading) => heading.depth === 2 && heading.slug !== 'footnote-label',
+);
+const contents = sections.length >= 3;
 
 /** An author as the page and the structured data name them: a person with their page. */
 async function party(ref: { id: string }): Promise<Party & { path?: string }> {
@@ -110,7 +117,7 @@ const graph = articleGraph(
     <script type="application/ld+json" set:html={jsonLd(graph)} />
   </Fragment>
   <Header lang={lang} path={path} versions={versions} />
-  <main class="page">
+  <main class:list={['page', { 'with-contents': contents }]}>
     <nav class="crumbs" aria-label="breadcrumbs">
       {crumbs.map((crumb) => <a href={new URL(crumb.url).pathname}>{crumb.name}</a>)}
     </nav>
@@ -118,7 +125,7 @@ const graph = articleGraph(
       <header class="head">
         <p class="kicker">
           {data.draft && <span class="badge">{t.example}</span>}
-          <a href={rubricPath}>{t.rubrics[data.rubric]}</a>
+          <a class="rubric" href={rubricPath}>{t.rubrics[data.rubric]}</a>
         </p>
         <h1>{data.title}</h1>
         <p class="lede">{data.description}</p>
@@ -162,9 +169,23 @@ const graph = articleGraph(
           />
         )
       }
+      {
+        contents && (
+          <details class="contents-inline">
+            <summary>{t.contents}</summary>
+            <ol>
+              {sections.map((section) => (
+                <li>
+                  <a href={`#${section.slug}`}>{section.text}</a>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )
+      }
       <Content />
       {
-        data.sources.length > 0 && (
+        !notes && data.sources.length > 0 && (
           <section class="sources">
             <h2>{t.sources}</h2>
             <ol>
@@ -190,6 +211,20 @@ const graph = articleGraph(
       }
     </article>
     {
+      contents && (
+        <nav class="contents-rail" aria-label={t.contents}>
+          <p>{t.contents}</p>
+          <ol>
+            {sections.map((section) => (
+              <li>
+                <a href={`#${section.slug}`}>{section.text}</a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )
+    }
+    {
       next.length > 0 && (
         <section class="next">
           <h2>{t.readNext}</h2>
@@ -200,3 +235,27 @@ const graph = articleGraph(
   </main>
   <Footer lang={lang} path={path} />
 </Base>
+
+<script>
+  // The section being read, marked in the contents: the last heading above the
+  // top third of the screen.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.contents-rail a')];
+  const targets = links
+    .map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
+    .filter((el): el is HTMLElement => el !== null);
+  if (targets.length > 0) {
+    const mark = () => {
+      const line = innerHeight / 3;
+      let current = 0;
+      targets.forEach((target, index) => {
+        if (target.getBoundingClientRect().top <= line) current = index;
+      });
+      links.forEach((link, index) => {
+        if (index === current) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    addEventListener('scroll', mark, { passive: true });
+    mark();
+  }
+</script>
