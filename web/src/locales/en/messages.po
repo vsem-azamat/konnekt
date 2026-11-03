@@ -1704,6 +1704,10 @@ msgstr "What to add"
 msgid "скрыта, автор изменил анкету"
 msgstr "hidden, the author changed it"
 
+#: src/pages/OpenInTelegram.tsx
+msgid "Konnekt открывается в Telegram"
+msgstr "Konnekt opens in Telegram"
+
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 #~ msgid "Бан {who} в {chat}"
@@ -2615,6 +2619,10 @@ msgstr "The sign-in has expired: reopen the app."
 #: src/components/OwnerStatusCard.tsx
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "It is not visible in the catalog. You can still edit it and your changes will be saved, but only an administrator can put it back in the catalog."
+
+#: src/pages/OpenInTelegram.tsx
+msgid "На сайт"
+msgstr "To the website"
 
 #: src/components/EmptyServiceSheet.tsx
 msgid "Твоя анкета будет здесь первой."
@@ -4217,6 +4225,10 @@ msgstr "But you won't get through school without it. Deadlines and requirements 
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Not saved. Try again."
+
+#: src/pages/OpenInTelegram.tsx
+msgid "Открыть Konnekt"
+msgstr "Open Konnekt"
 
 #: src/pages/Helper.tsx
 msgid "Нужна помощь с учёбой."

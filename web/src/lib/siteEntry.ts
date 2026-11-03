@@ -5,21 +5,24 @@
  * to the app, browsers that saw it keep it, and sent back there they would go
  * round between the two hosts for ever. An address that redirect was never
  * cached for breaks that loop; the landing's canonical stays the clean root.
- * Any other redirect a browser may keep is met by not leaving twice in a few
- * seconds from one tab: a loop is back within milliseconds and is shown a link
- * instead, while a person clicking the site's home link through a redirect
- * their browser still keeps is sent on as before.
+ * Any other redirect a browser may keep is met by not leaving a third time in
+ * a few seconds from one tab: a loop is back within milliseconds, again and
+ * again, and is shown where the app opens instead (pages/OpenInTelegram.tsx),
+ * while a person opening the address again, or clicking the site's home link
+ * through a redirect their browser still keeps, is sent on as before.
  */
 
 const LEFT = 'konnekt.leftForSite';
-/** How soon a browser back again counts as a loop rather than a click. */
+/** How soon a third return counts as a loop rather than a person: a loop slower than half this goes on. */
 const LOOP_WINDOW_MS = 10_000;
+/** How many times a tab is sent on within that window before it is kept: the third return stays. */
+const SENT_ON_BEFORE_KEPT = 2;
 
 export function siteEntry(site: string): string {
   return `${site.replace(/\/+$/, '')}/?from=app`;
 }
 
-/** Where to send the browser now, or null when it was sent there moments ago. */
+/** Where to send the browser now, or null when it was sent there twice moments ago. */
 export function siteRedirect(
   site: string,
   session: () => Pick<Storage, 'getItem' | 'setItem'>,
@@ -27,13 +30,27 @@ export function siteRedirect(
 ): string | null {
   try {
     const tab = session();
-    const left = Number(tab.getItem(LEFT));
+    // The last times this tab was sent on, oldest first.
+    const times = (tab.getItem(LEFT) ?? '')
+      .split(',')
+      .map(Number)
+      .filter(Boolean)
+      .slice(-SENT_ON_BEFORE_KEPT);
     // A gap below zero is a clock set back, not a loop.
-    const gap = now - left;
-    if (left && gap >= 0 && gap < LOOP_WINDOW_MS) return null;
-    tab.setItem(LEFT, String(now));
+    const gap = now - (times[0] ?? 0);
+    if (times.length === SENT_ON_BEFORE_KEPT && gap >= 0 && gap < LOOP_WINDOW_MS)
+      return null;
+    tab.setItem(LEFT, [...times.slice(1 - SENT_ON_BEFORE_KEPT), now].join(','));
   } catch {
     // No storage to remember in: the address alone breaks the loop we know of.
   }
   return siteEntry(site);
+}
+
+/**
+ * The way into the bot: the site's own, which redirects to the bot from the
+ * token the catalog runs with, so no bot's name is written here.
+ */
+export function botEntry(site: string): string {
+  return `${site.replace(/\/+$/, '')}/api/v1/open?app=1`;
 }

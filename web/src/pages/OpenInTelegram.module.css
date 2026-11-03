@@ -1,0 +1,82 @@
+/* What a browser sees on the app's host: landing F's logo and its two ways on,
+   in one column at the middle of the screen, the same at 390 and 1440. */
+.screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.column {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+}
+
+.title {
+  margin: 20px 0 28px;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.primary,
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: var(--r-row);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.secondary {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.primary:active {
+  opacity: 0.85;
+}
+
+.secondary:active {
+  background: var(--surface-pressed);
+}
+
+/* The tile behind the flag, as the site draws it: white on both themes. */
+.tile {
+  fill: #fff;
+  stroke: var(--hairline);
+}

@@ -1704,6 +1704,10 @@ msgstr "Co doplnit"
 msgid "скрыта, автор изменил анкету"
 msgstr "skrytý, autor ho upravil"
 
+#: src/pages/OpenInTelegram.tsx
+msgid "Konnekt открывается в Telegram"
+msgstr "Konnekt se otevírá v Telegramu"
+
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
 #~ msgid "Бан {who} в {chat}"
@@ -2615,6 +2619,10 @@ msgstr "Přihlášení vypršelo: otevřete aplikaci znovu."
 #: src/components/OwnerStatusCard.tsx
 msgid "В каталоге её не видно. Править анкету можно, правки сохранятся, но вернуть её в каталог может только администратор."
 msgstr "V katalogu není vidět. Profil můžeš upravovat a změny se uloží, ale zpět do katalogu ho může vrátit jen administrátor."
+
+#: src/pages/OpenInTelegram.tsx
+msgid "На сайт"
+msgstr "Na web"
 
 #: src/components/EmptyServiceSheet.tsx
 msgid "Твоя анкета будет здесь первой."
@@ -4217,6 +4225,10 @@ msgstr "Ale bez tohohle to nedoděláš. Termíny a požadavky jsou naše, nabí
 #: src/console/FailureText.tsx
 msgid "Не сохранилось. Попробуйте ещё раз."
 msgstr "Neuložilo se. Zkuste to znovu."
+
+#: src/pages/OpenInTelegram.tsx
+msgid "Открыть Konnekt"
+msgstr "Otevřít Konnekt"
 
 #: src/pages/Helper.tsx
 msgid "Нужна помощь с учёбой."
