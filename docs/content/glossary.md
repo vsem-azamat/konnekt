@@ -14,4 +14,4 @@ against its official source before an article states it.
 | ru | uk | en | Official term | What it is | Explained in |
 | --- | --- | --- | --- | --- | --- |
 | нострификация, нострифицировать аттестат | | | nostrifikace (the full official name not yet checked) | Recognition of a foreign school-leaving certificate as equal to a Czech one; readers say «нострифицировать», not «оценить аттестат». | |
-| оценка аттестата факультетом | | | Each faculty names it on its own page (not yet checked) | A faculty checks the foreign certificate for its own admission; that it counts at that faculty only is not yet checked. | |
+| оценка аттестата факультетом | | | Each faculty names it on its own page (not yet checked) | A faculty checks the foreign certificate for its own admission. It counts only there and does not replace nostrifikace (see the field notes). | |

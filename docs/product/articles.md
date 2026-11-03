@@ -63,9 +63,8 @@ without `sources` does not build either.
 
 A comparison names its rule for what it includes. Two faculties' fees with no
 reason for those two read as a random pick: either say why these, or list
-every option the reader is likely to face (for fees, every faculty our readers
-apply to). Where an option publishes nothing, its row stays and says «не
-опубликовано».
+every option the reader is likely to face. Where an option publishes nothing,
+its row stays and says «не опубликовано».
 
 Sources go stale: deadlines and fees change every year. A guide says which
 academic year it describes, and a source read more than six months before

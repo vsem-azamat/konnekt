@@ -16,13 +16,23 @@ Every review Azamat gives on an article becomes a note here or a row in the
 
 ## admission
 
-### Nostrification is not always the easier way for several universities
+### Nostrification through a krajský úřad often means exams
 
 - **Note:** nostrifikace through a krajský úřad often needs exams, and
-  preparing for them takes a lot of time. So many applicants find it easier to
-  pay each faculty to assess the certificate for its own admission instead,
-  about 1 000 Kč per faculty. Advice that nostrifikace «is more convenient
-  when applying to several universities» misleads without this.
+  preparing for them takes a lot of time. Advice that nostrifikace «is more
+  convenient when applying to several universities» misleads without this.
 - **Source:** Azamat, review of the nostrification article (#503).
 - **Date:** 2026-11-03.
-- **To check:** the fee at each faculty an article names.
+
+### A faculty's assessment is not nostrification
+
+- **Note:** some faculties assess the certificate themselves for admission.
+  That holds only for admission to that faculty and does not replace
+  nostrifikace (for work, another university, other documents). An article
+  never presents it as a replacement, does not put it in «Коротко», and names
+  no faculties or fees for it: the reader is sent to the faculty's admission
+  page.
+- **Source:** Azamat, review of the nostrification article (#503); it replaces
+  Azamat's earlier remark the same day that many pay each faculty about
+  1 000 Kč instead.
+- **Date:** 2026-11-03.
