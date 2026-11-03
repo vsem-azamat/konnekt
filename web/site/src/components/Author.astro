@@ -5,7 +5,7 @@ import { getCollection, getEntry } from 'astro:content';
 import '../site.css';
 import { jsonLd, profileGraph } from '../articles/structured.ts';
 import Base from '../layouts/Base.astro';
-import { authorPath, type Lang, langOf } from '../paths.ts';
+import { authorPath, type Lang, langOf, localePath } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
 import ArticleCards from './ArticleCards.astro';
 import Footer from './Footer.astro';
@@ -43,6 +43,10 @@ const graph = profileGraph({ kind: 'person', name, url, links: author.data.links
   <script slot="head" type="application/ld+json" set:html={jsonLd(graph)} />
   <Header lang={lang} path={`/authors/${id}/`} langs={langs} />
   <main class="page">
+    <nav class="crumbs" aria-label="breadcrumbs">
+      <a href={localePath(lang, '/')}>Konnekt</a>
+      <a href={localePath(lang, '/articles/')}>{t.articles}</a>
+    </nav>
     <h1>{name}</h1>
     {bio && <p class="lede">{bio}</p>}
     {

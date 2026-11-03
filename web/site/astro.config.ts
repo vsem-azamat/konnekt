@@ -44,7 +44,7 @@ function articles(): ArticleEntry[] {
       translationKey: String(frontmatter.translationKey),
       people: [frontmatter.author, frontmatter.reviewedBy].filter(Boolean).map(String),
       rubric: String(frontmatter.rubric),
-      tags: (frontmatter.tags ?? []).map(String),
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     };
   });
   checkArticles(entries);

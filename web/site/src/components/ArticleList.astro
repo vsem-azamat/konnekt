@@ -39,6 +39,9 @@ const hidden = hiddenPaths(
 >
   <Header lang={lang} path="/articles/" />
   <main class="page">
+    <nav class="crumbs" aria-label="breadcrumbs">
+      <a href={localePath(lang, '/')}>Konnekt</a>
+    </nav>
     <h1>{t.articles}</h1>
     {articles.length === 0 && <p>{t.noArticles}</p>}
     {
