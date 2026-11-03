@@ -40,8 +40,10 @@ const hidden = hiddenPaths(guides());
 const building = process.argv.includes('build');
 const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
 
+const site = process.env.SITE_URL || 'http://localhost:4321';
+
 export default defineConfig({
-  site: process.env.SITE_URL || 'http://localhost:4321',
+  site,
   // The icons, one copy for both builds: the Mini App's is web/public/.
   publicDir: '../public',
   // /uk/ and /guides/x/: one address per page, the one the canonical link names.
@@ -58,6 +60,8 @@ export default defineConfig({
     sitemap({
       // The catalog pages are rendered on request and listed by their own
       // sitemap, which knows which of them may be indexed (sitemap-catalog.xml).
+      // The index names it too, for a search engine given only the index.
+      customSitemaps: [new URL('/sitemap-catalog.xml', site).href],
       filter: (page) => {
         const { pathname } = new URL(page);
         return !hidden.includes(pathname) && !CATALOG.test(pathname);
