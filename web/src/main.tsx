@@ -42,21 +42,27 @@ import {
 } from '@/lib/clientErrors';
 import { captureError, startErrorTracking } from '@/lib/errorTracking';
 import { followKeyboard } from '@/lib/keyboard';
-import { siteEntry, siteRedirect } from '@/lib/siteEntry';
+import { siteRedirect } from '@/lib/siteEntry';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
 import { router } from '@/router';
 
 import './index.css';
 
-/** What a browser sent here twice is shown: the site, as a plain link. */
-function showSiteLink(root: HTMLElement, site: string): void {
-  const link = document.createElement('a');
-  link.href = siteEntry(site);
-  link.textContent = new URL(site).host;
-  link.style.cssText =
-    'display:block;margin:40vh auto 0;text-align:center;font:600 18px system-ui';
-  root.replaceChildren(link);
+/** A browser sent to the site moments ago and back already: the app says where it opens. */
+async function renderOpenInTelegram(site: string): Promise<void> {
+  const container = document.getElementById('root');
+  if (!container) throw new Error('#root is missing from index.html');
+  await activateLocale(resolveLocale(navigator.language));
+  document.title = 'Konnekt';
+  const { default: OpenInTelegram } = await import('@/pages/OpenInTelegram');
+  createRoot(container).render(
+    <StrictMode>
+      <I18nProvider i18n={i18n}>
+        <OpenInTelegram site={site} />
+      </I18nProvider>
+    </StrictMode>,
+  );
 }
 
 /**
@@ -87,9 +93,8 @@ async function bootstrap(): Promise<void> {
       const site = import.meta.env.VITE_SITE_URL;
       if (site) {
         const to = siteRedirect(site, () => window.sessionStorage, Date.now());
-        const root = document.getElementById('root');
         if (to) window.location.replace(to);
-        else if (root) showSiteLink(root, site);
+        else await renderOpenInTelegram(site);
       }
     }
     return;
