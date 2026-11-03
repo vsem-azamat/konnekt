@@ -66,6 +66,9 @@ SITE_PATHS = {
     "/sitemap-index.xml",
     "/sitemap-0.xml",
     "/_astro/Base.abc123.css",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/apple-touch-icon.png",
 }
 
 # What each host says to search engines on every response, apart from each
@@ -135,6 +138,10 @@ def console() -> dict[str, str]:
         "/console/chats/-100123": APP,
         "/login": APP,
         "/assets/index-abc123.js": APP,
+        # The browser's tab asks for the icon at the root, whatever the page names.
+        "/favicon.ico": APP,
+        "/favicon.svg": APP,
+        "/apple-touch-icon.png": APP,
         # Everything else is the console's front door, never the landing page.
         "/": "302 /console",
         "/chats": "302 /console",

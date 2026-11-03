@@ -217,6 +217,13 @@ http://{$ADMIN_HOST:admin.invalid} {
 		file_server
 	}
 
+	# The icon a browser's tab asks for at the root, whatever the page names.
+	@icon path /favicon.ico /favicon.svg /apple-touch-icon.png
+	handle @icon {
+		root * /srv/app
+		file_server
+	}
+
 	@console path /console /console/* /login
 	handle @console {
 		root * /srv/app
