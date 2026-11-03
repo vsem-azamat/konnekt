@@ -1,7 +1,10 @@
 import { globSync, readFileSync } from 'node:fs';
+import { satteri } from '@astrojs/markdown-satteri';
 import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
+
+import { readingPlugin } from './src/articles/reading.ts';
 
 import {
   type ArticleEntry,
@@ -72,6 +75,9 @@ export default defineConfig({
   // node_modules. The dev server resolves them as usual, and could not load
   // the CommonJS among them bundled.
   vite: { ssr: { noExternal: building || undefined } },
+  // An article's notes are its sources, and a table scrolls in its own box (articles/reading.ts).
+  // biome-ignore lint/suspicious/noExplicitAny: Sätteri's node types are its own; the plugin reads the shape it needs.
+  markdown: { processor: satteri({ hastPlugins: [readingPlugin as any] }) },
   integrations: [
     sitemap({
       // The catalog pages are rendered on request and listed by their own
