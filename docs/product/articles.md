@@ -14,7 +14,8 @@ An article helps a student from the CIS, or someone about to become one, with
 studying or living in Czechia. It has a `type`:
 
 - `guide` (the default): one task, finished by following it: applying to a
-  university, getting a diploma recognised (nostrifikace), a visa or residence
+  university, getting a school certificate or diploma
+  recognised (nostrifikace), a visa or residence
   permit, a dormitory, a scholarship. Numbered steps, the documents and
   deadlines, where to go and what to expect there. It stays true until it is
   updated.
@@ -26,7 +27,8 @@ It belongs to one `rubric`: `admission` (поступление), `visa` (виз
 it further.
 
 It states what the official source says, never advice from chats or forums that
-nobody has checked.
+nobody has checked. Practical experience comes in only through the field notes
+below, and is written as experience.
 
 ## Facts come from a primary source
 
@@ -39,7 +41,7 @@ a source; it can point to one.
 | --- | --- |
 | Laws, legal deadlines, rights | The law itself in the official Collection of Laws, e-Sbírka (`e-sbirka.gov.cz`, for example zákon č. 111/1998 Sb., o vysokých školách) |
 | Visas, long-term and permanent residence | The Ministry of the Interior (`mv.gov.cz` and its portal for foreigners `ipc.gov.cz`) and the Czech embassy in the reader's country (`mzv.gov.cz`) |
-| Diploma recognition (nostrifikace) | The page of the university or regional office that grants it, and `msmt.gov.cz` |
+| Certificate and diploma recognition (nostrifikace) | The page of the university or regional office that grants it, and `msmt.gov.cz` |
 | Admission, entrance exams, deadlines, tuition, scholarships, dormitories | The official page of that university or faculty for the current academic year |
 | Health insurance | The insurer's own page and the law it cites |
 | Prices that are not set by law | The provider's own page, with the date it was read |
@@ -68,10 +70,11 @@ The law says what is allowed; it does not say how readers talk or what they
 usually end up doing. Two files in `docs/content/` keep that:
 
 - [glossary.md](../content/glossary.md): each term as readers say it, its
-  official name, a short explanation and the article that explains it.
+  official name, a short explanation and the article that explains it. A
+  term with no word yet in the article's language is reported, not guessed.
 - [field-notes.md](../content/field-notes.md): practical things that are not
   in the law, each with where it comes from and when. Experience is written as
-  experience, not as a rule.
+  experience, not as a rule. Notes are grouped by rubric.
 
 The writer reads both before drafting, and the fact checker checks the article
 against them. Every review Azamat gives on an article becomes a glossary row
@@ -158,9 +161,11 @@ from it.
 4. The dev page is looked at in a browser at 1280 px and 390 px.
 5. Findings are fixed. Any rewrite after the fact check sends the article
    through the fact check again. What Azamat says in review goes into the
-   glossary or the field notes in the same pull request.
+   glossary or the field notes in the same pull request, added by whoever makes
+   the fix.
 6. Azamat approves the article. Then, on the same branch, `reviewedBy: azamat`
    is set, `published` moves to the day of the merge, `draft: true` is removed,
+   the glossary's «Explained in» gets this article for the terms it explains,
    and the pull request is merged.
 
 The project agents in `.claude/agents/` (`article-writer`,

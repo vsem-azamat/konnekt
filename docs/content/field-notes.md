@@ -14,7 +14,7 @@ checked against its official source before an article states it.
 Every review Azamat gives on an article becomes a note here or a row in the
 [glossary](glossary.md), not only a fix in that article.
 
-## Admission
+## admission
 
 ### Nostrification is not always the easier way for several universities
 

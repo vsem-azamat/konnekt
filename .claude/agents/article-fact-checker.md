@@ -41,11 +41,12 @@ Judge each claim by its source. Ignore the writer's reasoning.
 7. Check each Czech name against the source: spelled as the official page
    spells it, and explained correctly at first use.
 8. Check each term against the glossary: the readers' word in the text, the
-   official name in brackets at first use. A term used otherwise is LANGUAGE.
-9. Check the article against every field note on its topic. An article that
+   official name in brackets at first use. A term used otherwise is LANGUAGE;
+   a term the glossary lacks in that language is reported as UNSURE.
+9. Check the article against every field note under its rubric. An article that
    contradicts a note, or leaves out one its reader needs, is MISSING-NUANCE;
    quote the note. A note stated as a rule rather than as experience is
-   MISSING-NUANCE too.
+   LANGUAGE.
 
 ## Report
 
