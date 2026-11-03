@@ -74,6 +74,8 @@ ROBOTS = {None: None, ADMIN_HOST: "noindex"}
 
 # The app's, on the site's host: a 301 to the app keeping the path and query.
 TO_APP = f"301 {APP_URL}{{http.request.uri}}"
+# A catalog address without its final slash: to the same with it, query kept.
+SLASHED = "308 {}/{{http.request.uri.prefixed_query}}"
 
 
 def public_site() -> dict[str, str]:
@@ -88,9 +90,11 @@ def public_site() -> dict[str, str]:
         "/chats/": RENDER,
         "/cs/chats/": RENDER,
         "/sitemap-catalog.xml": RENDER,
-        "/universities": "308 /universities/",
-        "/uk/universities": "308 /uk/universities/",
-        "/en/chats": "308 /en/chats/",
+        "/universities": SLASHED.format("/universities"),
+        "/uk/universities": SLASHED.format("/uk/universities"),
+        "/en/chats": SLASHED.format("/en/chats"),
+        "/universities/cvut": SLASHED.format("/universities/cvut"),
+        "/en/universities/cvut": SLASHED.format("/en/universities/cvut"),
         "/api/v1/open": CATALOG,
         # Old buttons in Telegram name this host; the app is on its own now.
         "/home": TO_APP,

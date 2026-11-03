@@ -96,6 +96,16 @@
 		}
 	}
 
+	# The catalog's addresses without the final slash, which a page names with
+	# it, a university's included: answered here, kept an hour, before the
+	# render server's own redirect, which a browser would keep for good. Not
+	# /chats, which is the app's.
+	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/universities(?:/.*[^/])?|/(?:uk|cs|en)/chats)$
+	handle @bare {
+		header Cache-Control "public, max-age=3600"
+		redir {re.bare.1}/{?query} 308
+	}
+
 	# The catalog pages, rendered on request by the site's own Node server
 	# (site-render, the same build), each with the Cache-Control Cloudflare
 	# keeps it by. /chats/ is the public catalogue; /chats itself, which old
@@ -111,12 +121,6 @@
 			header_up -Authorization
 			header_down -Set-Cookie
 		}
-	}
-	# Their addresses without the slash, which a page names with it. Not /chats.
-	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/universities|/(?:uk|cs|en)/chats)$
-	handle @bare {
-		header Cache-Control "public, max-age=3600"
-		redir {re.bare.1}/ 308
 	}
 
 	# The landing page in each language, the guides, and what search engines
