@@ -73,9 +73,11 @@ test('each note says when its source was checked, and its way back is in the art
     root,
     (e) => (e.properties.className as string[] | undefined)?.includes('checked') ?? false,
   );
-  assert.deepEqual(checked?.children, [text('проверено 3 ноября 2026 г.')]);
-  const back = find(root, (e) => 'dataFootnoteBackref' in e.properties) as El;
+  assert.deepEqual(checked?.children[0], text('проверено 3 ноября 2026 г. '));
+  const back = checked?.children[1] as El;
+  assert.ok('dataFootnoteBackref' in back.properties, 'the way back is on the same line');
   assert.equal(back.properties.ariaLabel, 'Назад к тексту');
+  assert.deepEqual(back.children, [text('↩\uFE0E')]);
 });
 
 test('a note that links to no listed source stops the build', () => {

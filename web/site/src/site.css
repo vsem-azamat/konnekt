@@ -220,14 +220,17 @@ h1 + .lede {
 
 /* A table scrolls in its own box; on a wide screen it may be wider than the text. */
 .article .table {
-  --wide: min(calc(100vw - 32px), 56rem);
-  width: var(--wide);
-  margin: 0 0 1.2em calc((100% - var(--wide)) / 2);
+  /* As wide as its table needs: the column's width at least, up to 56rem,
+     growing to the right only and never past the screen's edge. */
+  width: max-content;
+  min-width: 100%;
+  max-width: min(56rem, calc(50vw + 23rem - 16px));
+  margin: 0 0 1.2em;
   overflow-x: auto;
 }
 
 .article table {
-  min-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   font-size: 15px;
   line-height: 1.45;
@@ -260,7 +263,9 @@ h1 + .lede {
 
 /* A footnote's mark, and the notes, which are the article's sources. */
 .article sup a {
-  padding: 0 2px;
+  /* A target of about 24px around a small digit, the line left as it is. */
+  padding: 6px 5px;
+  margin: 0 -3px;
   text-decoration: none;
 }
 
@@ -288,7 +293,18 @@ h1 + .lede {
 }
 
 .footnotes [data-footnote-backref] {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: -4px 0;
   text-decoration: none;
+}
+
+/* At 16px the 46rem column holds ~85 characters a line; larger type brings it to ~72. */
+@media (min-width: 1024px) {
+  .article {
+    font-size: 17.5px;
+    line-height: 1.6;
+  }
 }
 
 /* The contents: folded above the text, or a rail beside it on a wide screen. */
@@ -368,11 +384,6 @@ h1 + .lede {
 
   .contents-inline {
     display: none;
-  }
-
-  /* Beside the rail a wide table grows to the right only. */
-  .with-contents .article .table {
-    margin-left: 0;
   }
 }
 

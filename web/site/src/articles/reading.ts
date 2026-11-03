@@ -75,19 +75,25 @@ function notes(section: El, lang: Lang, sources: readonly Source[]): void {
     }
     cited.add(url);
     const paragraph = all(item, (el) => el.tagName === 'p').at(-1) ?? item;
-    const checked: El = {
+    const index = paragraph.children.findIndex(
+      (child) => isEl(child) && 'dataFootnoteBackref' in child.properties,
+    );
+    const [back] = index === -1 ? [] : paragraph.children.splice(index, 1);
+    // A line of its own under the note: when its source was checked, then the way back.
+    paragraph.children.push({
       type: 'element',
       tagName: 'span',
       properties: { className: ['checked'] },
       children: [
-        { type: 'text', value: `${t.checked} ${longDate(lang, source.checked_at)}` },
+        { type: 'text', value: `${t.checked} ${longDate(lang, source.checked_at)} ` },
+        ...(back ? [back] : []),
       ],
-    };
-    // Last, after the way back: a line of its own under the note.
-    paragraph.children.push(checked);
+    });
   }
   for (const back of all(section, (el) => 'dataFootnoteBackref' in el.properties)) {
     back.properties.ariaLabel = t.backToText;
+    // The text presentation selector: without it iOS draws the arrow as an emoji.
+    back.children = [{ type: 'text', value: '↩\uFE0E' }];
   }
   const uncited = sources.filter((one) => !cited.has(one.url)).map((one) => one.url);
   if (uncited.length > 0) {
