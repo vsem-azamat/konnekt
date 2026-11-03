@@ -36,6 +36,7 @@ from app.captcha.metrics import CAPTCHA_EVENTS
 from app.captcha.telegram import with_retry
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.core.time import utc_now
 from app.db.models import Chat, JoinCaptcha
 from app.moderation.mute_permissions import UNMUTED
 
@@ -136,7 +137,7 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     body = challenge.card_text(
         [html.escape(names[row.user_id]) for row in carried]
         + [_mention(row.user_id, names[row.user_id]) for row in new],
-        settings.captcha.in_chat_answer_minutes,
+        _minutes_left(waiting, now),
     )
     markup = await _markup(bot)
     try:
@@ -213,7 +214,7 @@ async def refresh(bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int
             _mention(row.user_id, names[row.user_id]) if row.announced_at == newest else html.escape(names[row.user_id])
             for row in waiting
         ],
-        settings.captcha.in_chat_answer_minutes,
+        _minutes_left(waiting, utc_now()),
     )
     try:
         await bot.edit_message_text(
@@ -284,6 +285,12 @@ async def _first_names(bot: Bot, chat_id: int, rows: Sequence[JoinCaptcha]) -> d
         else:
             names[row.user_id] = user.first_name or _UNNAMED
     return names
+
+
+def _minutes_left(rows: Sequence[JoinCaptcha], now: datetime.datetime) -> int:
+    """The time the card gives: what is left to whoever on it runs out first, so it never promises anyone more."""
+    soonest = min(row.expires_at for row in rows)
+    return max(1, math.ceil((soonest - now) / datetime.timedelta(minutes=1)))
 
 
 def _mention(user_id: int, name: str) -> str:
