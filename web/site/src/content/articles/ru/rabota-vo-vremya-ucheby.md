@@ -29,12 +29,12 @@ draft: true
 ## Коротко
 
 - Очный студент вуза: разрешение на работу не нужно.[^1]
-- Часы ограничены договором. DPP: до 300 часов в год у одного работодателя.[^2] DPČ: в среднем половина полной недели, то есть около 20 часов.[^3] Трудовой договор: до 40 часов в неделю.[^4]
-- Работодатель сообщает о начале работы до выхода.[^5]
-- Учёба должна оставаться целью пребывания.[^6]
-- После выпуска в Чехии доступ к работе свободный, но разрешение на пребывание всё равно нужно.[^7]
+- Часы ограничены договором. DPP: до 300 часов в год у одного работодателя.[^2] DPČ: в среднем половина полной недели, то есть около 20 часов.[^3] Трудовой договор: стандартная неделя 40 часов.[^4]
+- Работодатель сообщает о начале работы до выхода ([MPSV](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou)[^w7]).[^5]
+- Учёба должна оставаться целью пребывания.[^6][^10]
+- С чешским дипломом доступ к работе свободный, но разрешение на пребывание всё равно нужно.[^7]
 
-> **Важно.** Это не юридическая консультация. Закон и страницы ведомств проверены 3 ноября 2026 года, текст описывает правила на 2026/27 учебный год. Официальная страница: [свободный доступ на рынок труда на ipc.gov.cz](https://ipc.gov.cz/zivot-v-cesku/volny-pristup-na-trh-prace/).
+> **Важно.** Это не юридическая консультация. Закон и страницы ведомств проверены 3 ноября 2026 года, текст описывает правила на 2026/27 учебный год. Официальная страница: [свободный доступ на рынок труда на ipc.gov.cz](https://ipc.gov.cz/zivot-v-cesku/volny-pristup-na-trh-prace/)[^w5].
 
 ## 1. Выясните, нужно ли вам разрешение
 
@@ -44,7 +44,7 @@ draft: true
 
 Право даёт учёба, а не вид визы. Закон считает такой учёбой очное обучение в вузе вместе с каникулами, которые входят в академический год.[^1]
 
-[Информационный портал МВД](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-studia/) (Министерство внутренних дел, MV ČR) подтверждает: с пребыванием с целью учёбы можно работать без особого разрешения (volný přístup na trh práce). По типу визы или карточки ответ не определить: [общего правила нет](https://ipc.gov.cz/pro-zamestnavatele/moznosti-pobytu-cizincu-a-jejich-pristupu-na-trh-prace-cr/) (neexistuje obecné pravidlo). Смотрите на школу и форму обучения.
+[Информационный портал МВД](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-studia/)[^w1] (Министерство внутренних дел, MV ČR) подтверждает: с пребыванием с целью учёбы можно работать без особого разрешения (volný přístup na trh práce). По типу визы или карточки ответ не определить: [общего правила нет](https://ipc.gov.cz/pro-zamestnavatele/moznosti-pobytu-cizincu-a-jejich-pristupu-na-trh-prace-cr/)[^w2] (neexistuje obecné pravidlo). Смотрите на школу и форму обучения.
 
 ### Какие школы подходят
 
@@ -66,11 +66,11 @@ draft: true
 
 ### Гражданин ЕС
 
-Разрешение на пребывание и работу не нужны: [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-evropske-unie/) пишет, что гражданин ЕС может жить, учиться и работать без разрешения.
+Разрешение на пребывание и работу не нужны: [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-evropske-unie/)[^w4] пишет, что гражданин ЕС может жить, учиться и работать без разрешения.
 
 ### Украинцы с временной защитой (dočasná ochrana)
 
-У вас свободный доступ на рынок труда. [МВД](https://ipc.gov.cz/docasna-ochrana/) указывает его среди прав, а [MPSV](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou) (Министерство труда и социальных дел) пишет, что работать можно без разрешения у любого работодателя.
+У вас свободный доступ на рынок труда. [МВД](https://ipc.gov.cz/docasna-ochrana/)[^w6] указывает его среди прав, а [MPSV](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou) (Министерство труда и социальных дел) пишет, что работать можно без разрешения у любого работодателя.
 
 Защита сейчас действует до 31 марта 2027 года. О продлении до 31 марта 2028 года [уже решено](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou), порядок продления МВД ещё объявит.
 
@@ -91,8 +91,8 @@ draft: true
 ### Что должно быть в договоре
 
 - DPP и DPČ заключаются письменно, один экземпляр работодатель выдаёт вам.[^8]
-- В DPČ должно быть указано, какая работа, какой объём часов и на какой срок.
-- В DPP указывают работу и срок.
+- В DPČ должно быть указано, какая работа, какой объём часов и на какой срок.[^3]
+- В DPP указывают работу и срок.[^2]
 
 ### Про «20 часов в неделю»
 
@@ -100,7 +100,7 @@ draft: true
 
 > **Важно.** Отдельного недельного лимита для студентов нет: правила о работе без разрешения часов не задают.[^1]
 
-Число 20 получается только в DPČ, где оно равно половине 40-часовой недели.[^3] Для трудового договора предел 40 часов в неделю, для DPP 300 часов в год.
+Число 20 получается только в DPČ, где оно равно половине 40-часовой недели.[^3] Для трудового договора стандартная неделя 40 часов, для DPP предел 300 часов в год.
 
 ## 3. Что должен сделать работодатель
 
@@ -113,6 +113,8 @@ draft: true
 - О начале работы сообщают до выхода.
 - Об изменениях и об окончании сообщают в течение 8 календарных дней.
 
+Оба срока называет [MPSV](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou); закон обязанность устанавливает, но дней не называет.[^5]
+
 ### Что проверить вам
 
 Убедитесь, что договор оформлен письменно: для DPP и DPČ это требование трудового кодекса, и один экземпляр должен быть у вас.[^8]
@@ -121,7 +123,7 @@ draft: true
 
 ### Что говорит закон о пребывании
 
-Закон о пребывании иностранцев не задаёт студенту часов работы и не связывает работу с продлением пребывания.[^9]
+Закон о пребывании иностранцев не ограничивает часы работы студента. Он требует другого: выполнять цель пребывания.[^6][^10]
 
 ### Цель пребывания
 
@@ -131,7 +133,7 @@ draft: true
 
 ### Где спросить
 
-При сомнениях спросите на pracoviště OAMP ([Odbor azylové a migrační politiky](https://mv.gov.cz/odbor-azylove-a-migracni-politiky), миграционный отдел МВД). [Список отделений по районам](https://ipc.gov.cz/kontakty/) есть на портале МВД, вкладка «Pracoviště MV ČR».
+При сомнениях спросите на pracoviště OAMP ([Odbor azylové a migrační politiky](https://mv.gov.cz/odbor-azylove-a-migracni-politiky)[^w8], миграционный отдел МВД). [Список отделений по районам](https://ipc.gov.cz/kontakty/)[^w9] есть на портале МВД, вкладка «Pracoviště MV ČR».
 
 ## 5. Что меняется после выпуска
 
@@ -145,7 +147,7 @@ draft: true
 
 ### Пребывание после учёбы
 
-Если вы успешно закончили аккредитованную программу вуза, можно подать заявление на долгосрочное пребывание для поиска работы или начала бизнеса. Оно выдаётся [до 9 месяцев без продления](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-hledani-zamestnani-nebo-zahajeni-podnikatelske-cinnosti/), и с ним доступ к работе свободный.
+Если вы успешно закончили аккредитованную программу вуза, можно подать заявление на долгосрочное пребывание для поиска работы или начала бизнеса. Оно выдаётся [до 9 месяцев без продления](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-hledani-zamestnani-nebo-zahajeni-podnikatelske-cinnosti/)[^w3], и с ним доступ к работе свободный.
 
 ### Бросили учёбу без диплома
 
@@ -165,6 +167,14 @@ draft: true
 [^6]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky, § 37 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
 [^7]: Zákon č. 435/2004 Sb., o zaměstnanosti, § 98 písm. o) — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01)
 [^8]: Zákon č. 262/2006 Sb., zákoník práce, § 77 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/2006/262/2026-08-29)
-[^9]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
 [^10]: Zákon č. 326/1999 Sb., o pobytu cizinců na území České republiky, § 46 odst. 5 — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/1999/326/2026-06-12)
 [^11]: Zákon č. 435/2004 Sb., o zaměstnanosti, § 5 písm. e) — [e-Sbírka](https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01)
+[^w1]: ipc.gov.cz: povolení k dlouhodobému pobytu za účelem studia — [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-studia/)
+[^w2]: ipc.gov.cz: Možnosti pobytu cizinců a jejich přístupu na trh práce — [ipc.gov.cz](https://ipc.gov.cz/pro-zamestnavatele/moznosti-pobytu-cizincu-a-jejich-pristupu-na-trh-prace-cr/)
+[^w3]: ipc.gov.cz: pobyt za účelem hledání zaměstnání po studiu — [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-tretich-zemi/dlouhodobe-pobyty/povoleni-k-dlouhodobemu-pobytu-za-ucelem-hledani-zamestnani-nebo-zahajeni-podnikatelske-cinnosti/)
+[^w4]: ipc.gov.cz: občané Evropské unie — [ipc.gov.cz](https://ipc.gov.cz/typy-viz-a-pobytu/obcane-evropske-unie/)
+[^w5]: ipc.gov.cz: volný přístup na trh práce — [ipc.gov.cz](https://ipc.gov.cz/zivot-v-cesku/volny-pristup-na-trh-prace/)
+[^w6]: ipc.gov.cz: dočasná ochrana — [ipc.gov.cz](https://ipc.gov.cz/docasna-ochrana/)
+[^w7]: MPSV: Zaměstnávání osob přicházejících do ČR v souvislosti s válkou na Ukrajině — [mpsv.gov.cz](https://mpsv.gov.cz/zamestnavani-osob-s-docasnou-ochranou)
+[^w8]: Odbor azylové a migrační politiky (Ministerstvo vnitra) — [mv.gov.cz](https://mv.gov.cz/odbor-azylove-a-migracni-politiky)
+[^w9]: ipc.gov.cz: kontakty (pracoviště Ministerstva vnitra) — [ipc.gov.cz](https://ipc.gov.cz/kontakty/)
