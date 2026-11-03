@@ -7,6 +7,7 @@ tags: [nostrifikace, vuzy]
 published: 2026-11-03
 updated: 2026-11-03
 author: konnekt
+reviewedBy: azamat
 translationKey: nostrifikaciya-attestata
 sources:
   - { url: "https://portal.gov.cz/sluzby-vs/nostrifikace-zahranicniho-vysvedceni-S1101", title: "Nostrifikace zahraničního vysvědčení (Portál veřejné správy)", checked_at: 2026-11-03 }
@@ -20,7 +21,7 @@ sources:
   - { url: "https://www.muni.cz/uchazeci/bakalarske-a-magisterske-studium/overovani-podminky-prijeti-ke-studiu", title: "Ověřování podmínky přijetí ke studiu (Masarykova univerzita)", checked_at: 2026-11-03 }
   - { url: "https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028", title: "Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK)", checked_at: 2026-11-03 }
   - { url: "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41", title: "Status table: Apostille Convention (HCCH)", checked_at: 2026-11-03 }
-draft: true
+draft: false
 ---
 
 Для бакалавриата в Чехии нужен аттестат, который здесь признают. Если вы учились за границей, признание часто оформляют через нострификацию (nostrifikace, признание иностранного аттестата).
