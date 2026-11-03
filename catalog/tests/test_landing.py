@@ -156,6 +156,19 @@ async def test_open_carries_where_on_the_site_it_was_pressed(app_with) -> None:
     )
 
 
+async def test_open_passes_on_a_source_of_telegrams_full_length(app_with) -> None:
+    """64 characters, Telegram's limit for a start parameter, is still passed on."""
+    app = await app_with(StubBot("student_cz_bot"))
+    source = "site_" + "a" * 59
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"app": "1", "from": source})
+
+    assert (
+        response.headers["location"] == f"https://t.me/student_cz_bot?startapp={source}"
+    )
+
+
 async def test_a_screen_to_open_comes_before_where_it_was_pressed(app_with) -> None:
     """A university's chats are the start; it is a source of its own."""
     app = await app_with(StubBot("student_cz_bot"))
