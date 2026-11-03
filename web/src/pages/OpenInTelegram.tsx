@@ -13,11 +13,7 @@ export default function OpenInTelegram({ site }: { site: string }) {
   return (
     <main className={css.screen}>
       <div className={css.column}>
-        <svg className={css.logo} viewBox="0 0 100 100" role="img" aria-label="Konnekt">
-          <rect className={css.tile} width="100" height="100" rx="26" strokeWidth="3" />
-          <path d="M0 50H100V74Q100 100 74 100H26Q0 100 0 74Z" fill="#d7141a" />
-          <path d="M0 26Q0 0 26 0H30L62 50 30 100H26Q0 100 0 74Z" fill="#11457e" />
-        </svg>
+        <img className={css.logo} src="/favicon.svg" alt="Konnekt" />
         <h1 className={css.title}>
           <Trans>Konnekt открывается в Telegram</Trans>
         </h1>

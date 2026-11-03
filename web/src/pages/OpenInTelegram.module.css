@@ -21,6 +21,7 @@
 .logo {
   width: 72px;
   height: 72px;
+  border-radius: 26%;
 }
 
 .title {
@@ -73,10 +74,4 @@
 
 .secondary:active {
   background: var(--surface-pressed);
-}
-
-/* The tile behind the flag, as the site draws it: white on both themes. */
-.tile {
-  fill: #fff;
-  stroke: var(--hairline);
 }

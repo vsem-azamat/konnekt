@@ -42,6 +42,8 @@ const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
 
 export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4321',
+  // The icons, one copy for both builds: the Mini App's is web/public/.
+  publicDir: '../public',
   // /uk/ and /guides/x/: one address per page, the one the canonical link names.
   // The dev server is what uiux compares with the prototype: no toolbar over the page.
   devToolbar: { enabled: false },
