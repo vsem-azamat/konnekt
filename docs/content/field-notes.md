@@ -58,9 +58,9 @@ Every review Azamat gives on an article becomes a note here or a row in the
 - **Note:** at ČVUT the rectorate, not each faculty, assesses a foreign
   certificate for admission to any of its faculties (FIT, FEL, FS and the
   others). The fee is 950 Kč, paid once; applications for 2027/28 open on
-  1 December 2026. At FF UK the page names 960 Kč, but for 2025/26. Not for
-  articles as a replacement for nostrifikace (Azamat's note); use only on a
-  faculty's own page or when an article names ČVUT's procedure.
+  1 December 2026. At FF UK the page names 960 Kč, but for 2025/26. Kept for
+  writers' context only: by Azamat's correction above, articles name no
+  faculties or fees for this and send the reader to the admission page.
 - **Source:** official: https://www.cvut.cz/posouzeni-vzdelani-pro-prijimaci-rizeni-na-cvut
   (read 2026-11-03).
 - **Date:** 2026-11-03.
