@@ -198,12 +198,21 @@ async def test_a_card_in_the_chat_names_them_with_a_mention_and_a_button(session
     [card] = _sent(bot, CHAT_ID)
     assert card["text"] == (
         '👋 <a href="tg://user?id=4242">Marek</a>, чтобы писать в чат, нажми «Пройти капчу»: '
-        "бот задаст один вопрос в личке.\n\n⏱ На это 24 часа, потом бот уберёт из чата."
+        "бот задаст один вопрос в личке.\n\n⏱ На это 2 часа, потом бот уберёт из чата."
     )
     [[button]] = card["reply_markup"].inline_keyboard
     assert (button.text, button.url) == ("Пройти капчу", CARD_URL)
     assert row.card_message_id is not None
     assert row.announced_at is not None
+
+
+async def test_in_the_chat_they_have_two_hours_not_the_day_a_request_waits(session: AsyncSession, bot) -> None:
+    await _seed(session)
+
+    row = await _let_in(session, bot)
+
+    # Muted in the chat and named on a card the whole time: a day of that is a day of a stale card.
+    assert row.expires_at - row.created_at == datetime.timedelta(hours=2)
 
 
 async def test_without_the_right_to_mute_the_request_waits_for_the_admins(session: AsyncSession, bot) -> None:
@@ -234,6 +243,7 @@ async def test_the_dm_captcha_stays_for_chats_without_the_switch(session: AsyncS
     bot.restrict_chat_member.assert_not_awaited()
     bot.approve_chat_join_request.assert_not_awaited()
     assert len(_sent(bot, 4242)) == 1
+    assert row.expires_at - row.created_at == datetime.timedelta(minutes=settings.captcha.answer_minutes)
 
 
 # --- the card: one per window ------------------------------------------------

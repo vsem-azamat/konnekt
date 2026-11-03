@@ -87,6 +87,7 @@ async def admit(
     # does not wait in one.
     wave, opened = await waves.surge(db, chat, user_id, now)
     answer, options = challenge.draw()
+    minutes = settings.captcha.in_chat_answer_minutes if chat.captcha_in_chat else settings.captcha.answer_minutes
     row = JoinCaptcha(
         chat_id=chat.id,
         user_id=user_id,
@@ -96,7 +97,7 @@ async def admit(
         options=options,
         attempts_left=challenge.ATTEMPTS,
         created_at=now,
-        expires_at=now + datetime.timedelta(minutes=settings.captcha.answer_minutes),
+        expires_at=now + datetime.timedelta(minutes=minutes),
         in_chat=chat.captcha_in_chat,
     )
     # Asked in this order so that a pass the person did not need is not spent.

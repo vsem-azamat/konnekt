@@ -136,7 +136,7 @@ async def announce(bot: Bot, db: AsyncSession, chat_id: int, now: datetime.datet
     body = challenge.card_text(
         [html.escape(names[row.user_id]) for row in carried]
         + [_mention(row.user_id, names[row.user_id]) for row in new],
-        settings.captcha.answer_minutes,
+        settings.captcha.in_chat_answer_minutes,
     )
     markup = await _markup(bot)
     try:
@@ -213,7 +213,7 @@ async def refresh(bot: Bot, db: AsyncSession, chat_id: int, card_message_id: int
             _mention(row.user_id, names[row.user_id]) if row.announced_at == newest else html.escape(names[row.user_id])
             for row in waiting
         ],
-        settings.captcha.answer_minutes,
+        settings.captcha.in_chat_answer_minutes,
     )
     try:
         await bot.edit_message_text(
