@@ -16,8 +16,10 @@ import {
 } from '../landing/copy.ts';
 import { CHATS, STATS } from '../landing/data.ts';
 import '../landing/phone.css';
+import { published } from '../articles/published.ts';
 import Base from '../layouts/Base.astro';
-import { type Lang, localePath } from '../paths.ts';
+import { articlePath, type Lang, localePath } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
 
 interface Props {
   lang: Lang;
@@ -28,6 +30,9 @@ const t = (key: string) => copy(lang, key);
 const v = (key: string) => variant(lang, key);
 const num = (n: number) => number(lang, n);
 const phone = phoneOf(lang);
+// The newest articles in this language; the block is left out while there are none.
+const articles = (await published(lang)).slice(0, 4);
+const WASHES = ['wash3', 'wash2', 'wash0', 'wash1'];
 
 // The chats' own avatars and the drawn tutors, emitted with hashed names.
 const files = import.meta.glob<string>('../landing/av/*.{jpg,svg}', {
@@ -108,16 +113,24 @@ const avatar = (name: string) => {
     </div>
   </section>
 
-  <section class="wrap" id="guides">
-    <div class="sec-head"><h2>{t("guides.title")}</h2><p class="sec-sub">{t("guides.text")}</p></div>
-    <div class="guides">
-      <a class="guide wash3" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.1.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.1.title")}</h3><p>{t("guides.1.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash2" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.2.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.2.title")}</h3><p>{t("guides.2.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash0" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.3.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.3.title")}</h3><p>{t("guides.3.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <a class="guide wash1" href="#guides"><span class="g-top"><span class="g-tag">{t("guides.4.tag")}</span><span class="g-sample">{t("guides.sample")}</span></span><h3>{t("guides.4.title")}</h3><p>{t("guides.4.text")}</p><span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-    </div>
-    <div class="more"><a class="ghost" href={localePath(lang, "/articles/")}>{t("guides.all")}</a></div>
-  </section>
+  {
+    articles.length > 0 && (
+      <section class="wrap" id="guides">
+        <div class="sec-head"><h2>{t("guides.title")}</h2><p class="sec-sub">{t("guides.text")}</p></div>
+        <div class="guides" style={`--cols2: ${Math.min(articles.length, 2)}; --cols4: ${Math.min(articles.length, 4)}`}>
+          {articles.map((article, index) => (
+            <a class={`guide ${WASHES[index % WASHES.length]}`} href={articlePath(article.id)}>
+              <span class="g-top"><span class="g-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span></span>
+              <h3>{article.data.title}</h3>
+              <p>{article.data.description}</p>
+              <span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+          ))}
+        </div>
+        <div class="more"><a class="ghost" href={localePath(lang, "/articles/")}>{t("guides.all")}</a></div>
+      </section>
+    )
+  }
 
   <div class="wrap">
     <div class="offer" id="offer">
@@ -153,7 +166,7 @@ const avatar = (name: string) => {
   // prototype. Chats and tutors share a row on wide screens, so a click picks.
   const head = document.querySelector<HTMLElement>('.top');
   const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a');
-  const ids = ['chats', 'tutors', 'help', 'how', 'guides'];
+  const ids = ['chats', 'tutors', 'help', 'how'];
   let picked: string | null = null;
   let current: string | null | undefined;
   const mark = (id: string | null) => {
