@@ -108,7 +108,7 @@ draft: true
 
 Это два факультета, у которых условия по чешскому на этот год уже опубликованы.
 
-- [MFF UK](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028): абитуриент на чешскую программу без maturitní zkouška (выпускного экзамена) по чешскому или словацкому языку доказывает язык одним из способов:
+- MFF UK[^w4]: абитуриент на чешскую программу без maturitní zkouška (выпускного экзамена) по чешскому или словацкому языку доказывает язык одним из способов:
   - экзамен B2 или C1 в ÚJOP UK (Ústav jazykové a odborné přípravy Univerzity Karlovy, институт языковой и профессиональной подготовки Карлова университета);
   - státní jazyková zkouška (государственный языковой экзамен) или экзамен B2, C1 или C2 по чешскому или словацкому в языковой школе с правом государственного экзамена;
   - двухлетняя непрерывная учёба в школе или вузе в Чехии или Словакии на чешском или словацком.
@@ -274,3 +274,4 @@ draft: true
 [^w19]: Příprava na VŠ pro zahraniční studenty v českém jazyce (ÚJOP UK) — [ujop.cuni.cz](https://ujop.cuni.cz/UJOP-119.html)
 [^w20]: ÚJOP UK, úvodní stránka — [ujop.cuni.cz](https://ujop.cuni.cz/UJOP-1.html)
 [^w21]: Визы и консульская информация (Посольство Чехии в Астане) — [mzv.gov.cz](https://mzv.gov.cz/astana/ru/vizy_i_konzulskie/index.html)
+[^w4]: Přijímací řízení ke studiu bakalářských programů 2027/2028 (MFF UK) — [mff.cuni.cz](https://www.mff.cuni.cz/cs/uchazeci/prijimaci-rizeni/prijimaci-rizeni-ke-studiu-bakalarskych-programu/2027-2028)
