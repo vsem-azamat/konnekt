@@ -63,8 +63,9 @@ const hidden = hiddenPaths(await entries());
 // refuses to run without it. The dev server falls back to the app's dev server.
 const app = process.env.APP_URL || 'https://localhost:5173';
 // Yandex Webmaster's proof that the site is ours (the deploy's
-// YANDEX_VERIFICATION); not a secret, it is printed in every page. Without
-// it, no tag.
+// YANDEX_VERIFICATION), read when a page is built: on every static page, the
+// home page among them, which is the one Yandex checks. The catalog pages,
+// rendered on request, do without it. Not a secret; without it, no tag.
 const yandex = process.env.YANDEX_VERIFICATION;
 const handOff = `(() => {
   const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)}, location.pathname);
