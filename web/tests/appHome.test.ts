@@ -41,6 +41,6 @@ test('a browser is sent to the site, the one the build names', () => {
   assert.equal(globSync('pages/Landing*', { cwd: src }).length, 0);
   const main = read('main.tsx');
   assert.doesNotMatch(main, /Landing/);
-  assert.match(main, /window\.location\.replace\(site\)/);
+  assert.match(main, /window\.location\.replace\(to\)/);
   assert.match(main, /const site = import\.meta\.env\.VITE_SITE_URL/);
 });

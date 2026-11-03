@@ -43,3 +43,14 @@ def test_only_hashed_files_that_exist_are_cached_for_good() -> None:
     assert hashed, "the immutable rule must match existing hashed files only"
     assert re.findall(r"header (@\w+) Cache-Control \"public, max-age=31536000, immutable\"", SITE) == ["@hashed"]
     assert re.search(r"@page not path /_astro/\*\s*header @page Cache-Control \"no-cache\"", SITE)
+
+
+def test_a_permanent_redirect_is_kept_a_while_not_for_good() -> None:
+    # A browser keeps a 301 with no Cache-Control indefinitely. konnekt.cz/
+    # once redirected to the app this way, and when the app began sending
+    # browsers back to konnekt.cz, those that kept it went round between the two.
+    for name, caddyfile, count in (("site", SITE, 1), ("webui", WEBUI, 4)):
+        handles = re.findall(r"handle[^{\n]*\{[^{}]*\bredir [^\n]*permanent[^{}]*\}", caddyfile)
+        assert len(handles) == caddyfile.count(" permanent\n") == count, name
+        for handle in handles:
+            assert 'header Cache-Control "public, max-age=3600"' in handle, (name, handle)
