@@ -20,6 +20,19 @@ export function localePath(lang: Lang, path: string): string {
   return lang === DEFAULT_LANG ? path : `/${lang}${path}`;
 }
 
+/**
+ * The menu item a page belongs to, by its path (with or without its
+ * language's prefix): the articles for an article, a rubric, a tag or an
+ * author; the chats for the catalogue of chats and of universities. The
+ * landing's own sections are anchors, marked as they are scrolled to.
+ */
+export function navSection(path: string): 'articles' | 'chats' | null {
+  const own = path.replace(/^\/(?:uk|cs|en)(?=\/)/, '');
+  if (/^\/(?:articles|authors)\//.test(own)) return 'articles';
+  if (/^\/(?:chats|universities)\//.test(own)) return 'chats';
+  return null;
+}
+
 /** The language of an article from its content id, `<lang>/<slug>`. */
 export function langOf(id: string): Lang {
   const lang = id.split('/')[0];
