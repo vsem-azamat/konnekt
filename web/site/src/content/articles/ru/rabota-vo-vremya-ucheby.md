@@ -7,6 +7,7 @@ tags: [rabota, viza]
 published: 2026-11-03
 updated: 2026-11-03
 author: konnekt
+reviewedBy: azamat
 translationKey: rabota-vo-vremya-ucheby
 sources:
   - { url: "https://e-sbirka.gov.cz/eli/cz/sb/2004/435/2026-07-01", title: "Zákon č. 435/2004 Sb., o zaměstnanosti (§ 5, § 87, § 98)", checked_at: 2026-11-03 }
@@ -25,7 +26,7 @@ sources:
   - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Vzory-dokladu-vydavanych-cizincum.pdf", title: "ipc.gov.cz: Vzory dokladů vydávaných cizincům (aktualizovaná verze 6. 8. 2025)", checked_at: 2026-11-03 }
   - { url: "https://ipc.gov.cz/wp-content/uploads/2025/08/Moznosti-pobytu-cizincu-ve-vztahu-k-pristupu-na-trh-prace.pdf", title: "ipc.gov.cz: Možnosti pobytu cizinců ve vztahu k přístupu na trh práce (aktualizovaná verze 6. 8. 2025)", checked_at: 2026-11-03 }
   - { url: "https://policie.gov.cz/reditelstvi-sluzby-cizinecke-policie/kody-viz-a-povoleni-k-pobytu-udelovanych-organy-sluzby-cizinecke-policie", title: "Policie ČR: Kódy víz a povolení k pobytu udělovaných orgány služby cizinecké policie", checked_at: 2026-11-03 }
-draft: true
+draft: false
 ---
 
 Студенту не из ЕС, который учится очно (prezenční) в вузе, разрешение на работу не нужно. Часы при этом ограничивает вид договора, а учёба должна оставаться целью пребывания.
