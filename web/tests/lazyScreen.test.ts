@@ -4,6 +4,9 @@ import { test } from 'node:test';
 import { type ClientEvent, startReporting } from '../src/lib/clientErrors.ts';
 import { lazyScreen } from '../src/lib/lazyScreen.ts';
 
+/** A screen, at the module's level as React wants a component. */
+const Screen = () => null;
+
 function reported(): Omit<ClientEvent, 'route'>[] {
   const events: Omit<ClientEvent, 'route'>[] = [];
   startReporting({ report: (event) => events.push(event), flush: () => {} });
@@ -23,7 +26,6 @@ test('a screen that fails to download is reported, then shown as failed', async 
 
 test('a screen that arrives is the route’s component, and nothing is said', async () => {
   const events = reported();
-  const Screen = () => null;
   assert.deepEqual(await lazyScreen(async () => ({ default: Screen }))(), {
     Component: Screen,
   });
