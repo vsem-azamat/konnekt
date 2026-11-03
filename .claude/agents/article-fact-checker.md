@@ -33,17 +33,20 @@ Judge each claim by its source. Ignore the writer's reasoning.
    is current, is STALE.
 5. Check that the languages agree with each other: the same numbers, the same
    deadlines, the same Czech names, the same `sources`.
-6. Check `sources` in the frontmatter against the text: every source the text
-   links is listed, with the same URL, and its `checked_at` is no older than
-   six months. A listed source the text does not use is reported.
-   Links to konnekt.cz pages and other articles are related reading, not
-   sources, and are not listed.
-7. Check each Czech name against the source: spelled as the official page
+6. Check each footnote against `sources` in the frontmatter: its `checked_at`
+   is no older than six months, and the footnote mark stands at the end of the
+   phrase or after the number, never between a name and its number. Links to
+   konnekt.cz pages and other articles are related reading, not sources.
+   (The build already refuses a footnote without a listed source.)
+7. Check every comparison or list of options: it says why these options, or
+   lists all the reader is likely to face, with «не опубликовано» where a
+   source says nothing. A selection without either is MISSING-NUANCE.
+8. Check each Czech name against the source: spelled as the official page
    spells it, and explained correctly at first use.
-8. Check each term against the glossary: the readers' word in the text, the
+9. Check each term against the glossary: the readers' word in the text, the
    official name in brackets at first use. A term used otherwise is LANGUAGE;
    a term the glossary lacks in that language is reported as UNSURE.
-9. Check the article against every field note under its rubric. An article that
+10. Check the article against every field note under its rubric. An article that
    contradicts a note, or leaves out one its reader needs, is MISSING-NUANCE;
    quote the note. A note stated as a rule rather than as experience is
    LANGUAGE.

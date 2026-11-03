@@ -39,15 +39,19 @@ knowledge or from what chats say.
 4. **Outline.** A guide is numbered steps, one task per guide: what the reader
    must do first, and anything with a deadline, at the top. A news article
    says what changed, from when, and who it affects, in its first paragraph.
+   A comparison lists every option the reader is likely to face, or says why
+   only these; a row with nothing published says «не опубликовано».
 5. **Draft** in Markdown at `web/site/src/content/articles/<lang>/<slug>.md`,
    the slug in that language. Fill the frontmatter the schema in
    `web/site/src/content.config.ts` asks for: `title`, `description`, `type`,
    `rubric`, `tags`, `translationKey` (the same in every language; it and
    `tags` are lowercase Latin words joined by hyphens), `published` (today),
    `author: konnekt`, `sources` with `checked_at` from your claim list, and
-   `draft: true`. Leave `reviewedBy` out: Azamat sets it
-   by approving. Link each claim to its source on the words it supports. A
-   guide names the academic year it describes.
+   `draft: true`. Leave `reviewedBy` out: Azamat sets it by approving. A tag
+   not yet in `web/site/src/content/tags.yaml` is added there. Cite each claim
+   with a footnote linking its source, placed at the end of the phrase or
+   after the number. A guide opens with «Коротко» and names the academic year
+   it describes.
 6. **Read it back** with the `humanizer` and `stop-slop` skills and remove
    what they flag.
 7. **Open a pull request** on a branch of its own. Never remove `draft: true`

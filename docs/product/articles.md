@@ -14,8 +14,8 @@ An article helps a student from the CIS, or someone about to become one, with
 studying or living in Czechia. It has a `type`:
 
 - `guide` (the default): one task, finished by following it: applying to a
-  university, getting a school certificate or diploma
-  recognised (nostrifikace), a visa or residence
+  university, getting a school certificate or diploma recognised
+  (nostrifikace), a visa or residence
   permit, a dormitory, a scholarship. Numbered steps, the documents and
   deadlines, where to go and what to expect there. It stays true until it is
   updated.
@@ -32,8 +32,8 @@ below, and is written as experience.
 
 ## Facts come from a primary source
 
-Every number, deadline, fee, document and rule has a primary source, linked in
-the text right where the claim is made. A claim with no source is cut. A
+Every number, deadline, fee, document and rule has a primary source, cited by
+a footnote right where the claim is made. A claim with no source is cut. A
 retelling in a chat, a forum, a competitor's channel or another article is not
 a source; it can point to one.
 
@@ -55,10 +55,17 @@ The writer keeps a claim list while drafting: each claim, its source URL, the
 quoted line from the source, and the date it was read. The list is a working
 file and is not committed.
 
-Each source the article relies on also goes into `sources` in the frontmatter,
-with its `title` and `checked_at`, the date it was last read to confirm the
-claim. The inline link and the `sources` entry use the same URL. A published
-article without `sources` does not build.
+Each source the article relies on goes into `sources` in the frontmatter, with
+its `title` and `checked_at`, the date it was last read to confirm the claim.
+The footnotes link exactly those sources: a note linking a URL that is not in
+`sources`, or a source no note cites, stops the build. A published article
+without `sources` does not build either.
+
+A comparison names its rule for what it includes. Two faculties' fees with no
+reason for those two read as a random pick: either say why these, or list
+every option the reader is likely to face (for fees, every faculty our readers
+apply to). Where an option publishes nothing, its row stays and says «не
+опубликовано».
 
 Sources go stale: deadlines and fees change every year. A guide says which
 academic year it describes, and a source read more than six months before
@@ -129,8 +136,15 @@ from it.
 
 - Standard Markdown. A step is an item of a numbered list; a document list is a
   bulleted list; a table is for comparing options.
-- Links are inline on the words they support, not bare URLs. `sources` in the
-  frontmatter does not replace them.
+- A guide opens with «Коротко» (in each language's words): the deadlines, sums
+  and first step, a few bullets. It names no single option out of several; it
+  gives the range and points to the section with the full list.
+- Sources are GFM footnotes, `[^mv]`, with the note at the end of the file
+  linking the source. A footnote mark goes at the end of the phrase or after
+  the number, never between a name and its number: «FHS UK[^fhs] 990 Kč»
+  renders as «FHS UK⁵ 990 Kč» and reads as 5 990 Kč.
+- Other links (konnekt.cz pages, other articles) are inline on the words they
+  support, not bare URLs.
 - A screenshot is from the official site itself and has alternative text in the
   article's language. An article is text first; it does not need figures. A
   `cover` needs `coverAlt`.
@@ -145,7 +159,9 @@ from it.
   article's slug cannot be `topics` or `tags`: those addresses are the
   section's own.
 - `tags` and `translationKey` are lowercase Latin words joined by hyphens in
-  every language, Russian included; the build refuses anything else.
+  every language, Russian included; the build refuses anything else. A tag
+  must be listed in `web/site/src/content/tags.yaml` with its name in each
+  language; a new tag is added there in the same pull request.
 - Each article links the related universities or chats on konnekt.cz and the
   published articles it builds on.
 
