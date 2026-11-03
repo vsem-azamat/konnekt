@@ -11,7 +11,9 @@ import {
   langOf,
   listings,
   localePath,
+  readFrontmatter,
   related,
+  sitemapLinks,
   telegramHome,
   translationsOf,
   versionsOf,
@@ -239,4 +241,49 @@ test('read next: the same rubric first, then shared tags, never itself, examples
     related(a, listed, 3).map((x) => x.id),
     ['ru/b', 'ru/c'],
   );
+});
+
+test('the sitemap pairs translations by key, not by a slug they happen to share', () => {
+  const articles = [
+    russian,
+    english,
+    { id: 'ru/erasmus', draft: false, translationKey: 'erasmus-ru' },
+    { id: 'en/erasmus', draft: false, translationKey: 'erasmus-en' },
+  ];
+  assert.deepEqual(
+    sitemapLinks('/en/articles/student-visa/', articles, [], 'https://konnekt.cz'),
+    [
+      { lang: 'ru', url: 'https://konnekt.cz/articles/viza-studenta/' },
+      { lang: 'en', url: 'https://konnekt.cz/en/articles/student-visa/' },
+      { lang: 'x-default', url: 'https://konnekt.cz/articles/viza-studenta/' },
+    ],
+  );
+  assert.deepEqual(
+    sitemapLinks('/articles/erasmus/', articles, [], 'https://konnekt.cz'),
+    [
+      { lang: 'ru', url: 'https://konnekt.cz/articles/erasmus/' },
+      { lang: 'x-default', url: 'https://konnekt.cz/articles/erasmus/' },
+    ],
+  );
+  // Not an article: the sitemap's own pairing by path stands.
+  assert.equal(sitemapLinks('/uk/', articles, [], 'https://konnekt.cz'), undefined);
+});
+
+test('a file name that is not already its slug is refused, as Astro would change it', () => {
+  for (const id of ['ru/Draft_Case', 'ru/Tags', 'ru/viza studenta']) {
+    assert.throws(
+      () => checkArticles([{ id, draft: true, translationKey: 'x' }]),
+      /slug/,
+    );
+  }
+});
+
+test('the config reads frontmatter the way Astro does, or refuses', () => {
+  assert.deepEqual(readFrontmatter('\uFEFF---\ndraft: true\n---\ntext', 'ru/a.md'), {
+    draft: true,
+  });
+  assert.deepEqual(readFrontmatter('---\r\ndraft: false\r\n---\r\n', 'ru/a.md'), {
+    draft: false,
+  });
+  assert.throws(() => readFrontmatter('draft: true\n', 'ru/a.md'), /ru\/a.md/);
 });

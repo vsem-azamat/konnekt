@@ -126,17 +126,17 @@
 	# The articles were the guides once, at /guides/: each old address to its
 	# new one, in every language. Kept an hour, not for good, like the
 	# redirect to the app below.
-	@guides path_regexp guides ^((?:/(?:uk|cs|en))?)/guides(/.*)?$
+	@guides path_regexp guides ^((?:/(?:uk|cs|en))?)/guides(?:/(.*))?$
 	handle @guides {
 		header Cache-Control "public, max-age=3600"
-		redir {re.guides.1}/articles{re.guides.2}{?query} 301
+		redir {re.guides.1}/articles/{re.guides.2}{?query} 301
 	}
 
 	# The landing page in each language, the articles and their authors, and
 	# what search engines read, and the icon a browser's tab asks for at the root. A page the site
 	# lacks is a 404, never the app. A language prefix is a whole path segment,
 	# so /ukraine goes to the app like any other path.
-	@site path / /uk /uk/* /cs /cs/* /en /en/* /articles /articles/* /authors/* /_astro/* /robots.txt /sitemap-*.xml /favicon.ico /favicon.svg /apple-touch-icon.png
+	@site path / /uk /uk/* /cs /cs/* /en /en/* /articles /articles/* /authors /authors/* /_astro/* /robots.txt /sitemap-*.xml /favicon.ico /favicon.svg /apple-touch-icon.png
 	handle @site {
 		root * /srv/site
 		# Hashed assets for good, but only those that exist: a missing one is a

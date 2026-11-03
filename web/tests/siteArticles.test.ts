@@ -14,7 +14,11 @@ const azamat = {
   name: 'Azamat',
   url: 'https://konnekt.cz/authors/azamat/',
 };
-const team = { kind: 'organization' as const, name: 'Редакция Konnekt' };
+const team = {
+  kind: 'organization' as const,
+  name: 'Редакция Konnekt',
+  url: 'https://konnekt.cz/',
+};
 
 const article = {
   type: 'guide' as const,
@@ -62,6 +66,7 @@ test('the author is named as the kind it is, the reviewer on the page', () => {
   assert.deepEqual(node(graph, 'Article').author, {
     '@type': 'Organization',
     name: 'Редакция Konnekt',
+    url: 'https://konnekt.cz/',
   });
   assert.deepEqual(node(graph, 'WebPage').reviewedBy, {
     '@type': 'Person',

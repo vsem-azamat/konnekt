@@ -60,7 +60,10 @@ async function party(ref: { id: string }): Promise<Party & { path?: string }> {
   const author = await getEntry('authors', ref.id);
   if (!author) throw new Error(`article ${article.id}: no author ${ref.id}`);
   const name = author.data.names[lang] ?? author.data.name;
-  if (author.data.kind === 'organization') return { kind: 'organization', name };
+  // The editorial team is Konnekt itself: its address is the site's.
+  if (author.data.kind === 'organization') {
+    return { kind: 'organization', name, url: new URL(localePath(lang, '/'), site).href };
+  }
   const own = authorPath(lang, ref.id);
   return { kind: 'person', name, path: own, url: new URL(own, site).href };
 }
