@@ -44,6 +44,19 @@ Every review Azamat gives on an article becomes a note here or a row in the
 - **Date:** 2026-11-03.
 - **To check:** the document list and the time at each faculty an article names.
 
+### ČVUT checks a foreign certificate centrally
+
+- **Note:** at ČVUT the rectorate, not each faculty, assesses a foreign
+  certificate for admission to any of its faculties (FIT, FEL, FS and the
+  others). The fee is 950 Kč, paid once; applications for 2027/28 open on
+  1 December 2026. At FF UK the page names 960 Kč, but for 2025/26. Not for
+  articles as a replacement for nostrifikace (Azamat's note); use only on a
+  faculty's own page or when an article names ČVUT's procedure.
+- **Source:** official: https://www.cvut.cz/posouzeni-vzdelani-pro-prijimaci-rizeni-na-cvut
+  (read 2026-11-03).
+- **Date:** 2026-11-03.
+- **To check:** FF UK for 2027/28.
+
 ### The krajský úřad often sets 3–4 exam subjects
 
 - **Note:** students say the office sends a list of subjects to sit in
