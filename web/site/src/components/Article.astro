@@ -147,7 +147,7 @@ const graph = articleGraph(
             <dd><time datetime={day(data.published)}>{longDate(lang, data.published)}</time></dd>
           </div>
           {
-            data.updated && (
+            data.updated && day(data.updated) !== day(data.published) && (
               <div>
                 <dt>{t.updated}</dt>
                 <dd><time datetime={day(data.updated)}>{longDate(lang, data.updated)}</time></dd>

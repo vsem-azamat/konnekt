@@ -75,7 +75,8 @@
 }
 
 .article h3 {
-  font-size: 18px;
+  margin-top: 1.8em;
+  font-size: 20px;
 }
 
 .article p,
@@ -398,4 +399,13 @@ h1 + .lede {
 
 .kicker .rubric {
   color: inherit;
+}
+
+/* A footnote mark is a link without the underline: «60.³» must not read as a typo. */
+.article sup a[data-footnote-ref] {
+  text-decoration: none;
+}
+
+.article sup a[data-footnote-ref]:is(:hover, :focus-visible) {
+  text-decoration: underline;
 }
