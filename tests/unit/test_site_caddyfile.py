@@ -51,7 +51,7 @@ def test_a_permanent_redirect_is_kept_a_while_not_for_good() -> None:
     # browsers back to konnekt.cz, those that kept it went round between the two.
     # A 308 is kept the same way.
     permanent = r"(?:permanent|301|308)\n"
-    for name, caddyfile, count in (("site", SITE, 2), ("webui", WEBUI, 4)):
+    for name, caddyfile, count in (("site", SITE, 3), ("webui", WEBUI, 4)):
         handles = re.findall(rf"handle[^{{\n]*\{{[^{{}}]*\bredir [^\n]* {permanent}[^{{}}]*\}}", caddyfile)
         assert len(handles) == len(re.findall(rf"\bredir [^\n]* {permanent}", caddyfile)) == count, name
         for handle in handles:
