@@ -7,7 +7,7 @@
  */
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { num, OPEN } from '../landing/copy.ts';
+import { num, openLink } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import { localePath } from '../paths.ts';
 import ChatRow from './ChatRow.astro';
@@ -132,7 +132,7 @@ const schema = {
         <div class="card thin sec">
           <h3>{t.thinTitle}</h3>
           <p>{t.thinText(short)}</p>
-          <a class="all" href={OPEN}><span>{t.suggest}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="all" href={openLink("site_university")}><span>{t.suggest}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </div>
       )
     }

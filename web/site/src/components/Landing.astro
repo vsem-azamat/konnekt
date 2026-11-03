@@ -10,7 +10,7 @@ import Header from '../components/Header.astro';
 import {
   t as copy,
   num as number,
-  OPEN,
+  openLink,
   phone as phoneOf,
   v as variant,
 } from '../landing/copy.ts';
@@ -55,7 +55,7 @@ const avatar = (name: string) => {
       <h1>{t("hero.short")}</h1>
       <p class="lead">{t("hero.subShort")}</p>
       <div class="actions">
-        <a class="btn" href={OPEN}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href={openLink("site_hero")}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <div class="later"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg><span>{t("cta.note")}</span></div>
       </div>
     </div>
@@ -72,7 +72,7 @@ const avatar = (name: string) => {
       <span class="eyebrow"><svg viewBox="0 0 24 24"><path d="M4 12a8 7 0 1 1 3.5 5.8L4 19l1-3.2A6.6 6.6 0 0 1 4 12z"/></svg><span>{t("nav.chats")}</span></span>
       <h3>{t("chats.title")}</h3>
       <div class="rows" id="rows">{CHATS.map((x) => <div class="row"><img class="av" src={avatar(`${x.av}.jpg`)} alt="" width="40" height="40" loading="lazy" /><span class="rt"><b>{x.title}</b><small>{x.city}</small></span><span class="n"><i></i>{num(x.members)}</span></div>)}</div>
-      <a class="all" href={OPEN}><span>{v("allChats")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="all" href={openLink("site_chats")}><span>{v("allChats")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="card h-tutors wash1" id="tutors">
       <span class="eyebrow"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>{v("sample")}</span></span>
@@ -137,7 +137,7 @@ const avatar = (name: string) => {
       <div>
         <h2>{t("offer.title")}</h2>
         <p>{t("offer.text")}</p>
-        <a class="ghost" href={OPEN}>{t("offer.cta")}</a>
+        <a class="ghost" href={openLink("site_offer")}>{t("offer.cta")}</a>
       </div>
       <div class="request" aria-hidden="true">
         <div class="head"><i></i><span>{v("reqHead")}</span></div>
@@ -152,7 +152,7 @@ const avatar = (name: string) => {
       <h2>{t("final.title")}</h2>
       <p>{t("final.text")}</p>
       <div class="actions">
-        <a class="btn" href={OPEN}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href={openLink("site_final")}><span>{t("cta.open")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <div class="later">{t("cta.note")}</div>
       </div>
     </div>

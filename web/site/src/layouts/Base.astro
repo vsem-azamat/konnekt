@@ -62,6 +62,10 @@ const hidden = hiddenPaths(await entries());
 // Where the app lives (the deploy's WEBAPI_PUBLIC_URL); the image build
 // refuses to run without it. The dev server falls back to the app's dev server.
 const app = process.env.APP_URL || 'https://localhost:5173';
+// Yandex Webmaster's proof that the site is ours (the deploy's
+// YANDEX_VERIFICATION); not a secret, it is printed in every page. Without
+// it, no tag.
+const yandex = process.env.YANDEX_VERIFICATION;
 const handOff = `(() => {
   const to = (${telegramHome})(location.hash, location.search, ${JSON.stringify(app)}, location.pathname);
   if (to) location.replace(to);
@@ -83,6 +87,7 @@ const handOff = `(() => {
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {yandex && <meta name="yandex-verification" content={yandex} />}
     {noindex && <meta name="robots" content="noindex" />}
     {
       !noindex &&

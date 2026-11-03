@@ -104,6 +104,7 @@ jobs:
             WEB_VERSION=${{ github.sha }}
             SITE_URL=${{ vars.PUBLIC_SITE_URL }}
             APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
+            YANDEX_VERIFICATION=${{ vars.YANDEX_VERIFICATION }}
             VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEBUI }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_URL=${{ vars.SENTRY_URL }}
@@ -127,6 +128,7 @@ jobs:
             WEB_VERSION=${{ github.sha }}
             SITE_URL=${{ vars.PUBLIC_SITE_URL }}
             APP_URL=${{ vars.WEBAPI_PUBLIC_URL }}
+            YANDEX_VERIFICATION=${{ vars.YANDEX_VERIFICATION }}
             VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEBUI }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_URL=${{ vars.SENTRY_URL }}

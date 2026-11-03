@@ -9,9 +9,18 @@ import { COPY, ICON, PHONE, STATS, type Stat, VARIANT } from './data.ts';
 /**
  * Where «Открыть Konnekt» leads: into the Mini App. The catalog redirects to
  * the bot from the token it runs with (`?app` adds startapp), so the bot's
- * handle is not written into the site too.
+ * handle is not written into the site too. `source` says which button it was
+ * (`site_header`): the catalog passes it on as the start parameter, and the
+ * app's audience counts it as where somebody came from. No cookies.
  */
-export const OPEN = '/api/v1/open?app=1';
+export function openLink(source: string): string {
+  return `/api/v1/open?app=1&from=${source}`;
+}
+
+/** An article's buttons into the app, by its slug, within Telegram's 64 characters. */
+export function articleSource(slug: string): string {
+  return `site_article_${slug}`.slice(0, 64);
+}
 
 /** A number in the language's own grouping, with no line break inside it. */
 export function num(lang: Lang, n: number): string {
