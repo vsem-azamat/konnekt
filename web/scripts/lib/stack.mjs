@@ -61,7 +61,7 @@ export async function preflight(browser) {
   try {
     const health = await page.goto(`${BASE}/healthz`, { timeout: 15000 });
     if (!health?.ok()) throw new Error(`/healthz answered ${health?.status()}`);
-    const body = await page.evaluate(() => document.body.innerText);
+    const body = await page.evaluate(() => document.body.textContent ?? '');
     if (!body.includes('"database":"ok"')) {
       throw new Error(`/healthz says ${body.trim().slice(0, 120)}`);
     }

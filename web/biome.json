@@ -36,6 +36,22 @@
       "quoteStyle": "single"
     }
   },
+  "markdown": {
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": false
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": false
+    }
+  },
   "json": {
     "formatter": {
       "enabled": true
