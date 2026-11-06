@@ -512,6 +512,26 @@ async def test_opening_the_offer_screen_is_recorded_with_where_from(
     assert [event.payload for event in events] == [{"source": "home"}]
 
 
+async def test_the_offer_screen_tells_the_chats_row_from_the_home_one(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """«Стать репетитором» stands on both first screens; each counts apart."""
+    from students_cz.db.models import UserEvent
+    from students_cz.db.models.enums import UserEventKind
+
+    response = await client.post(
+        "/api/v1/helper/opened", json={"source": "chats"}, headers=auth_header(OWNER)
+    )
+
+    assert response.status_code == 204
+    events = (
+        await session.scalars(
+            select(UserEvent).where(UserEvent.kind == UserEventKind.OFFER_OPEN)
+        )
+    ).all()
+    assert [event.payload for event in events] == [{"source": "chats"}]
+
+
 async def test_the_offer_screen_names_only_entries_it_knows(client: AsyncClient) -> None:
     """A free string here would be a field anybody can fill the log with."""
     response = await client.post(

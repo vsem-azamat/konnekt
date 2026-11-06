@@ -453,7 +453,9 @@ class OfferPause(BaseModel):
 # Where the offer screen was opened from: the app's own ways in, and `link`
 # for a bot or chat button that opens it directly. Named, not free text, so
 # the log holds a short list somebody can count rather than whatever was sent.
-OfferEntry = Literal["home", "tab", "profile", "results", "my-helper", "link", "other"]
+OfferEntry = Literal[
+    "home", "chats", "tab", "profile", "results", "my-helper", "link", "other"
+]
 
 
 class OfferOpened(BaseModel):

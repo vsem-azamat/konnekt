@@ -5290,6 +5290,7 @@
             "type": "string",
             "enum": [
               "home",
+              "chats",
               "tab",
               "profile",
               "results",
