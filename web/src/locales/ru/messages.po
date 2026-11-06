@@ -58,6 +58,10 @@ msgstr "Включить"
 msgid "Карточек партнёров пока нет."
 msgstr "Карточек партнёров пока нет."
 
+#: src/console/pages/Catalog.tsx
+msgid "просит страницу на konnekt.cz"
+msgstr "просит страницу на konnekt.cz"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "нет карточки"
@@ -362,6 +366,10 @@ msgstr "Изменять профиль группы"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкету видят только в приложении."
+msgstr "Анкету видят только в приложении."
+
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Этот канал ведёт не Konnekt, правила там свои."
@@ -480,6 +488,10 @@ msgstr "Капча в чате"
 #~ msgid "Не выполнено: главного администратора забанить нельзя."
 #~ msgstr "Не выполнено: главного администратора забанить нельзя."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Страница на konnekt.cz"
+msgstr "Страница на konnekt.cz"
+
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "Под этот фильтр сейчас заявок нет"
@@ -573,6 +585,10 @@ msgstr "за неделю"
 #: src/components/Incoming.tsx
 msgid "Откликнуться"
 msgstr "Откликнуться"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Показывать"
+msgstr "Показывать"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновлено"
@@ -1233,6 +1249,10 @@ msgstr "ни во что: стоит отдельно"
 msgid "Их видно на твоей странице."
 msgstr "Их видно на твоей странице."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Сначала верни анкету в каталог."
+msgstr "Сначала верни анкету в каталог."
+
 #: src/components/Place.tsx
 msgid "Вузы"
 msgstr "Вузы"
@@ -1262,6 +1282,10 @@ msgstr "Разобрано"
 #: src/pages/Ads.tsx
 msgid "в разделе «Не про учёбу»"
 msgstr "в разделе «Не про учёбу»"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкета будет на сайте, когда ты вернёшь её в каталог."
+msgstr "Анкета будет на сайте, когда ты вернёшь её в каталог."
 
 #: src/console/pages/Signals.tsx
 #~ msgid "Ни набегов, ни предложенных банов."
@@ -1331,7 +1355,6 @@ msgstr "Пока её видишь только ты. Ниже уже стоит
 msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
 msgstr "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
 
-#: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
 msgid "Оставить"
 msgstr "Оставить"
@@ -1660,6 +1683,10 @@ msgstr "иерархия, защита, модерация"
 msgid "в каталоге"
 msgstr "в каталоге"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Не показывать"
+msgstr "Не показывать"
+
 #: src/components/Phrase.tsx
 msgid "И то, и другое"
 msgstr "И то, и другое"
@@ -1766,6 +1793,11 @@ msgstr "Проверка не прошла"
 #: src/console/pages/PartnerNew.tsx
 msgid "Нужен заголовок."
 msgstr "Нужен заголовок."
+
+#: src/console/ProfileSheet.tsx
+msgctxt "moderation"
+msgid "Оставить"
+msgstr "Оставить"
 
 #: src/pages/Request.tsx
 msgid "Выбрать"
@@ -2250,6 +2282,10 @@ msgstr "Реклама за сутки"
 #: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Сигналы"
+
+#: src/console/ProfileSheet.tsx
+msgid "Анкета есть на konnekt.cz."
+msgstr "Анкета есть на konnekt.cz."
 
 #: src/pages/Helper.tsx
 msgid "Возможно, человек скрыл его."
@@ -2746,6 +2782,10 @@ msgstr "Дешевле"
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
 msgstr "30 дней"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
+msgstr "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
 
 #: src/components/Showcase.tsx
 msgid "Хочешь, чтобы здесь была твоя услуга? Напиши нам — обсудим условия. Карточку с фото и текстом сделаем сами."
@@ -3661,6 +3701,10 @@ msgstr "Работает именно с этим вузом"
 msgid "Открыть канал"
 msgstr "Открыть канал"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Пока анкета скрыта администратором, на сайте её нет."
+msgstr "Пока анкета скрыта администратором, на сайте её нет."
+
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
 msgstr "заблокировали"
@@ -3950,6 +3994,10 @@ msgstr "Вчера"
 msgid "{length} дней по вчера против {length} дней до них. Сегодня отдельно: день не закончился."
 msgstr "{length} дней по вчера против {length} дней до них. Сегодня отдельно: день не закончился."
 
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает."
+msgstr "Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает."
+
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"
 msgstr "Документы и жизнь"
@@ -4069,6 +4117,10 @@ msgstr "Чат: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Это главный администратор."
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт, открытый поиску."
+msgstr "Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт, открытый поиску."
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

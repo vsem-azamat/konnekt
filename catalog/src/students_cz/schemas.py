@@ -419,6 +419,9 @@ class HelperUpsert(BaseModel):
     # Whether the bot writes about new requests this profile could answer.
     # Left alone when absent, like every field here.
     new_request_alerts: bool = True
+    # Whether konnekt.cz shows the profile on a page of its own. Left alone
+    # when absent; off for a profile that never sent it.
+    show_on_site: bool = False
 
 
 class MyOfferOut(BaseModel):
@@ -484,6 +487,8 @@ class MyHelperOut(BaseModel):
     hidden_note: str | None = None
     # The bot writes about new requests the profile could answer.
     new_request_alerts: bool = True
+    # konnekt.cz shows the profile on a page of its own.
+    show_on_site: bool = False
 
 
 # ── requests ────────────────────────────────────────────────────────────
@@ -659,6 +664,55 @@ class PublicUniversity(BaseModel):
     site_url: str | None
 
 
+class PublicHelperCard(BaseModel):
+    """A helper as the public site lists them, with their own consent.
+
+    What a stranger needs to choose someone and nothing that reaches them
+    around the app: no handle, no Telegram id, no message prefill, no free
+    times. No photo either, since Telegram's avatar links expire and a cached
+    page would keep a dead one: the monogram is the face.
+    """
+
+    user_id: int
+    # `anna-k-123`: the name in Latin letters, then the id that finds the row.
+    # The site redirects to it when the name part it was asked for is stale.
+    slug: str
+    name: str
+    initials: str
+    tone: int = Field(ge=0, le=5)
+    headline: str | None
+    # By name, each once, in the order of the person's offers.
+    services: list[str]
+    subjects: list[str]
+    # The cheapest offer with a price, or `null` when none names one.
+    price_from: Price | None
+    langs: list[str]
+    work_format: WorkFormat
+    city: str | None
+    rating: float | None
+    deals_count: int
+
+
+class PublicHelperPage(BaseModel):
+    """One helper's page on the public site: the card's rules, more of it."""
+
+    user_id: int
+    slug: str
+    name: str
+    initials: str
+    tone: int = Field(ge=0, le=5)
+    headline: str | None
+    about: str | None
+    offers: list[OfferOut]
+    stats: list[Stat]
+    langs: list[str]
+    work_format: WorkFormat
+    city: str | None
+    place_note: str | None
+    rating: float | None
+    deals_count: int
+
+
 # ── the console ─────────────────────────────────────────────────────────
 
 
@@ -669,6 +723,8 @@ class AdminProfile(BaseModel):
     status: PublishStatus
     services: list[str]
     published_at: datetime
+    # Its owner asked for a page on konnekt.cz: keeping it puts it there.
+    show_on_site: bool
 
 
 class AdminRequest(BaseModel):
@@ -726,6 +782,10 @@ class AdminProfileDetail(BaseModel):
     updated_at: datetime
     hidden_reason: HideReason | None
     hidden_note: str | None
+    # Its owner asked for a page on konnekt.cz: keeping it puts it there.
+    show_on_site: bool
+    # The site shows it now, by its own rule (services/site.py).
+    on_site: bool
 
 
 class AdminPlacement(BaseModel):

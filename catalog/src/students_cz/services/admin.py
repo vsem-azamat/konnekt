@@ -38,6 +38,7 @@ from students_cz.schemas import (
     AdminRequest,
     AdminSearch,
 )
+from students_cz.services import site
 from students_cz.services.catalog import display_name
 from students_cz.services.errors import Conflict, NotFound
 from students_cz.services.naming import names_by_id
@@ -64,9 +65,11 @@ async def catalog(session: AsyncSession, lang: UiLang) -> AdminCatalog:
         HelperProfile.reviewed_at.is_(None),
     )
     # A hidden one is new again when its owner changed it, not when it first
-    # went out.
+    # went out; and so is one that asked for a page on konnekt.cz, which is
+    # back here for it (helpers.py) however long it has been listed.
     listed_or_edited = case(
         (HelperProfile.status == PublishStatus.BANNED, HelperProfile.updated_at),
+        (HelperProfile.show_on_site.is_(True), HelperProfile.updated_at),
         else_=HelperProfile.published_at,
     )
     hidden = HelperProfile.status == PublishStatus.BANNED
@@ -132,14 +135,19 @@ async def _new_profiles(
 ) -> list[AdminProfile]:
     rows = (
         await session.execute(
-            select(HelperProfile.published_at, HelperProfile.status, User)
+            select(
+                HelperProfile.published_at,
+                HelperProfile.status,
+                HelperProfile.show_on_site,
+                User,
+            )
             .join(User, User.id == HelperProfile.user_id)
             .where(where)
             .order_by(newest.desc())
             .limit(LIST_CAP)
         )
     ).all()
-    ids = [user.id for _, _, user in rows]
+    ids = [user.id for *_, user in rows]
     services = await _services(session, lang, ids)
     return [
         AdminProfile(
@@ -152,8 +160,9 @@ async def _new_profiles(
             # A hidden profile was listed once, so it has one; a ban from before
             # the console might not.
             published_at=published_at or user.created_at,
+            show_on_site=show_on_site,
         )
-        for published_at, status, user in rows
+        for published_at, status, show_on_site, user in rows
     ]
 
 
@@ -237,6 +246,8 @@ async def profile(
         updated_at=helper.updated_at,
         hidden_reason=helper.hidden_reason,
         hidden_note=helper.hidden_note,
+        show_on_site=helper.show_on_site,
+        on_site=await site.is_on_site(session, user.id),
     )
 
 

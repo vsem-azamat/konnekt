@@ -82,6 +82,121 @@
         }
       }
     },
+    "/api/v1/public/helpers": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Public Helpers",
+        "description": "The helpers who asked to be on the public site, for its tutors pages.\n\nUnauthenticated like `/universities`, and only the profiles whose owners\nturned «показывать на konnekt.cz» on: see `services/site.py` for the rest\nof the rule and for what a card leaves out. Reading it records nothing,\nsince the reader is anybody, a crawler included.",
+        "operationId": "public_helpers_api_v1_public_helpers_get",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UiLang"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicHelperCard"
+                  },
+                  "title": "Response Public Helpers Api V1 Public Helpers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/helpers/{user_id}": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Public Helper",
+        "description": "One helper's page on the public site, by the id at the end of its slug.",
+        "operationId": "public_helper_api_v1_public_helpers__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UiLang"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHelperPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me": {
       "get": {
         "tags": [
@@ -3505,6 +3620,10 @@
             "type": "string",
             "format": "date-time",
             "title": "Published At"
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site"
           }
         },
         "type": "object",
@@ -3513,7 +3632,8 @@
           "name",
           "status",
           "services",
-          "published_at"
+          "published_at",
+          "show_on_site"
         ],
         "title": "AdminProfile"
       },
@@ -3619,6 +3739,14 @@
               }
             ],
             "title": "Hidden Note"
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site"
+          },
+          "on_site": {
+            "type": "boolean",
+            "title": "On Site"
           }
         },
         "type": "object",
@@ -3634,7 +3762,9 @@
           "reviewed_at",
           "updated_at",
           "hidden_reason",
-          "hidden_note"
+          "hidden_note",
+          "show_on_site",
+          "on_site"
         ],
         "title": "AdminProfileDetail",
         "description": "One profile as the operator moderates it. Named as the catalog names\npeople, with nothing to reach them by: the console does not contact."
@@ -4605,6 +4735,11 @@
             "type": "boolean",
             "title": "New Request Alerts",
             "default": true
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site",
+            "default": false
           }
         },
         "type": "object",
@@ -5043,6 +5178,11 @@
             "type": "boolean",
             "title": "New Request Alerts",
             "default": true
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site",
+            "default": false
           }
         },
         "type": "object",
@@ -5639,6 +5779,251 @@
           "negotiable"
         ],
         "title": "PriceUnit"
+      },
+      "PublicHelperCard": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "initials": {
+            "type": "string",
+            "title": "Initials"
+          },
+          "tone": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Tone"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headline"
+          },
+          "services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Services"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Subjects"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Price"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "langs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Langs"
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "deals_count": {
+            "type": "integer",
+            "title": "Deals Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "slug",
+          "name",
+          "initials",
+          "tone",
+          "headline",
+          "services",
+          "subjects",
+          "price_from",
+          "langs",
+          "work_format",
+          "city",
+          "rating",
+          "deals_count"
+        ],
+        "title": "PublicHelperCard",
+        "description": "A helper as the public site lists them, with their own consent.\n\nWhat a stranger needs to choose someone and nothing that reaches them\naround the app: no handle, no Telegram id, no message prefill, no free\ntimes. No photo either, since Telegram's avatar links expire and a cached\npage would keep a dead one: the monogram is the face."
+      },
+      "PublicHelperPage": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "initials": {
+            "type": "string",
+            "title": "Initials"
+          },
+          "tone": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Tone"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headline"
+          },
+          "about": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "About"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/OfferOut"
+            },
+            "type": "array",
+            "title": "Offers"
+          },
+          "stats": {
+            "items": {
+              "$ref": "#/components/schemas/Stat"
+            },
+            "type": "array",
+            "title": "Stats"
+          },
+          "langs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Langs"
+          },
+          "work_format": {
+            "$ref": "#/components/schemas/WorkFormat"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "place_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Note"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "deals_count": {
+            "type": "integer",
+            "title": "Deals Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "slug",
+          "name",
+          "initials",
+          "tone",
+          "headline",
+          "about",
+          "offers",
+          "stats",
+          "langs",
+          "work_format",
+          "city",
+          "place_note",
+          "rating",
+          "deals_count"
+        ],
+        "title": "PublicHelperPage",
+        "description": "One helper's page on the public site: the card's rules, more of it."
       },
       "PublicUniversity": {
         "properties": {

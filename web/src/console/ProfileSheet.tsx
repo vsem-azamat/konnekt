@@ -194,6 +194,21 @@ export function ProfileSheet({
             <Hint>
               <Trans>Автор сам снял анкету или ещё не опубликовал её.</Trans>
             </Hint>
+          ) : data.show_on_site ? (
+            <Hint>
+              {data.on_site ? (
+                <Trans>Анкета есть на konnekt.cz.</Trans>
+              ) : data.reviewed_at === null ? (
+                <Trans>
+                  Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт,
+                  открытый поиску.
+                </Trans>
+              ) : (
+                <Trans>
+                  Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает.
+                </Trans>
+              )}
+            </Hint>
           ) : null}
           {failure}
           <div className={ui.actionsStacked}>
@@ -212,7 +227,7 @@ export function ProfileSheet({
                   {data.status === 'banned' ? (
                     <Trans>Оставить скрытой</Trans>
                   ) : (
-                    <Trans>Оставить</Trans>
+                    <Trans context="moderation">Оставить</Trans>
                   )}
                 </Action>
               ) : action === 'hide' ? (

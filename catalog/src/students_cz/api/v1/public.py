@@ -13,10 +13,16 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from students_cz.api.deps import HandleDep, SessionDep, SettingsDep
+from students_cz.api.deps import HandleDep, IdPath, SessionDep, SettingsDep
 from students_cz.db.models import Institution
 from students_cz.db.models.enums import InstitutionKind, UiLang
-from students_cz.schemas import AdsInfo, PublicUniversity
+from students_cz.schemas import (
+    AdsInfo,
+    PublicHelperCard,
+    PublicHelperPage,
+    PublicUniversity,
+)
+from students_cz.services import site
 from students_cz.services.naming import translated
 
 router = APIRouter()
@@ -27,6 +33,11 @@ UNIVERSITY_START = "uni-"
 # The code the app accepts after it (INSTITUTION_CODE in web/src/lib/chats.ts).
 # Checked before the database is asked: a NUL byte reaches asyncpg as a 500.
 _APP_CODE = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
+# «Написать в Konnekt» on a helper's page on the site: the app's start parameter
+# for a profile, `helper-` and the id (web/src/lib/startParam.ts).
+HELPER_START = "helper-"
+# An id as the database has them: no sign, no leading zero, within a bigint.
+_HELPER_ID = re.compile(r"[1-9][0-9]{0,17}")
 # Which of the site's buttons was pressed (`site_header`, `site_article_<slug>`):
 # passed on as the start parameter, which the Mini App opens nothing for and
 # the audience keeps as where somebody came from (app/audience/record.py).
@@ -46,10 +57,18 @@ def _universities():
 async def _known_start(session: AsyncSession, start: str | None) -> str | None:
     """`start` when the app has a screen for it, which the catalog can vouch for.
 
-    Only a university the catalog lists: anything else would be passed on to
-    Telegram as typed, and a link is not the place for the site to guess.
+    Only a university the catalog lists, or a helper the site shows: anything
+    else would be passed on to Telegram as typed, and a link is not the place
+    for the site to guess.
     """
-    if start is None or not start.startswith(UNIVERSITY_START):
+    if start is None:
+        return None
+    if start.startswith(HELPER_START):
+        helper_id = start.removeprefix(HELPER_START)
+        if not _HELPER_ID.fullmatch(helper_id):
+            return None
+        return start if await site.is_on_site(session, int(helper_id)) else None
+    if not start.startswith(UNIVERSITY_START):
         return None
     code = start.removeprefix(UNIVERSITY_START)
     if not _APP_CODE.fullmatch(code):
@@ -73,7 +92,8 @@ async def open_in_telegram(
     """Send a browser to the bot, or with `app` straight into its Mini App.
 
     `start` opens the Mini App on one screen, a university's chats
-    (`uni-cvut`); one the catalog does not know opens the app itself. `from`
+    (`uni-cvut`) or a helper the site shows (`helper-123`); one the catalog
+    does not know opens the app itself. `from`
     says which of the site's buttons it was (`site_header`), for the app to
     record as the source when it opens on no screen.
 
@@ -141,3 +161,33 @@ async def universities(
         )
         for row in rows
     ]
+
+
+@router.get("/public/helpers", response_model=list[PublicHelperCard], tags=["public"])
+async def public_helpers(
+    session: SessionDep, settings: SettingsDep, lang: UiLang | None = None
+) -> list[PublicHelperCard]:
+    """The helpers who asked to be on the public site, for its tutors pages.
+
+    Unauthenticated like `/universities`, and only the profiles whose owners
+    turned «показывать на konnekt.cz» on: see `services/site.py` for the rest
+    of the rule and for what a card leaves out. Reading it records nothing,
+    since the reader is anybody, a crawler included.
+    """
+    return await site.site_helpers(session, lang or UiLang(settings.default_ui_lang))
+
+
+@router.get("/public/helpers/{user_id}", response_model=PublicHelperPage, tags=["public"])
+async def public_helper(
+    user_id: IdPath,
+    session: SessionDep,
+    settings: SettingsDep,
+    lang: UiLang | None = None,
+) -> PublicHelperPage:
+    """One helper's page on the public site, by the id at the end of its slug."""
+    page = await site.site_helper(
+        session, user_id, lang or UiLang(settings.default_ui_lang)
+    )
+    if page is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such helper on the site")
+    return page

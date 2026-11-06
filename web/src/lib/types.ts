@@ -407,6 +407,8 @@ export interface HelperUpsert {
   publish?: boolean;
   /** Whether the bot writes about new requests the profile could answer. */
   new_request_alerts?: boolean;
+  /** Whether konnekt.cz shows the profile on a page of its own. */
+  show_on_site?: boolean;
 }
 
 /**
@@ -452,6 +454,8 @@ export interface MyHelper {
   hidden_note?: string | null;
   /** The bot writes about new requests the profile could answer. */
   new_request_alerts?: boolean;
+  /** konnekt.cz shows the profile on a page of its own. */
+  show_on_site?: boolean;
 }
 
 export interface ContactStart {

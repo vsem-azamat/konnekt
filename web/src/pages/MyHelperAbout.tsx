@@ -54,6 +54,8 @@ export default function MyHelperAboutPage() {
   const [workFormat, setWorkFormat] = useState<WorkFormat>('both');
   const [listed, setListed] = useState(true);
   const [alerts, setAlerts] = useState(true);
+  // A page on konnekt.cz, open to search engines: theirs to ask for, off until they do.
+  const [onSite, setOnSite] = useState(false);
   // The profile as the server last said it was, kept across the refetch after
   // a save (afterHelperSaved drops the cached copy), so the status above the
   // form does not blink out while the new one loads.
@@ -92,6 +94,7 @@ export default function MyHelperAboutPage() {
     setWorkFormat(data.work_format);
     setListed(startsListed(data));
     setAlerts(data.new_request_alerts ?? true);
+    setOnSite(data.show_on_site ?? false);
     setLoaded(true);
   }, [data, loaded]);
 
@@ -109,6 +112,7 @@ export default function MyHelperAboutPage() {
         place_note: placeNote.trim() || null,
         publish: listed,
         new_request_alerts: alerts,
+        show_on_site: onSite,
       }),
     onMutate: () => setSavedHidden(false),
     onSuccess: (me) => {
@@ -265,6 +269,41 @@ export default function MyHelperAboutPage() {
               </div>
             </>
           )}
+
+          <Label>
+            <Trans>Страница на konnekt.cz</Trans>
+          </Label>
+          {/* The site shows only what the catalog lists (catalog/services/site.py):
+              out of it, the choice is kept for when the profile is back. */}
+          <Segmented
+            value={onSite ? 'on' : 'off'}
+            onChange={(value) => setOnSite(value === 'on')}
+            // Out of the catalog it cannot be turned on, but it can be turned
+            // off: consent is withdrawn whatever state the profile is in.
+            disabled={(banned || !listed) && !onSite}
+            options={[
+              { value: 'on', label: <Trans>Показывать</Trans> },
+              { value: 'off', label: <Trans>Не показывать</Trans> },
+            ]}
+          />
+          <div style={{ marginTop: 9 }}>
+            <Hint>
+              {banned ? (
+                <Trans>Пока анкета скрыта администратором, на сайте её нет.</Trans>
+              ) : !listed && onSite ? (
+                <Trans>Анкета будет на сайте, когда ты вернёшь её в каталог.</Trans>
+              ) : !listed ? (
+                <Trans>Сначала верни анкету в каталог.</Trans>
+              ) : onSite ? (
+                <Trans>
+                  После проверки анкета появится на сайте konnekt.cz и в поиске Google.
+                  Написать тебе можно будет только через Konnekt.
+                </Trans>
+              ) : (
+                <Trans>Анкету видят только в приложении.</Trans>
+              )}
+            </Hint>
+          </div>
 
           <Label>
             <Trans>Новые заявки в Telegram</Trans>

@@ -38,3 +38,17 @@ test('a university code with an underscore is a code too', () => {
 test('/chats in a chat with no university opens the catalogue of chats', () => {
   assert.deepEqual(startRoute('chats'), { path: '/chats', state: { from: 'link' } });
 });
+
+test("a helper's link from the site opens their profile by id", () => {
+  assert.deepEqual(startRoute('helper-123'), {
+    path: '/helper/123',
+    state: { from: 'link' },
+  });
+});
+
+test('a helper link with anything but a plain id opens nothing', () => {
+  assert.equal(startRoute('helper-'), null);
+  assert.equal(startRoute('helper-01'), null);
+  assert.equal(startRoute('helper-12/../console'), null);
+  assert.equal(startRoute('helper-1e5'), null);
+});

@@ -197,6 +197,10 @@ export type AdminProfile = {
      * Published At
      */
     published_at: string;
+    /**
+     * Show On Site
+     */
+    show_on_site: boolean;
 };
 
 /**
@@ -248,6 +252,14 @@ export type AdminProfileDetail = {
      * Hidden Note
      */
     hidden_note: string | null;
+    /**
+     * Show On Site
+     */
+    show_on_site: boolean;
+    /**
+     * On Site
+     */
+    on_site: boolean;
 };
 
 /**
@@ -798,6 +810,10 @@ export type HelperUpsert = {
      * New Request Alerts
      */
     new_request_alerts?: boolean;
+    /**
+     * Show On Site
+     */
+    show_on_site?: boolean;
 };
 
 /**
@@ -1024,6 +1040,10 @@ export type MyHelperOut = {
      * New Request Alerts
      */
     new_request_alerts?: boolean;
+    /**
+     * Show On Site
+     */
+    show_on_site?: boolean;
 };
 
 /**
@@ -1315,6 +1335,134 @@ export type Price = {
  * PriceUnit
  */
 export type PriceUnit = 'hour' | 'lesson' | 'work' | 'day' | 'week' | 'month' | 'semester' | 'item' | 'negotiable';
+
+/**
+ * PublicHelperCard
+ *
+ * A helper as the public site lists them, with their own consent.
+ *
+ * What a stranger needs to choose someone and nothing that reaches them
+ * around the app: no handle, no Telegram id, no message prefill, no free
+ * times. No photo either, since Telegram's avatar links expire and a cached
+ * page would keep a dead one: the monogram is the face.
+ */
+export type PublicHelperCard = {
+    /**
+     * User Id
+     */
+    user_id: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Initials
+     */
+    initials: string;
+    /**
+     * Tone
+     */
+    tone: number;
+    /**
+     * Headline
+     */
+    headline: string | null;
+    /**
+     * Services
+     */
+    services: Array<string>;
+    /**
+     * Subjects
+     */
+    subjects: Array<string>;
+    price_from: Price | null;
+    /**
+     * Langs
+     */
+    langs: Array<string>;
+    work_format: WorkFormat;
+    /**
+     * City
+     */
+    city: string | null;
+    /**
+     * Rating
+     */
+    rating: number | null;
+    /**
+     * Deals Count
+     */
+    deals_count: number;
+};
+
+/**
+ * PublicHelperPage
+ *
+ * One helper's page on the public site: the card's rules, more of it.
+ */
+export type PublicHelperPage = {
+    /**
+     * User Id
+     */
+    user_id: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Initials
+     */
+    initials: string;
+    /**
+     * Tone
+     */
+    tone: number;
+    /**
+     * Headline
+     */
+    headline: string | null;
+    /**
+     * About
+     */
+    about: string | null;
+    /**
+     * Offers
+     */
+    offers: Array<OfferOut>;
+    /**
+     * Stats
+     */
+    stats: Array<Stat>;
+    /**
+     * Langs
+     */
+    langs: Array<string>;
+    work_format: WorkFormat;
+    /**
+     * City
+     */
+    city: string | null;
+    /**
+     * Place Note
+     */
+    place_note: string | null;
+    /**
+     * Rating
+     */
+    rating: number | null;
+    /**
+     * Deals Count
+     */
+    deals_count: number;
+};
 
 /**
  * PublicUniversity
@@ -1994,6 +2142,73 @@ export type UniversitiesApiV1UniversitiesGetResponses = {
 };
 
 export type UniversitiesApiV1UniversitiesGetResponse = UniversitiesApiV1UniversitiesGetResponses[keyof UniversitiesApiV1UniversitiesGetResponses];
+
+export type PublicHelpersApiV1PublicHelpersGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Lang
+         */
+        lang?: UiLang | null;
+    };
+    url: '/api/v1/public/helpers';
+};
+
+export type PublicHelpersApiV1PublicHelpersGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PublicHelpersApiV1PublicHelpersGetError = PublicHelpersApiV1PublicHelpersGetErrors[keyof PublicHelpersApiV1PublicHelpersGetErrors];
+
+export type PublicHelpersApiV1PublicHelpersGetResponses = {
+    /**
+     * Response Public Helpers Api V1 Public Helpers Get
+     *
+     * Successful Response
+     */
+    200: Array<PublicHelperCard>;
+};
+
+export type PublicHelpersApiV1PublicHelpersGetResponse = PublicHelpersApiV1PublicHelpersGetResponses[keyof PublicHelpersApiV1PublicHelpersGetResponses];
+
+export type PublicHelperApiV1PublicHelpersUserIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: number;
+    };
+    query?: {
+        /**
+         * Lang
+         */
+        lang?: UiLang | null;
+    };
+    url: '/api/v1/public/helpers/{user_id}';
+};
+
+export type PublicHelperApiV1PublicHelpersUserIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PublicHelperApiV1PublicHelpersUserIdGetError = PublicHelperApiV1PublicHelpersUserIdGetErrors[keyof PublicHelperApiV1PublicHelpersUserIdGetErrors];
+
+export type PublicHelperApiV1PublicHelpersUserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicHelperPage;
+};
+
+export type PublicHelperApiV1PublicHelpersUserIdGetResponse = PublicHelperApiV1PublicHelpersUserIdGetResponses[keyof PublicHelperApiV1PublicHelpersUserIdGetResponses];
 
 export type ReadMeApiV1MeGetData = {
     body?: never;

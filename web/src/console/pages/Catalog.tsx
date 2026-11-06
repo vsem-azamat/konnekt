@@ -112,6 +112,9 @@ function Catalog() {
                 // Hidden, and changed by its owner since: back for a decision.
                 profile.status === 'banned' ? (
                   <Trans>скрыта, автор изменил анкету</Trans>
+                ) : profile.show_on_site ? (
+                  // Keeping it puts it on the open web: the operator must know.
+                  <Trans>просит страницу на konnekt.cz</Trans>
                 ) : (
                   profile.services.join(', ')
                 )
