@@ -1111,3 +1111,33 @@ async def test_a_profile_asking_for_a_site_page_says_so_and_queues_by_the_asking
     assert [row["user_id"] for row in ours] == [old.id, newer.id]
     assert [row["show_on_site"] for row in ours] == [True, False]
     assert detail["show_on_site"] is True
+    assert detail["on_site"] is False, "asked, not looked at yet"
+
+
+async def test_the_sheet_says_whether_the_site_shows_the_profile(
+    session: AsyncSession, helper_factory
+) -> None:
+    """By the site's own rule: switched on and looked at is not enough when hidden."""
+    user = await _fresh_helper(helper_factory, session, 97620)
+    profile = await session.get(HelperProfile, user.id)
+    assert profile is not None
+    profile.show_on_site = True
+    profile.reviewed_at = datetime.now(UTC)
+    await session.flush()
+
+    async with _client(session) as http:
+        shown = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user.id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+        profile.status = PublishStatus.HIDDEN
+        await session.flush()
+        hidden = (
+            await http.get(
+                f"/api/v1/admin/profiles/{user.id}", headers=auth_header(OPERATOR)
+            )
+        ).json()
+
+    assert shown["on_site"] is True
+    assert hidden["on_site"] is False

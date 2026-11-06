@@ -3743,6 +3743,10 @@
           "show_on_site": {
             "type": "boolean",
             "title": "Show On Site"
+          },
+          "on_site": {
+            "type": "boolean",
+            "title": "On Site"
           }
         },
         "type": "object",
@@ -3759,7 +3763,8 @@
           "updated_at",
           "hidden_reason",
           "hidden_note",
-          "show_on_site"
+          "show_on_site",
+          "on_site"
         ],
         "title": "AdminProfileDetail",
         "description": "One profile as the operator moderates it. Named as the catalog names\npeople, with nothing to reach them by: the console does not contact."

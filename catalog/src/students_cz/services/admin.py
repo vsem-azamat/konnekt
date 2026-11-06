@@ -38,6 +38,7 @@ from students_cz.schemas import (
     AdminRequest,
     AdminSearch,
 )
+from students_cz.services import site
 from students_cz.services.catalog import display_name
 from students_cz.services.errors import Conflict, NotFound
 from students_cz.services.naming import names_by_id
@@ -246,6 +247,7 @@ async def profile(
         hidden_reason=helper.hidden_reason,
         hidden_note=helper.hidden_note,
         show_on_site=helper.show_on_site,
+        on_site=await site.is_on_site(session, user.id),
     )
 
 

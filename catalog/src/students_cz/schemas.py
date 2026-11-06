@@ -784,6 +784,8 @@ class AdminProfileDetail(BaseModel):
     hidden_note: str | None
     # Its owner asked for a page on konnekt.cz: keeping it puts it there.
     show_on_site: bool
+    # The site shows it now, by its own rule (services/site.py).
+    on_site: bool
 
 
 class AdminPlacement(BaseModel):
