@@ -47,7 +47,7 @@ const avatar = (name: string) => {
 <Base lang={lang} path="/" title={t('meta.title')} description={t('hero.subShort')}>
   <Header lang={lang} />
 <main>
-  <div class="wrap hero">
+  <div class={`wrap hero${articles.length > 0 ? "" : " solo"}`}>
     <div class="h-main">
       <h1>{t("hero.short")}</h1>
       <p class="lead">{t("hero.subShort")}</p>
