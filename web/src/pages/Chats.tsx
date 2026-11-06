@@ -159,8 +159,8 @@ export default function ChatsPage() {
         ) : null}
       </div>
 
-      {/* Where the bot and its menu button land everybody, so the few who
-          could teach meet the offer here rather than at the foot of «Помощь».
+      {/* Where the bot and its menu button land everybody, so the offer
+          stands here as well as on the first screen of «Помощь».
           Not while searching: with the keyboard up it would push the results
           under it. */}
       {me.data && !me.data.is_helper && !searching ? (

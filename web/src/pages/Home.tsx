@@ -41,7 +41,9 @@ export default function HomePage() {
   });
 
   // The same `me` the header reads, so the two agree on who is a helper.
-  const { data: me } = useQuery(meQuery);
+  // The shelves wait for it too: the offer row stands above them, and
+  // appearing late it would push the tiles down under a finger.
+  const { data: me, isFetched: meFetched } = useQuery(meQuery);
 
   // Who a business writes to about a free paid place. The same query as the
   // ads page, so it is asked once an hour at most.
@@ -113,7 +115,7 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      {isPending ? (
+      {isPending || !meFetched ? (
         <SkeletonRows count={6} />
       ) : isError ? (
         <Rows>
