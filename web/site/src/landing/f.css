@@ -382,180 +382,6 @@ h1 {
   stroke: currentColor;
   stroke-width: 1.8;
 }
-.hero .card {
-  padding: 16px;
-  border-radius: 22px;
-}
-.h-num b {
-  display: block;
-  font-size: 34px;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.h-num span {
-  display: block;
-  margin-top: 6px;
-  color: var(--soft);
-  font-size: 13px;
-  line-height: 1.3;
-}
-.h-chats {
-  grid-column: 1 / -1;
-}
-.h-chats h3 {
-  font-size: 18px;
-  margin: 0;
-}
-.h-chats .rows {
-  margin-top: 12px;
-}
-.h-stats {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.hero .h-phone {
-  display: none;
-}
-.h-tutors {
-  grid-column: 1 / -1;
-}
-@media (min-width: 720px) and (max-width: 1039px) {
-  .hero {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 12px;
-  }
-  .h-main {
-    grid-column: 1;
-    padding: 36px 32px 20px;
-  }
-  .h-stats {
-    grid-column: 2;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .h-num {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-  .h-num b {
-    font-size: 48px;
-  }
-  .h-chats .rows {
-    grid-template-columns: 1fr 1fr;
-  }
-  .h-tutors .tutors {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1040px) {
-  .hero {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: auto auto;
-    gap: 12px;
-    padding-top: 28px;
-    padding-bottom: 24px;
-  }
-  .h-main {
-    grid-column: 1 / span 5;
-    grid-row: 1;
-    padding: 44px 40px 28px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    min-height: 440px;
-  }
-  .lead {
-    font-size: 19px;
-  }
-  .hero .h-phone {
-    display: flex;
-    flex-direction: column;
-    grid-column: 6 / span 4;
-    grid-row: 1 / span 2;
-    padding: 22px;
-    overflow: hidden;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--t3b) 70%, var(--card)),
-      var(--card)
-    );
-  }
-  .h-phone .phone {
-    margin: auto;
-  }
-  .h-phone h3 {
-    font-size: 20px;
-  }
-  .h-num {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-  .h-stats {
-    grid-column: 10 / span 3;
-    grid-row: 1;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .h-num b {
-    font-size: 60px;
-  }
-  .h-num span {
-    font-size: 15px;
-  }
-  .h-chats {
-    grid-column: 1 / span 5;
-    grid-row: 2;
-  }
-  .h-chats .rows {
-    grid-template-columns: 1fr 1fr;
-  }
-  .h-chats .row {
-    gap: 10px;
-    padding: 10px;
-  }
-  .h-chats .row .av {
-    width: 36px;
-    height: 36px;
-  }
-  .h-chats .row .n i {
-    display: none;
-  }
-  .h-chats .rows .row:nth-child(n + 4) {
-    display: flex;
-  }
-  .h-tutors {
-    grid-column: 10 / span 3;
-    grid-row: 2;
-  }
-  .h-chats,
-  .h-tutors {
-    display: flex;
-    flex-direction: column;
-  }
-  .h-chats .all,
-  .h-tutors .all {
-    margin-top: auto;
-    padding-top: 12px;
-    align-self: flex-start;
-  }
-  .h-chats .row .rt b {
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-height: 1.25;
-  }
-  .hero .card {
-    padding: 22px;
-  }
-}
-
 /* bento */
 .bento {
   display: grid;
@@ -745,89 +571,6 @@ h1 {
   font-size: 44px;
 }
 
-/* tutors: a stack of cards */
-.sample {
-  margin: 18px 0 8px !important;
-  font-size: 13px !important;
-  color: var(--muted) !important;
-}
-.tutors {
-  display: grid;
-  gap: 8px;
-}
-.tutor {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--card);
-  border: 1px solid var(--hair);
-  border-radius: 16px;
-  padding: 12px;
-  min-width: 0;
-}
-.tutor .av {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  flex: none;
-}
-/* The drawn faces are black line art: keep their circle light in both themes. */
-.tutor .av.tone0 {
-  background: #dff0e4;
-}
-.tutor .av.tone2 {
-  background: #e4e1f6;
-}
-.tutor .av.tone3 {
-  background: #dcebf9;
-}
-.tutor .tt {
-  min-width: 0;
-  flex: 1;
-}
-.tutor b {
-  display: block;
-  font-weight: 600;
-}
-.tutor small {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* phone card: the whole phone at a real screen ratio (19.5:9), never stretched
-   to the tile's height; the tile centres it. */
-.phone {
-  flex: none;
-  width: min(100%, 340px);
-  aspect-ratio: 9 / 19.5;
-  border-radius: 40px;
-  background: #0c0c0d;
-  padding: 7px;
-  box-shadow:
-    0 0 0 1.5px #3a3a3e,
-    0 24px 40px -24px rgba(0, 0, 0, 0.45);
-  position: relative;
-}
-.phone::before {
-  content: '';
-  position: absolute;
-  z-index: 2;
-  top: 15px;
-  left: 50%;
-  translate: -50% 0;
-  width: 70px;
-  height: 20px;
-  border-radius: 10px;
-  background: #0c0c0d;
-}
-.phone .am-host {
-  border-radius: 33px;
-}
-
 /* help: the four topics the help screen covers */
 .helps {
   margin-top: 18px;
@@ -957,6 +700,299 @@ h2 {
   font-weight: 800;
   margin: 0;
   text-wrap: balance;
+}
+
+/* ── the first screen, variant E: after the cards and rows it builds on ── */
+.hero .card {
+  padding: 16px;
+  border-radius: 22px;
+}
+.h-chats {
+  grid-column: 1 / -1;
+}
+.h-chats h3 {
+  font-size: 18px;
+  margin: 0;
+}
+.h-chats .rows {
+  margin-top: 12px;
+}
+/* the numbers inside the chats card */
+.cs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cs span {
+  padding: 10px 12px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  border: 1px solid var(--hair);
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--soft);
+}
+.h-chats .cs b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the newest articles: up to four cards of one size, two by two; with fewer,
+   the last cell is all of them, by rubric */
+.ax {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+}
+.ax-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.card .ax-head .eyebrow {
+  margin-bottom: 0;
+}
+.ax-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.ax .ax-all svg,
+.ax .ax-go svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: translate 0.15s;
+}
+.ax .ax-all:hover svg,
+.ax .ax-i:hover .ax-go svg {
+  translate: 3px 0;
+}
+.ax-list {
+  display: grid;
+  gap: 8px;
+}
+.ax-i {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.ax-i:hover {
+  border-color: var(--hair-strong);
+}
+.ax-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ax-tag {
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  color: var(--ink);
+}
+.ax .ax-t {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.ax .ax-d {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.ax-go {
+  margin-top: auto;
+  padding-top: 4px;
+}
+.ax .ax-more > b {
+  font-size: 17px;
+  line-height: 1.25;
+}
+.ax-more {
+  background: var(--card);
+  border: 1px dashed var(--hair-strong);
+}
+.ax-rubs {
+  display: grid;
+  margin-top: auto;
+  font-size: 15px;
+}
+.ax-rubs > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+}
+.ax-more .ax-rubs b {
+  line-height: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* A phone: titles only, and no «all» cell, which the head's link already is. */
+@media (max-width: 719px) {
+  .ax .ax-d,
+  .ax-go,
+  .ax-more {
+    display: none;
+  }
+}
+@media (min-width: 720px) {
+  .ax-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+  }
+  /* After two articles it would sit alone with a hole beside it. */
+  .ax-more.wide {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 720px) and (max-width: 1039px) {
+  .hero {
+    gap: 12px;
+  }
+  .h-main {
+    padding: 36px 32px 20px;
+  }
+  .h-chats .rows {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+/* From 1040px: the title and the articles side by side, the chats across
+   the width under both, one row of them and the numbers beside the title. */
+@media (min-width: 1040px) {
+  .hero {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px;
+    padding-top: 28px;
+    padding-bottom: 24px;
+  }
+  .h-main {
+    grid-column: 1 / span 4;
+    grid-row: 1;
+    padding: 40px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 460px;
+  }
+  /* The column is narrow at 1040px: «студентов» must still fit in it. */
+  .h-main h1 {
+    font-size: clamp(44px, 4.4vw, 56px);
+  }
+  .lead {
+    font-size: 19px;
+  }
+  .ax {
+    grid-column: 5 / span 8;
+    grid-row: 1;
+  }
+  /* No articles in this language yet: the title has the row to itself. */
+  .solo .h-main {
+    grid-column: 1 / -1;
+    min-height: 0;
+    padding-top: 56px;
+  }
+  .solo .h-main h1 {
+    max-width: 14ch;
+  }
+  .ax-list {
+    flex: 1;
+  }
+  .ax-i {
+    padding: 18px 20px 16px;
+    gap: 8px;
+  }
+  .ax .ax-t {
+    font-size: 22px;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+  }
+  .h-chats {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+    column-gap: 24px;
+    align-items: start;
+  }
+  .h-chats > * {
+    grid-column: 1;
+  }
+  .h-chats .eyebrow {
+    justify-self: start;
+  }
+  .h-chats .cs {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin-top: 0;
+  }
+  .h-chats .rows {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .h-chats .row {
+    gap: 10px;
+    padding: 10px;
+  }
+  .h-chats .row .av {
+    width: 36px;
+    height: 36px;
+  }
+  .h-chats .row .n i {
+    display: none;
+  }
+  .h-chats .rows .row:nth-child(n + 5) {
+    display: none;
+  }
+  .h-chats .all {
+    justify-self: start;
+    padding-top: 12px;
+  }
+  .h-chats .row .rt b {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.25;
+  }
+  .hero .card {
+    padding: 22px;
+  }
 }
 
 /* how: three cards joined by a line */
@@ -1226,97 +1262,5 @@ footer .links span {
 @media (min-width: 1120px) {
   nav.subnav {
     display: none;
-  }
-}
-
-/* guides: article cards, the whole card is the link */
-.sec-sub {
-  color: var(--soft);
-  font-size: 18px;
-  max-width: 34em;
-  margin: 12px auto 0;
-  text-wrap: pretty;
-}
-.guides {
-  display: grid;
-  gap: 12px;
-}
-.guide {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 180px;
-  padding: 22px;
-  border-radius: 22px;
-  border: 1px solid var(--hair);
-  box-shadow: var(--shadow);
-  transition:
-    transform 0.15s,
-    border-color 0.15s;
-}
-.guide:hover {
-  transform: translateY(-2px);
-  border-color: var(--hair-strong);
-}
-.g-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.g-tag {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 9px;
-  background: var(--card);
-  border: 1px solid var(--hair);
-}
-.guide h3 {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-.guide p {
-  margin: 0;
-  color: var(--soft);
-  font-size: 15px;
-}
-.g-go {
-  margin-top: auto;
-  padding-top: 10px;
-}
-.g-go svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.more {
-  text-align: center;
-  margin-top: 20px;
-}
-/* As many columns as there are articles, up to the row's count, each a
-   half the row (from 1040px a quarter) at most, centred: one article is not a lone card at
-   the left of an empty row. The page sets --cols2 and --cols4, the counts
-   for a row of two and of four. */
-@media (min-width: 720px) {
-  .guides {
-    grid-template-columns: repeat(var(--cols2, 2), minmax(0, calc((100% - 12px) / 2)));
-    justify-content: center;
-  }
-}
-@media (min-width: 1040px) {
-  .guides {
-    grid-template-columns: repeat(var(--cols4, 4), minmax(0, calc((100% - 36px) / 4)));
-  }
-  .guide {
-    min-height: 240px;
   }
 }

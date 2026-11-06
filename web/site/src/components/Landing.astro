@@ -1,25 +1,20 @@
 ---
+import { published } from '../articles/published.ts';
 /**
  * Landing F in one language, rendered at build time: every word is in the
  * HTML, for search engines and for a phone that has not run a script yet.
  * The prototype (konnekt-video, accepted by Azamat in agora 10062) built the
- * same page in the browser from the same data (data.ts).
+ * same page in the browser from the same data (data.ts). Its first screen is
+ * variant E (agora 11888): the title beside the newest articles, four to a
+ * 2×2 block, and the chats across the width under both.
  */
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import {
-  t as copy,
-  num as number,
-  openLink,
-  phone as phoneOf,
-  v as variant,
-} from '../landing/copy.ts';
+import { t as copy, num as number, openLink, v as variant } from '../landing/copy.ts';
 import { CHATS, STATS } from '../landing/data.ts';
-import '../landing/phone.css';
-import { published } from '../articles/published.ts';
 import Base from '../layouts/Base.astro';
-import { articlePath, type Lang, localePath } from '../paths.ts';
-import { TEXTS } from '../texts.ts';
+import { articlePath, type Lang, localePath, rubricTally } from '../paths.ts';
+import { articleCount, longDate, TEXTS } from '../texts.ts';
 
 interface Props {
   lang: Lang;
@@ -29,12 +24,15 @@ const { lang } = Astro.props;
 const t = (key: string) => copy(lang, key);
 const v = (key: string) => variant(lang, key);
 const num = (n: number) => number(lang, n);
-const phone = phoneOf(lang);
-// The newest articles in this language; the block is left out while there are none.
-const articles = (await published(lang)).slice(0, 4);
-const WASHES = ['wash3', 'wash2', 'wash0', 'wash1'];
+// The articles in this language, newest first; the block is left out while
+// there are none. Four fill it; with fewer, the last cell is all of them.
+const all = await published(lang);
+const articles = all.slice(0, 4);
+const rubrics = rubricTally(all.map((article) => ({ rubric: article.data.rubric })));
+const arrow =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
-// The chats' own avatars and the drawn tutors, emitted with hashed names.
+// The chats' own avatars, emitted with hashed names.
 const files = import.meta.glob<string>('../landing/av/*.{jpg,svg}', {
   eager: true,
   query: '?url',
@@ -50,7 +48,7 @@ const avatar = (name: string) => {
 <Base lang={lang} path="/" title={t('meta.title')} description={t('hero.subShort')}>
   <Header lang={lang} />
 <main>
-  <div class="wrap hero">
+  <div class={`wrap hero${articles.length > 0 ? "" : " solo"}`}>
     <div class="h-main">
       <h1>{t("hero.short")}</h1>
       <p class="lead">{t("hero.subShort")}</p>
@@ -59,29 +57,35 @@ const avatar = (name: string) => {
         <div class="later"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg><span>{t("cta.note")}</span></div>
       </div>
     </div>
-    <div class="h-stats">
-      <div class="card h-num wash0"><b>{num(STATS.students)}</b><span>{t("stats.students")}</span></div>
-      <div class="card h-num wash2"><b>{num(STATS.chats)}</b><span>{t("stats.chats")}</span></div>
-    </div>
-    <div class="card h-phone">
-      <span class="eyebrow"><svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg><span>{v("app")}</span></span>
-      <h3>{v("appTitle")}</h3>
-      <div class="phone" aria-hidden="true"><div data-app="help" class="am-host"><div class="am" set:html={phone} /></div></div>
-    </div>
+    {articles.length > 0 && (
+      <section class="card ax" aria-label={t("nav.guides")}>
+        <div class="ax-head"><span class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg><span>{t("nav.guides")}</span></span><a class="ax-all" href={localePath(lang, "/articles/")}><span>{t("guides.all")}</span><Fragment set:html={arrow} /></a></div>
+        <div class="ax-list">
+          {articles.map((article) => (
+            <a class="ax-i" href={articlePath(article.id)}>
+              <small class="ax-meta"><span class="ax-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span><span>{longDate(lang, article.data.published)}</span></small>
+              <h3 class="ax-t">{article.data.title}</h3>
+              <p class="ax-d">{article.data.description}</p>
+              <span class="ax-go" aria-hidden="true"><Fragment set:html={arrow} /></span>
+            </a>
+          ))}
+          {articles.length < 4 && (
+            <a class={`ax-i ax-more${articles.length === 2 ? " wide" : ""}`} href={localePath(lang, "/articles/")}>
+              <small class="ax-meta"><span>{articleCount(lang, all.length)}</span></small>
+              <b>{t("guides.all")}</b>
+              <span class="ax-rubs">{rubrics.map(([rubric, n]) => <span><span>{TEXTS[lang].rubrics[rubric]}</span><b>{num(n)}</b></span>)}</span>
+              <span class="ax-go" aria-hidden="true"><Fragment set:html={arrow} /></span>
+            </a>
+          )}
+        </div>
+      </section>
+    )}
     <div class="card h-chats wash3" id="chats">
       <span class="eyebrow"><svg viewBox="0 0 24 24"><path d="M4 12a8 7 0 1 1 3.5 5.8L4 19l1-3.2A6.6 6.6 0 0 1 4 12z"/></svg><span>{t("nav.chats")}</span></span>
       <h3>{t("chats.title")}</h3>
+      <div class="cs"><span><b>{num(STATS.students)}</b> {t("stats.students")}</span><span><b>{num(STATS.chats)}</b> {t("stats.chats")}</span></div>
       <div class="rows" id="rows">{CHATS.map((x) => <div class="row"><img class="av" src={avatar(`${x.av}.jpg`)} alt="" width="40" height="40" loading="lazy" /><span class="rt"><b>{x.title}</b><small>{x.city}</small></span><span class="n"><i></i>{num(x.members)}</span></div>)}</div>
-      <a class="all" href={openLink("site_chats")}><span>{v("allChats")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
-    <div class="card h-tutors wash1" id="tutors">
-      <span class="eyebrow"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>{v("sample")}</span></span>
-      <div class="tutors" aria-hidden="true">
-        <div class="tutor"><img class="av tone0" src={avatar("p-eva.svg")} alt=""><div class="tt"><b>Ева Новак</b><small><span>{t("app.subject1")}</span></small></div></div>
-        <div class="tutor"><img class="av tone2" src={avatar("p-marta.svg")} alt=""><div class="tt"><b>Марта Коваль</b><small><span>{t("app.subject2")}</span> · <span>{t("app.format")}</span></small></div></div>
-        <div class="tutor"><img class="av tone3" src={avatar("p-oleg.svg")} alt=""><div class="tt"><b>Олег Марченко</b><small><span>{t("app.subject3")}</span> · <span>{t("app.format")}</span></small></div></div>
-      </div>
-      <a class="all" href="#offer"><span>{v("beTutor")}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="all" href={openLink("site_chats")}><span>{v("allChats")}</span><Fragment set:html={arrow} /></a>
     </div>
   </div>
 
@@ -112,25 +116,6 @@ const avatar = (name: string) => {
       <div class="step"><span class="n tone0">3</span><div><h3>{t("how.3.title")}</h3><p>{t("how.3.text")}</p></div></div>
     </div>
   </section>
-
-  {
-    articles.length > 0 && (
-      <section class="wrap" id="guides">
-        <div class="sec-head"><h2>{t("guides.title")}</h2><p class="sec-sub">{t("guides.text")}</p></div>
-        <div class="guides" style={`--cols2: ${Math.min(articles.length, 2)}; --cols4: ${Math.min(articles.length, 4)}`}>
-          {articles.map((article, index) => (
-            <a class={`guide ${WASHES[index % WASHES.length]}`} href={articlePath(article.id)}>
-              <span class="g-top"><span class="g-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span></span>
-              <h3>{article.data.title}</h3>
-              <p>{article.data.description}</p>
-              <span class="g-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-            </a>
-          ))}
-        </div>
-        <div class="more"><a class="ghost" href={localePath(lang, "/articles/")}>{t("guides.all")}</a></div>
-      </section>
-    )
-  }
 
   <div class="wrap">
     <div class="offer" id="offer">
@@ -163,11 +148,11 @@ const avatar = (name: string) => {
 
 <script>
   // The link of the section being read is marked in both navs, as in the
-  // prototype. Chats and tutors share a row on wide screens, so a click picks.
+  // prototype. Sections that share a row on wide screens let a click pick.
   const head = document.querySelector<HTMLElement>('.top');
   const links = document.querySelectorAll<HTMLAnchorElement>('.nav a, .subnav a, .menu-panel a');
-  // «guides» is no menu item now, but reaching it ends «how»'s mark.
-  const ids = ['chats', 'tutors', 'help', 'how', 'guides'];
+  // «offer» is no menu item, but reaching it ends «how»'s mark.
+  const ids = ['chats', 'help', 'how', 'offer'];
   let picked: string | null = null;
   let current: string | null | undefined;
   const mark = (id: string | null) => {

@@ -165,6 +165,19 @@ export function newestPublished<
     .sort((a, b) => b.published.valueOf() - a.published.valueOf());
 }
 
+/**
+ * How many articles each rubric has, in the order the rubrics first appear:
+ * given newest first, the newest article's rubric leads. The landing's
+ * «Все статьи» cell.
+ */
+export function rubricTally<R extends string>(
+  articles: readonly { rubric: R }[],
+): [R, number][] {
+  const counts = new Map<R, number>();
+  for (const { rubric } of articles) counts.set(rubric, (counts.get(rubric) ?? 0) + 1);
+  return [...counts];
+}
+
 /** Slugs the section's own pages take: an article by one of these names would hide them. */
 export const RESERVED_SLUGS = ['topics', 'tags'];
 

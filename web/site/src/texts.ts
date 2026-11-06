@@ -173,6 +173,21 @@ export const TEXTS: Record<Lang, Texts> = {
   },
 };
 
+/** «3 статьи», «5 статей»: each language's forms, `#` for the number. */
+const ARTICLE_COUNT: Record<Lang, Partial<Record<Intl.LDMLPluralRule, string>>> = {
+  ru: { one: '# статья', few: '# статьи', many: '# статей', other: '# статьи' },
+  uk: { one: '# стаття', few: '# статті', many: '# статей', other: '# статті' },
+  cs: { one: '# článek', few: '# články', many: '# článku', other: '# článků' },
+  en: { one: '# article', other: '# articles' },
+};
+
+/** How many articles there are, in the form the number asks for. */
+export function articleCount(lang: Lang, n: number): string {
+  const forms = ARTICLE_COUNT[lang];
+  const form = forms[new Intl.PluralRules(lang).select(n)] ?? forms.other ?? '#';
+  return form.replace('#', String(n));
+}
+
 /** A day as the page shows it: «3 ноября 2026». Frontmatter dates are UTC midnight. */
 export function longDate(lang: Lang, date: Date): string {
   return new Intl.DateTimeFormat(lang, {

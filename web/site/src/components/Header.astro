@@ -33,7 +33,6 @@ const home = path === '/' ? '' : localePath(lang, '/');
 const section = navSection(path);
 const items = [
   { href: `${home}#chats`, label: t('nav.chats'), section: 'chats' },
-  { href: `${home}#tutors`, label: t('nav.tutors'), section: null },
   { href: `${home}#help`, label: t('nav.help'), section: null },
   { href: `${home}#how`, label: t('nav.how'), section: null },
   ...(articles
