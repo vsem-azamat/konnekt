@@ -7,7 +7,8 @@ import {
   jsonLd,
   profileGraph,
 } from '../site/src/articles/structured.ts';
-import { newestPublished } from '../site/src/paths.ts';
+import { newestPublished, rubricTally } from '../site/src/paths.ts';
+import { articleCount } from '../site/src/texts.ts';
 
 const site = 'https://konnekt.cz/';
 const azamat = {
@@ -133,4 +134,28 @@ test('the landing shows the newest published articles in its language only', () 
     ['ru/new', 'ru/old'],
   );
   assert.deepEqual(newestPublished(articles, 'cs'), []);
+});
+
+test('the count of articles takes the form its number asks for', () => {
+  assert.equal(articleCount('ru', 1), '1 статья');
+  assert.equal(articleCount('ru', 3), '3 статьи');
+  assert.equal(articleCount('ru', 5), '5 статей');
+  assert.equal(articleCount('ru', 21), '21 статья');
+  assert.equal(articleCount('uk', 3), '3 статті');
+  assert.equal(articleCount('uk', 11), '11 статей');
+  assert.equal(articleCount('cs', 1), '1 článek');
+  assert.equal(articleCount('cs', 3), '3 články');
+  assert.equal(articleCount('cs', 5), '5 článků');
+  assert.equal(articleCount('en', 1), '1 article');
+  assert.equal(articleCount('en', 3), '3 articles');
+});
+
+test('the landing counts the articles by rubric, the newest one’s rubric first', () => {
+  const rubrics = ['visa', 'admission', 'visa', 'housing'] as const;
+  assert.deepEqual(rubricTally(rubrics.map((rubric) => ({ rubric }))), [
+    ['visa', 2],
+    ['admission', 1],
+    ['housing', 1],
+  ]);
+  assert.deepEqual(rubricTally([]), []);
 });
