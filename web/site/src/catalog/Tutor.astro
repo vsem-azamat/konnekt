@@ -1,0 +1,146 @@
+---
+/**
+ * One tutor's page: what they offer, in their words, and the way to write to
+ * them, which is through the app (`/open?start=helper-<id>`), never a handle:
+ * there the contact is counted, and there it can be refused.
+ */
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import Base from '../layouts/Base.astro';
+import { localePath } from '../paths.ts';
+import { jsonLd } from './catalog.ts';
+import './catalog.css';
+import './tutors.css';
+import type { TutorProps } from './load.ts';
+import { CATALOG_TEXTS } from './texts.ts';
+import { priceText, tutorPath } from './tutors.ts';
+import { TUTOR_TEXTS } from './tutorTexts.ts';
+
+type Props = TutorProps;
+
+const { lang, tutor: p } = Astro.props;
+const c = CATALOG_TEXTS[lang];
+const t = TUTOR_TEXTS[lang];
+const path = `/tutors/${p.slug}/`;
+const what = p.headline ?? p.subjects.slice(0, 3).join(', ');
+const describe = (p.about ?? what ?? p.services.join(', '))
+  .replace(/\s+/g, ' ')
+  .slice(0, 140);
+const site = Astro.site?.href ?? '/';
+const page = new URL(tutorPath(lang, p.slug), site).href;
+const open = `/api/v1/open?start=helper-${p.user_id}`;
+const arrow =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+// What search engines read: a profile page about a person and what they offer.
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'ProfilePage',
+      '@id': page,
+      url: page,
+      name: t.pageTitle(p.name, what || null),
+      inLanguage: lang,
+      mainEntity: {
+        '@type': 'Person',
+        name: p.name,
+        ...(what ? { description: what } : {}),
+        ...(p.langs.length ? { knowsLanguage: p.langs } : {}),
+        makesOffer: p.offers.map((o) => ({
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: [o.service, o.subject].filter(Boolean).join(': '),
+          },
+          ...(o.price ? { price: o.price.amount, priceCurrency: o.price.currency } : {}),
+        })),
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: c.home,
+          item: new URL(localePath(lang, '/'), site).href,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: t.section,
+          item: new URL(localePath(lang, '/tutors/'), site).href,
+        },
+        { '@type': 'ListItem', position: 3, name: p.name, item: page },
+      ],
+    },
+  ],
+};
+---
+
+<Base lang={lang} path={path} title={t.pageTitle(p.name, what || null)} description={t.pageDescription(p.name, describe)}>
+  <script is:inline type="application/ld+json" set:html={jsonLd(schema)} />
+  <Header lang={lang} path={path} />
+  <main class="wrap cat">
+    <ol class="crumbs" aria-label={c.nav}>
+      <li><a href={localePath(lang, '/')}>{c.home}</a></li>
+      <li><a href={localePath(lang, '/tutors/')}>{t.section}</a></li>
+      <li aria-current="page">{p.name}</li>
+    </ol>
+
+    <div class={`card cat-hero with-side wash${p.tone % 4}`}>
+      <div class="cat-hero tut-head">
+        <span class={`mono big tone${p.tone}`} aria-hidden="true">{p.initials}</span>
+        <div>
+          <h1>{p.name}</h1>
+          {what && <p class="lead">{what}</p>}
+          <p class="facts">{[t.formats[p.work_format], p.city, p.place_note].filter(Boolean).join(' · ')}</p>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" href={open}><span>{t.write}</span><Fragment set:html={arrow} /></a>
+        <div class="later">{t.writeNote}</div>
+      </div>
+    </div>
+
+    {
+      p.about && (
+        <section class="sec" aria-labelledby="s-about">
+          <header><h2 id="s-about">{t.about}</h2></header>
+          <p class="tut-about">{p.about}</p>
+        </section>
+      )
+    }
+
+    {
+      p.offers.length > 0 && (
+        <section class="sec" aria-labelledby="s-offers">
+          <header><h2 id="s-offers">{t.offers}</h2></header>
+          <div class="tut-offers">
+            {p.offers.map((o) => {
+              const price = priceText(lang, o.price);
+              return (
+                <div class="card tut-offer">
+                  <h3>{[o.service, o.subject].filter(Boolean).join(' · ')}</h3>
+                  <small>{[o.institution, t.formats[o.work_format], o.langs.map((l) => l.toUpperCase()).join(', ')].filter(Boolean).join(' · ')}</small>
+                  {o.options.length > 0 && <ul>{o.options.map((x) => <li>{x}</li>)}</ul>}
+                  {o.note && <p>{o.note}</p>}
+                  {price && <span class="price">{price}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      p.langs.length > 0 && (
+        <p class="note">{t.langs}: {p.langs.map((l) => l.toUpperCase()).join(', ')}</p>
+      )
+    }
+    <p class="note"><a href={localePath(lang, '/tutors/')}>{t.all}</a></p>
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>

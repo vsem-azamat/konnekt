@@ -16,7 +16,8 @@ import {
   universitiesWithChats,
 } from './catalog.ts';
 import { langOf, notFound, unavailable } from './page.ts';
-import { publicChats, universities } from './source.ts';
+import { publicChats, tutor, tutors, universities } from './source.ts';
+import { idFromSlug, type TutorCard, type TutorPage, tutorPath } from './tutors.ts';
 
 async function both(
   lang: Lang,
@@ -123,4 +124,58 @@ export async function chatsPage(
     filtered: url.search !== '',
     total: data.chats.length,
   };
+}
+
+export interface TutorsProps {
+  lang: Lang;
+  list: TutorCard[];
+}
+
+export async function tutorsPage(
+  prefix: string | undefined,
+): Promise<TutorsProps | Response> {
+  const lang = langOf(prefix);
+  if (!lang) return notFound();
+  try {
+    return { lang, list: await tutors(lang) };
+  } catch (error) {
+    console.error('tutors page: no data to render', error);
+    return unavailable(lang);
+  }
+}
+
+export interface TutorProps {
+  lang: Lang;
+  tutor: TutorPage;
+}
+
+/**
+ * A tutor's page by the id its slug ends with. A slug whose name part is not
+ * the catalog's (an old one, after a change of name) is sent to the current
+ * one for good: the id is the same person.
+ */
+export async function tutorPage(
+  prefix: string | undefined,
+  slug: string | undefined,
+): Promise<TutorProps | Response> {
+  const lang = langOf(prefix);
+  const id = idFromSlug(slug);
+  if (!lang || id === null) return notFound();
+  let page: TutorPage | null;
+  try {
+    page = await tutor(lang, id);
+  } catch (error) {
+    console.error('tutor page: no data to render', error);
+    return unavailable(lang);
+  }
+  if (!page) return notFound();
+  if (page.slug !== slug)
+    return new Response(null, {
+      status: 301,
+      headers: {
+        Location: tutorPath(lang, page.slug),
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  return { lang, tutor: page };
 }

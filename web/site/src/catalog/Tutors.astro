@@ -1,0 +1,74 @@
+---
+/**
+ * Everybody who asked to be on the site, as the catalog orders them. Empty
+ * until somebody turns «Страница на konnekt.cz» on: then it invites, and is
+ * kept out of search, since a page of nobody is no answer to anything.
+ */
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { openLink } from '../landing/copy.ts';
+import Base from '../layouts/Base.astro';
+import { localePath } from '../paths.ts';
+import './catalog.css';
+import './tutors.css';
+import type { TutorsProps } from './load.ts';
+import { CATALOG_TEXTS } from './texts.ts';
+import { priceText, tutorPath } from './tutors.ts';
+import { TUTOR_TEXTS } from './tutorTexts.ts';
+
+type Props = TutorsProps;
+
+const { lang, list } = Astro.props;
+const c = CATALOG_TEXTS[lang];
+const t = TUTOR_TEXTS[lang];
+const path = '/tutors/';
+const arrow =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+---
+
+<Base lang={lang} path={path} title={t.title} description={t.description} noindex={list.length === 0}>
+  <Header lang={lang} path={path} />
+  <main class="wrap cat">
+    <ol class="crumbs" aria-label={c.nav}>
+      <li><a href={localePath(lang, '/')}>{c.home}</a></li>
+      <li aria-current="page">{t.section}</li>
+    </ol>
+    <div class="cat-hero">
+      <h1>{t.h1}</h1>
+      <p class="lead">{t.lead}</p>
+    </div>
+
+    {
+      list.length === 0 ? (
+        <div class="card sec thin">
+          <h2>{t.emptyTitle}</h2>
+          <p>{t.emptyText}</p>
+          <a class="all" href={openLink('site_tutors')}><span>{t.become}</span><Fragment set:html={arrow} /></a>
+        </div>
+      ) : (
+        <div class="cat-grid tut-grid">
+          {list.map((row) => {
+            const price = priceText(lang, row.price_from);
+            const what = row.headline ?? row.subjects.slice(0, 3).join(', ');
+            return (
+              <a class="card tut" href={tutorPath(lang, row.slug)}>
+                <span class={`mono tone${row.tone}`} aria-hidden="true">{row.initials}</span>
+                <span class="tt">
+                  <b>{row.name}</b>
+                  {what && <span>{what}</span>}
+                  <small>
+                    {[row.services.join(', '), t.formats[row.work_format], row.city].filter(Boolean).join(' · ')}
+                  </small>
+                  {price && <span class="price">{t.from} {price}</span>}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      )
+    }
+
+    {list.length > 0 && <p class="note"><a href={openLink('site_tutors')}>{t.become}</a></p>}
+  </main>
+  <Footer lang={lang} path={path} />
+</Base>
