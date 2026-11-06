@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 
 import { AppHeader } from '@/components/AppHeader';
 import { ChatRow, ChatTitle, Members } from '@/components/ChatRow';
-import { CloseIcon, SearchIcon } from '@/components/icons';
+import { CloseIcon, PlusIcon, SearchIcon } from '@/components/icons';
 import { CityName, TopicHeading } from '@/components/Place';
 import {
   Action,
@@ -158,6 +158,27 @@ export default function ChatsPage() {
           </button>
         ) : null}
       </div>
+
+      {/* Where the bot and its menu button land everybody, so the few who
+          could teach meet the offer here rather than at the foot of «Помощь». */}
+      {me.data && !me.data.is_helper ? (
+        <div style={{ marginTop: 12 }}>
+          <Rows>
+            <Row
+              outline
+              onClick={() => navigate('/offer', { state: { from: 'chats' } })}
+              leading={
+                <Tile tone={1}>
+                  <PlusIcon size={19} />
+                </Tile>
+              }
+              title={<Trans>Стать репетитором</Trans>}
+              hint={<Trans>Предложи услугу — студенты напишут сами</Trans>}
+              trailing={<Chevron />}
+            />
+          </Rows>
+        </div>
+      ) : null}
 
       {/* Not while searching: a search looks through every city. */}
       {choices.length > 1 && !searching ? (

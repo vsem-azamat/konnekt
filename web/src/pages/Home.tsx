@@ -11,7 +11,6 @@ import {
   AvatarStack,
   Chevron,
   Count,
-  Label,
   Row,
   Rows,
   Screen,
@@ -91,6 +90,29 @@ export default function HomePage() {
         <span>{t`математический анализ, čeština B2…`}</span>
       </button>
 
+      {/* The way in for the few who could offer something, on the first
+          screen: a link from a chat's greeting opens the app here, and below
+          the shelves nobody who came for a chat ever saw it. Not drawn until
+          `me` has answered: a helper must not see it flash in and out. */}
+      {me && !me.is_helper ? (
+        <div style={{ marginTop: 12 }}>
+          <Rows>
+            <Row
+              outline
+              onClick={() => navigate('/offer', { state: { from: 'home' } })}
+              leading={
+                <Tile tone={1}>
+                  <PlusIcon size={19} />
+                </Tile>
+              }
+              title={<Trans>Стать репетитором</Trans>}
+              hint={<Trans>Предложи услугу — студенты напишут сами</Trans>}
+              trailing={<Chevron />}
+            />
+          </Rows>
+        </div>
+      ) : null}
+
       {isPending ? (
         <SkeletonRows count={6} />
       ) : isError ? (
@@ -145,33 +167,6 @@ export default function HomePage() {
           {paid ? <Showcase shelf={paid} contact={contact} onPick={pick} /> : null}
         </>
       )}
-
-      {/* The way in for the few who could offer something, under the shelves
-          rather than above them: most people here came to find help, and the
-          grid is theirs. Worded as the profile's card is, so the offer reads
-          the same wherever it is made. Not drawn until `me` has answered: a
-          helper must not see it flash in and out. */}
-      {me && !me.is_helper ? (
-        <>
-          <Label>
-            <Trans>Помогать другим</Trans>
-          </Label>
-          <Rows>
-            <Row
-              outline
-              onClick={() => navigate('/offer', { state: { from: 'home' } })}
-              leading={
-                <Tile tone={1}>
-                  <PlusIcon size={19} />
-                </Tile>
-              }
-              title={<Trans>Умеешь то, что нужно другим?</Trans>}
-              hint={<Trans>Предложи услугу — студенты напишут сами</Trans>}
-              trailing={<Chevron />}
-            />
-          </Rows>
-        </>
-      ) : null}
 
       {empty ? (
         <EmptyServiceSheet service={empty} onClose={() => setEmpty(null)} />

@@ -652,7 +652,6 @@ msgstr "Reklama nebo spam"
 #~ msgid "могут получить сообщение"
 #~ msgstr "mohou dostat zprávu"
 
-#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
@@ -2027,7 +2026,6 @@ msgstr "Moderovat"
 msgid "Описание чата не обновится по шаблону."
 msgstr "Popis chatu se podle šablony neaktualizuje."
 
-#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
 msgstr "Pomáhat ostatním"
@@ -2205,6 +2203,7 @@ msgstr "počítáme od {from}"
 msgid "Общее"
 msgstr "Obecné"
 
+#: src/pages/Chats.tsx
 #: src/pages/Home.tsx
 msgid "Предложи услугу — студенты напишут сами"
 msgstr "Nabídni službu — studenti se ti ozvou sami"
@@ -2713,6 +2712,11 @@ msgstr "Ban nebude fungovat a captcha v chatu nováčkovi nezakáže psát."
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Čt"
+
+#: src/pages/Chats.tsx
+#: src/pages/Home.tsx
+msgid "Стать репетитором"
+msgstr "Stát se doučovatelem"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx

@@ -1145,7 +1145,7 @@ export type OfferOpened = {
     /**
      * Source
      */
-    source: 'home' | 'tab' | 'profile' | 'results' | 'my-helper' | 'link' | 'other';
+    source: 'home' | 'chats' | 'tab' | 'profile' | 'results' | 'my-helper' | 'link' | 'other';
 };
 
 /**
