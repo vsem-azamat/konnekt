@@ -365,7 +365,7 @@ msgstr "Odpověď nedorazila. Než to zkusíte znovu, zkontrolujte seznam: karta
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Анкету видят только в приложении."
-msgstr "{'en': 'Only people in the app see your profile.', 'cs': 'Profil vidí jen lidé v aplikaci.', 'uk': 'Анкету бачать лише в застосунку.'}"
+msgstr "Profil vidí jen lidé v aplikaci."
 
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
@@ -487,7 +487,7 @@ msgstr "Captcha v chatu"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Страница на konnekt.cz"
-msgstr "{'en': 'Page on konnekt.cz', 'cs': 'Stránka na konnekt.cz', 'uk': 'Сторінка на konnekt.cz'}"
+msgstr "Stránka na konnekt.cz"
 
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
@@ -585,7 +585,7 @@ msgstr "Odpovědět"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Показывать"
-msgstr "{'en': 'Show', 'cs': 'Zobrazovat', 'uk': 'Показувати'}"
+msgstr "Zobrazovat"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновлено"
@@ -1246,6 +1246,10 @@ msgstr "nikam: stojí samostatně"
 msgid "Их видно на твоей странице."
 msgstr "Jsou vidět na tvé stránce."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Сначала верни анкету в каталог."
+msgstr "Nejdřív vrať profil do katalogu."
+
 #: src/components/Place.tsx
 msgid "Вузы"
 msgstr "Vysoké školy"
@@ -1675,7 +1679,7 @@ msgstr "v katalogu"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Не показывать"
-msgstr "{'en': \"Don't show\", 'cs': 'Nezobrazovat', 'uk': 'Не показувати'}"
+msgstr "Nezobrazovat"
 
 #: src/components/Phrase.tsx
 msgid "И то, и другое"
@@ -2766,7 +2770,7 @@ msgstr "30 dní"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
-msgstr "{'en': 'Once reviewed, your profile will appear on konnekt.cz and in Google search. People can only write to you through Konnekt.', 'cs': 'Po kontrole se profil objeví na webu konnekt.cz a ve vyhledávání Google. Napsat ti půjde jen přes Konnekt.', 'uk': \"Після перевірки анкета з'явиться на сайті konnekt.cz і в пошуку Google. Написати тобі можна буде лише через Konnekt.\"}"
+msgstr "Po kontrole se profil objeví na webu konnekt.cz a ve vyhledávání Google. Napsat ti půjde jen přes Konnekt."
 
 #: src/components/Showcase.tsx
 msgid "Хочешь, чтобы здесь была твоя услуга? Напиши нам — обсудим условия. Карточку с фото и текстом сделаем сами."
@@ -3681,6 +3685,10 @@ msgstr "Pracuje přímo s touhle školou"
 #: src/components/ChatRow.tsx
 msgid "Открыть канал"
 msgstr "Otevřít kanál"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Пока анкета скрыта администратором, на сайте её нет."
+msgstr "Dokud profil skrývá administrátor, na webu není."
 
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"

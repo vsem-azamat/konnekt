@@ -273,9 +273,12 @@ export default function MyHelperAboutPage() {
           <Label>
             <Trans>Страница на konnekt.cz</Trans>
           </Label>
+          {/* The site shows only what the catalog lists (catalog/services/site.py):
+              out of it, the choice is kept for when the profile is back. */}
           <Segmented
             value={onSite ? 'on' : 'off'}
             onChange={(value) => setOnSite(value === 'on')}
+            disabled={banned || !listed}
             options={[
               { value: 'on', label: <Trans>Показывать</Trans> },
               { value: 'off', label: <Trans>Не показывать</Trans> },
@@ -283,7 +286,11 @@ export default function MyHelperAboutPage() {
           />
           <div style={{ marginTop: 9 }}>
             <Hint>
-              {onSite ? (
+              {banned ? (
+                <Trans>Пока анкета скрыта администратором, на сайте её нет.</Trans>
+              ) : !listed ? (
+                <Trans>Сначала верни анкету в каталог.</Trans>
+              ) : onSite ? (
                 <Trans>
                   После проверки анкета появится на сайте konnekt.cz и в поиске Google.
                   Написать тебе можно будет только через Konnekt.

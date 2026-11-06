@@ -1245,6 +1245,10 @@ msgstr "ни во что: стоит отдельно"
 msgid "Их видно на твоей странице."
 msgstr "Их видно на твоей странице."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Сначала верни анкету в каталог."
+msgstr "Сначала верни анкету в каталог."
+
 #: src/components/Place.tsx
 msgid "Вузы"
 msgstr "Вузы"
@@ -3680,6 +3684,10 @@ msgstr "Работает именно с этим вузом"
 #: src/components/ChatRow.tsx
 msgid "Открыть канал"
 msgstr "Открыть канал"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Пока анкета скрыта администратором, на сайте её нет."
+msgstr "Пока анкета скрыта администратором, на сайте её нет."
 
 #: src/console/AudienceLabels.tsx
 msgid "заблокировали"
