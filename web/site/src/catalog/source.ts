@@ -33,11 +33,13 @@ function origin(name: 'WEBAPI_URL' | 'CATALOG_API_URL'): string {
   return value.replace(/\/+$/, '');
 }
 
-async function read(url: string): Promise<unknown> {
+async function read(url: string, missing?: 'null'): Promise<unknown> {
   const response = await fetch(url, {
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(TIMEOUT),
   });
+  // A 404 is an answer, that it is not there; anything else is a failure.
+  if (response.status === 404 && missing) return null;
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);
   return response.json();
 }
@@ -112,7 +114,7 @@ export function tutors(lang: Lang): Promise<TutorCard[]> {
   return load();
 }
 
-const tutorPages = new Map<string, () => Promise<TutorPage>>();
+const tutorPages = new Map<string, () => Promise<TutorPage | null>>();
 
 /**
  * One tutor's page, for a tutor `tutors` lists: an id that is not on the list
@@ -125,12 +127,15 @@ export async function tutor(lang: Lang, id: number): Promise<TutorPage | null> {
   let load = tutorPages.get(key);
   if (!load) {
     load = remembered(
-      async () =>
-        sanitizeTutor(
-          await read(
-            `${origin('CATALOG_API_URL')}/api/v1/public/helpers/${id}?lang=${lang}`,
-          ),
-        ),
+      // Gone (404) is an answer and is kept as one: only a failure falls
+      // back to the last page, so a tutor who left is not shown from before.
+      async () => {
+        const payload = await read(
+          `${origin('CATALOG_API_URL')}/api/v1/public/helpers/${id}?lang=${lang}`,
+          'null',
+        );
+        return payload === null ? null : sanitizeTutor(payload);
+      },
       { ttl: KEEP_FOR },
     );
     tutorPages.set(key, load);

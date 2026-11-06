@@ -72,6 +72,7 @@ const UNITS: readonly PriceUnit[] = [
   'semester',
   'item',
 ];
+// The catalog's `negotiable` is no unit of a price: such an offer prints none.
 const FORMATS: readonly WorkFormat[] = ['online', 'offline', 'both'];
 
 export function tutorPath(lang: Lang, slug: string): string {
@@ -84,6 +85,8 @@ export function tutorPath(lang: Lang, slug: string): string {
  * most, so the number is exact.
  */
 export function idFromSlug(slug: string | undefined): number | null {
+  // A slug in capitals is the same tutor, and gets the 301 to the catalog's.
+  slug = slug?.toLowerCase();
   const id = slug ? SLUG.exec(slug)?.[1] : undefined;
   return id ? Number(id) : null;
 }
@@ -173,6 +176,24 @@ export function sanitizeTutor(payload: unknown): TutorPage {
       ? row.offers.map(offer).filter((o): o is TutorOffer => o !== null)
       : [],
   };
+}
+
+/**
+ * What a tutor's page says of them in a search result: their own words, cut
+ * to a snippet, else what they teach, else what they offer; null if nothing.
+ * Without a final full stop, which the sentence around it adds.
+ */
+export function tutorSummary(
+  p: Pick<TutorPage, 'headline' | 'about' | 'subjects' | 'services'>,
+): string | null {
+  const words =
+    p.about || p.headline || p.subjects.slice(0, 3).join(', ') || p.services.join(', ');
+  const line = words
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140)
+    .replace(/[\s.…]+$/, '');
+  return line || null;
 }
 
 const UNIT_NAMES: Record<Lang, Record<PriceUnit, string>> = {
