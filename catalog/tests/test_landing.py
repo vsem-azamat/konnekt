@@ -9,10 +9,10 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import update
+from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from students_cz.db.models import Institution
+from students_cz.db.models import HelperProfile, Institution
 
 from .conftest import BrokenBot, StubBot, app_for
 
@@ -196,5 +196,63 @@ async def test_open_passes_on_only_the_sites_own_sources(app_with, source: str) 
 
     async with await _client(app) as http:
         response = await http.get("/api/v1/open", params={"app": "1", "from": source})
+
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
+
+
+async def test_open_can_start_on_a_helper_the_site_shows(
+    app_with, session: AsyncSession, helper_factory
+) -> None:
+    """«Написать в Konnekt» on a helper's page opens the app on their profile."""
+    user = await helper_factory(tg_id=71001)
+    await session.execute(
+        update(HelperProfile)
+        .where(HelperProfile.user_id == user.id)
+        .values(show_on_site=True, reviewed_at=func.now())
+    )
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": f"helper-{user.id}"})
+
+    assert (
+        response.headers["location"]
+        == f"https://t.me/student_cz_bot?startapp=helper-{user.id}"
+    )
+
+
+async def test_open_does_not_start_on_a_helper_the_site_does_not_show(
+    app_with, session: AsyncSession, helper_factory
+) -> None:
+    """Listed in the app is not enough: the link is the site's, and so is the rule."""
+    user = await helper_factory(tg_id=71002)
+    await session.execute(
+        update(HelperProfile)
+        .where(HelperProfile.user_id == user.id)
+        .values(show_on_site=False, reviewed_at=func.now())
+    )
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": f"helper-{user.id}"})
+
+    assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"
+
+
+@pytest.mark.parametrize(
+    "start",
+    [
+        "helper-",
+        "helper-x",
+        "helper-01",
+        "helper-" + "9" * 19,  # past a bigint, which the database would refuse
+        "helper-" + "9" * 30,
+    ],
+)
+async def test_open_looks_up_only_a_helper_id(app_with, start: str) -> None:
+    app = await app_with(StubBot("student_cz_bot"))
+
+    async with await _client(app) as http:
+        response = await http.get("/api/v1/open", params={"start": start})
 
     assert response.headers["location"] == "https://t.me/student_cz_bot?startapp"

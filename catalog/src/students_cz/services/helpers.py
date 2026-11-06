@@ -90,6 +90,13 @@ async def save_profile(
     _apply_text(helper, spec, lang)
     if "new_request_alerts" in spec.model_fields_set:
         helper.new_request_alerts = spec.new_request_alerts
+    if "show_on_site" in spec.model_fields_set:
+        # Turned on, the profile goes back to an operator before the site shows
+        # it (services/site.py): what a search engine reads it keeps. The app
+        # goes on listing it meanwhile, as any profile on review.
+        if spec.show_on_site and not helper.show_on_site:
+            helper.reviewed_at = None
+        helper.show_on_site = spec.show_on_site
     # Changed, whatever changed: an operator's «Оставить» or «Вернуть» checks
     # it against what they read, and offers live in their own table, where
     # the row's own `onupdate` never sees them. The clock and not now(), which

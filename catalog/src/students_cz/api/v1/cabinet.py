@@ -77,6 +77,7 @@ async def my_helper(session: SessionDep, lang: LangDep, user: UserDep) -> MyHelp
         hidden_reason=helper.hidden_reason if banned else None,
         hidden_note=helper.hidden_note if banned else None,
         new_request_alerts=helper.new_request_alerts,
+        show_on_site=helper.show_on_site,
         offers=await _my_offers(session, lang, offers),
     )
 

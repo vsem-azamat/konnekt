@@ -168,6 +168,12 @@ class HelperProfile(TimestampMixin, Base):
     new_request_alerts: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
+    # Whether konnekt.cz may give this profile a page of its own, open to
+    # anybody and to search engines. Theirs to turn on, and off until they do:
+    # listing in the app is consent to people in the app. See services/site.py.
+    show_on_site: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
     work_format: Mapped[WorkFormat] = mapped_column(
         pg_enum(WorkFormat, "work_format"),
