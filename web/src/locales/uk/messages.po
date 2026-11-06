@@ -1356,7 +1356,6 @@ msgstr "Поки її бачиш тільки ти. Нижче вже стоїт
 msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
 msgstr "чекають до {0, plural, one {# години} few {# годин} many {# годин} other {# години}}"
 
-#: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
 msgid "Оставить"
 msgstr "Залишити"
@@ -1795,6 +1794,11 @@ msgstr "Перевірка не пройшла"
 #: src/console/pages/PartnerNew.tsx
 msgid "Нужен заголовок."
 msgstr "Потрібен заголовок."
+
+#: src/console/ProfileSheet.tsx
+msgctxt "moderation"
+msgid "Оставить"
+msgstr "Залишити"
 
 #: src/pages/Request.tsx
 msgid "Выбрать"
@@ -3990,6 +3994,10 @@ msgstr "Учора"
 #: src/console/pages/Audience.tsx
 msgid "{length} дней по вчера против {length} дней до них. Сегодня отдельно: день не закончился."
 msgstr "{length} днів до вчора проти {length} днів перед ними. Сьогодні окремо: день не скінчився."
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает."
+msgstr "Автор просить сторінку на konnekt.cz, але зараз сайт її не показує."
 
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"

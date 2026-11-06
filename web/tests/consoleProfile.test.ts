@@ -18,6 +18,7 @@ function profile(over: Partial<AdminProfileDetail> = {}): AdminProfileDetail {
     hidden_reason: null,
     hidden_note: null,
     show_on_site: false,
+    on_site: false,
     ...over,
   };
 }

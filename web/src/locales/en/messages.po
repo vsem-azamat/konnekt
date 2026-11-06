@@ -1356,7 +1356,6 @@ msgstr "Only you can see it for now. «In the catalog» is already chosen below:
 msgid "ждут до {0, plural, one {# часа} few {# часов} many {# часов} other {# часа}}"
 msgstr "waiting up to {0, plural, one {# hour} other {# hours}}"
 
-#: src/console/ProfileSheet.tsx
 #: src/pages/Results.tsx
 msgid "Оставить"
 msgstr "Post"
@@ -1795,6 +1794,11 @@ msgstr "The check did not pass"
 #: src/console/pages/PartnerNew.tsx
 msgid "Нужен заголовок."
 msgstr "A title is needed."
+
+#: src/console/ProfileSheet.tsx
+msgctxt "moderation"
+msgid "Оставить"
+msgstr "Keep"
 
 #: src/pages/Request.tsx
 msgid "Выбрать"
@@ -3990,6 +3994,10 @@ msgstr "Yesterday"
 #: src/console/pages/Audience.tsx
 msgid "{length} дней по вчера против {length} дней до них. Сегодня отдельно: день не закончился."
 msgstr "{length} days to yesterday against the {length} days before. Today is apart: it is not over."
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает."
+msgstr "The author asks for a page on konnekt.cz, but the site does not show the profile now."
 
 #: src/components/Phrase.tsx
 msgid "Документы и жизнь"

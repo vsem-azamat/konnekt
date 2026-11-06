@@ -196,13 +196,17 @@ export function ProfileSheet({
             </Hint>
           ) : data.show_on_site ? (
             <Hint>
-              {data.reviewed_at === null ? (
+              {data.on_site ? (
+                <Trans>Анкета есть на konnekt.cz.</Trans>
+              ) : data.reviewed_at === null ? (
                 <Trans>
                   Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт,
                   открытый поиску.
                 </Trans>
               ) : (
-                <Trans>Анкета есть на konnekt.cz.</Trans>
+                <Trans>
+                  Автор просит страницу на konnekt.cz, но сейчас сайт её не показывает.
+                </Trans>
               )}
             </Hint>
           ) : null}
@@ -223,7 +227,7 @@ export function ProfileSheet({
                   {data.status === 'banned' ? (
                     <Trans>Оставить скрытой</Trans>
                   ) : (
-                    <Trans>Оставить</Trans>
+                    <Trans context="moderation">Оставить</Trans>
                   )}
                 </Action>
               ) : action === 'hide' ? (

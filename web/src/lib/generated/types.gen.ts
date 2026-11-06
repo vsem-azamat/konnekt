@@ -256,6 +256,10 @@ export type AdminProfileDetail = {
      * Show On Site
      */
     show_on_site: boolean;
+    /**
+     * On Site
+     */
+    on_site: boolean;
 };
 
 /**
