@@ -194,6 +194,17 @@ export function ProfileSheet({
             <Hint>
               <Trans>Автор сам снял анкету или ещё не опубликовал её.</Trans>
             </Hint>
+          ) : data.show_on_site ? (
+            <Hint>
+              {data.reviewed_at === null ? (
+                <Trans>
+                  Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт,
+                  открытый поиску.
+                </Trans>
+              ) : (
+                <Trans>Анкета есть на konnekt.cz.</Trans>
+              )}
+            </Hint>
           ) : null}
           {failure}
           <div className={ui.actionsStacked}>

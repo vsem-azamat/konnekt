@@ -197,6 +197,10 @@ export type AdminProfile = {
      * Published At
      */
     published_at: string;
+    /**
+     * Show On Site
+     */
+    show_on_site: boolean;
 };
 
 /**
@@ -248,6 +252,10 @@ export type AdminProfileDetail = {
      * Hidden Note
      */
     hidden_note: string | null;
+    /**
+     * Show On Site
+     */
+    show_on_site: boolean;
 };
 
 /**

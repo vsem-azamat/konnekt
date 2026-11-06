@@ -59,6 +59,10 @@ msgstr "Увімкнути"
 msgid "Карточек партнёров пока нет."
 msgstr "Карток партнерів поки немає."
 
+#: src/console/pages/Catalog.tsx
+msgid "просит страницу на konnekt.cz"
+msgstr "просить сторінку на konnekt.cz"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "немає картки"
@@ -1280,6 +1284,10 @@ msgstr "Розібрано"
 msgid "в разделе «Не про учёбу»"
 msgstr "у розділі «Не про навчання»"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкета будет на сайте, когда ты вернёшь её в каталог."
+msgstr "Анкета буде на сайті, коли ти повернеш її в каталог."
+
 #: src/console/pages/Signals.tsx
 #~ msgid "Ни набегов, ни предложенных банов."
 #~ msgstr "Ні набігів, ні запропонованих банів."
@@ -2271,6 +2279,10 @@ msgstr "Реклама за добу"
 #: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Сигнали"
+
+#: src/console/ProfileSheet.tsx
+msgid "Анкета есть на konnekt.cz."
+msgstr "Анкета є на konnekt.cz."
 
 #: src/pages/Helper.tsx
 msgid "Возможно, человек скрыл его."
@@ -4098,6 +4110,10 @@ msgstr "Чат: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Це головний адміністратор."
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт, открытый поиску."
+msgstr "Автор просить сторінку на konnekt.cz: «Залишити» викладе анкету на сайт, відкритий пошуку."
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

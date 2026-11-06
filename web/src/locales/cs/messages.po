@@ -59,6 +59,10 @@ msgstr "Zapnout"
 msgid "Карточек партнёров пока нет."
 msgstr "Zatím žádné karty partnerů."
 
+#: src/console/pages/Catalog.tsx
+msgid "просит страницу на konnekt.cz"
+msgstr "žádá o stránku na konnekt.cz"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "bez karty"
@@ -1280,6 +1284,10 @@ msgstr "Vyřízeno"
 msgid "в разделе «Не про учёбу»"
 msgstr "v sekci «Ne o studiu»"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкета будет на сайте, когда ты вернёшь её в каталог."
+msgstr "Profil bude na webu, až ho vrátíš do katalogu."
+
 #: src/console/pages/Signals.tsx
 #~ msgid "Ни набегов, ни предложенных банов."
 #~ msgstr "Žádné nájezdy ani navržené bany."
@@ -2271,6 +2279,10 @@ msgstr "Reklama za den"
 #: src/console/pages/Summary.tsx
 msgid "Сигналы"
 msgstr "Signály"
+
+#: src/console/ProfileSheet.tsx
+msgid "Анкета есть на konnekt.cz."
+msgstr "Profil je na konnekt.cz."
 
 #: src/pages/Helper.tsx
 msgid "Возможно, человек скрыл его."
@@ -4098,6 +4110,10 @@ msgstr "Chat: {0} ▾"
 #: src/console/Pings.tsx
 msgid "Это главный администратор."
 msgstr "Toto je hlavní administrátor."
+
+#: src/console/ProfileSheet.tsx
+msgid "Автор просит страницу на konnekt.cz: «Оставить» выложит анкету на сайт, открытый поиску."
+msgstr "Autor žádá o stránku na konnekt.cz: „Ponechat“ zveřejní profil na webu, který vidí vyhledávače."
 
 #: src/lib/turnaround.tsx
 msgid "3 дня"

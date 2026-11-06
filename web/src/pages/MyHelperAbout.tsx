@@ -278,7 +278,9 @@ export default function MyHelperAboutPage() {
           <Segmented
             value={onSite ? 'on' : 'off'}
             onChange={(value) => setOnSite(value === 'on')}
-            disabled={banned || !listed}
+            // Out of the catalog it cannot be turned on, but it can be turned
+            // off: consent is withdrawn whatever state the profile is in.
+            disabled={(banned || !listed) && !onSite}
             options={[
               { value: 'on', label: <Trans>Показывать</Trans> },
               { value: 'off', label: <Trans>Не показывать</Trans> },
@@ -288,6 +290,8 @@ export default function MyHelperAboutPage() {
             <Hint>
               {banned ? (
                 <Trans>Пока анкета скрыта администратором, на сайте её нет.</Trans>
+              ) : !listed && onSite ? (
+                <Trans>Анкета будет на сайте, когда ты вернёшь её в каталог.</Trans>
               ) : !listed ? (
                 <Trans>Сначала верни анкету в каталог.</Trans>
               ) : onSite ? (

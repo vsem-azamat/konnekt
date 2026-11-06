@@ -17,6 +17,7 @@ function profile(over: Partial<AdminProfileDetail> = {}): AdminProfileDetail {
     updated_at: '2026-10-19T10:00:00Z',
     hidden_reason: null,
     hidden_note: null,
+    show_on_site: false,
     ...over,
   };
 }
