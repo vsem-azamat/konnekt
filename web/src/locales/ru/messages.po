@@ -362,6 +362,10 @@ msgstr "Изменять профиль группы"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкету видят только в приложении."
+msgstr "Анкету видят только в приложении."
+
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Этот канал ведёт не Konnekt, правила там свои."
@@ -480,6 +484,10 @@ msgstr "Капча в чате"
 #~ msgid "Не выполнено: главного администратора забанить нельзя."
 #~ msgstr "Не выполнено: главного администратора забанить нельзя."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Страница на konnekt.cz"
+msgstr "Страница на konnekt.cz"
+
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "Под этот фильтр сейчас заявок нет"
@@ -573,6 +581,10 @@ msgstr "за неделю"
 #: src/components/Incoming.tsx
 msgid "Откликнуться"
 msgstr "Откликнуться"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Показывать"
+msgstr "Показывать"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновлено"
@@ -1660,6 +1672,10 @@ msgstr "иерархия, защита, модерация"
 msgid "в каталоге"
 msgstr "в каталоге"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Не показывать"
+msgstr "Не показывать"
+
 #: src/components/Phrase.tsx
 msgid "И то, и другое"
 msgstr "И то, и другое"
@@ -2746,6 +2762,10 @@ msgstr "Дешевле"
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
 msgstr "30 дней"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
+msgstr "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
 
 #: src/components/Showcase.tsx
 msgid "Хочешь, чтобы здесь была твоя услуга? Напиши нам — обсудим условия. Карточку с фото и текстом сделаем сами."

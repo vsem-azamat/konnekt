@@ -363,6 +363,10 @@ msgstr "Change group info"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "The answer did not arrive. Before trying again, check the list: the card may have been saved."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Анкету видят только в приложении."
+msgstr "{'en': 'Only people in the app see your profile.', 'cs': 'Profil vidí jen lidé v aplikaci.', 'uk': 'Анкету бачать лише в застосунку.'}"
+
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
 msgstr "Konnekt does not run this channel; it has its own rules."
@@ -481,6 +485,10 @@ msgstr "Captcha in the chat"
 #~ msgid "Не выполнено: главного администратора забанить нельзя."
 #~ msgstr "Not done: the main administrator cannot be banned."
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Страница на konnekt.cz"
+msgstr "{'en': 'Page on konnekt.cz', 'cs': 'Stránka na konnekt.cz', 'uk': 'Сторінка на konnekt.cz'}"
+
 #: src/components/Incoming.tsx
 msgid "Под этот фильтр сейчас заявок нет"
 msgstr "No requests match this filter right now"
@@ -574,6 +582,10 @@ msgstr "per week"
 #: src/components/Incoming.tsx
 msgid "Откликнуться"
 msgstr "Respond"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "Показывать"
+msgstr "{'en': 'Show', 'cs': 'Zobrazovat', 'uk': 'Показувати'}"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновлено"
@@ -1661,6 +1673,10 @@ msgstr "hierarchy, protection, moderation"
 msgid "в каталоге"
 msgstr "in the catalog"
 
+#: src/pages/MyHelperAbout.tsx
+msgid "Не показывать"
+msgstr "{'en': \"Don't show\", 'cs': 'Nezobrazovat', 'uk': 'Не показувати'}"
+
 #: src/components/Phrase.tsx
 msgid "И то, и другое"
 msgstr "Both"
@@ -2747,6 +2763,10 @@ msgstr "Cheaper"
 #: src/console/pages/Catalog.tsx
 msgid "30 дней"
 msgstr "30 days"
+
+#: src/pages/MyHelperAbout.tsx
+msgid "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
+msgstr "{'en': 'Once reviewed, your profile will appear on konnekt.cz and in Google search. People can only write to you through Konnekt.', 'cs': 'Po kontrole se profil objeví na webu konnekt.cz a ve vyhledávání Google. Napsat ti půjde jen přes Konnekt.', 'uk': \"Після перевірки анкета з'явиться на сайті konnekt.cz і в пошуку Google. Написати тобі можна буде лише через Konnekt.\"}"
 
 #: src/components/Showcase.tsx
 msgid "Хочешь, чтобы здесь была твоя услуга? Напиши нам — обсудим условия. Карточку с фото и текстом сделаем сами."

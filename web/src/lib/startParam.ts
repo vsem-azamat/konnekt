@@ -27,12 +27,21 @@ const SCREENS: Record<string, string> = {
  */
 const UNIVERSITY = 'uni-';
 
+/**
+ * A helper's profile, by their id: `helper-123`, from «Написать в Konnekt» on
+ * their page on konnekt.cz. The catalog's /open passes it on only for a helper
+ * the site shows.
+ */
+const HELPER = /^helper-([1-9][0-9]{0,17})$/;
+
 export function startRoute(param: string | undefined): StartRoute | null {
   const university = param?.startsWith(UNIVERSITY)
     ? param.slice(UNIVERSITY.length)
     : undefined;
   if (university && INSTITUTION_CODE.test(university))
     return { path: `/chats/${university}`, state: { from: 'link' } };
+  const helper = param ? HELPER.exec(param)?.[1] : undefined;
+  if (helper) return { path: `/helper/${helper}`, state: { from: 'link' } };
   const path = param ? SCREENS[param] : undefined;
   return path ? { path, state: { from: 'link' } } : null;
 }
