@@ -160,8 +160,10 @@ export default function ChatsPage() {
       </div>
 
       {/* Where the bot and its menu button land everybody, so the few who
-          could teach meet the offer here rather than at the foot of «Помощь». */}
-      {me.data && !me.data.is_helper ? (
+          could teach meet the offer here rather than at the foot of «Помощь».
+          Not while searching: with the keyboard up it would push the results
+          under it. */}
+      {me.data && !me.data.is_helper && !searching ? (
         <div style={{ marginTop: 12 }}>
           <Rows>
             <Row
