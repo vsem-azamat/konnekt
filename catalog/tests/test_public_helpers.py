@@ -23,6 +23,12 @@ from tests.conftest import auth_header
 LIST = "/api/v1/public/helpers"
 
 
+async def _listed(client: AsyncClient, user: User, **params) -> list[dict]:
+    """This test's own rows of the list: a database with demo content has others."""
+    rows = (await client.get(LIST, params=params)).json()
+    return [row for row in rows if row["user_id"] == user.id]
+
+
 async def _on_site(session: AsyncSession, user: User, **values) -> None:
     await session.execute(
         update(HelperProfile)
@@ -45,7 +51,7 @@ async def test_a_profile_stays_off_the_site_until_its_owner_asks(
     user = await helper_factory(tg_id=70001)
     await _on_site(session, user, show_on_site=False)
 
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
     assert (await client.get(f"{LIST}/{user.id}")).status_code == 404
 
 
@@ -55,9 +61,7 @@ async def test_a_profile_its_owner_put_on_the_site_is_listed(
     anna = await helper_factory(tg_id=70002, first_name="Анна", last_name="Ковальова")
     await _on_site(session, anna)
 
-    response = await client.get(LIST)
-
-    [card] = response.json()
+    [card] = await _listed(client, anna)
     assert card["user_id"] == anna.id
     assert card["slug"] == f"anna-k-{anna.id}"
     assert card["name"] == "Анна К."
@@ -70,7 +74,7 @@ async def test_an_unreviewed_profile_waits_for_an_operator(
     user = await helper_factory(tg_id=70003)
     await _on_site(session, user, reviewed_at=None)
 
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
     assert (await client.get(f"{LIST}/{user.id}")).status_code == 404
 
 
@@ -85,7 +89,7 @@ async def test_an_unlisted_profile_is_not_on_the_site(
     hidden = {"hidden_reason": HideReason.SPAM} if status == PublishStatus.BANNED else {}
     await _on_site(session, user, status=status, **hidden)
 
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
     assert (await client.get(f"{LIST}/{user.id}")).status_code == 404
 
 
@@ -99,7 +103,7 @@ async def test_a_profile_with_nothing_on_offer_is_not_on_the_site(
         update(Offer).where(Offer.helper_id == user.id).values(is_active=False)
     )
 
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
     assert (await client.get(f"{LIST}/{user.id}")).status_code == 404
 
 
@@ -110,7 +114,7 @@ async def test_a_blocked_account_is_not_on_the_site(
     await _on_site(session, user)
     await session.execute(update(User).where(User.id == user.id).values(is_blocked=True))
 
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
     assert (await client.get(f"{LIST}/{user.id}")).status_code == 404
 
 
@@ -122,7 +126,7 @@ async def test_a_card_carries_what_the_list_shows(
     )
     await _on_site(session, user, city="Praha")
 
-    [card] = (await client.get(LIST, params={"lang": "en"})).json()
+    [card] = await _listed(client, user, lang="en")
 
     assert card == {
         "user_id": user.id,
@@ -172,7 +176,7 @@ async def test_nothing_on_the_page_reaches_the_person_around_the_app(
     await _on_site(session, user)
 
     page = (await client.get(f"{LIST}/{user.id}")).json()
-    [card] = (await client.get(LIST)).json()
+    [card] = await _listed(client, user)
 
     for body in (page, card):
         assert "marek_private" not in str(body)
@@ -287,7 +291,7 @@ async def test_turning_it_on_asks_an_operator_to_look_again(
     assert mine["status"] == "published"
     assert mine["show_on_site"] is True
     assert mine["under_review"] is True
-    assert (await client.get(LIST)).json() == []
+    assert await _listed(client, user) == []
 
 
 async def test_saving_with_it_on_does_not_ask_again(
@@ -303,4 +307,4 @@ async def test_saving_with_it_on_does_not_ask_again(
         headers=auth_header(70015),
     )
 
-    assert [card["user_id"] for card in (await client.get(LIST)).json()] == [user.id]
+    assert [card["user_id"] for card in await _listed(client, user)] == [user.id]

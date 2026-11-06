@@ -5,8 +5,11 @@ different audience from the app's: listing a profile in the app is consent to
 people in the app. So a helper is on the site only when all of these hold:
 
 - they turned «показывать на konnekt.cz» on themselves (`show_on_site`);
-- the profile is listed, and an operator has looked at it at least once — the
-  app lists a new profile at once, a search engine gets it once it is seen;
+- the profile is listed, and an operator has looked at it since the switch
+  went on: turning it on sends the profile back to «Новые анкеты», which says
+  so (helpers.py, admin.py). The app goes on listing it meanwhile. An edit
+  after that look goes out as it does in the app, unreviewed, until Azamat
+  rules otherwise (agora 11910);
 - the account is not blocked;
 - they offer something now: a name and nothing else is not worth a page.
 

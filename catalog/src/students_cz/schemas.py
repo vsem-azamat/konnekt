@@ -723,6 +723,8 @@ class AdminProfile(BaseModel):
     status: PublishStatus
     services: list[str]
     published_at: datetime
+    # Its owner asked for a page on konnekt.cz: keeping it puts it there.
+    show_on_site: bool
 
 
 class AdminRequest(BaseModel):
@@ -780,6 +782,8 @@ class AdminProfileDetail(BaseModel):
     updated_at: datetime
     hidden_reason: HideReason | None
     hidden_note: str | None
+    # Its owner asked for a page on konnekt.cz: keeping it puts it there.
+    show_on_site: bool
 
 
 class AdminPlacement(BaseModel):

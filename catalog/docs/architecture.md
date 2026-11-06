@@ -286,7 +286,9 @@ otherwise the only way to do either is the database.
 - `/admin/catalog`: listed profiles no operator has kept or hidden yet,
   however old, newest first (those out before the console moderated were
   counted as looked at), with hidden ones their owner has changed since,
-  placed by when they changed it; and the profiles an operator hid;
+  placed by when they changed it, and listed ones whose owner turned
+  «Страница на konnekt.cz» on, placed by when they did and marked, since
+  keeping one puts it on the site (services/site.py); and the profiles an operator hid;
   requests nobody has answered that can still be answered (open and before
   their deadline), oldest first; and searches that found nothing in the last
   30 days, grouped by their text ignoring case and leading or trailing spaces, most frequent

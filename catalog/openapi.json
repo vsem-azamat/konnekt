@@ -3620,6 +3620,10 @@
             "type": "string",
             "format": "date-time",
             "title": "Published At"
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site"
           }
         },
         "type": "object",
@@ -3628,7 +3632,8 @@
           "name",
           "status",
           "services",
-          "published_at"
+          "published_at",
+          "show_on_site"
         ],
         "title": "AdminProfile"
       },
@@ -3734,6 +3739,10 @@
               }
             ],
             "title": "Hidden Note"
+          },
+          "show_on_site": {
+            "type": "boolean",
+            "title": "Show On Site"
           }
         },
         "type": "object",
@@ -3749,7 +3758,8 @@
           "reviewed_at",
           "updated_at",
           "hidden_reason",
-          "hidden_note"
+          "hidden_note",
+          "show_on_site"
         ],
         "title": "AdminProfileDetail",
         "description": "One profile as the operator moderates it. Named as the catalog names\npeople, with nothing to reach them by: the console does not contact."
