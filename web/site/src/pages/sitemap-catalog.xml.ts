@@ -27,7 +27,12 @@ export const GET: APIRoute = async ({ site }) => {
     const [chats, list, people] = await Promise.all([
       publicChats(),
       universities(DEFAULT_LANG),
-      tutors(DEFAULT_LANG),
+      // The tutors are a part the rest does not wait on: without them the
+      // universities are still worth listing.
+      tutors(DEFAULT_LANG).catch((error) => {
+        console.error('catalog sitemap: no tutors', error);
+        return [];
+      }),
     ]);
     codes = universitiesWithChats(list, chats)
       .filter(indexable)
