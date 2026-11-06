@@ -100,19 +100,19 @@
 	# it, a university's included: answered here, kept an hour, before the
 	# render server's own redirect, which a browser would keep for good. Not
 	# /chats, which is the app's.
-	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/universities(?:/.*[^/])?|/(?:uk|cs|en)/chats)$
+	@bare path_regexp bare ^((?:/(?:uk|cs|en))?/(?:universities|tutors)(?:/.*[^/])?|/(?:uk|cs|en)/chats)$
 	handle @bare {
 		header Cache-Control "public, max-age=3600"
 		redir {re.bare.1}/{?query} 308
 	}
 
-	# The catalog pages, rendered on request by the site's own Node server
+	# The catalog pages and the tutors', rendered on request by the site's own Node server
 	# (site-render, the same build), each with the Cache-Control Cloudflare
 	# keeps it by. /chats/ is the public catalogue; /chats itself, which old
 	# buttons in Telegram name, still goes to the app below, and so does any
 	# deeper path of the app's (/chats/cvut). Nothing of a browser's reaches the
 	# server but the request: it reads public data and sets nothing.
-	@catalog path /universities/* /chats/ /sitemap-catalog.xml /uk/universities/* /uk/chats/ /cs/universities/* /cs/chats/ /en/universities/* /en/chats/
+	@catalog path /universities/* /tutors/* /chats/ /sitemap-catalog.xml /uk/universities/* /uk/tutors/* /uk/chats/ /cs/universities/* /cs/tutors/* /cs/chats/ /en/universities/* /en/tutors/* /en/chats/
 	handle @catalog {
 		log_append handler render
 		reverse_proxy site-render:4321 {

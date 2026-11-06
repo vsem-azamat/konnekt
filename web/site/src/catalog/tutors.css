@@ -1,0 +1,114 @@
+/* The tutors' pages (/tutors/, a tutor) on the catalog's cards and tiles. */
+
+.tut {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: border-color 0.15s;
+}
+.tut:hover {
+  border-color: var(--hair-strong);
+}
+.tut .mono,
+.tut-head .mono {
+  border-radius: 50%;
+}
+.tut .tt {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.tut .tt b {
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.tut .tt span {
+  color: var(--soft);
+  font-size: 14px;
+}
+.tut .tt small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.tut .price,
+.tut-offer .price {
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 720px) {
+  .tut-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 1040px) {
+  .tut-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* a tutor's page */
+.tut-head {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+.mono.big {
+  width: 72px;
+  height: 72px;
+  font-size: 22px;
+}
+.tut-about {
+  margin: 12px 0 0;
+  max-width: 44rem;
+  font-size: 17px;
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.tut-offers {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 720px) {
+  .tut-offers {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.tut-offer {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.tut-offer h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.card.tut-offer small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.tut-offer ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--soft);
+  font-size: 15px;
+}
+.tut-offer p {
+  overflow-wrap: anywhere;
+}
+
+/* «Стать репетитором», «Все репетиторы»: a link to read as one and to hit. */
+.tut-more {
+  margin: 20px 0 0;
+}
+.tut-more a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}

@@ -221,9 +221,9 @@ services:
       - site-render
     restart: unless-stopped
 
-  # The site's catalog pages (/universities/, /chats/), rendered on request by
+  # The site's catalog pages (/universities/, /chats/, /tutors/), rendered on request by
   # the Node server of the same build from public data: supervisor's catalogue
-  # and the catalog's universities, over this network, with no cookie and no
+  # and the catalog's universities and tutors, over this network, with no cookie and no
   # init data. Reached only through the site's Caddy.
   site-render:
     image: ghcr.io/vsem-azamat/supervisor-telegram-webui:site-${IMAGE_TAG:?Set IMAGE_TAG to a published image tag}

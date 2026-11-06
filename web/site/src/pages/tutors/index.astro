@@ -1,0 +1,14 @@
+---
+import { tutorsPage } from '../../catalog/load.ts';
+import { CACHED } from '../../catalog/page.ts';
+/** Rendered on request (catalog/load.ts): see the component for what it shows. */
+import Tutors from '../../catalog/Tutors.astro';
+
+export const prerender = false;
+
+const page = await tutorsPage(undefined);
+if (page instanceof Response) return page;
+Astro.response.headers.set('Cache-Control', CACHED);
+---
+
+<Tutors {...page} />
