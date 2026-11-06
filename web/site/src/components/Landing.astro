@@ -29,7 +29,8 @@ const num = (n: number) => number(lang, n);
 const all = await published(lang);
 const articles = all.slice(0, 4);
 const rubrics = rubricTally(all.map((article) => ({ rubric: article.data.rubric })));
-const arrow = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const arrow =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
 // The chats' own avatars, emitted with hashed names.
 const files = import.meta.glob<string>('../landing/av/*.{jpg,svg}', {
@@ -58,18 +59,18 @@ const avatar = (name: string) => {
     </div>
     {articles.length > 0 && (
       <section class="card ax" aria-label={t("nav.guides")}>
-        <div class="ax-head"><span class="eyebrow"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg><span>{t("nav.guides")}</span></span><a class="ax-all" href={localePath(lang, "/articles/")}><span>{t("guides.all")}</span><Fragment set:html={arrow} /></a></div>
+        <div class="ax-head"><span class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg><span>{t("nav.guides")}</span></span><a class="ax-all" href={localePath(lang, "/articles/")}><span>{t("guides.all")}</span><Fragment set:html={arrow} /></a></div>
         <div class="ax-list">
           {articles.map((article) => (
             <a class="ax-i" href={articlePath(article.id)}>
               <small class="ax-meta"><span class="ax-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span><span>{longDate(lang, article.data.published)}</span></small>
-              <b>{article.data.title}</b>
-              <p>{article.data.description}</p>
+              <h3 class="ax-t">{article.data.title}</h3>
+              <p class="ax-d">{article.data.description}</p>
               <span class="ax-go" aria-hidden="true"><Fragment set:html={arrow} /></span>
             </a>
           ))}
           {articles.length < 4 && (
-            <a class="ax-i ax-more" href={localePath(lang, "/articles/")}>
+            <a class={`ax-i ax-more${articles.length === 2 ? " wide" : ""}`} href={localePath(lang, "/articles/")}>
               <small class="ax-meta"><span>{articleCount(lang, all.length)}</span></small>
               <b>{t("guides.all")}</b>
               <span class="ax-rubs">{rubrics.map(([rubric, n]) => <span><span>{TEXTS[lang].rubrics[rubric]}</span><b>{num(n)}</b></span>)}</span>
