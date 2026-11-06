@@ -2,7 +2,8 @@
  * Where the catalog pages get their data, on the server, per request.
  *
  * Supervisor's public catalogue (`/api/public/catalog`, the list the app
- * reads) and the catalog's universities (`/api/v1/universities`), read over
+ * reads), the catalog's universities (`/api/v1/universities`) and the tutors
+ * who asked to be on the site (`/api/v1/public/helpers`), read over
  * the containers' own network from the addresses the deploy gives
  * (WEBAPI_URL, CATALOG_API_URL), with no cookie and no init data: public
  * fields only. Each answer is checked rather than trusted, as the app checks
@@ -13,6 +14,12 @@ import { INSTITUTION_CODE, type PublicChat, sanitize } from '../../../src/lib/ch
 import type { Lang } from '../paths.ts';
 import type { CatalogUniversity } from './catalog.ts';
 import { remembered } from './remembered.ts';
+import {
+  sanitizeTutor,
+  sanitizeTutors,
+  type TutorCard,
+  type TutorPage,
+} from './tutors.ts';
 
 /** How long an answer is kept before the API is asked again. */
 const KEEP_FOR = 60_000;
@@ -83,6 +90,50 @@ export function universities(lang: Lang): Promise<CatalogUniversity[]> {
       { ttl: KEEP_FOR },
     );
     byLang.set(lang, load);
+  }
+  return load();
+}
+
+const tutorLists = new Map<Lang, () => Promise<TutorCard[]>>();
+
+/** Everybody on the site, in the order the catalog gives: the most proven first. */
+export function tutors(lang: Lang): Promise<TutorCard[]> {
+  let load = tutorLists.get(lang);
+  if (!load) {
+    load = remembered(
+      async () =>
+        sanitizeTutors(
+          await read(`${origin('CATALOG_API_URL')}/api/v1/public/helpers?lang=${lang}`),
+        ),
+      { ttl: KEEP_FOR },
+    );
+    tutorLists.set(lang, load);
+  }
+  return load();
+}
+
+const tutorPages = new Map<string, () => Promise<TutorPage>>();
+
+/**
+ * One tutor's page, for a tutor `tutors` lists: an id that is not on the list
+ * is no page, and never a request to the catalog, so neither a made-up
+ * address nor a crawler's guess is one.
+ */
+export async function tutor(lang: Lang, id: number): Promise<TutorPage | null> {
+  if (!(await tutors(lang)).some((row) => row.user_id === id)) return null;
+  const key = `${lang}:${id}`;
+  let load = tutorPages.get(key);
+  if (!load) {
+    load = remembered(
+      async () =>
+        sanitizeTutor(
+          await read(
+            `${origin('CATALOG_API_URL')}/api/v1/public/helpers/${id}?lang=${lang}`,
+          ),
+        ),
+      { ttl: KEEP_FOR },
+    );
+    tutorPages.set(key, load);
   }
   return load();
 }
