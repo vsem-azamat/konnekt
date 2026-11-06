@@ -20,7 +20,7 @@ import {
 /**
  * The public site: the landing page and the articles, built to plain HTML for
  * search engines and link previews, served on konnekt.cz by a container of its
- * own (docker/site/). The catalog pages (/universities/, /chats/) are the
+ * own (docker/site/). The catalog pages (/universities/, /chats/, /tutors/) are the
  * exception, rendered on request from the APIs by the Node server the same
  * build produces (`prerender = false` on each). The Mini App is the other
  * build in this package, on its own host.
@@ -64,7 +64,7 @@ function articles(): ArticleEntry[] {
 const entries = articles();
 const hidden = hiddenPaths(entries);
 const building = process.argv.includes('build');
-const CATALOG = /^(\/[a-z]{2})?\/(universities|chats)\//;
+const CATALOG = /^(\/[a-z]{2})?\/(universities|tutors|chats)\//;
 
 const site = process.env.SITE_URL || 'http://localhost:4321';
 
