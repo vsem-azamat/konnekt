@@ -98,3 +98,17 @@
 .tut-offer p {
   overflow-wrap: anywhere;
 }
+
+/* «Стать репетитором», «Все репетиторы»: a link to read as one and to hit. */
+.tut-more {
+  margin: 20px 0 0;
+}
+.tut-more a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}

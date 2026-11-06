@@ -140,7 +140,7 @@ const schema = {
         <p class="note">{t.langs}: {p.langs.map((l) => l.toUpperCase()).join(', ')}</p>
       )
     }
-    <p class="note"><a href={localePath(lang, '/tutors/')}>{t.all}</a></p>
+    <p class="tut-more"><a href={localePath(lang, '/tutors/')}>{t.all}</a></p>
   </main>
   <Footer lang={lang} path={path} />
 </Base>
