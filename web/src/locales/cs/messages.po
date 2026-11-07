@@ -413,10 +413,6 @@ msgstr "Měnit profil skupiny"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "Odpověď nedorazila. Než to zkusíte znovu, zkontrolujte seznam: karta se mohla uložit."
 
-#: src/console/UsageLabels.tsx
-#~ msgid "Поиск"
-#~ msgstr ""
-
 #: src/pages/MyHelperAbout.tsx
 msgid "Анкету видят только в приложении."
 msgstr "Profil vidí jen lidé v aplikaci."
@@ -4709,10 +4705,6 @@ msgstr "Zveřejnit poptávku"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Zabanovaní"
-
-#: src/console/UsageLabels.tsx
-#~ msgid "Мои"
-#~ msgstr ""
 
 #: src/components/Incoming.tsx
 msgid "Цена <0/>, Kč <1>необязательно</1>"

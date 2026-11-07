@@ -413,10 +413,6 @@ msgstr "Change group info"
 msgid "Ответ не дошёл. Прежде чем пробовать снова, проверьте список: карточка могла сохраниться."
 msgstr "The answer did not arrive. Before trying again, check the list: the card may have been saved."
 
-#: src/console/UsageLabels.tsx
-#~ msgid "Поиск"
-#~ msgstr ""
-
 #: src/pages/MyHelperAbout.tsx
 msgid "Анкету видят только в приложении."
 msgstr "Only people in the app see your profile."
@@ -4709,10 +4705,6 @@ msgstr "Post the request"
 #: src/console/pages/Blacklist.tsx
 msgid "Заблокированы"
 msgstr "Banned"
-
-#: src/console/UsageLabels.tsx
-#~ msgid "Мои"
-#~ msgstr ""
 
 #: src/components/Incoming.tsx
 msgid "Цена <0/>, Kč <1>необязательно</1>"
