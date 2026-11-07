@@ -365,6 +365,16 @@ def cookie_free(proxy: dict) -> bool:
     )
 
 
+def cache_control(route: dict) -> str | None:
+    """The Cache-Control a route sets, if it does."""
+    for handler in handlers(route):
+        if handler.get("handler") == "headers":
+            value = handler.get("response", {}).get("set", {}).get("Cache-Control")
+            if value:
+                return value[0]
+    return None
+
+
 def problems(route: dict, path: str, expected: str, inherited: str | None = None) -> list[str]:
     """What is wrong with how `route` serves `path`, if anything.
 
@@ -407,6 +417,11 @@ def problems(route: dict, path: str, expected: str, inherited: str | None = None
         out.append("does not answer 404 for a page the site lacks")
     if path in FALLS_BACK and expected == APP and (robots(route) or inherited) != "noindex":
         out.append("lets search engines index an app screen")
+    # Cloudflare injects its Web Analytics beacon into HTML it may transform,
+    # and the beacon reports the page's address. The Mini App's carries the
+    # signed tgWebAppData (id, name, username) in its fragment: not Cloudflare's.
+    if path in FALLS_BACK and expected == APP and "no-transform" not in (cache_control(route) or ""):
+        out.append("lets the edge rewrite the app's page")
     if expected == SITE and robots(route):
         out.append(f"tells search engines {robots(route)}")
     return out

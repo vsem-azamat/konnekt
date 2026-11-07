@@ -165,9 +165,12 @@
 	# index.html is the one file that names the current hashes, so a cached
 	# copy points at bundles the next deploy deleted. The app's screens are a
 	# person's own, or empty without Telegram: nothing for a search engine.
+	# no-transform keeps Cloudflare's Web Analytics beacon out of the page: it
+	# reports the page's address, and Telegram puts the signed initData (id,
+	# name, username) in this one's fragment. The app counts its own use.
 	handle {
 		root * /srv/app
-		header Cache-Control "no-cache"
+		header Cache-Control "no-cache, no-transform"
 		header X-Robots-Tag "noindex"
 		try_files {path} /index.html
 		file_server
@@ -228,7 +231,7 @@ http://{$ADMIN_HOST:admin.invalid} {
 	@console path /console /console/* /login
 	handle @console {
 		root * /srv/app
-		header Cache-Control "no-cache"
+		header Cache-Control "no-cache, no-transform"
 		rewrite * /index.html
 		file_server
 	}
