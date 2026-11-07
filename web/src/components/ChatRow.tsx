@@ -16,6 +16,7 @@ import {
   placeOf,
   rowDotFor,
 } from '@/lib/chats';
+import { track } from '@/lib/track';
 import { MegaphoneIcon, PersonIcon } from './icons';
 import { CityName, TopicWord } from './Place';
 import { Sheet } from './Sheet';
@@ -198,12 +199,15 @@ export function ChatRow({
 }) {
   const preview = chatPreview(chat.link, useLocation(), {
     navigate: useNavigate(),
-    openLink: () =>
-      joinFromCatalog(chat, {
+    openLink: () => {
+      // The school's catalog code (`cvut`), a word of ours; the section's title is somebody's text.
+      track('chat_open', { section: chat.institution ?? 'none' });
+      return joinFromCatalog(chat, {
         initData: rawInitData,
         claim: api.claimCatalogPass,
         openLink: openTelegramLink,
-      }),
+      });
+    },
     // react-router keeps a location's state under `usr` in the history entry,
     // and writes it there synchronously on navigate.
     stateNow: () => (window.history.state as { usr?: unknown } | null)?.usr,

@@ -1,6 +1,7 @@
-import { Plural, Trans } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import {
@@ -12,6 +13,7 @@ import {
   PersonIcon,
   SealIcon,
 } from '@/components/icons';
+import { Switch } from '@/components/Switch';
 import {
   Action,
   Actions,
@@ -34,6 +36,8 @@ import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { allPaused, liveCount } from '@/lib/myServices';
 import { openRequests } from '@/lib/openRequests';
+import { setTracking } from '@/lib/track';
+import { allowCounting, readChoice } from '@/lib/usageChoice';
 
 /**
  * A person's own things first, then the one setting, then the rest.
@@ -372,8 +376,80 @@ export default function ProfilePage() {
               />
             ) : null}
           </Rows>
+
+          <Label>
+            <Trans>Приватность</Trans>
+          </Label>
+          <Rows>
+            <CountingRow />
+          </Rows>
         </>
       )}
     </Screen>
+  );
+}
+
+/**
+ * Whether the app may count what this person does in it (lib/track.ts).
+ * On by default; off stops counting from that moment, on this device and,
+ * through Telegram's cloud storage, on their others.
+ */
+function CountingRow() {
+  const { t } = useLingui();
+  // null until Telegram's storage answers: not known is never shown as «on».
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const timer = setTimeout(() => setSlow(true), 3000);
+    void readChoice().then((value) => {
+      if (!live) return;
+      clearTimeout(timer);
+      setSlow(value === null);
+      setAllowed(value);
+    });
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, []);
+  const change = (next: boolean) => {
+    hapticSelection();
+    setBusy(true);
+    setAllowed(next);
+    setTracking(next);
+    void allowCounting(next)
+      .catch(() => {
+        // Not saved: show what the next launch will do rather than what was asked for.
+        setAllowed(!next);
+        setTracking(!next);
+      })
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Row
+      wrap
+      title={<Trans>Учитывать мои действия</Trans>}
+      hint={
+        allowed !== null ? (
+          <Trans>
+            какие экраны открываю и сколько времени — без имени и того, что пишу
+          </Trans>
+        ) : slow ? (
+          <Trans>Telegram не отдал настройку — пока ничего не учитываем</Trans>
+        ) : (
+          <Trans>загружаем…</Trans>
+        )
+      }
+      trailing={
+        <Switch
+          checked={allowed === true}
+          busy={busy || allowed === null}
+          label={t`Учитывать мои действия`}
+          onChange={change}
+        />
+      }
+    />
   );
 }

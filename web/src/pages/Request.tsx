@@ -31,6 +31,7 @@ import {
 import { hapticSuccess } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { dontWait } from '@/lib/dontWait';
+import { track } from '@/lib/track';
 import type { RequestResponse } from '@/lib/types';
 
 /**
@@ -227,6 +228,7 @@ function ResponseCard({ response }: { response: RequestResponse }) {
 
   const write = () => {
     if (!response.username) return;
+    track('contact_tap', { from: 'request' });
     openTelegramLink(`https://t.me/${response.username}`);
   };
 

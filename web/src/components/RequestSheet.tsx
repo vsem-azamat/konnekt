@@ -7,6 +7,7 @@ import { hapticSelection, hapticSuccess } from '@/hooks/useTelegram';
 import { ApiError, api } from '@/lib/api';
 import { chipKey, chipLabel } from '@/lib/chips';
 import { REQUEST_CITIES, requestPlace, spelledCity } from '@/lib/requestPlace';
+import { track } from '@/lib/track';
 import type { Chip, RequestCreate, WorkFormat } from '@/lib/types';
 import { CityName, useCityNames } from './Place';
 import { Sheet } from './Sheet';
@@ -86,6 +87,7 @@ export function RequestSheet({
     mutationFn: () => api.createRequest(payload()),
     onSuccess: () => {
       hapticSuccess();
+      track('request_send', {});
       void queryClient.invalidateQueries({ queryKey: ['requests'] });
       navigate('/mine');
     },

@@ -22,9 +22,21 @@ msgstr "Нова картка"
 msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы не пишем, но в «Моей анкете» будет видно, что её скрыли, и причина."
 msgstr "Вона зникне з каталогу й пошуку, і автор не зможе опублікувати її знову. Повернути її можна тут, у «Прихованих». Авторові ми не пишемо, але в «Моїй анкеті» буде видно, що її приховали, і причину."
 
+#: src/pages/Profile.tsx
+msgid "Telegram не отдал настройку — пока ничего не учитываем"
+msgstr "Telegram не віддав налаштування — поки нічого не враховуємо"
+
+#: src/pages/Profile.tsx
+msgid "Приватность"
+msgstr "Приватність"
+
 #: src/console/pages/Chats.tsx
 msgid "+ Внешний чат"
 msgstr "+ Зовнішній чат"
+
+#: src/console/pages/Usage.tsx
+msgid "Воронки"
+msgstr "Воронки"
 
 #: src/pages/Profile.tsx
 msgid "Языки"
@@ -51,6 +63,10 @@ msgstr "Консоль знову відкриється з Telegram."
 msgid "Отметить чат как внешний?"
 msgstr "Позначити чат як зовнішній?"
 
+#: src/console/UsageLabels.tsx
+msgid "страница репетитора"
+msgstr "сторінка репетитора"
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Увімкнути"
@@ -59,13 +75,25 @@ msgstr "Увімкнути"
 msgid "Карточек партнёров пока нет."
 msgstr "Карток партнерів поки немає."
 
+#: src/console/pages/Sources.tsx
+msgid "Место"
+msgstr "Місце"
+
 #: src/console/pages/Catalog.tsx
 msgid "просит страницу на konnekt.cz"
 msgstr "просить сторінку на konnekt.cz"
 
+#: src/console/UsageLabels.tsx
+msgid "Кнопка в приветствии чата"
+msgstr "Кнопка в привітанні чату"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "немає картки"
+
+#: src/console/UsageLabels.tsx
+msgid "Открыли карточку"
+msgstr "Відкрили картку"
 
 #: src/console/pages/Chats.tsx
 msgid "приветствие"
@@ -100,6 +128,12 @@ msgstr "покази й кліки"
 msgid "Пара слов о себе — что делаешь и как быстро"
 msgstr "Кілька слів про себе — що робиш і як швидко"
 
+#. placeholder {0}: from / 60
+#. placeholder {0}: to / 60
+#: src/console/pages/Usage.tsx
+msgid "{0} мин"
+msgstr "{0} хв"
+
 #. placeholder {0}: Number(value)
 #: src/components/Phrase.tsx
 msgid "{0, plural, one {год на площадке} few {года на площадке} many {лет на площадке} other {года на площадке}}"
@@ -128,13 +162,19 @@ msgid "сравнение будет с {from}"
 msgstr "порівняння буде з {from}"
 
 #: src/console/pages/Audience.tsx
+#: src/console/pages/Sources.tsx
 #: src/console/pages/Spam.tsx
+#: src/console/pages/Usage.tsx
 msgid "Период"
 msgstr "Період"
 
 #: src/console/pages/Chat.tsx
 msgid "В каталоге чат будет помечен как не наш. Бот там ничего не делает; если он в чате, удалите его оттуда."
 msgstr "У каталозі чат буде позначено як не наш. Бот там нічого не робить; якщо він у чаті, видаліть його звідти."
+
+#: src/console/UsageLabels.tsx
+msgid "Новая заявка"
+msgstr "Нова заявка"
 
 #. placeholder {0}: day(latest.changed_at)
 #: src/console/BotInChat.tsx
@@ -169,6 +209,14 @@ msgstr "Схвалених чатів немає: банити поки ніде
 #: src/console/pages/Blacklist.tsx
 msgid "Имя, @username или id"
 msgstr "Ім’я, @username або id"
+
+#: src/console/pages/Usage.tsx
+msgid "человек"
+msgstr "людей"
+
+#: src/console/UsageLabels.tsx
+msgid "Заявка и ответы"
+msgstr "Заявка і відповіді"
 
 #: src/pages/MyHelper.tsx
 msgid "Пока ни одной. Добавь ниже — без них тебя не найдут по поиску."
@@ -259,6 +307,10 @@ msgstr "Такої заявки немає"
 msgid "Отключить чат?"
 msgstr "Вимкнути чат?"
 
+#: src/console/pages/Sources.tsx
+msgid "Визиты по сайту, с которого перешли. Cloudflare, без cookies."
+msgstr "Візити за сайтом, з якого перейшли. Cloudflare, без cookies."
+
 #. placeholder {0}: wave.held
 #: src/console/pages/Signals.tsx
 msgid "Ждут решения: {0}."
@@ -275,6 +327,10 @@ msgstr "увімк."
 #: src/components/Place.tsx
 msgid "предмет"
 msgstr "предмет"
+
+#: src/console/pages/Usage.tsx
+msgid "Что делают в Mini App. Время по вашему часовому поясу, сегодняшний день входит в период."
+msgstr "Що роблять у Mini App. Час за вашим часовим поясом, сьогоднішній день входить у період."
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
@@ -315,6 +371,7 @@ msgid "у кого есть окна, и кто быстрее отвечает"
 msgstr "у кого є вікна, і хто швидше відповідає"
 
 #: src/components/TabBar.tsx
+#: src/console/UsageLabels.tsx
 msgid "Помощь"
 msgstr "Допомога"
 
@@ -334,6 +391,10 @@ msgstr "нові за тиждень"
 #: src/console/BanSheet.tsx
 msgid "Забанить и стереть"
 msgstr "Забанити й стерти"
+
+#: src/console/pages/Sources.tsx
+msgid "Пока ни одного запроса."
+msgstr "Поки жодного запиту."
 
 #: src/console/pages/System.tsx
 msgid "Главные администраторы"
@@ -370,6 +431,10 @@ msgstr "Відповідь не надійшла. Перш ніж пробува
 #: src/pages/MyHelperAbout.tsx
 msgid "Анкету видят только в приложении."
 msgstr "Анкету бачать лише в застосунку."
+
+#: src/console/pages/Sources.tsx
+msgid "посетителей сайта"
+msgstr "відвідувачів сайту"
 
 #: src/components/ChatRow.tsx
 msgid "Этот канал ведёт не Konnekt, правила там свои."
@@ -446,6 +511,10 @@ msgstr "Що бот робить у чаті"
 #: src/components/ServiceSheet.tsx
 msgid "Kč"
 msgstr "Kč"
+
+#: src/console/UsageLabels.tsx
+msgid "страница вуза"
+msgstr "сторінка вишу"
 
 #: src/console/pages/Signals.tsx
 #~ msgid "В чёрный список"
@@ -540,10 +609,6 @@ msgstr "Картка в застосунку"
 msgid "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 msgstr "Нічого не знайшли. Спробуй скорочення — ČVUT, VŠE, MUNI."
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Пришедшие к нам — по чату, где бот увидел их впервые."
-#~ msgstr "Ті, хто прийшов до нас, — за чатом, де бот побачив їх уперше."
-
 #: src/pages/MyHelper.tsx
 msgid "Предмет"
 msgstr "Предмет"
@@ -612,6 +677,7 @@ msgid "Кого считаем"
 msgstr "Кого рахуємо"
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Ср"
 msgstr "Ср"
 
@@ -622,6 +688,10 @@ msgstr "не вказано: стоїть у «Загальне»"
 #: src/console/pages/Summary.tsx
 msgid "набеги заявок и предложенные баны"
 msgstr "набіги заявок і запропоновані бани"
+
+#: src/console/UsageLabels.tsx
+msgid "шапка"
+msgstr "шапка"
 
 #: src/console/pages/Chat.tsx
 msgid "Чат будет отключён. Вернуть режим можно здесь же."
@@ -639,6 +709,10 @@ msgstr "Показуємо тому, кому вона потрібна зара
 msgid "ждёт меньше часа"
 msgstr "чекає менше години"
 
+#: src/console/pages/Sources.tsx
+msgid "Запрос"
+msgstr "Запит"
+
 #: src/components/Incoming.tsx
 msgid "{name} увидит отклик в своей заявке и сможет написать тебе в Telegram."
 msgstr "{name} побачить відгук у своїй заявці й зможе написати тобі в Telegram."
@@ -650,11 +724,6 @@ msgstr "Mini App"
 #: src/components/Incoming.tsx
 msgid "Отправить отклик"
 msgstr "Надіслати відгук"
-
-#. placeholder {0}: f.estimate
-#: src/console/pages/Audience.tsx
-#~ msgid "Ещё {0} — догадка: бот видел их до марта 2026 и мог получать от них сообщения в личке, но проверить это нельзя. В цифры выше они не входят."
-#~ msgstr "Ще {0} — здогадка: бот бачив їх до березня 2026 і міг отримувати від них повідомлення в особисті, але перевірити це не можна. У цифри вище вони не входять."
 
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
@@ -672,10 +741,6 @@ msgstr "Реклама або спам"
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Вмієш те, що потрібно іншим?"
-
-#: src/console/AudienceCharts.tsx
-#~ msgid "и бот, и Mini App"
-#~ msgstr "і бот, і Mini App"
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -698,6 +763,10 @@ msgstr "Їх веде не Konnekt: спам там чистимо не ми, п
 msgid "{counted, plural, one {по # чату с замером} few {по # чатам с замером} many {по # чатам с замером} other {по # чатам с замером}}"
 msgstr "{counted, plural, one {за # чатом із замірами} few {за # чатами із замірами} many {за # чатами із замірами} other {за # чатами із замірами}}"
 
+#: src/console/UsageLabels.tsx
+msgid "Нашли кого-то"
+msgstr "Когось знайшли"
+
 #: src/pages/Chats.tsx
 msgid "{count, plural, one {# чат: {names}} few {# чата: {names}} many {# чатов: {names}} other {# чата: {names}}}"
 msgstr "{count, plural, one {# чат: {names}} few {# чати: {names}} many {# чатів: {names}} other {# чату: {names}}}"
@@ -705,6 +774,10 @@ msgstr "{count, plural, one {# чат: {names}} few {# чати: {names}} many {
 #: src/console/pages/Summary.tsx
 msgid "{held} · только что"
 msgstr "{held} · щойно"
+
+#: src/console/UsageLabels.tsx
+msgid "с главной"
+msgstr "з головної"
 
 #: src/console/pages/Summary.tsx
 msgid "Основной бот"
@@ -735,9 +808,9 @@ msgstr "До цього чату входять інші, тому він сам
 msgid "Бот в чате, но не админ · с {0}"
 msgstr "Бот у чаті, але не адмін · з {0}"
 
-#: src/console/AudienceCharts.tsx
-#~ msgid "только бот"
-#~ msgstr "лише бот"
+#: src/console/pages/Sources.tsx
+msgid "визитов"
+msgstr "візитів"
 
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
@@ -746,6 +819,10 @@ msgstr "Посилання має вести на чат у Telegram: https://t.
 #: src/console/ConsoleGate.tsx
 msgid "Данные входа устарели."
 msgstr "Дані входу застаріли."
+
+#: src/console/UsageLabels.tsx
+msgid "Карточка помощника"
+msgstr "Картка помічника"
 
 #: src/console/pages/Summary.tsx
 #~ msgid "Ждёт нажатия"
@@ -770,6 +847,10 @@ msgstr "Увійти не вийшло. Спробуйте ще раз."
 #: src/console/pages/Chat.tsx
 msgid "Вузы, по вузу"
 msgstr "Виші, за вишем"
+
+#: src/console/pages/Usage.tsx
+msgid "Что считать"
+msgstr "Що рахувати"
 
 #: src/pages/Request.tsx
 msgid "Пока тихо"
@@ -830,6 +911,10 @@ msgstr "Бот"
 msgid "помощь на экзамене по математическому анализу"
 msgstr "допомога на іспиті з математичного аналізу"
 
+#: src/console/pages/Usage.tsx
+msgid "считаем с {since}"
+msgstr "рахуємо з {since}"
+
 #: src/console/Charts.tsx
 msgid "За неделю бот не видел здесь сообщений."
 msgstr "За тиждень бот не бачив тут повідомлень."
@@ -861,12 +946,17 @@ msgid "{0, plural, one {# раз} few {# раза} many {# раз} other {# ра
 msgstr "{0, plural, one {# раз} few {# рази} many {# разів} other {# рази}}"
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Пн"
 msgstr "Пн"
 
 #: src/console/pages/Chats.tsx
 msgid "Нужно решение"
 msgstr "Потрібне рішення"
+
+#: src/console/pages/Usage.tsx
+msgid "По дням"
+msgstr "По днях"
 
 #: src/pages/AdsChats.tsx
 msgid "чатов"
@@ -888,6 +978,12 @@ msgstr "Посилання має починатися з https://, вести �
 #: src/pages/Chats.tsx
 msgid "Ищи по вузу, факультету или общежитию: {EXAMPLES}."
 msgstr "Шукай за вишем, факультетом або гуртожитком: {EXAMPLES}."
+
+#: src/console/BrowserShell.tsx
+#: src/console/pages/Summary.tsx
+#: src/console/pages/Usage.tsx
+msgid "Использование"
+msgstr "Використання"
 
 #: src/components/OwnerStatusCard.tsx
 msgid "Пока её видишь только ты. Опубликовать — в «О себе и как работаю»."
@@ -938,7 +1034,12 @@ msgstr "Чат: усі ▾"
 msgid "Онлайн или лично"
 msgstr "Онлайн або особисто"
 
+#: src/console/UsageLabels.tsx
+msgid "Нажали «Написать»"
+msgstr "Натиснули «Написати»"
+
 #: src/console/pages/Chats.tsx
+#: src/console/pages/Usage.tsx
 msgid "7 дней"
 msgstr "7 днів"
 
@@ -954,6 +1055,10 @@ msgstr "Мова"
 #: src/lib/turnaround.tsx
 msgid "Месяц"
 msgstr "Місяць"
+
+#: src/console/UsageLabels.tsx
+msgid "Искали"
+msgstr "Шукали"
 
 #: src/console/BotInChat.tsx
 msgid "ограничен"
@@ -988,6 +1093,10 @@ msgstr "За тиждень тут ніхто не писав."
 msgid "Людям бесплатно. Компаниям — <0>реклама для студентов</0>."
 msgstr "Людям безкоштовно. Для компаній — <0>реклама для студентів</0>."
 
+#: src/console/pages/Sources.tsx
+msgid "показов в Google"
+msgstr "показів у Google"
+
 #: src/components/Place.tsx
 msgid "Пльзень"
 msgstr "Пльзень"
@@ -1016,9 +1125,9 @@ msgstr "Залишити заявку"
 msgid "отключён"
 msgstr "вимкнено"
 
-#: src/console/pages/Summary.tsx
-#~ msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
-#~ msgstr "можна написати: дозволили боту писати й не заблокували; ще {opted} відписалися від новин"
+#: src/console/UsageLabels.tsx
+msgid "Кнопка «Чаты» в боте"
+msgstr "Кнопка «Чати» в боті"
 
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
@@ -1036,6 +1145,10 @@ msgstr "заблоковано"
 #: src/console/pages/PartnerNew.tsx
 msgid "Нужно название."
 msgstr "Потрібна назва."
+
+#: src/console/UsageLabels.tsx
+msgid "Вкладка «{tab}»"
+msgstr "Вкладка «{tab}»"
 
 #. placeholder {0}: picked.size
 #: src/pages/Offer.tsx
@@ -1080,6 +1193,10 @@ msgstr "{name}: бан пройшов не в усіх чатах"
 msgid "Чат, человек, @username или id"
 msgstr "Чат, людина, @username або id"
 
+#: src/console/UsageLabels.tsx
+msgid "репетиторы"
+msgstr "репетитори"
+
 #: src/console/pages/Chat.tsx
 #: src/console/pages/Chats.tsx
 #: src/console/TopSearch.tsx
@@ -1119,6 +1236,10 @@ msgstr "Уперше: {0}"
 msgid "Писали в чате за последние 180 дней, просились в чат или состоят в нём, по данным бота."
 msgstr "Писали в чаті за останні 180 днів, просилися в чат або є його учасниками, за даними бота."
 
+#: src/console/UsageLabels.tsx
+msgid "из «Моих услуг»"
+msgstr "з «Моїх послуг»"
+
 #: src/console/pages/Summary.tsx
 msgid "переехавшие подписчики"
 msgstr "підписники, що переїхали"
@@ -1146,6 +1267,10 @@ msgstr "показати графік ↓"
 #: src/console/BanSheet.tsx
 msgid "Как забанить"
 msgstr "Як забанити"
+
+#: src/console/pages/Usage.tsx
+msgid "{from} с"
+msgstr "{from} с"
 
 #: src/console/pages/Signals.tsx
 msgid "Очереди"
@@ -1175,10 +1300,6 @@ msgstr "Заявку вже закрили"
 msgid "Только наблюдать?"
 msgstr "Лише спостерігати?"
 
-#: src/console/pages/Summary.tsx
-#~ msgid "всего {total}"
-#~ msgstr "усього {total}"
-
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
 msgid "«Не про учёбу»"
@@ -1207,6 +1328,10 @@ msgstr "Зараз нічого не чекає."
 msgid "Не получилось загрузить"
 msgstr "Не вдалося завантажити"
 
+#: src/console/UsageLabels.tsx
+msgid "Найти"
+msgstr "Знайти"
+
 #: src/pages/MyHelperAbout.tsx
 msgid "Анкета сохранится, но в каталоге её не будет."
 msgstr "Анкета збережеться, але в каталозі її не буде."
@@ -1223,6 +1348,7 @@ msgstr "Скільки"
 msgid "Показать {total}"
 msgstr "Показати {total}"
 
+#: src/console/UsageLabels.tsx
 #: src/pages/Mine.tsx
 #: src/pages/Profile.tsx
 msgid "Мои заявки"
@@ -1306,12 +1432,17 @@ msgstr "анкети, заявки, пошуки без відповіді"
 #: src/components/PartnerBlock.tsx
 #: src/components/Showcase.tsx
 #: src/console/pages/PartnerNew.tsx
+#: src/console/UsageLabels.tsx
 msgid "Партнёр"
 msgstr "Партнер"
 
 #: src/console/pages/Chat.tsx
 msgid "бот наблюдает"
 msgstr "бот спостерігає"
+
+#: src/pages/Profile.tsx
+msgid "Учитывать мои действия"
+msgstr "Враховувати мої дії"
 
 #: src/pages/Profile.tsx
 msgid "Написать нам"
@@ -1368,6 +1499,10 @@ msgstr "Вхідні"
 msgid "Заявки видят те, кто может на них ответить."
 msgstr "Заявки бачать ті, хто може на них відповісти."
 
+#: src/console/UsageLabels.tsx
+msgid "Начали «Стать помощником»"
+msgstr "Почали «Стати помічником»"
+
 #: src/pages/Helper.tsx
 msgid "Сколько стоит"
 msgstr "Скільки коштує"
@@ -1379,6 +1514,10 @@ msgstr "Прихована тобою"
 #: src/pages/Mine.tsx
 msgid "Открытых заявок нет"
 msgstr "Відкритих заявок немає"
+
+#: src/console/pages/Sources.tsx
+msgid "Показы"
+msgstr "Покази"
 
 #: src/components/ServiceSheet.tsx
 #: src/pages/MyHelper.tsx
@@ -1392,6 +1531,10 @@ msgstr "Не збереглося — спробуй ще раз."
 #: src/pages/OfferPrices.tsx
 msgid "Цена"
 msgstr "Ціна"
+
+#: src/console/UsageLabels.tsx
+msgid "Реклама в приложении"
+msgstr "Реклама в застосунку"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "необязательно"
@@ -1437,6 +1580,7 @@ msgstr "Усе, що шукали, знайшлося."
 #: src/console/pages/Chats.tsx
 #: src/console/pages/Summary.tsx
 #: src/console/TopSearch.tsx
+#: src/console/UsageLabels.tsx
 msgid "Чаты"
 msgstr "Чати"
 
@@ -1451,6 +1595,10 @@ msgstr "ще чатів: {rest}"
 #: src/console/pages/Summary.tsx
 msgid "Каталог за неделю"
 msgstr "Каталог за тиждень"
+
+#: src/console/pages/Usage.tsx
+msgid "24 часа"
+msgstr "24 години"
 
 #: src/console/pages/Chats.tsx
 msgid "не в каталоге"
@@ -1481,6 +1629,14 @@ msgstr "Повернути в каталог"
 msgid "Убери что-нибудь из уточнений выше или напиши иначе."
 msgstr "Прибери щось з уточнень вище або напиши інакше."
 
+#: src/console/UsageLabels.tsx
+msgid "сортировка"
+msgstr "сортування"
+
+#: src/console/pages/Sources.tsx
+msgid "Сайт konnekt.cz и поиск Google. Период кончается вчера: сегодняшний день ещё не пришёл."
+msgstr "Сайт konnekt.cz і пошук Google. Період закінчується вчора: сьогоднішні дані ще не надійшли."
+
 #: src/pages/Join.tsx
 msgid "Проверяем…"
 msgstr "Перевіряємо…"
@@ -1505,9 +1661,17 @@ msgstr "Чеська B1"
 msgid "Отказать"
 msgstr "Відмовити"
 
+#: src/console/pages/Sources.tsx
+msgid "запусков с сайта"
+msgstr "запусків із сайту"
+
 #: src/console/pages/Chats.tsx
 msgid "без защиты"
 msgstr "без захисту"
+
+#: src/console/UsageLabels.tsx
+msgid "блок на экране"
+msgstr "блок на екрані"
 
 #: src/console/pages/Chat.tsx
 msgid "задаётся у родителя"
@@ -1567,6 +1731,14 @@ msgstr "Бот — адмін, але бракує прав"
 msgid "За что цена"
 msgstr "За що ціна"
 
+#: src/console/pages/Usage.tsx
+msgid "за последнюю минуту"
+msgstr "за останню хвилину"
+
+#: src/console/UsageLabels.tsx
+msgid "подвал"
+msgstr "підвал"
+
 #: src/console/Pings.tsx
 msgid "Уже в чёрном списке."
 msgstr "Вже в чорному списку."
@@ -1580,6 +1752,10 @@ msgstr "Сигнали, чекають на рішення: {0}"
 #: src/pages/Mine.tsx
 msgid "{0, plural, one {ещё # день} few {ещё # дня} many {ещё # дней} other {ещё # дня}}"
 msgstr "{0, plural, one {ще # день} few {ще # дні} many {ще # днів} other {ще # дня}}"
+
+#: src/console/UsageLabels.tsx
+msgid "пустой поиск чатов"
+msgstr "порожній пошук чатів"
 
 #: src/console/AudienceCharts.tsx
 msgid "сегодня, день не закончился"
@@ -1710,6 +1886,7 @@ msgid "рядом с языками"
 msgstr "поруч із мовами"
 
 #: src/components/TabBar.tsx
+#: src/console/UsageLabels.tsx
 #: src/pages/Mine.tsx
 msgid "Заявки"
 msgstr "Заявки"
@@ -1721,6 +1898,10 @@ msgstr "На всі відкриті заявки хтось відгукнув�
 #: src/components/OwnerStatusCard.tsx
 msgid "Пока её видишь только ты. Выбери «В каталоге», когда всё готово."
 msgstr "Поки її бачиш тільки ти. Вибери «У каталозі», коли все готово."
+
+#: src/console/pages/Usage.tsx
+msgid "сейчас в приложении"
+msgstr "зараз у застосунку"
 
 #: src/pages/MyHelper.tsx
 msgid "Что добавить"
@@ -1746,6 +1927,10 @@ msgstr "Розділ каталогу"
 #: src/console/pages/Chats.tsx
 msgid "Сутки"
 msgstr "Доба"
+
+#: src/console/pages/Usage.tsx
+msgid "Экраны"
+msgstr "Екрани"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Встанет первой в разделе «Не про учёбу». Там видно три карточки: самая нижняя уйдёт, пока другую не выключат."
@@ -1786,6 +1971,10 @@ msgstr "Розсилки"
 msgid "отписались от новостей"
 msgstr "відписалися від новин"
 
+#: src/console/pages/Sources.tsx
+msgid "<0>Cloudflare Web Analytics не подключён.</0> Включите Web Analytics для konnekt.cz в Cloudflare и выдайте ключ для чтения; тогда здесь появятся посетители, откуда они пришли и какие страницы смотрели."
+msgstr "<0>Cloudflare Web Analytics не підключено.</0> Увімкніть Web Analytics для konnekt.cz у Cloudflare і видайте ключ для читання; тоді тут з’являться відвідувачі, звідки вони прийшли і які сторінки дивилися."
+
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
 msgstr "Перевірка не пройшла"
@@ -1802,6 +1991,10 @@ msgstr "Залишити"
 #: src/pages/Request.tsx
 msgid "Выбрать"
 msgstr "Обрати"
+
+#: src/console/pages/Usage.tsx
+msgid "до {b}"
+msgstr "до {b}"
 
 #. placeholder {0}: moment(chat.bot.known_at)
 #: src/console/BotInChat.tsx
@@ -1821,10 +2014,19 @@ msgstr "Зовнішній чат"
 msgid "цена договорная"
 msgstr "ціна договірна"
 
+#: src/console/pages/Sources.tsx
+msgid "данные по {last}"
+msgstr "дані по {last}"
+
+#: src/console/pages/Usage.tsx
+msgid "Нажатия"
+msgstr "Натискання"
+
 #: src/pages/Mine.tsx
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
 msgstr "Опиши, що потрібно, і отримуй відгуки — замість того щоб шукати самому."
 
+#: src/console/AudienceCharts.tsx
 #: src/console/pages/Catalog.tsx
 #: src/console/ProfileSheet.tsx
 msgid "сегодня"
@@ -1849,12 +2051,6 @@ msgstr "вимк."
 #: src/console/ProfileSheet.tsx
 msgid "Причина"
 msgstr "Причина"
-
-#. placeholder {0}: fresh.started_bot
-#. placeholder {1}: fresh.opened_app
-#: src/console/pages/Audience.tsx
-#~ msgid "За период: +{0} запустили бота, +{1} открыли Mini App."
-#~ msgstr "За період: +{0} запустили бота, +{1} відкрили Mini App."
 
 #: src/components/Incoming.tsx
 msgid "До {amount} Kč"
@@ -1906,6 +2102,10 @@ msgstr "текст, формат, місто, видимість"
 msgid "{0, plural, one {# чат} few {# чата} many {# чатов} other {# чата}} · одобрено {approved}"
 msgstr "{0, plural, one {# чат} few {# чати} many {# чатів} other {# чату}} · схвалено {approved}"
 
+#: src/console/pages/Usage.tsx
+msgid "Когда онлайн"
+msgstr "Коли онлайн"
+
 #: src/lib/turnaround.tsx
 msgid "Неделя"
 msgstr "Тиждень"
@@ -1913,6 +2113,20 @@ msgstr "Тиждень"
 #: src/console/Faces.tsx
 msgid "без @username · id {id}"
 msgstr "без @username · id {id}"
+
+#: src/console/pages/Usage.tsx
+msgid "от {a}"
+msgstr "від {a}"
+
+#: src/console/BrowserShell.tsx
+#: src/console/pages/Sources.tsx
+#: src/console/pages/Summary.tsx
+msgid "Источники"
+msgstr "Джерела"
+
+#: src/console/UsageLabels.tsx
+msgid "по ссылке"
+msgstr "за посиланням"
 
 #: src/console/Charts.tsx
 msgid "Сообщения по дням недели и часам; больше всего: {busiest}"
@@ -1955,6 +2169,10 @@ msgstr "ЗВО"
 msgid "Сколько готов платить"
 msgstr "Скільки готовий платити"
 
+#: src/console/UsageLabels.tsx
+msgid "Без метки"
+msgstr "Без мітки"
+
 #. placeholder {0}: data.new_by_week.join(', ')
 #: src/console/pages/Audience.tsx
 #~ msgid "Новые люди по неделям, от старой к нынешней: {0}"
@@ -1985,6 +2203,15 @@ msgstr "Студенти перестануть її бачити. Покази 
 #: src/components/Place.tsx
 msgid "Прага"
 msgstr "Прага"
+
+#: src/console/UsageLabels.tsx
+msgid "Фильтр: {filter}"
+msgstr "Фільтр: {filter}"
+
+#: src/console/pages/Sources.tsx
+#: src/console/pages/Usage.tsx
+msgid "запусков"
+msgstr "запусків"
 
 #: src/console/QueueRow.tsx
 msgid "открытые, срок не вышел"
@@ -2078,6 +2305,10 @@ msgstr "Понад {perMinute} заявок на хвилину. Пауза ск
 msgid "Здесь появятся страховка, визы, банк и переводы."
 msgstr "Тут з'являться страхування, візи, банк і перекази."
 
+#: src/console/UsageLabels.tsx
+msgid "Вступить в чат"
+msgstr "Вступити в чат"
+
 #: src/console/pages/Signals.tsx
 msgid "Отклонить все"
 msgstr "Відхилити всі"
@@ -2087,6 +2318,7 @@ msgid "Как занимаешься"
 msgstr "Як займаєшся"
 
 #: src/components/Incoming.tsx
+#: src/console/UsageLabels.tsx
 #: src/pages/MyHelper.tsx
 #: src/pages/Profile.tsx
 msgid "Мои услуги"
@@ -2104,6 +2336,10 @@ msgstr "Заведи в Telegram публічний @username — інакше 
 #: src/pages/Ads.tsx
 msgid "Студенты чешских вузов в чатах и в этом приложении. Чаты мы каждый день чистим от спама, поэтому чужая реклама не перебивает ваш пост."
 msgstr "Студенти чеських вишів у чатах і в цьому застосунку. Чати ми щодня чистимо від спаму, тож чужа реклама не перебиває ваш пост."
+
+#: src/console/UsageLabels.tsx
+msgid "из заявки"
+msgstr "із заявки"
 
 #. placeholder {0}: n(count)
 #: src/console/pages/Summary.tsx
@@ -2123,6 +2359,10 @@ msgstr "Не вийшло. Спробуйте ще раз."
 #: src/console/pages/Partners.tsx
 msgid "в профиле"
 msgstr "у профілі"
+
+#: src/console/pages/Usage.tsx
+msgid "Сколько людей прошли шаги по порядку за период."
+msgstr "Скільки людей пройшли кроки по порядку за період."
 
 #: src/console/pages/Chat.tsx
 msgid "Не в каталоге · нет названия"
@@ -2194,6 +2434,7 @@ msgid "не настроен: баны и обновления из Telegram н�
 msgstr "не налаштовано: бани й оновлення з Telegram не пройдуть"
 
 #: src/console/pages/Audience.tsx
+#: src/console/pages/Sources.tsx
 msgid "{p} дней"
 msgstr "{p} днів"
 
@@ -2209,6 +2450,10 @@ msgstr "Пошук чатів і людей"
 #: src/console/pages/Summary.tsx
 msgid "Бот связи"
 msgstr "Бот зв’язку"
+
+#: src/console/UsageLabels.tsx
+msgid "Сообщение капчи"
+msgstr "Повідомлення капчі"
 
 #: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
@@ -2260,6 +2505,10 @@ msgstr "B1, B2, nostrifikace"
 msgid "Mini App, бот может писать"
 msgstr "Mini App, бот може писати"
 
+#: src/console/pages/Sources.tsx
+msgid "Откуда пришли на сайт"
+msgstr "Звідки прийшли на сайт"
+
 #: src/console/pages/Chat.tsx
 msgid "Обновить из Telegram"
 msgstr "Оновити з Telegram"
@@ -2269,9 +2518,14 @@ msgstr "Оновити з Telegram"
 #~ msgstr "Реєстрації немає — заходиш своїм акаунтом Telegram. Допомагати іншим можна звідти ж."
 
 #: src/components/TabBar.tsx
+#: src/console/UsageLabels.tsx
 #: src/pages/Profile.tsx
 msgid "Профиль"
 msgstr "Профіль"
+
+#: src/console/UsageLabels.tsx
+msgid "Открыли раздел"
+msgstr "Відкрили розділ"
 
 #: src/console/pages/Summary.tsx
 msgid "Реклама за сутки"
@@ -2294,6 +2548,10 @@ msgstr "Можливо, людина його приховала."
 #: src/console/pages/Chat.tsx
 msgid "Бот начнёт отвечать на команды и удалять сообщения в этом чате. Если здесь порядок держит другой бот, они будут мешать друг другу."
 msgstr "Бот почне відповідати на команди й видаляти повідомлення в цьому чаті. Якщо тут лад тримає інший бот, вони заважатимуть один одному."
+
+#: src/console/pages/Usage.tsx
+msgid "Главные кнопки, сколько раз нажали."
+msgstr "Головні кнопки, скільки разів натискали."
 
 #: src/console/pages/Audience.tsx
 msgid "график ниже"
@@ -2325,6 +2583,10 @@ msgstr "Рядок під іменем"
 #: src/console/pages/Audience.tsx
 msgid "Пришедшие к нам — по языку их Telegram."
 msgstr "Ті, хто прийшов до нас, — за мовою їхнього Telegram."
+
+#: src/console/pages/Sources.tsx
+msgid "Запросы, по которым сайт показывали в Google. Редкие запросы Google не называет, поэтому строки в сумме меньше итога."
+msgstr "Запити, за якими сайт показували в Google. Рідкісні запити Google не називає, тому рядки разом дають менше за підсумок."
 
 #: src/console/AudienceCharts.tsx
 msgid "Mini App, писать боту не разрешили"
@@ -2377,6 +2639,10 @@ msgstr "наприклад: Без страховки візу не продов
 msgid "Впервые открыли Mini App. Кто заходит снова, второй раз не считается."
 msgstr "Уперше відкрили Mini App. Хто заходить знову, вдруге не рахується."
 
+#: src/pages/Profile.tsx
+msgid "какие экраны открываю и сколько времени — без имени и того, что пишу"
+msgstr "які екрани відкриваю і скільки часу — без імені та того, що пишу"
+
 #: src/components/TabBar.tsx
 msgid "Что делаем?"
 msgstr "Що робимо?"
@@ -2403,13 +2669,25 @@ msgstr "{0, plural, one {# повідомлення} few {# повідомлен
 msgid "Подходящих помощников пока нет. Заявку увидят, как только они появятся."
 msgstr "Відповідних помічників поки немає. Заявку побачать, щойно вони з’являться."
 
+#: src/pages/Profile.tsx
+msgid "загружаем…"
+msgstr "завантажуємо…"
+
 #: src/console/ProfileSheet.tsx
 msgid "Анкету уже изменили: вот какая она сейчас."
 msgstr "Анкету вже змінили: ось яка вона зараз."
 
+#: src/console/UsageLabels.tsx
+msgid "Раздел чатов"
+msgstr "Розділ чатів"
+
 #: src/console/BotInChat.tsx
 msgid "Бот не одобрит заявки и не сделает ссылку для каталога."
 msgstr "Бот не схвалить заявки й не створить посилання для каталогу."
+
+#: src/console/pages/Sources.tsx
+msgid "Визиты по странице сайта."
+msgstr "Візити за сторінкою сайту."
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Не больше четырёх букв."
@@ -2422,6 +2700,10 @@ msgstr "У каталозі {listed} з {total}"
 #: src/components/ChatRow.tsx
 msgid "с темами"
 msgstr "з темами"
+
+#: src/console/pages/Summary.tsx
+msgid "сайт и поиск Google"
+msgstr "сайт і пошук Google"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Это первое, что читают. Пара живых предложений работает лучше списка."
@@ -2439,10 +2721,6 @@ msgstr "Усі нові анкети переглянуто."
 #: src/console/pages/AudiencePerson.tsx
 msgid "язык {0}"
 msgstr "мова {0}"
-
-#: src/console/pages/Chat.tsx
-#~ msgid "сообщения — последние 7 дней"
-#~ msgstr "повідомлення — останні 7 днів"
 
 #: src/pages/AdsChats.tsx
 msgid "Выходит в выбранных чатах один раз. Где он уместен, подскажем."
@@ -2471,6 +2749,14 @@ msgstr "Схвалити"
 #: src/components/ChatRow.tsx
 msgid "{count, plural, one {подписчик} few {подписчика} many {подписчиков} other {подписчика}}"
 msgstr "{count, plural, one {підписник} few {підписники} many {підписників} other {підписника}}"
+
+#: src/console/pages/Usage.tsx
+msgid "Люди по часам недели"
+msgstr "Люди за годинами тижня"
+
+#: src/console/pages/Usage.tsx
+msgid "Сессии"
+msgstr "Сесії"
 
 #: src/pages/Results.tsx
 msgid "Никто пока не предлагает то, что ты ищешь."
@@ -2556,6 +2842,10 @@ msgstr "Що потрібно?"
 msgid "Показать ещё"
 msgstr "Показати ще"
 
+#: src/console/UsageLabels.tsx
+msgid "Реклама в чатах"
+msgstr "Реклама в чатах"
+
 #: src/components/ChatRow.tsx
 msgid "Откроется в Telegram"
 msgstr "Відкриється в Telegram"
@@ -2571,6 +2861,10 @@ msgstr "Уже вирішено в Telegram або строк минув."
 #: src/console/Pings.tsx
 msgid "найдено: {found}"
 msgstr "знайдено: {found}"
+
+#: src/console/pages/Sources.tsx
+msgid "Запуски приложения по кнопкам сайта, по метке кнопки. Считает само приложение."
+msgstr "Запуски застосунку за кнопками сайту, за міткою кнопки. Рахує сам застосунок."
 
 #: src/components/Showcase.tsx
 msgid "Откроется чат с {handle}"
@@ -2591,6 +2885,10 @@ msgstr "почався {started} · останній сплеск щойно"
 #: src/console/BanSheet.tsx
 msgid "Во всех чатах, за всё время. Отменить нельзя."
 msgstr "У всіх чатах, за весь час. Скасувати не можна."
+
+#: src/console/UsageLabels.tsx
+msgid "из профиля"
+msgstr "з профілю"
 
 #: src/console/Pings.tsx
 msgid "в чате"
@@ -2614,13 +2912,26 @@ msgstr "Градець-Кралове"
 
 #: src/console/BrowserShell.tsx
 #: src/console/pages/AudiencePeople.tsx
+#: src/console/pages/Usage.tsx
 #: src/console/TopSearch.tsx
 msgid "Люди"
 msgstr "Люди"
 
+#: src/console/UsageLabels.tsx
+msgid "Открыли «Чаты»"
+msgstr "Відкрили «Чати»"
+
+#: src/console/pages/Sources.tsx
+msgid "Страницы"
+msgstr "Сторінки"
+
 #: src/console/pages/Chat.tsx
 msgid "Не в каталоге · чат не решён"
 msgstr "Не в каталозі · рішення немає"
+
+#: src/console/pages/Usage.tsx
+msgid "<0>Событий пока нет.</0> Счёт начнётся, когда выйдет версия Mini App, которая их отправляет, и в неё кто-нибудь зайдёт. Кто выключил учёт в профиле, сюда не попадает."
+msgstr "<0>Подій поки немає.</0> Лічильник запрацює, коли вийде версія Mini App, яка їх надсилає, і хтось у неї зайде. Хто вимкнув облік у профілі, сюди не потрапляє."
 
 #: src/console/pages/Signals.tsx
 msgid "Набегов нет."
@@ -2659,6 +2970,14 @@ msgstr "У каталозі її не видно. Редагувати анке�
 msgid "На сайт"
 msgstr "На сайт"
 
+#: src/console/pages/Sources.tsx
+msgid "Что искали в Google"
+msgstr "Що шукали в Google"
+
+#: src/console/pages/Usage.tsx
+msgid "По метке ссылки, с которой запустили. Возврат после перерыва не считается."
+msgstr "За міткою посилання, з якого запустили. Повернення після перерви не рахується."
+
 #: src/components/EmptyServiceSheet.tsx
 msgid "Твоя анкета будет здесь первой."
 msgstr "Твоя анкета буде тут першою."
@@ -2696,6 +3015,10 @@ msgstr "Список порожній."
 msgid "Что нужно"
 msgstr "Що потрібно"
 
+#: src/console/UsageLabels.tsx
+msgid "Поиск, результаты"
+msgstr "Пошук, результати"
+
 #. placeholder {0}: day(bot?.changed_at ?? '')
 #: src/console/BotInChat.tsx
 msgid "Бота удалили из чата · {0}"
@@ -2726,6 +3049,7 @@ msgid "Не получилось выбрать — попробуй ещё ра
 msgstr "Не вдалося обрати — спробуй ще раз."
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Вс"
 msgstr "Нд"
 
@@ -2746,6 +3070,7 @@ msgstr "Бан не спрацює, капча в чаті не вимкне н�
 #~ msgstr "Не виконано: Telegram відмовив. Запит закрито."
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Чт"
 msgstr "Чт"
 
@@ -2785,8 +3110,13 @@ msgid "Дешевле"
 msgstr "Дешевше"
 
 #: src/console/pages/Catalog.tsx
+#: src/console/pages/Usage.tsx
 msgid "30 дней"
 msgstr "30 днів"
+
+#: src/console/UsageLabels.tsx
+msgid "из чатов"
+msgstr "з чатів"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "После проверки анкета появится на сайте konnekt.cz и в поиске Google. Написать тебе можно будет только через Konnekt."
@@ -2797,6 +3127,7 @@ msgid "Хочешь, чтобы здесь была твоя услуга? На�
 msgstr "Хочеш, щоб тут була твоя послуга? Напиши нам — обговоримо умови. Картку з фото й текстом зробимо самі."
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Пт"
 msgstr "Пт"
 
@@ -2859,6 +3190,10 @@ msgstr "кнопка «Чати» в боті"
 #: src/components/Phrase.tsx
 msgid "Вуз, с которым ты работаешь"
 msgstr "Виш, з яким ти працюєш"
+
+#: src/console/pages/Usage.tsx
+msgid "Сколько длится сессия"
+msgstr "Скільки триває сесія"
 
 #: src/pages/Join.tsx
 msgid "Возможно, первая попытка всё-таки прошла. Проверь чат в Telegram, прежде чем подавать заявку заново."
@@ -2955,6 +3290,7 @@ msgstr "До консолі"
 #: src/console/pages/Spam.tsx
 #: src/console/pages/Summary.tsx
 #: src/console/Pings.tsx
+#: src/console/UsageLabels.tsx
 msgid "Реклама"
 msgstr "Реклама"
 
@@ -2974,8 +3310,13 @@ msgid "Закрыть"
 msgstr "Закрити"
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Сб"
 msgstr "Сб"
+
+#: src/console/pages/Sources.tsx
+msgid "данные с {first} по {last}"
+msgstr "дані з {first} по {last}"
 
 #: src/components/Showcase.tsx
 msgid "Разместить ›"
@@ -2984,6 +3325,14 @@ msgstr "Розмістити ›"
 #: src/pages/Profile.tsx
 msgid "открытых нет"
 msgstr "відкритих немає"
+
+#: src/console/pages/Sources.tsx
+msgid "прямые и без источника"
+msgstr "прямі й без джерела"
+
+#: src/console/pages/Usage.tsx
+msgid "никого"
+msgstr "нікого"
 
 #: src/console/ProfileSheet.tsx
 msgid "Оставить скрытой"
@@ -3002,12 +3351,17 @@ msgid "Впервые дали основному боту писать им: н
 msgstr "Уперше дозволили основному боту писати їм: натиснули Start, написали йому або дозволили в Mini App. Кожен рахується один раз. Записуємо з 20 жовт.: хто користувався ботом раніше, зарахований у день, коли вперше дозволив писати після цієї дати."
 
 #: src/console/Charts.tsx
+#: src/console/pages/Usage.tsx
 msgid "Вт"
 msgstr "Вт"
 
 #: src/console/JoinMode.tsx
 msgid "Бот задаёт в личке вопрос и одобряет заявку за верный ответ. Кто за последние 90 дней прошёл капчу в другом нашем чате, входит без вопроса."
 msgstr "Бот ставить в особистих питання й схвалює заявку за правильну відповідь. Хто за останні 90 днів пройшов капчу в іншому нашому чаті, входить без питання."
+
+#: src/console/UsageLabels.tsx
+msgid "Мои услуги: о себе"
+msgstr "Мої послуги: про себе"
 
 #. placeholder {0}: system.data.session_ttl_days
 #: src/console/pages/System.tsx
@@ -3037,13 +3391,21 @@ msgstr "останні 7 днів"
 #~ msgid "Бан {who} во всех чатах"
 #~ msgstr "Бан {who} в усіх чатах"
 
+#: src/console/pages/Usage.tsx
+msgid "Сколько разных людей открыли экран."
+msgstr "Скільки різних людей відкрили екран."
+
+#: src/console/pages/Usage.tsx
+msgid "Сессия — пока приложение на экране; перерыв больше двух минут начинает новую."
+msgstr "Сесія триває, поки застосунок на екрані; перерва понад дві хвилини починає нову."
+
+#: src/console/UsageLabels.tsx
+msgid "Открыли приложение"
+msgstr "Відкрили застосунок"
+
 #: src/console/pages/Chat.tsx
 msgid "Админы чата"
 msgstr "Адміни чату"
-
-#: src/console/AudienceCharts.tsx
-#~ msgid "только Mini App, без /start"
-#~ msgstr "лише Mini App, без /start"
 
 #: src/console/pages/Chat.tsx
 msgid "Отключить чат"
@@ -3057,10 +3419,6 @@ msgstr "Як виправити: додайте Konnekt у чат знову й 
 #~ msgid "Нострификация"
 #~ msgstr "Нострифікація"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "можно написать: запустили бота и не заблокировали"
-#~ msgstr "можна написати: запустили бота й не заблокували"
-
 #: src/console/pages/Chat.tsx
 msgid "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
 msgstr "Бота там немає. Лише посилання в каталозі з позначкою «не наш»."
@@ -3070,6 +3428,7 @@ msgid "Отклик отправлен"
 msgstr "Відгук надіслано"
 
 #: src/console/pages/Audience.tsx
+#: src/console/pages/Usage.tsx
 msgid "{count, plural, one {# человек} few {# человека} many {# человек} other {# человека}}"
 msgstr "{count, plural, one {# людина} few {# людини} many {# людей} other {# людини}}"
 
@@ -3104,6 +3463,10 @@ msgstr "Автор може її редагувати, але не опублі�
 msgid "{fullName}: в каталоге"
 msgstr "{fullName}: у каталозі"
 
+#: src/console/pages/Sources.tsx
+msgid "в Mini App"
+msgstr "у Mini App"
+
 #: src/console/pages/Summary.tsx
 msgid "Заблокировали"
 msgstr "Заблокували"
@@ -3128,6 +3491,7 @@ msgstr "Зняти з публічної вкладки?"
 msgid "Нужна ссылка вида https://t.me/имя, @имя или ссылка-приглашение https://t.me/+…."
 msgstr "Потрібне посилання на кшталт https://t.me/імʼя, @імʼя або посилання-запрошення https://t.me/+…."
 
+#: src/console/UsageLabels.tsx
 #: src/pages/Profile.tsx
 msgid "Жизнь в Чехии"
 msgstr "Життя в Чехії"
@@ -3139,6 +3503,10 @@ msgstr "Забанені в усіх чатах. Банять командою /
 #: src/console/BanSheet.tsx
 msgid "Telegram отказал во всех чатах: проверьте права бота и забаньте ещё раз."
 msgstr "Telegram відмовив у всіх чатах: перевірте права бота й забаньте ще раз."
+
+#: src/console/UsageLabels.tsx
+msgid "кнопка «+»"
+msgstr "кнопка «+»"
 
 #: src/console/pages/Chat.tsx
 msgid "Не задан: только общее приветствие"
@@ -3153,18 +3521,17 @@ msgstr "Розміщено до {until}"
 msgid "Попробовать ещё раз"
 msgstr "Спробувати ще раз"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "{days} дней по вчера против {days} дней до них. Сегодня отдельно: день не закончился."
-#~ msgstr "{days} днів до вчора проти {days} днів перед ними. Сьогодні окремо: день не скінчився."
+#: src/console/pages/Usage.tsx
+msgid "заходили за период"
+msgstr "заходили за період"
+
+#: src/console/pages/Usage.tsx
+msgid "медиана сессии"
+msgstr "медіана сесії"
 
 #: src/console/pages/Summary.tsx
 msgid "{held} · {hoursAgo} ч назад"
 msgstr "{held} · {hoursAgo} год тому"
-
-#. placeholder {0}: f.not_from_chats
-#: src/console/pages/Audience.tsx
-#~ msgid "Хоть раз запустили бота или открыли Mini App. Из них {fromChats} бот видел в чатах, {0} пришли по ссылке."
-#~ msgstr "Хоч раз запустили бота або відкрили Mini App. З них {fromChats} бот бачив у чатах, {0} прийшли за посиланням."
 
 #: src/pages/Mine.tsx
 msgid "Закрытых заявок нет"
@@ -3201,6 +3568,10 @@ msgstr "Увійти через Telegram"
 msgid "Ждут решения"
 msgstr "Чекають на рішення"
 
+#: src/console/UsageLabels.tsx
+msgid "страница партнёра"
+msgstr "сторінка партнера"
+
 #: src/pages/OfferPrices.tsx
 msgid "Пара слов о себе — что берёшь и чего не берёшь"
 msgstr "Пара слів про себе — що береш і чого не береш"
@@ -3208,10 +3579,6 @@ msgstr "Пара слів про себе — що береш і чого не �
 #: src/console/pages/Summary.tsx
 msgid "дали писать и не заблокировали"
 msgstr "дозволили писати й не заблокували"
-
-#: src/console/pages/Audience.tsx
-#~ msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
-#~ msgstr "Уперше дозволили основному боту писати їм: натиснули Start, написали йому або дозволили в Mini App. Кожен рахується один раз. Записуємо з 20 жовт.: хто користувався ботом раніше, зарахований у день першого візиту після цієї дати."
 
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
@@ -3253,11 +3620,6 @@ msgstr "Ще"
 #~ msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
 #~ msgstr "Запропоновано через MCP: {reason}. Чекає на натискання адміна, спливає за {left} хв."
 
-#. placeholder {0}: step.fresh
-#: src/console/AudienceCharts.tsx
-#~ msgid "{0, plural, one {+# за период} other {+# за период}}"
-#~ msgstr "{0, plural, one {+# за період} few {+# за період} many {+# за період} other {+# за період}}"
-
 #: src/lib/workFormat.tsx
 msgid "Хожу вместе"
 msgstr "Ходжу разом"
@@ -3266,9 +3628,17 @@ msgstr "Ходжу разом"
 msgid "Заявки на вход в чаты, где вход проверяет бот, которые он одобрил: прошли капчу, недавно проходили её в другом чате или пришли из каталога. Два чата — два входа."
 msgstr "Заявки на вхід у чати, де вхід перевіряє бот, які він схвалив: пройшли капчу, нещодавно проходили її в іншому чаті або прийшли з каталогу. Два чати — два входи."
 
+#: src/console/UsageLabels.tsx
+msgid "Нажали «Вступить»"
+msgstr "Натиснули «Вступити»"
+
 #: src/pages/ChatSection.tsx
 msgid "Такой группы больше нет"
 msgstr "Такої групи більше немає"
+
+#: src/console/pages/Sources.tsx
+msgid "данные ещё не пришли"
+msgstr "дані ще не надійшли"
 
 #. placeholder {0}: str(p.subject)
 #: src/components/Phrase.tsx
@@ -3365,6 +3735,10 @@ msgstr "не запускали"
 msgid "появится после одобрения"
 msgstr "з’явиться після схвалення"
 
+#: src/console/pages/Usage.tsx
+msgid "Воронка"
+msgstr "Воронка"
+
 #: src/console/pages/Spam.tsx
 #: src/console/SpamSplit.tsx
 msgid "Автор забанен"
@@ -3373,6 +3747,10 @@ msgstr "Автора забанено"
 #: src/console/JoinMode.tsx
 msgid "Капча"
 msgstr "Капча"
+
+#: src/console/pages/Usage.tsx
+msgid "сессий"
+msgstr "сесій"
 
 #: src/console/QueueRow.tsx
 msgid "детектор, все чаты"
@@ -3564,10 +3942,6 @@ msgstr "Працює лише в схваленому чаті."
 msgid "По твоим услугам · {count}"
 msgstr "За твоїми послугами · {count}"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Запустили бота"
-#~ msgstr "Запустили бота"
-
 #: src/console/pages/Spam.tsx
 msgid "Не разобрано · {unreviewed}"
 msgstr "Не розібрано · {unreviewed}"
@@ -3644,14 +4018,13 @@ msgstr "Нові анкети"
 msgid "Работа и IT"
 msgstr "Робота та IT"
 
+#: src/console/pages/Summary.tsx
+msgid "кто сейчас в Mini App, экраны, нажатия"
+msgstr "хто зараз у Mini App, екрани, натискання"
+
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
 msgstr "За цим запитом поки нікого"
-
-#: src/console/pages/Chat.tsx
-#: src/console/pages/Chats.tsx
-#~ msgid "бот вышел"
-#~ msgstr "бот вийшов"
 
 #: src/pages/Mine.tsx
 msgid "Закрыта"
@@ -3706,6 +4079,10 @@ msgstr "Працює саме з цим вишем"
 msgid "Открыть канал"
 msgstr "Відкрити канал"
 
+#: src/console/pages/Usage.tsx
+msgid "Откуда открыли приложение"
+msgstr "Звідки відкрили застосунок"
+
 #: src/pages/MyHelperAbout.tsx
 msgid "Пока анкета скрыта администратором, на сайте её нет."
 msgstr "Поки анкету приховав адміністратор, на сайті її немає."
@@ -3722,13 +4099,29 @@ msgstr "Допомога з навчанням"
 msgid "Изменить"
 msgstr "Змінити"
 
+#: src/console/UsageLabels.tsx
+msgid "Поиск помощника"
+msgstr "Пошук помічника"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не отписывались"
 msgstr "не відписувалися"
 
+#: src/console/UsageLabels.tsx
+msgid "Ссылка «Предложить помощь»"
+msgstr "Посилання «Запропонувати допомогу»"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "Открыть в Telegram"
 msgstr "Відкрити в Telegram"
+
+#: src/console/UsageLabels.tsx
+msgid "другое"
+msgstr "інше"
+
+#: src/console/UsageLabels.tsx
+msgid "с карточки"
+msgstr "з картки"
 
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
@@ -3810,9 +4203,14 @@ msgstr "Зверху — хто веде «{0}»"
 #~ msgid "Аудитория за неделю"
 #~ msgstr "Аудиторія за тиждень"
 
+#: src/console/UsageLabels.tsx
+msgid "Стать помощником"
+msgstr "Стати помічником"
+
 #: src/components/AppHeader.tsx
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
+#: src/console/UsageLabels.tsx
 msgid "Консоль"
 msgstr "Консоль"
 
@@ -3828,6 +4226,10 @@ msgstr "Історія прав бота"
 msgid "Суперадмин"
 msgstr "Суперадмін"
 
+#: src/console/pages/Usage.tsx
+msgid "человек в час"
+msgstr "людей за годину"
+
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
 msgstr "За цим поки не знайти"
@@ -3839,6 +4241,10 @@ msgstr "Поки нікого"
 #: src/console/pages/Audience.tsx
 msgid "заблокировали бота"
 msgstr "заблокували бота"
+
+#: src/console/pages/Usage.tsx
+msgid "{to} с"
+msgstr "{to} с"
 
 #: src/console/pages/Signals.tsx
 msgid "Те же кнопки, что в сообщении бота в чате отчётов; решение видно и там."
@@ -3868,9 +4274,9 @@ msgstr "можна написати: дозволили боту писати й
 msgid "Не в каталоге · нет ссылки t.me"
 msgstr "Не в каталозі · немає посилання t.me"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "были только в Mini App: бот им написать не может"
-#~ msgstr "були лише в Mini App: бот не може їм написати"
+#: src/console/pages/Usage.tsx
+msgid "заходов в приложение"
+msgstr "заходів у застосунок"
 
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
@@ -3879,6 +4285,10 @@ msgstr "Пояснення над карткою"
 #: src/components/ServiceSheet.tsx
 msgid "Да, убрать"
 msgstr "Так, прибрати"
+
+#: src/console/UsageLabels.tsx
+msgid "первый экран"
+msgstr "перший екран"
 
 #: src/components/Place.tsx
 msgid "Злин"
@@ -3891,6 +4301,10 @@ msgstr "Список не прийшов. Спробуй ще раз за хви
 #: src/pages/Life.tsx
 msgid "Не про учёбу"
 msgstr "Не про навчання"
+
+#: src/console/UsageLabels.tsx
+msgid "блок чатов"
+msgstr "блок чатів"
 
 #: src/pages/Ask.tsx
 msgid "курсовая работа"
@@ -3957,14 +4371,26 @@ msgstr "{0, plural, one {# послуга} few {# послуги} many {# пос
 msgid "Очистить поиск"
 msgstr "Очистити пошук"
 
+#: src/console/pages/Sources.tsx
+msgid "<0>Search Console не подключён.</0> Добавьте наш служебный аккаунт пользователем в Search Console для konnekt.cz; тогда здесь появятся запросы, клики и показы."
+msgstr "<0>Search Console не підключено.</0> Додайте наш службовий акаунт користувачем у Search Console для konnekt.cz; тоді тут з’являться запити, кліки й покази."
+
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
 msgstr "Записує історію й рахує учасників. Нічого не пише, ні на що не відповідає."
+
+#: src/console/UsageLabels.tsx
+msgid "Отправить заявку"
+msgstr "Надіслати заявку"
 
 #. placeholder {0}: closed.length
 #: src/pages/Mine.tsx
 msgid "Закрытые · {0}"
 msgstr "Закриті · {0}"
+
+#: src/console/pages/Usage.tsx
+msgid "минуты : секунды"
+msgstr "хвилини : секунди"
 
 #: src/console/ProfileSheet.tsx
 msgid "Скрыта из каталога."
@@ -3986,6 +4412,10 @@ msgstr "čeština B2"
 #: src/pages/Ask.tsx
 msgid "Не получилось посчитать"
 msgstr "Не вдалося порахувати"
+
+#: src/console/pages/Usage.tsx
+msgid "{share}% от шага выше"
+msgstr "{share}% від кроку вище"
 
 #: src/pages/Results.tsx
 msgid "Добавь себя в этот список — студенты напишут тебе сами."
@@ -4036,6 +4466,7 @@ msgstr "не рахували"
 msgid "вуз, курс или опыт — её видно на карточке"
 msgstr "виш, курс або досвід — його видно на картці"
 
+#: src/console/UsageLabels.tsx
 #: src/pages/Helper.tsx
 #: src/pages/Partner.tsx
 #: src/pages/Request.tsx
@@ -4047,6 +4478,10 @@ msgstr "Написати"
 msgid "Выйти"
 msgstr "Вийти"
 
+#: src/console/pages/Sources.tsx
+msgid "С сайта в Mini App"
+msgstr "Із сайту в Mini App"
+
 #: src/console/pages/Chats.tsx
 msgid "Это аккаунт человека, а не чат или канал."
 msgstr "Це акаунт людини, а не чат чи канал."
@@ -4054,6 +4489,10 @@ msgstr "Це акаунт людини, а не чат чи канал."
 #: src/console/BanSheet.tsx
 msgid "Забанить {name}?"
 msgstr "Забанити {name}?"
+
+#: src/console/UsageLabels.tsx
+msgid "Стать помощником: цены"
+msgstr "Стати помічником: ціни"
 
 #: src/console/Login.tsx
 msgid "Этого аккаунта нет среди администраторов. Войдите другим аккаунтом Telegram или попросите владельца добавить вас."
@@ -4109,6 +4548,10 @@ msgstr "Тебе бачать студенти. Перемикач прихов�
 msgid "Кто может помочь · {0}"
 msgstr "Хто може допомогти · {0}"
 
+#: src/console/UsageLabels.tsx
+msgid "Дошли до цен"
+msgstr "Дійшли до цін"
+
 #. placeholder {0}: sheet.sender.message_count
 #: src/console/pages/Chat.tsx
 msgid "Здесь за неделю {0, plural, one {# сообщение} few {# сообщения} many {# сообщений} other {# сообщения}}."
@@ -4148,17 +4591,33 @@ msgstr "Чи може бот їм написати"
 msgid "Анкета"
 msgstr "Анкета"
 
+#: src/console/UsageLabels.tsx
+msgid "Главная"
+msgstr "Головна"
+
 #: src/pages/Chats.tsx
 msgid "Найди свой чат"
 msgstr "Знайди свій чат"
+
+#: src/console/pages/Sources.tsx
+msgid "кликов: {clicks}"
+msgstr "кліків: {clicks}"
 
 #: src/components/Place.tsx
 msgid "Оломоуц"
 msgstr "Оломоуць"
 
+#: src/console/UsageLabels.tsx
+msgid "из поиска"
+msgstr "з пошуку"
+
 #: src/console/pages/Chat.tsx
 msgid "Капча, приветствие и чёрный список здесь перестанут работать."
 msgstr "Капча, привітання й чорний список тут перестануть працювати."
+
+#: src/console/UsageLabels.tsx
+msgid "Статья на сайте: {slug}"
+msgstr "Стаття на сайті: {slug}"
 
 #: src/console/pages/Chat.tsx
 msgid "Включить модерацию?"
@@ -4210,13 +4669,13 @@ msgstr "Ціна <0/>, Kč <1>необов’язково</1>"
 msgid "Пусто — вся Чехия: чат виден в каталоге при любом городе."
 msgstr "Порожньо — уся Чехія: чат видно в каталозі за будь-якого міста."
 
+#: src/console/pages/Sources.tsx
+msgid "Клики"
+msgstr "Кліки"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
 msgstr "Тексти повідомлень не зберігаються: лише те, що повідомляє Telegram, і коли людина приходила."
-
-#: src/console/pages/Summary.tsx
-#~ msgid "{diff} к неделе раньше"
-#~ msgstr "{diff} до тижня раніше"
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"
@@ -4229,6 +4688,10 @@ msgstr "Вирішують адміни"
 #: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "Що викладаєш, де вчишся, як проходять заняття. Своїми словами."
+
+#: src/console/UsageLabels.tsx
+msgid "Открыть помощника"
+msgstr "Відкрити помічника"
 
 #: src/pages/Request.tsx
 msgid "Отклики"
@@ -4251,6 +4714,14 @@ msgstr "Де її видно"
 msgid "{0} всего не разобрано"
 msgstr "{0} усього не розібрано"
 
+#: src/console/UsageLabels.tsx
+msgid "Вход в чат"
+msgstr "Вхід у чат"
+
+#: src/console/UsageLabels.tsx
+msgid "Капча пройдена"
+msgstr "Капчу пройдено"
+
 #: src/console/TopSearch.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
@@ -4264,6 +4735,10 @@ msgstr "Хай знайдуть тебе"
 #: src/components/Place.tsx
 msgid "общий чат"
 msgstr "загальний чат"
+
+#: src/console/pages/Usage.tsx
+msgid "раз"
+msgstr "разів"
 
 #: src/pages/MyHelperAbout.tsx
 msgid "Бот напишет, когда появится заявка по твоей услуге. Не больше 5 в день и не ночью."
@@ -4294,9 +4769,17 @@ msgstr "Потрібна допомога з навчанням."
 msgid "заявок за 7 дней"
 msgstr "заявок за 7 днів"
 
+#: src/console/pages/Usage.tsx
+msgid "{count, plural, one {# сессия} few {# сессии} many {# сессий} other {# сессии}}"
+msgstr "{count, plural, one {# сесія} few {# сесії} many {# сесій} other {# сесії}}"
+
 #: src/console/pages/Audience.tsx
 msgid "Разрешили боту писать"
 msgstr "Дозволили боту писати"
+
+#: src/console/UsageLabels.tsx
+msgid "Чаты вуза {name}"
+msgstr "Чати вишу {name}"
 
 #: src/components/SubjectSearch.tsx
 msgid "Предмет, например математика"
@@ -4355,10 +4838,6 @@ msgstr "Не вдалося завантажити чати"
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."
 msgstr "Питання приходить лише в особисті. Багато хто його не помічає: Telegram пише їм «адмін схвалить», і бота вони не відкривають."
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Впервые нажали Start в основном боте. Каждый человек считается один раз, в день первого запуска."
-#~ msgstr "Уперше натиснули Start в основному боті. Кожна людина рахується один раз, у день першого запуску."
-
 #: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx
 #: src/pages/Profile.tsx
@@ -4382,6 +4861,10 @@ msgstr "за день"
 #: src/components/InstitutionPicker.tsx
 msgid "Список вузов не загрузился. Попробуй ещё раз позже."
 msgstr "Список вишів не завантажився. Спробуй ще раз пізніше."
+
+#: src/console/pages/Usage.tsx
+msgid "больше всего: {top} в час"
+msgstr "найбільше: {top} за годину"
 
 #: src/console/pages/Chat.tsx
 msgid "Обновляем…"
@@ -4478,6 +4961,10 @@ msgstr "Змінити: {fullName}"
 msgid "Все"
 msgstr "Усі"
 
+#: src/console/pages/Usage.tsx
+msgid "Сколько разных людей было в приложении в каждый час недели за период."
+msgstr "Скільки різних людей було в застосунку в кожну годину тижня за період."
+
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Audience.tsx
 #: src/console/pages/Summary.tsx
@@ -4562,3 +5049,7 @@ msgstr "Розібратися заздалегідь"
 #: src/console/pages/Partners.tsx
 msgid "Выключить"
 msgstr "Вимкнути"
+
+#: src/console/UsageLabels.tsx
+msgid "Сайт: {place}"
+msgstr "Сайт: {place}"

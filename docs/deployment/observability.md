@@ -122,3 +122,25 @@ after `| json` (`| json | request_id="…"`). With `-f` a query Loki cannot pars
 shows only `400 Bad Request`; drop it to see Loki's reason. The lines are the
 same as `docker logs` and carry what those carry: keep what you quote from them
 to what the question needs.
+
+## How the app is used, and where the site's visitors come from
+
+Not monitoring, but beside it: the console's «Использование» and «Источники».
+The Mini App sends what people do to `POST /api/public/events`
+(`web/src/lib/track.ts`, `app/webapi/routes/events.py`); written in
+`mini_app_events_total`, turned away in `mini_app_events_dropped_total{reason}`.
+A rise in `invalid` means the app and `app/usage/events.py` disagree on a name.
+
+The site is read from Cloudflare Web Analytics and Google Search Console by the
+web API a few times a day (`app/usage/sources.py`). Each is off until its
+settings are in the repository's secrets and variables:
+
+| Setting | Kind | Where it comes from |
+|---|---|---|
+| `ANALYTICS_CLOUDFLARE_TOKEN` | secret | A Cloudflare API token with Account → Account Analytics → Read |
+| `ANALYTICS_CLOUDFLARE_ACCOUNT_ID` | variable | The account's id, in the dashboard's address |
+| `ANALYTICS_CLOUDFLARE_SITE_TAG` | variable | Web Analytics → konnekt.cz → the site tag |
+| `ANALYTICS_SEARCH_CONSOLE_CREDENTIALS` | secret | A Google Cloud service account's JSON key, on one line (`jq -c`); the account's address is added to the Search Console property as a user with restricted access |
+
+A failed import is an error line (`site_import_failed`, `search_import_failed`)
+and leaves the days it had; the screen says up to which day it has data.

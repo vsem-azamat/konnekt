@@ -114,7 +114,7 @@ export function TrendBars({
       </div>
       <div className={css.axis}>
         <span>{span(first).split(' – ')[0]}</span>
-        <span>{span(last).split(' – ').pop()}</span>
+        <span>{today ? <Trans>сегодня</Trans> : span(last).split(' – ').pop()}</span>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ from app.webapi.routes import (
     catalog_pass,
     chats,
     client_errors,
+    events,
     health,
     join_check,
     metrics,
@@ -35,6 +36,7 @@ from app.webapi.routes import (
     signals,
     spam,
     stats,
+    usage,
     users,
 )
 
@@ -70,13 +72,15 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     alerts = AlertHandler(process="webapi")
     alerts.start(lambda text: bot.send_message(report_chat, text, parse_mode=None))
     purge = asyncio.create_task(_purge_expired_sessions())
+    site = asyncio.create_task(_import_sources())
     try:
         yield
     finally:
         await auth_telegram.close_oidc_http()
         await catalog.close_catalog_http()
         purge.cancel()
-        await asyncio.gather(purge, return_exceptions=True)
+        site.cancel()
+        await asyncio.gather(purge, site, return_exceptions=True)
         await alerts.stop()
         await close_publish_bot(_app.state.publish_bot)
 
@@ -93,6 +97,30 @@ async def _purge_expired_sessions(interval_seconds: int = 3600) -> None:
                 await session_store.purge_expired(session)
         except Exception:
             logger.exception("session_purge_failed")
+
+
+async def _import_sources(interval_seconds: int = 6 * 3600) -> None:
+    """The site and search days for «Источники» (app/usage/sources.py), a few times a day.
+
+    Each run rewrites the last week, so a missed run is made up by the next;
+    more than daily because Search Console settles a day over several.
+    """
+    import httpx
+
+    from app.core.time import utc_now
+    from app.db.session import get_session_maker
+    from app.usage import sources
+
+    if not (settings.analytics.cloudflare_on or settings.analytics.search_console_on):
+        return
+    async with httpx.AsyncClient(timeout=30) as http:
+        while True:
+            try:
+                async with get_session_maker()() as session:
+                    await sources.import_once(session, http, today=utc_now().date())
+            except Exception:
+                logger.exception("sources_import_failed")
+            await asyncio.sleep(interval_seconds)
 
 
 def create_app() -> FastAPI:
@@ -130,6 +158,7 @@ def create_app() -> FastAPI:
     app.include_router(join_check.router, prefix="/api")
     app.include_router(seen.router, prefix="/api")
     app.include_router(client_errors.router, prefix="/api")
+    app.include_router(events.router, prefix="/api")
     # The console, guarded at the router: a route added here cannot forget to
     # ask, and the question comes before anything else a route depends on.
     console = [Depends(require_super_admin)]
@@ -140,6 +169,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix="/api", dependencies=console)
     app.include_router(admin.router, prefix="/api", dependencies=console)
     app.include_router(audience.router, prefix="/api", dependencies=console)
+    app.include_router(usage.router, prefix="/api", dependencies=console)
     app.include_router(catalog.router, prefix="/api", dependencies=console)
     app.include_router(search.router, prefix="/api", dependencies=console)
 

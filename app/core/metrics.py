@@ -41,6 +41,11 @@ CLIENT_ERRORS = Counter("mini_app_client_errors_total", "Failures the Mini App r
 CLIENT_ERRORS_DROPPED = Counter(
     "mini_app_client_errors_dropped_total", "Mini App failure reports past a limit, not written", ["reason"]
 )
+# What people did in the Mini App (app/webapi/routes/events.py): written, and
+# turned away. No label for the event's name: the drop count is what says the
+# client and the server's lists disagree.
+EVENTS = Counter("mini_app_events_total", "Mini App usage events written")
+EVENTS_DROPPED = Counter("mini_app_events_dropped_total", "Mini App usage events not written", ["reason"])
 
 
 def observe_request(method: str, route: str | None, status: int, seconds: float) -> None:

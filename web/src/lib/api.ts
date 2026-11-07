@@ -18,6 +18,7 @@ import type {
 import { isApproval } from './join';
 import { isReach, type Reach } from './reach';
 import { SessionEndedError } from './sessionEnded';
+import type { TrackedEvent } from './track';
 import type {
   ContactStart,
   FeedRequest,
@@ -332,6 +333,28 @@ export const api = {
       keepalive,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
+    }).catch(() => undefined);
+  },
+
+  /**
+   * What people did in the app, for the console (lib/track.ts). Like the error
+   * reports: plain `fetch`, nothing reported if it fails, `keepalive` only as
+   * the app goes away.
+   */
+  reportUsage: (
+    batch: {
+      init_data: string;
+      version: string;
+      platform: string;
+      events: TrackedEvent[];
+    },
+    keepalive: boolean,
+  ): void => {
+    void fetch(`${BASE_URL}/api/public/events`, {
+      method: 'POST',
+      keepalive,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(batch),
     }).catch(() => undefined);
   },
 

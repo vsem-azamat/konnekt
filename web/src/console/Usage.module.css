@@ -1,0 +1,197 @@
+/*
+ * «Использование» and «Источники»: tiles, then cards that stack on a phone.
+ * Charts and lists come from Audience.module.css; this is only what those
+ * screens lack: the hours of the week, a small table and the live dot.
+ */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.tiles[data-three] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.tile > span:first-child {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+.tileHint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.live {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--good);
+  vertical-align: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  align-items: start;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+/* A two-way toggle inside a card: as wide as its words, like the period's. */
+.toggle {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.toggle > [role='tablist'] {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+/* Tabs too long for a phone scroll sideways rather than break onto two lines. */
+.scrolls {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scrolls [role='tab'] {
+  white-space: nowrap;
+}
+
+/* Hours of the week: a day per row, an hour per column, in Prague. */
+.heat {
+  display: grid;
+  grid-template-columns: 22px repeat(24, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.heat > span {
+  line-height: 14px;
+}
+
+.cell {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--hairline);
+}
+
+.cell[data-level='1'] {
+  background: color-mix(in srgb, var(--tone-3-fg) 25%, var(--hairline));
+}
+.cell[data-level='2'] {
+  background: color-mix(in srgb, var(--tone-3-fg) 50%, var(--hairline));
+}
+.cell[data-level='3'] {
+  background: color-mix(in srgb, var(--tone-3-fg) 75%, var(--hairline));
+}
+.cell[data-level='4'] {
+  background: var(--tone-3-fg);
+}
+
+.hours {
+  grid-column: 2 / -1;
+  display: flex;
+  justify-content: space-between;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.legend > .cell {
+  width: 14px;
+}
+
+.notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  border: 1px dashed var(--muted-soft);
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.notice b {
+  color: var(--ink);
+}
+
+.through {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.table {
+  overflow-x: auto;
+  margin-top: 6px;
+}
+
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 6px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  /* Three stay three: a third tile alone on a row reads as a different kind. */
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

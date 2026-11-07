@@ -28,6 +28,8 @@ export const BROWSER_PATHS = [
   'audience',
   'audience/people',
   'audience/:id',
+  'usage',
+  'sources',
   'catalog',
   'partners',
   'partners/new',

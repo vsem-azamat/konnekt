@@ -102,6 +102,14 @@ export const router = createBrowserRouter([
             lazy: screen(() => import('@/console/pages/AudiencePerson')),
           },
           {
+            path: 'console/usage',
+            lazy: screen(() => import('@/console/pages/Usage')),
+          },
+          {
+            path: 'console/sources',
+            lazy: screen(() => import('@/console/pages/Sources')),
+          },
+          {
             path: 'console/catalog',
             lazy: screen(() => import('@/console/pages/Catalog')),
           },

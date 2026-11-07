@@ -527,6 +527,45 @@ class ObservabilitySettings(Settings):
     )
 
 
+class AnalyticsSettings(Settings):
+    """Where the console's «Источники» reads the public site from (app/usage/sources.py).
+
+    Each half is off until it is configured, and the screen says which is missing.
+    """
+
+    cloudflare_token: SecretStr = Field(
+        default=SecretStr(""), description="Cloudflare API token with Account Analytics: Read; empty turns the site off"
+    )
+    cloudflare_account_id: str = Field(default="", description="The Cloudflare account the site is in")
+    cloudflare_site_tag: str = Field(default="", description="Web Analytics site tag of konnekt.cz")
+    cloudflare_host: str = Field(
+        default="konnekt.cz", description="The site's host; the zone's other hosts are left out"
+    )
+    search_console_credentials: SecretStr = Field(
+        default=SecretStr(""),
+        description="A Google service account's JSON key, added to the property as a user; empty turns search off",
+    )
+    search_console_site: str = Field(default="sc-domain:konnekt.cz", description="The Search Console property")
+
+    model_config = SettingsConfigDict(
+        env_prefix="ANALYTICS_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    @property
+    def cloudflare_on(self) -> bool:
+        return bool(
+            self.cloudflare_token.get_secret_value() and self.cloudflare_account_id and self.cloudflare_site_tag
+        )
+
+    @property
+    def search_console_on(self) -> bool:
+        return bool(self.search_console_credentials.get_secret_value() and self.search_console_site)
+
+
 class SentrySettings(Settings):
     """Where this process reports its errors; no DSN, no reporting.
 
@@ -569,6 +608,7 @@ class AppSettings(Settings):
     chat_state: ChatStateSettings = Field(default_factory=ChatStateSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     sentry: SentrySettings = Field(default_factory=SentrySettings)
+    analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
 
     model_config = SettingsConfigDict(
         env_prefix="APP_",

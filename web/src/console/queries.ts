@@ -38,6 +38,7 @@ import {
   unreviewedPath,
 } from './spam';
 import type { AudienceTrends, Period } from './trends';
+import type { Sources, SourcesPeriod, Usage, UsagePeriod } from './usage';
 
 /** A ban's or an unban's answer: where Telegram refused, and how many took. */
 export interface BanAnswer {
@@ -268,6 +269,30 @@ export const audienceTrendsQuery = (days: Period) => ({
   queryKey: ['console', 'audience', 'trends', days] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>
     consoleGet<AudienceTrends>(`/api/audience/trends?days=${days}`, { signal }),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
+
+/**
+ * How the Mini App is used over the last `days` days, today included, with
+ * hours and days in the reader's own zone (docs/invariants.md).
+ */
+export const usageQuery = (days: UsagePeriod) => ({
+  queryKey: ['console', 'usage', days] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<Usage>(
+      `/api/usage?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
+      { signal },
+    ),
+  staleTime: CONSOLE_STALE,
+  retryOnMount: false,
+});
+
+/** The site and Google search over `days` days ending yesterday. */
+export const sourcesQuery = (days: SourcesPeriod) => ({
+  queryKey: ['console', 'usage', 'sources', days] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) =>
+    consoleGet<Sources>(`/api/usage/sources?days=${days}`, { signal }),
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 });
