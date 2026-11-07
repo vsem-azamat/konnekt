@@ -396,20 +396,24 @@ export default function ProfilePage() {
  */
 function CountingRow() {
   const { t } = useLingui();
+  // null until Telegram's storage answers: not known is never shown as «on».
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [slow, setSlow] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let live = true;
-    // Telegram may never answer; then the switch shows the default, on.
-    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
-    void Promise.race([readChoice(), late]).then((value) => {
-      if (live) setAllowed(value ?? true);
+    const timer = setTimeout(() => setSlow(true), 3000);
+    void readChoice().then((value) => {
+      if (!live) return;
+      clearTimeout(timer);
+      setSlow(value === null);
+      setAllowed(value);
     });
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, []);
-  if (allowed === null) return null;
   const change = (next: boolean) => {
     hapticSelection();
     setBusy(true);
@@ -428,14 +432,20 @@ function CountingRow() {
       wrap
       title={<Trans>Учитывать мои действия</Trans>}
       hint={
-        <Trans>
-          какие экраны открываю и сколько времени — без имени и того, что пишу
-        </Trans>
+        allowed !== null ? (
+          <Trans>
+            какие экраны открываю и сколько времени — без имени и того, что пишу
+          </Trans>
+        ) : slow ? (
+          <Trans>Telegram не отдал настройку — пока ничего не учитываем</Trans>
+        ) : (
+          <Trans>загружаем…</Trans>
+        )
       }
       trailing={
         <Switch
-          checked={allowed}
-          busy={busy}
+          checked={allowed === true}
+          busy={busy || allowed === null}
           label={t`Учитывать мои действия`}
           onChange={change}
         />
