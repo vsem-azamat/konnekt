@@ -1,7 +1,8 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
-import { useParams } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { useLocation, useParams } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import { PriceUnitLabel, StatLabel } from '@/components/Phrase';
 import {
@@ -23,6 +24,7 @@ import {
 import { hapticSuccess, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { offerChipText } from '@/lib/offerChip';
+import { cameFrom, track } from '@/lib/track';
 import { TurnaroundLabel } from '@/lib/turnaround';
 import type { HelperDetail } from '@/lib/types';
 
@@ -36,6 +38,16 @@ import type { HelperDetail } from '@/lib/types';
 export default function HelperPage() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useLingui();
+  const location = useLocation();
+
+  // Once per card opened; a ref, since React runs a mount effect twice in development.
+  const counted = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (counted.current === id) return;
+    counted.current = id;
+    const from = (location.state as { from?: string } | null)?.from;
+    track('helper_open', { from: from ?? cameFrom() });
+  }, [id, location.state]);
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['helper', id],
@@ -74,7 +86,10 @@ export default function HelperPage() {
           isVisible: true,
           isEnabled: !contact.isPending,
           isLoaderVisible: contact.isPending,
-          onClick: () => contact.mutate(),
+          onClick: () => {
+            track('contact_tap', { from: 'helper' });
+            contact.mutate();
+          },
         }
       : null,
   );

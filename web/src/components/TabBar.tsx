@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import { hapticSelection } from '@/hooks/useTelegram';
+import { track } from '@/lib/track';
 
 import { BookmarkIcon, ChatIcon, PersonIcon, PlusIcon, SearchIcon } from './icons';
 import { Pick, Sheet } from './Sheet';
@@ -41,6 +42,7 @@ export function TabBar() {
 
   const go = (to: string) => {
     if (to !== pathname) hapticSelection();
+    track('tab_tap', { tab: to.slice(1) });
     navigate(to);
   };
 

@@ -3,6 +3,7 @@ import { openLink } from '@tma.js/sdk-react';
 import type { ReactNode } from 'react';
 
 import { api } from '@/lib/api';
+import { track } from '@/lib/track';
 import type { Placement } from '@/lib/types';
 
 import { Hint, ui } from './Ui';
@@ -28,6 +29,7 @@ export function PartnerBlock({
     // Counted before the browser leaves, and deliberately not awaited: the tap
     // should open the link now, not after a round trip.
     void api.registerPlacementClick(placement.id).catch(() => undefined);
+    track('partner_tap', { from: 'block' });
     openLink(placement.url);
   };
 

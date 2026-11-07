@@ -9,6 +9,7 @@ import { Empty, Screen, SkeletonRows, Title } from '@/components/Ui';
 import { useMainButton } from '@/hooks/useTelegram';
 import { api, showcasePhoto } from '@/lib/api';
 import { priceFrom } from '@/lib/showcase';
+import { track } from '@/lib/track';
 
 const TELEGRAM = /^https:\/\/(t\.me|telegram\.me)\//;
 
@@ -39,6 +40,7 @@ export default function PartnerPage() {
             // Billed per click, so recorded before the link leaves the app;
             // a failure to record must not keep the student from writing.
             void api.registerPlacementClick(data.id).catch(() => undefined);
+            track('partner_tap', { from: 'partner' });
             if (TELEGRAM.test(data.write_to)) openTelegramLink(data.write_to);
             else openLink(data.write_to);
           },

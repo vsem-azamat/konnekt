@@ -9,6 +9,7 @@ import { Empty, Hint, Screen, SkeletonRows, Sub, Title, ui } from '@/components/
 import { hapticSelection, useMainButton } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import type { OfferOpened } from '@/lib/generated/types.gen';
+import { track } from '@/lib/track';
 
 /**
  * What can you help with?
@@ -87,6 +88,7 @@ export default function OfferPage() {
     if (reported.current) return;
     reported.current = true;
     api.reportOfferOpen(entry?.from ?? 'other').catch(() => {});
+    track('offer_start', { from: entry?.from ?? 'other' });
   }, [entry]);
 
   const toggle = (code: string) => {

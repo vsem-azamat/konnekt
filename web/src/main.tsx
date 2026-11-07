@@ -45,6 +45,8 @@ import { followKeyboard } from '@/lib/keyboard';
 import { siteRedirect } from '@/lib/siteEntry';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
+import { createTracker, noteScreen, startTracking, track } from '@/lib/track';
+import { countingAllowed } from '@/lib/usageChoice';
 import { router } from '@/router';
 
 import './index.css';
@@ -112,6 +114,7 @@ async function bootstrap(): Promise<void> {
   initSdk();
   reportFailures();
   reportLaunch();
+  void countUsage();
   followStartLink();
   await initLocale();
   render();
@@ -142,6 +145,55 @@ function followStartLink(): void {
     // No storage: follow it, and a reload may follow it again.
   }
   void router.navigate(route.path, { state: route.state });
+}
+
+/**
+ * Count what people do in the app (lib/track.ts), unless they turned it off.
+ *
+ * As the error reports: inside Telegram and in a build only, since the
+ * console in a browser has no initData and the development mock's is
+ * unsigned. The console's own screens are not counted: they are ours.
+ */
+async function countUsage(): Promise<void> {
+  if (import.meta.env.DEV) return;
+  const initData = rawInitData();
+  if (!initData || !(await countingAllowed())) return;
+  const { tgWebAppPlatform } = retrieveLaunchParams();
+  const tracker = createTracker({
+    send: (events, leaving) =>
+      api.reportUsage(
+        {
+          init_data: initData,
+          version: import.meta.env.VITE_APP_VERSION || 'unknown',
+          platform: tgWebAppPlatform,
+          events,
+        },
+        leaving,
+      ),
+    route: routePattern,
+    now: Date.now,
+    newId: () => crypto.randomUUID(),
+    setTimer: (fn, ms) => setTimeout(fn, ms),
+    clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+  });
+  startTracking(tracker);
+
+  let screen = '';
+  const viewed = (): void => {
+    const next = routePattern();
+    if (next === screen || next.startsWith('/console')) return;
+    screen = next;
+    noteScreen(next);
+    track('screen_view', {});
+  };
+  viewed();
+  router.subscribe(viewed);
+
+  document.addEventListener('visibilitychange', () => {
+    tracker.visible(document.visibilityState === 'visible');
+  });
+  on('visibility_changed', ({ is_visible }) => tracker.visible(is_visible));
+  window.addEventListener('pagehide', tracker.flush);
 }
 
 /** One line in the console's audience per launch, never in the way of the app. */

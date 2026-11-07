@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { HelperCardView } from '@/components/HelperCard';
@@ -25,6 +25,7 @@ import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { chipKey, chipLabel } from '@/lib/chips';
 import { find } from '@/lib/search';
+import { track } from '@/lib/track';
 import type { HelperCard, SearchSort } from '@/lib/types';
 
 /**
@@ -123,6 +124,28 @@ export default function ResultsPage() {
       api.search({ ...filters, subject_id: guess ?? undefined, sort, limit: 50 }, signal),
     enabled: guess !== null && filters !== null,
   });
+
+  // One search per set of filters, counted when its answer comes: the sort
+  // reorders the same answer and is a filter change, not another search.
+  const searched = useRef<string | undefined>(undefined);
+  // With only a guess to go by, the guess's list is the search.
+  const answer = onlyGuess ? also.data : data;
+  useEffect(() => {
+    if (!answer || filters === null) return;
+    const key = JSON.stringify(filters);
+    if (searched.current === key) return;
+    searched.current = key;
+    const set = [
+      filters.subject_id,
+      filters.institution_id,
+      filters.service_type_id,
+      filters.max_price,
+    ];
+    track('search_submit', {
+      results: answer.total,
+      filters: set.filter((value) => value != null).length,
+    });
+  }, [answer, filters]);
 
   // Unknown filters are still loading, not loaded. The error takes precedence,
   // or a failed lookup would keep the skeleton up for ever.
@@ -347,6 +370,7 @@ export default function ResultsPage() {
               onClick={() => {
                 hapticSelection();
                 setSort(value);
+                track('filter_change', { filter: 'sort' });
                 setSorting(false);
               }}
             />

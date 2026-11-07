@@ -1,6 +1,7 @@
-import { Plural, Trans } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openTelegramLink } from '@tma.js/sdk-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppHeader } from '@/components/AppHeader';
 import {
@@ -12,6 +13,7 @@ import {
   PersonIcon,
   SealIcon,
 } from '@/components/icons';
+import { Switch } from '@/components/Switch';
 import {
   Action,
   Actions,
@@ -34,6 +36,8 @@ import { hapticSelection } from '@/hooks/useTelegram';
 import { api } from '@/lib/api';
 import { allPaused, liveCount } from '@/lib/myServices';
 import { openRequests } from '@/lib/openRequests';
+import { setTracking } from '@/lib/track';
+import { allowCounting, countingAllowed } from '@/lib/usageChoice';
 
 /**
  * A person's own things first, then the one setting, then the rest.
@@ -359,6 +363,7 @@ export default function ProfilePage() {
               title={<Trans>Реклама для студентов</Trans>}
               hint={<Trans>для компаний: посты в чатах и карточки</Trans>}
             />
+            <CountingRow />
             {contactUrl ? (
               <Row
                 onClick={() => openTelegramLink(contactUrl)}
@@ -375,5 +380,54 @@ export default function ProfilePage() {
         </>
       )}
     </Screen>
+  );
+}
+
+/**
+ * Whether the app may count what this person does in it (lib/track.ts).
+ * On by default; off stops counting from that moment, on this device and,
+ * through Telegram's cloud storage, on their others.
+ */
+function CountingRow() {
+  const { t } = useLingui();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void countingAllowed().then((value) => {
+      if (live) setAllowed(value);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (allowed === null) return null;
+  const change = (next: boolean) => {
+    hapticSelection();
+    setBusy(true);
+    setAllowed(next);
+    setTracking(next);
+    void allowCounting(next)
+      .catch(() => undefined)
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Row
+      wrap
+      title={<Trans>Учитывать мои действия</Trans>}
+      hint={
+        <Trans>
+          какие экраны открываю и сколько времени — без имени и того, что пишу
+        </Trans>
+      }
+      trailing={
+        <Switch
+          checked={allowed}
+          busy={busy}
+          label={t`Учитывать мои действия`}
+          onChange={change}
+        />
+      }
+    />
   );
 }
