@@ -210,6 +210,9 @@ def test_credentials_come_from_secrets_and_the_rest_from_variables() -> None:
         "SENTRY_DSN_BOT",
         "SENTRY_DSN_WEBAPI",
         "SENTRY_DSN_CATALOG_API",
+        # Read the site's analytics and Search Console as us.
+        "ANALYTICS_CLOUDFLARE_TOKEN",
+        "ANALYTICS_SEARCH_CONSOLE_CREDENTIALS",
     }
 
     for name, expression in step["env"].items():
