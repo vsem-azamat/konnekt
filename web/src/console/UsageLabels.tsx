@@ -1,6 +1,8 @@
 import { useLingui } from '@lingui/react/macro';
+import { useQuery } from '@tanstack/react-query';
 
 import { type FunnelKey, sourceKind } from '@/console/usage';
+import { institutionsQuery } from '@/lib/api';
 
 /**
  * The words for what «Использование» and «Источники» count: screens by their
@@ -9,6 +11,12 @@ import { type FunnelKey, sourceKind } from '@/console/usage';
  */
 export function useUsageLabels() {
   const { t } = useLingui();
+  // A school by the name the rest of the app gives it (ČVUT), not its code (cvut).
+  const institutions = useQuery(institutionsQuery).data ?? [];
+  const school = (code: string) => {
+    const found = institutions.find((i) => i.code === code);
+    return found?.short_name ?? found?.name ?? code.toUpperCase();
+  };
 
   const screens: Record<string, string> = {
     '/home': t`Главная`,
@@ -66,11 +74,11 @@ export function useUsageLabels() {
     partner_tap: t`Партнёр`,
   };
   const links: Record<string, string> = {
-    welcome: t`кнопка в приветствии чата`,
-    captcha: t`сообщение капчи`,
-    captcha_passed: t`капча пройдена`,
-    chats: t`кнопка «Чаты» в боте`,
-    offer: t`ссылка «Предложить помощь»`,
+    welcome: t`Кнопка в приветствии чата`,
+    captcha: t`Сообщение капчи`,
+    captcha_passed: t`Капча пройдена`,
+    chats: t`Кнопка «Чаты» в боте`,
+    offer: t`Ссылка «Предложить помощь»`,
   };
   const places: Record<string, string> = {
     hero: t`первый экран`,
@@ -135,8 +143,8 @@ export function useUsageLabels() {
           return t`Сайт: ${place}`;
         }
         case 'university': {
-          const code = kind.code;
-          return t`Ссылка на чаты вуза ${code}`;
+          const name = school(kind.code);
+          return t`Чаты вуза ${name}`;
         }
         case 'link':
           return links[kind.key] ?? kind.key;
@@ -146,7 +154,7 @@ export function useUsageLabels() {
       return steps[funnel][key] ?? key;
     },
     funnel: {
-      find: t`Найти помощника`,
+      find: t`Поиск помощника`,
       chats: t`Чаты`,
       offer: t`Стать помощником`,
     } satisfies Record<FunnelKey, string>,

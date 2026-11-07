@@ -400,8 +400,10 @@ function CountingRow() {
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let live = true;
-    void readChoice().then((value) => {
-      if (live) setAllowed(value);
+    // Telegram may never answer; then the switch shows the default, on.
+    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+    void Promise.race([readChoice(), late]).then((value) => {
+      if (live) setAllowed(value ?? true);
     });
     return () => {
       live = false;

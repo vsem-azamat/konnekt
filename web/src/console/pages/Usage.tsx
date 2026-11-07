@@ -410,15 +410,17 @@ function Funnels({ data }: { data: Usage }) {
       <Label aside={<Trans>человек</Trans>}>
         <Trans>Воронки</Trans>
       </Label>
-      <Segmented
-        value={key}
-        label={t`Воронка`}
-        options={FUNNELS.map((f) => ({ value: f, label: labels.funnel[f] }))}
-        onChange={(value) => {
-          hapticSelection();
-          setKey(value);
-        }}
-      />
+      <div className={`${css.toggle} ${css.scrolls}`}>
+        <Segmented
+          value={key}
+          label={t`Воронка`}
+          options={FUNNELS.map((f) => ({ value: f, label: labels.funnel[f] }))}
+          onChange={(value) => {
+            hapticSelection();
+            setKey(value);
+          }}
+        />
+      </div>
       <p className={audience.who}>
         <Trans>Сколько людей прошли шаги по порядку за период.</Trans>
       </p>

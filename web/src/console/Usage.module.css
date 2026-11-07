@@ -70,6 +70,16 @@
   min-width: 200px;
 }
 
+/* Tabs too long for a phone scroll sideways rather than break onto two lines. */
+.scrolls {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scrolls [role='tab'] {
+  white-space: nowrap;
+}
+
 /* Hours of the week: a day per row, an hour per column, in Prague. */
 .heat {
   display: grid;

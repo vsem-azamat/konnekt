@@ -79,6 +79,10 @@ msgstr "Místo"
 msgid "просит страницу на konnekt.cz"
 msgstr "žádá o stránku na konnekt.cz"
 
+#: src/console/UsageLabels.tsx
+msgid "Кнопка в приветствии чата"
+msgstr "Tlačítko v uvítání chatu"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "bez karty"
@@ -229,7 +233,6 @@ msgid "Детектор ничего не находил."
 msgstr "Detektor nic nenašel."
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "кнопка в приветствии чата"
 msgstr "tlačítko v uvítání chatu"
 
@@ -287,10 +290,6 @@ msgstr "Skrýt z katalogu…"
 #: src/console/pages/Audience.tsx
 #~ msgid "Кто к нам приходил и кому основной бот сможет написать."
 #~ msgstr "Kdo k nám přišel a komu může hlavní bot napsat."
-
-#: src/console/UsageLabels.tsx
-msgid "капча пройдена"
-msgstr "captcha splněna"
 
 #: src/console/pages/Chat.tsx
 msgid "Отметить внешним"
@@ -1122,6 +1121,10 @@ msgstr "Zadat poptávku"
 msgid "отключён"
 msgstr "vypnutý"
 
+#: src/console/UsageLabels.tsx
+msgid "Кнопка «Чаты» в боте"
+msgstr "Tlačítko «Chaty» v botovi"
+
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
 msgstr "Nejživější chaty, zprávy po hodinách"
@@ -1708,7 +1711,6 @@ msgid "Система"
 msgstr "Systém"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "сообщение капчи"
 msgstr "zpráva captchy"
 
@@ -2020,6 +2022,7 @@ msgstr "Klepnutí"
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
 msgstr "Popiš, co potřebuješ, a dostávej odpovědi — místo toho, abys hledal sám."
 
+#: src/console/AudienceCharts.tsx
 #: src/console/pages/Catalog.tsx
 #: src/console/ProfileSheet.tsx
 msgid "сегодня"
@@ -2443,6 +2446,10 @@ msgstr "Hledat chaty a lidi"
 #: src/console/pages/Summary.tsx
 msgid "Бот связи"
 msgstr "Kontaktní bot"
+
+#: src/console/UsageLabels.tsx
+msgid "Сообщение капчи"
+msgstr "Zpráva captchy"
 
 #: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
@@ -3169,7 +3176,6 @@ msgid "нострификация аттестата"
 msgstr "nostrifikace vysvědčení"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "кнопка «Чаты» в боте"
 msgstr "tlačítko „Chaty“ v botovi"
 
@@ -4085,9 +4091,17 @@ msgstr "Pomoc se studiem"
 msgid "Изменить"
 msgstr "Upravit"
 
+#: src/console/UsageLabels.tsx
+msgid "Поиск помощника"
+msgstr "Hledání pomocníka"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не отписывались"
 msgstr "neodhlásili se"
+
+#: src/console/UsageLabels.tsx
+msgid "Ссылка «Предложить помощь»"
+msgstr "Odkaz «Nabídnout pomoc»"
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "Открыть в Telegram"
@@ -4207,10 +4221,6 @@ msgstr "Superadmin"
 #: src/console/pages/Usage.tsx
 msgid "человек в час"
 msgstr "lidí za hodinu"
-
-#: src/console/UsageLabels.tsx
-msgid "Ссылка на чаты вуза {code}"
-msgstr "Odkaz na chaty školy {code}"
 
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
@@ -4700,6 +4710,10 @@ msgstr "{0} nevyřízeno celkem"
 msgid "Вход в чат"
 msgstr "Vstup do chatu"
 
+#: src/console/UsageLabels.tsx
+msgid "Капча пройдена"
+msgstr "Captcha splněna"
+
 #: src/console/TopSearch.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
@@ -4754,6 +4768,10 @@ msgstr "{count, plural, one {# relace} few {# relace} many {# relací} other {# 
 #: src/console/pages/Audience.tsx
 msgid "Разрешили боту писать"
 msgstr "Dovolili botovi psát"
+
+#: src/console/UsageLabels.tsx
+msgid "Чаты вуза {name}"
+msgstr "Chaty školy {name}"
 
 #: src/components/SubjectSearch.tsx
 msgid "Предмет, например математика"
@@ -4819,7 +4837,6 @@ msgid "Не удалось загрузить"
 msgstr "Nepodařilo se načíst"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "ссылка «Предложить помощь»"
 msgstr "odkaz „Nabídnout pomoc“"
 
@@ -4886,10 +4903,6 @@ msgstr "Příkazy, černá listina, uvítání, úklid, spam a reklama."
 #: src/console/pages/Audience.tsx
 msgid "без метки"
 msgstr "bez značky"
-
-#: src/console/UsageLabels.tsx
-msgid "Найти помощника"
-msgstr "Najít pomocníka"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx

@@ -78,6 +78,10 @@ msgstr "Место"
 msgid "просит страницу на konnekt.cz"
 msgstr "просит страницу на konnekt.cz"
 
+#: src/console/UsageLabels.tsx
+msgid "Кнопка в приветствии чата"
+msgstr "Кнопка в приветствии чата"
+
 #: src/console/TopSearch.tsx
 msgid "нет карточки"
 msgstr "нет карточки"
@@ -228,7 +232,6 @@ msgid "Детектор ничего не находил."
 msgstr "Детектор ничего не находил."
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "кнопка в приветствии чата"
 msgstr "кнопка в приветствии чата"
 
@@ -286,10 +289,6 @@ msgstr "Скрыть из каталога…"
 #: src/console/pages/Audience.tsx
 #~ msgid "Кто к нам приходил и кому основной бот сможет написать."
 #~ msgstr "Кто к нам приходил и кому основной бот сможет написать."
-
-#: src/console/UsageLabels.tsx
-msgid "капча пройдена"
-msgstr "капча пройдена"
 
 #: src/console/pages/Chat.tsx
 msgid "Отметить внешним"
@@ -1121,6 +1120,10 @@ msgstr "Оставить заявку"
 msgid "отключён"
 msgstr "отключён"
 
+#: src/console/UsageLabels.tsx
+msgid "Кнопка «Чаты» в боте"
+msgstr "Кнопка «Чаты» в боте"
+
 #: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
 msgstr "Самые живые чаты, сообщения по часам"
@@ -1707,7 +1710,6 @@ msgid "Система"
 msgstr "Система"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "сообщение капчи"
 msgstr "сообщение капчи"
 
@@ -2019,6 +2021,7 @@ msgstr "Нажатия"
 msgid "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
 msgstr "Опиши, что нужно, и получай отклики — вместо того чтобы искать самому."
 
+#: src/console/AudienceCharts.tsx
 #: src/console/pages/Catalog.tsx
 #: src/console/ProfileSheet.tsx
 msgid "сегодня"
@@ -2442,6 +2445,10 @@ msgstr "Поиск по чатам и людям"
 #: src/console/pages/Summary.tsx
 msgid "Бот связи"
 msgstr "Бот связи"
+
+#: src/console/UsageLabels.tsx
+msgid "Сообщение капчи"
+msgstr "Сообщение капчи"
 
 #: src/components/ChatRow.tsx
 #: src/console/Pings.tsx
@@ -3168,7 +3175,6 @@ msgid "нострификация аттестата"
 msgstr "нострификация аттестата"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "кнопка «Чаты» в боте"
 msgstr "кнопка «Чаты» в боте"
 
@@ -4084,9 +4090,17 @@ msgstr "Помощь с учёбой"
 msgid "Изменить"
 msgstr "Изменить"
 
+#: src/console/UsageLabels.tsx
+msgid "Поиск помощника"
+msgstr "Поиск помощника"
+
 #: src/console/pages/AudiencePerson.tsx
 msgid "не отписывались"
 msgstr "не отписывались"
+
+#: src/console/UsageLabels.tsx
+msgid "Ссылка «Предложить помощь»"
+msgstr "Ссылка «Предложить помощь»"
 
 #: src/console/pages/AudiencePerson.tsx
 msgid "Открыть в Telegram"
@@ -4206,10 +4220,6 @@ msgstr "Суперадмин"
 #: src/console/pages/Usage.tsx
 msgid "человек в час"
 msgstr "человек в час"
-
-#: src/console/UsageLabels.tsx
-msgid "Ссылка на чаты вуза {code}"
-msgstr "Ссылка на чаты вуза {code}"
 
 #: src/pages/Ask.tsx
 msgid "По этому пока не найти"
@@ -4699,6 +4709,10 @@ msgstr "{0} всего не разобрано"
 msgid "Вход в чат"
 msgstr "Вход в чат"
 
+#: src/console/UsageLabels.tsx
+msgid "Капча пройдена"
+msgstr "Капча пройдена"
+
 #: src/console/TopSearch.tsx
 #: src/pages/Ask.tsx
 #: src/pages/Results.tsx
@@ -4753,6 +4767,10 @@ msgstr "{count, plural, one {# сессия} few {# сессии} many {# сес
 #: src/console/pages/Audience.tsx
 msgid "Разрешили боту писать"
 msgstr "Разрешили боту писать"
+
+#: src/console/UsageLabels.tsx
+msgid "Чаты вуза {name}"
+msgstr "Чаты вуза {name}"
 
 #: src/components/SubjectSearch.tsx
 msgid "Предмет, например математика"
@@ -4818,7 +4836,6 @@ msgid "Не удалось загрузить"
 msgstr "Не удалось загрузить"
 
 #: src/console/pages/Audience.tsx
-#: src/console/UsageLabels.tsx
 msgid "ссылка «Предложить помощь»"
 msgstr "ссылка «Предложить помощь»"
 
@@ -4885,10 +4902,6 @@ msgstr "Команды, чёрный список, приветствие, уб�
 #: src/console/pages/Audience.tsx
 msgid "без метки"
 msgstr "без метки"
-
-#: src/console/UsageLabels.tsx
-msgid "Найти помощника"
-msgstr "Найти помощника"
 
 #: src/pages/Ads.tsx
 #: src/pages/AdsChats.tsx

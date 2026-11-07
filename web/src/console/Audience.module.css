@@ -177,7 +177,11 @@
 .bar[data-today] > span {
   /* Today, not over yet: the bars' colour, lighter, so it reads as a bar
      still filling. Not hatched: hatching is «not counted». Nothing at zero. */
-  opacity: 0.4;
+  opacity: 0.2;
+}
+
+.bar[data-today][data-picked] > span {
+  opacity: 0.5;
 }
 
 /* The period before: a tick across its bar. */
