@@ -1089,3 +1089,73 @@ class AudienceReach(Base):
     started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     blocked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     known_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+
+
+class ProductEvent(Base):
+    """One thing somebody did in the Mini App: a screen, a tap, a sign it is still open.
+
+    Written by `POST /api/public/events` (app/usage/record.py) for the console's
+    «Использование». The person is the id Telegram signed, never one the
+    client named, and nothing they typed is kept: every property is a number,
+    a yes or no, or one of our own words (app/usage/events.py). Business facts
+    stay where they happen: a published profile or a sent request is the
+    catalog's `user_events`, and this table is never asked whether one happened.
+    """
+
+    __tablename__ = "product_events"
+    __table_args__ = (
+        sa.Index("ix_product_events_at", "at"),
+        sa.Index("ix_product_events_person", "user_id", "at"),
+        sa.Index("ix_product_events_name", "name", "at"),
+        sa.Index("ix_product_events_session", "session"),
+    )
+
+    id: Mapped[int] = mapped_column(_AUTO_BIGINT, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    # One app on screen without a long break; the client starts a new one after one.
+    session: Mapped[str] = mapped_column(String(36))
+    seq: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(32))
+    # The screen's route pattern, never its address: an address can carry ids.
+    screen: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    props: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, server_default=sa.text("'{}'"))
+    # When it happened by the client's clock, held to what the server can believe.
+    at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    platform: Mapped[str] = mapped_column(String(12))
+    version: Mapped[str] = mapped_column(String(40))
+
+
+class SiteDay(Base):
+    """One day of the public site as Cloudflare Web Analytics counted it.
+
+    Imported once a day (app/usage/sources.py), so the console can show the site
+    beside the app without asking Cloudflare on every open. ``dimension`` says
+    what ``key`` is: ``total`` has the key ``*``, ``referrer`` a host or ``*``
+    for none, ``page`` a path.
+    """
+
+    __tablename__ = "site_days"
+    __table_args__ = (sa.CheckConstraint("dimension IN ('total', 'referrer', 'page')", name="ck_site_days_dimension"),)
+
+    day: Mapped[datetime.date] = mapped_column(sa.Date, primary_key=True)
+    dimension: Mapped[str] = mapped_column(String(16), primary_key=True)
+    key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    visits: Mapped[int] = mapped_column(Integer)
+    views: Mapped[int] = mapped_column(Integer)
+
+
+class SearchDay(Base):
+    """One day of Google search for the site, from Search Console.
+
+    A query Google keeps to itself is in no row, so the queries do not add up
+    to the day: the day's whole is the row whose query is ``*``.
+    """
+
+    __tablename__ = "search_days"
+
+    day: Mapped[datetime.date] = mapped_column(sa.Date, primary_key=True)
+    query: Mapped[str] = mapped_column(String(200), primary_key=True)
+    clicks: Mapped[int] = mapped_column(Integer)
+    impressions: Mapped[int] = mapped_column(Integer)
+    # Average position over the day's impressions; 1 is the top.
+    position: Mapped[float] = mapped_column(sa.Float)

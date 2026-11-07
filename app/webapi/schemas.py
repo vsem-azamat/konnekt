@@ -707,3 +707,137 @@ class SearchPerson(BaseModel):
 class SearchResults(BaseModel):
     chats: list[SearchChat]
     people: list[SearchPerson]
+
+
+class UsageDay(BaseModel):
+    """A day in Prague: sessions begun on it, and the different people in them."""
+
+    day: datetime.date
+    sessions: int
+    people: int
+
+
+class UsageHour(BaseModel):
+    """An hour of the week in Prague (Monday is 0) and the different people in the app during it."""
+
+    weekday: int
+    hour: int
+    people: int
+
+
+class UsageLength(BaseModel):
+    """Sessions this long; `to_seconds` None is «and longer»."""
+
+    from_seconds: int
+    to_seconds: int | None
+    sessions: int
+
+
+class UsageScreen(BaseModel):
+    screen: str
+    people: int
+
+
+class UsageTap(BaseModel):
+    """An event and the word that says which (a tab, a filter, where from), and how many times."""
+
+    name: str
+    detail: str | None
+    count: int
+
+
+class UsageStep(BaseModel):
+    key: str
+    people: int
+
+
+class UsageFunnel(BaseModel):
+    key: Literal["find", "offer", "chats"]
+    steps: list[UsageStep]
+
+
+class UsageEntry(BaseModel):
+    """Launches by the start parameter Telegram signed; None is a launch with none."""
+
+    source: str | None
+    launches: int
+
+
+class Usage(BaseModel):
+    """The console's «Использование»: the Mini App over the last `days` days, today included."""
+
+    days: int
+    # The first event ever written: before it nothing was counted.
+    since: datetime.datetime | None
+    online: int
+    people: int
+    sessions: int
+    median_seconds: int | None
+    by_day: list[UsageDay]
+    heat: list[UsageHour]
+    lengths: list[UsageLength]
+    screens: list[UsageScreen]
+    taps: list[UsageTap]
+    funnels: list[UsageFunnel]
+    entries: list[UsageEntry]
+
+
+class SourcesTop(BaseModel):
+    key: str
+    visits: int
+
+
+class SourcesSiteDay(BaseModel):
+    day: datetime.date
+    visits: int
+
+
+class SourcesSite(BaseModel):
+    """konnekt.cz as Cloudflare Web Analytics counted it; `on` False is not configured yet."""
+
+    on: bool
+    # The last day imported.
+    through: datetime.date | None
+    visits: int
+    views: int
+    by_day: list[SourcesSiteDay]
+    referrers: list[SourcesTop]
+    pages: list[SourcesTop]
+
+
+class SourcesQuery(BaseModel):
+    query: str
+    clicks: int
+    impressions: int
+    position: float
+
+
+class SourcesSearch(BaseModel):
+    """Google search from Search Console; `on` False is not configured yet."""
+
+    on: bool
+    through: datetime.date | None
+    clicks: int
+    impressions: int
+    queries: list[SourcesQuery]
+
+
+class SourcesToAppEntry(BaseModel):
+    source: str
+    launches: int
+
+
+class SourcesToApp(BaseModel):
+    """Mini App launches the site's own buttons brought."""
+
+    launches: int
+    by_source: list[SourcesToAppEntry]
+
+
+class Sources(BaseModel):
+    """The console's «Источники»: the `days` days ending yesterday."""
+
+    days: int
+    site: SourcesSite
+    search: SourcesSearch
+    to_app: SourcesToApp

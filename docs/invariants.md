@@ -133,14 +133,17 @@ super-admin list says whether they may. The check against
 `settings.admin.super_admins` runs after verification, on the id Telegram
 signed rather than any id the payload volunteers elsewhere.
 
-**Four public endpoints write, and only about the caller.** The join check,
-`/api/public/catalog-pass` and `/api/public/seen` take a signed `initData` and act on the id Telegram signed,
+**Five public endpoints write, and only about the caller.** The join check,
+`/api/public/catalog-pass`, `/api/public/seen` and `/api/public/events` take a signed `initData` and act on the id Telegram signed,
 never on one the body names. `/seen` is idempotent: the visit is dated by
 `auth_date`, which names one launch, so a payload sent again counts once; and
 it writes a person at most once per half minute. `/api/public/client-errors`
 writes only a log line and a counter, signed so that only a Telegram launch
 can fill them, and keeps nothing of the caller: the signed id is a key of its
-in-memory rate limit and appears in no line. A new public endpoint that
+in-memory rate limit and appears in no line. `/events` writes only events from
+the list in `app/usage/events.py`, whose properties are numbers, yes or no, or
+words of ours, so nothing a person typed reaches `product_events`; it is
+capped per person and overall like the error reports. A new public endpoint that
 writes joins this list or is not public.
 
 **The audience holds what Telegram tells us, never what people wrote.** Names,

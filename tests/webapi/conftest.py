@@ -56,3 +56,11 @@ def _fresh_client_error_limits() -> None:
     from app.webapi.routes import client_errors
 
     client_errors.forget()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_event_limits() -> None:
+    """The usage-event limits are per process; a test must start a fresh window."""
+    from app.webapi.routes import events
+
+    events.forget()
