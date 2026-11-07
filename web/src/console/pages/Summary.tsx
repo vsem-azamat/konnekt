@@ -6,7 +6,9 @@ import {
   BagIcon,
   BellIcon,
   ChatIcon,
+  ClockIcon,
   DocumentIcon,
+  GlobeIcon,
   PeopleIcon,
   PersonIcon,
   ShieldIcon,
@@ -314,6 +316,28 @@ function Summary() {
           hint={<Trans>кто пользовался ботами и Mini App</Trans>}
           trailing={<Chevron />}
           onClick={() => open('/console/audience')}
+        />
+        <Row
+          leading={
+            <Tile tone={2}>
+              <ClockIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Использование</Trans>}
+          hint={<Trans>кто сейчас в Mini App, экраны, нажатия</Trans>}
+          trailing={<Chevron />}
+          onClick={() => open('/console/usage')}
+        />
+        <Row
+          leading={
+            <Tile tone={2}>
+              <GlobeIcon size={19} />
+            </Tile>
+          }
+          title={<Trans>Источники</Trans>}
+          hint={<Trans>сайт и поиск Google</Trans>}
+          trailing={<Chevron />}
+          onClick={() => open('/console/sources')}
         />
         <Row
           leading={

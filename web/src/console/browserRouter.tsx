@@ -14,9 +14,11 @@ import ConsoleChatsPage from '@/console/pages/Chats';
 import ConsolePartnerNewPage from '@/console/pages/PartnerNew';
 import ConsolePartnersPage from '@/console/pages/Partners';
 import ConsoleSignalsPage from '@/console/pages/Signals';
+import ConsoleSourcesPage from '@/console/pages/Sources';
 import ConsoleSpamPage from '@/console/pages/Spam';
 import ConsoleSummaryPage from '@/console/pages/Summary';
 import ConsoleSystemPage from '@/console/pages/System';
+import ConsoleUsagePage from '@/console/pages/Usage';
 
 /**
  * What a browser gets: the console beside its menu, and the way to sign in.
@@ -30,6 +32,8 @@ const browserScreens: Record<BrowserPath, ReactElement> = {
   audience: <ConsoleAudiencePage />,
   'audience/people': <ConsoleAudiencePeoplePage />,
   'audience/:id': <ConsoleAudiencePersonPage />,
+  usage: <ConsoleUsagePage />,
+  sources: <ConsoleSourcesPage />,
   catalog: <ConsoleCatalogPage />,
   partners: <ConsolePartnersPage />,
   'partners/new': <ConsolePartnerNewPage />,

@@ -8,7 +8,9 @@ import {
   BookIcon,
   CardIcon,
   ChatIcon,
+  ClockIcon,
   GearIcon,
+  GlobeIcon,
   HomeIcon,
   PeopleIcon,
   ShieldIcon,
@@ -132,6 +134,12 @@ export default function BrowserShell() {
           </div>
           <Item to="/console/audience" icon={<PeopleIcon size={17} />}>
             <Trans>Аудитория</Trans>
+          </Item>
+          <Item to="/console/usage" icon={<ClockIcon size={17} />}>
+            <Trans>Использование</Trans>
+          </Item>
+          <Item to="/console/sources" icon={<GlobeIcon size={17} />}>
+            <Trans>Источники</Trans>
           </Item>
           <Item to="/console/system" icon={<GearIcon size={17} />}>
             <Trans>Система</Trans>
