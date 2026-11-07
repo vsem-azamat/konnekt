@@ -109,7 +109,7 @@ async def test_a_launch_keeps_the_link_telegram_signed_and_a_resumed_session_doe
 
 @pytest.mark.parametrize(
     ("start_param", "kept"),
-    [("helper-12345", "helper"), ("uni-cvut", "uni-cvut"), ("site_hero", "site_hero"), ("x1234567", None)],
+    [("helper-12345", "site_helper"), ("uni-cvut", "uni-cvut"), ("site_hero", "site_hero"), ("x1234567", None)],
 )
 async def test_a_launch_link_is_kept_as_a_word_never_as_somebodys_id(
     client, bot_token, db_session_maker, start_param, kept

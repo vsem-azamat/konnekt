@@ -86,7 +86,9 @@ def _hours(start: datetime.datetime, end: datetime.datetime, zone: ZoneInfo) -> 
     visit the hour that does not exist on the night the clocks go forward.
     """
     slots = set()
-    hour = start.replace(minute=0, second=0, microsecond=0)
+    # The start of the local hour, in UTC: a zone half an hour off UTC starts its hours at :30.
+    local = _local(start, zone).replace(minute=0, second=0, microsecond=0)
+    hour = local.astimezone(datetime.UTC).replace(tzinfo=None)
     while hour <= end:
         local = _local(hour, zone)
         slots.add((local.weekday(), local.hour))

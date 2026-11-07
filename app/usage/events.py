@@ -25,23 +25,24 @@ SCREEN = r"^/[A-Za-z0-9/_:.\-]{0,119}$"
 MAX_NUMBER = 100_000
 # 2100-01-01 in milliseconds: past it a clock is not a clock, and Python cannot date it.
 MAX_AT = 4_102_444_800_000
-# A start parameter that names somebody: `helper-123` is a helper's card.
-_NAMES_SOMEBODY = re.compile(r"^([a-z_]+)-\d+$")
+# A helper's card on konnekt.cz: «Написать в Konnekt» opens `helper-<id>`, and the
+# catalog's /open passes it on only for a helper the site shows (web/src/lib/startParam.ts).
+_HELPER = re.compile(r"^helper-\d+$")
+SITE_HELPER = "site_helper"
 _DIGITS = re.compile(r"\d{4,}")
 
 
 def launch_word(start_param: str | None) -> str | None:
     """What brought a launch, as a word of ours: never an id.
 
-    `helper-123` is «a helper's card» (`helper`), whoever's it was; `uni-cvut`
-    and `site_hero` are kept as they are. Anything else carrying a long
-    number is not kept at all.
+    `helper-123` is «a helper's card on the site» (`site_helper`), whoever's it
+    was; `uni-cvut` and `site_hero` are kept as they are. Anything else
+    carrying a long number is not kept at all.
     """
     if not start_param:
         return None
-    named = _NAMES_SOMEBODY.match(start_param)
-    if named:
-        return named.group(1)
+    if _HELPER.fullmatch(start_param):
+        return SITE_HELPER
     if _DIGITS.search(start_param) or not _LAUNCH.fullmatch(start_param.lower()):
         return None
     return start_param.lower()

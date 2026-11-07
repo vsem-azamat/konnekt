@@ -34,7 +34,8 @@ async def usage(
     try:
         zone = ZoneInfo(tz) if tz else report.DEFAULT_ZONE
     except (ZoneInfoNotFoundError, ValueError):
-        raise HTTPException(status_code=422, detail="bad_zone") from None
+        # A zone this server's data does not know: the screen in Prague's beats no screen.
+        zone = report.DEFAULT_ZONE
     return Usage.model_validate(await report.usage(session, days=days, now=utc_now(), zone=zone))
 
 

@@ -59,6 +59,10 @@ msgstr "Konzole se znovu otevře z Telegramu."
 msgid "Отметить чат как внешний?"
 msgstr "Označit chat jako externí?"
 
+#: src/console/UsageLabels.tsx
+msgid "страница репетитора"
+msgstr "stránka doučujícího"
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Zapnout"

@@ -105,9 +105,14 @@ def test_hours_are_the_readers_and_skip_the_hour_that_does_not_exist() -> None:
     assert slots == {(6, 1), (6, 3)}
     # The same hour read in New York.
     assert report._hours(NOW, NOW, ZoneInfo("America/New_York")) == {(1, 6)}
+    # Half an hour off UTC: 10:40 to 10:50 UTC is 16:10 to 16:20 in Kolkata, one hour.
+    kolkata = report._hours(
+        datetime.datetime(2026, 11, 10, 10, 40), datetime.datetime(2026, 11, 10, 10, 50), ZoneInfo("Asia/Kolkata")
+    )
+    assert kolkata == {(1, 16)}
 
 
-async def test_the_route_reads_in_the_readers_zone_and_refuses_a_made_up_one(db_session_maker, written) -> None:
+async def test_the_route_reads_in_the_readers_zone(db_session_maker, written) -> None:
     from app.webapi.deps import get_session
 
     async def _session():
@@ -118,7 +123,8 @@ async def test_the_route_reads_in_the_readers_zone_and_refuses_a_made_up_one(db_
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
             assert (await client.get("/api/usage?days=7&tz=America/New_York")).status_code == 200
-            assert (await client.get("/api/usage?days=7&tz=Mars/Olympus")).status_code == 422
+            # A zone the server does not know reads in the default one rather than failing the screen.
+            assert (await client.get("/api/usage?days=7&tz=Mars/Olympus")).status_code == 200
     finally:
         app.dependency_overrides.pop(get_session, None)
 
@@ -212,6 +218,14 @@ async def test_the_import_writes_both_services_days_and_rewrites_them(db_session
     assert [(s.query, s.clicks) for s in search] == [("*", 3), ("nostrifikace", 3)]
     assert (got["site"]["visits"], got["site"]["through"]) == (12, datetime.date(2026, 11, 9))
     assert got["search"]["queries"] == [{"query": "nostrifikace", "clicks": 3, "impressions": 40, "position": 5.5}]
+
+
+async def test_a_launch_from_a_helpers_page_on_the_site_counts_as_from_the_site(db_session_maker) -> None:
+    async with db_session_maker() as db:
+        db.add(_ev(1, "a", "session_start", 60 * 24, source="site_helper"))
+        await db.commit()
+        got = await sources.report(db, days=7, today=NOW.date())
+    assert got["to_app"] == {"launches": 1, "by_source": [{"source": "site_helper", "launches": 1}]}
 
 
 async def test_a_failing_service_leaves_the_other_and_says_why(db_session_maker, monkeypatch) -> None:

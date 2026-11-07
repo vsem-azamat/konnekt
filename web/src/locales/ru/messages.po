@@ -58,6 +58,10 @@ msgstr "Консоль снова откроется из Telegram."
 msgid "Отметить чат как внешний?"
 msgstr "Отметить чат как внешний?"
 
+#: src/console/UsageLabels.tsx
+msgid "страница репетитора"
+msgstr "страница репетитора"
+
 #: src/console/pages/Partners.tsx
 msgid "Включить"
 msgstr "Включить"

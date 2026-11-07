@@ -80,6 +80,7 @@ export function useUsageLabels() {
     chats_empty: t`пустой поиск чатов`,
     tutors: t`репетиторы`,
     university: t`страница вуза`,
+    helper: t`страница репетитора`,
   };
   const steps: Record<FunnelKey, Record<string, string>> = {
     find: {
