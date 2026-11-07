@@ -668,7 +668,6 @@ msgstr "Advertising or spam"
 #~ msgid "могут получить сообщение"
 #~ msgstr "can receive a message"
 
-#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
@@ -2059,7 +2058,6 @@ msgstr "Moderate"
 msgid "Описание чата не обновится по шаблону."
 msgstr "The chat description will not follow the template."
 
-#: src/pages/Home.tsx
 #: src/pages/Profile.tsx
 msgid "Помогать другим"
 msgstr "Help others"
@@ -2237,6 +2235,7 @@ msgstr "counted since {from}"
 msgid "Общее"
 msgstr "General"
 
+#: src/pages/Chats.tsx
 #: src/pages/Home.tsx
 msgid "Предложи услугу — студенты напишут сами"
 msgstr "Offer a service, and students will write to you"
@@ -2749,6 +2748,11 @@ msgstr "Bans will not work, and the captcha in the chat cannot keep a newcomer f
 #: src/console/Charts.tsx
 msgid "Чт"
 msgstr "Thu"
+
+#: src/pages/Chats.tsx
+#: src/pages/Home.tsx
+msgid "Стать репетитором"
+msgstr "Become a tutor"
 
 #: src/console/pages/Signals.tsx
 #: src/console/pages/Summary.tsx
