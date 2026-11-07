@@ -12,7 +12,8 @@ The Caddyfile serves two hosts: the Mini App's, which answers anything, and
 the console's, named by ADMIN_HOST, which answers only the console and its API.
 Each is checked on its own, because a path that is right for one is a leak or
 a dead end for the other. The app's screens, which search engines must not
-keep, say so with X-Robots-Tag.
+keep, say so with X-Robots-Tag, and say no-transform so the edge injects no
+script into them.
 
 With --site it reads the public site's own Caddyfile (docker/site/, the site
 container on konnekt.cz) instead: the site's paths are its pages, the
@@ -365,6 +366,16 @@ def cookie_free(proxy: dict) -> bool:
     )
 
 
+def cache_control(route: dict) -> str | None:
+    """The Cache-Control a route sets, if it does."""
+    for handler in handlers(route):
+        if handler.get("handler") == "headers":
+            value = handler.get("response", {}).get("set", {}).get("Cache-Control")
+            if value:
+                return value[0]
+    return None
+
+
 def problems(route: dict, path: str, expected: str, inherited: str | None = None) -> list[str]:
     """What is wrong with how `route` serves `path`, if anything.
 
@@ -407,6 +418,11 @@ def problems(route: dict, path: str, expected: str, inherited: str | None = None
         out.append("does not answer 404 for a page the site lacks")
     if path in FALLS_BACK and expected == APP and (robots(route) or inherited) != "noindex":
         out.append("lets search engines index an app screen")
+    # Cloudflare injects its Web Analytics beacon into HTML it may transform.
+    # No third-party script belongs in the app's page: in the Mini App it could
+    # read the fragment, where the signed initData the app authorizes with sits.
+    if path in FALLS_BACK and expected == APP and "no-transform" not in (cache_control(route) or ""):
+        out.append("lets the edge rewrite the app's page")
     if expected == SITE and robots(route):
         out.append(f"tells search engines {robots(route)}")
     return out

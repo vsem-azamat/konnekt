@@ -165,9 +165,14 @@
 	# index.html is the one file that names the current hashes, so a cached
 	# copy points at bundles the next deploy deleted. The app's screens are a
 	# person's own, or empty without Telegram: nothing for a search engine.
+	# no-transform keeps Cloudflare's Web Analytics beacon, injected zone-wide,
+	# out of the page: a third-party script here could read the fragment, where
+	# Telegram puts the signed initData the app sends as its Authorization. The
+	# app counts its own use. It also turns compression off for this ~3 KB page
+	# (Caddy's encode and Cloudflare's both skip no-transform): that is fine.
 	handle {
 		root * /srv/app
-		header Cache-Control "no-cache"
+		header Cache-Control "no-cache, no-transform"
 		header X-Robots-Tag "noindex"
 		try_files {path} /index.html
 		file_server
@@ -226,9 +231,10 @@ http://{$ADMIN_HOST:admin.invalid} {
 	}
 
 	@console path /console /console/* /login
+	# The same page: no third-party script in the console either.
 	handle @console {
 		root * /srv/app
-		header Cache-Control "no-cache"
+		header Cache-Control "no-cache, no-transform"
 		rewrite * /index.html
 		file_server
 	}
