@@ -18,9 +18,34 @@ from pydantic import BaseModel, Field, field_validator
 
 # A word of ours: a tab, a section, where a tap came from.
 WORD = re.compile(r"[a-z0-9_:-]{1,32}")
+# A launch's start parameter may be longer: an article's is `site_article_<slug>`.
+_LAUNCH = re.compile(r"[a-z0-9_:-]{1,64}")
 # A route pattern, as the error reports name a screen (app/webapi/routes/client_errors.py).
 SCREEN = r"^/[A-Za-z0-9/_:.\-]{0,119}$"
 MAX_NUMBER = 100_000
+# 2100-01-01 in milliseconds: past it a clock is not a clock, and Python cannot date it.
+MAX_AT = 4_102_444_800_000
+# A start parameter that names somebody: `helper-123` is a helper's card.
+_NAMES_SOMEBODY = re.compile(r"^([a-z_]+)-\d+$")
+_DIGITS = re.compile(r"\d{4,}")
+
+
+def launch_word(start_param: str | None) -> str | None:
+    """What brought a launch, as a word of ours: never an id.
+
+    `helper-123` is «a helper's card» (`helper`), whoever's it was; `uni-cvut`
+    and `site_hero` are kept as they are. Anything else carrying a long
+    number is not kept at all.
+    """
+    if not start_param:
+        return None
+    named = _NAMES_SOMEBODY.match(start_param)
+    if named:
+        return named.group(1)
+    if _DIGITS.search(start_param) or not _LAUNCH.fullmatch(start_param.lower()):
+        return None
+    return start_param.lower()
+
 
 Name = Literal[
     # The first event of a session: on launch, and again after a long break (`resumed`).
@@ -61,12 +86,20 @@ Value = bool | int | str
 class Event(BaseModel):
     name: Name
     # Milliseconds since the epoch, by the client's clock.
-    at: Annotated[int, Field(ge=0)]
+    at: Annotated[int, Field(ge=0, le=MAX_AT)]
     # Order within the session, so two events in one millisecond keep theirs.
     seq: Annotated[int, Field(ge=0, le=1_000_000)]
     session: Annotated[str, Field(pattern=r"^[A-Za-z0-9-]{8,36}$")]
     screen: Annotated[str, Field(pattern=SCREEN)] | None = None
     props: dict[str, Value] = Field(default_factory=dict, max_length=4)
+
+    @field_validator("screen")
+    @classmethod
+    def _a_pattern(cls, screen: str | None) -> str | None:
+        """A route pattern names no one: `/helper/:id`, never `/helper/123`."""
+        if screen is not None and any(part.isdigit() for part in screen.split("/")):
+            raise ValueError("a screen is a route pattern, not an address")
+        return screen
 
     @field_validator("props")
     @classmethod

@@ -273,11 +273,17 @@ export const audienceTrendsQuery = (days: Period) => ({
   retryOnMount: false,
 });
 
-/** How the Mini App is used over the last `days` days, today included. */
+/**
+ * How the Mini App is used over the last `days` days, today included, with
+ * hours and days in the reader's own zone (docs/invariants.md).
+ */
 export const usageQuery = (days: UsagePeriod) => ({
   queryKey: ['console', 'usage', days] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) =>
-    consoleGet<Usage>(`/api/usage?days=${days}`, { signal }),
+    consoleGet<Usage>(
+      `/api/usage?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
+      { signal },
+    ),
   staleTime: CONSOLE_STALE,
   retryOnMount: false,
 });

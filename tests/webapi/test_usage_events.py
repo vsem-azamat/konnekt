@@ -108,6 +108,21 @@ async def test_a_launch_keeps_the_link_telegram_signed_and_a_resumed_session_doe
 
 
 @pytest.mark.parametrize(
+    ("start_param", "kept"),
+    [("helper-12345", "helper"), ("uni-cvut", "uni-cvut"), ("site_hero", "site_hero"), ("x1234567", None)],
+)
+async def test_a_launch_link_is_kept_as_a_word_never_as_somebodys_id(
+    client, bot_token, db_session_maker, start_param, kept
+) -> None:
+    await client.post(
+        "/api/public/events", json=_batch(_init_data(bot_token, start_param=start_param), _event("session_start"))
+    )
+
+    (row,) = await _rows(db_session_maker)
+    assert row.props.get("source") == kept
+
+
+@pytest.mark.parametrize(
     "event",
     [
         _event("typed_something"),
@@ -115,6 +130,8 @@ async def test_a_launch_keeps_the_link_telegram_signed_and_a_resumed_session_doe
         _event("tab_tap", props={"query": "chats"}),
         _event("search_submit", props={"results": -1}),
         _event(screen="https://konnekt.cz/helper/12345?x=1"),
+        _event(screen="/helper/12345"),
+        _event(at=10**15),
         _event(props={"source": "site_hero"}),
     ],
 )

@@ -187,15 +187,29 @@ function clean(
   return out;
 }
 
-/** The one tracker, once `startTracking` has made it; until then nothing is counted. */
+/** The one tracker, once `startTracking` has made it. */
 let current: Tracker | undefined;
+/**
+ * Events from before the choice was read: a screen opened by a launch link
+ * says so at once. Kept until the answer, then counted or forgotten.
+ */
+let waiting: [EventName, EventProps[EventName]][] | null = [];
+const MAX_EARLY = 20;
 
 export function startTracking(tracker: Tracker): void {
   current = tracker;
+  for (const [name, props] of waiting ?? []) tracker.track(name, props);
+  waiting = null;
+}
+
+/** Counting is off for this launch: forget what waited for the answer. */
+export function stopWaiting(): void {
+  waiting = null;
 }
 
 export function track<N extends EventName>(name: N, props: EventProps[N]): void {
-  current?.track(name, props);
+  if (current) current.track(name, props);
+  else if (waiting && waiting.length < MAX_EARLY) waiting.push([name, props]);
 }
 
 export function setTracking(enabled: boolean): void {

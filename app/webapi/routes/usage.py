@@ -7,8 +7,9 @@ Read only, and only for the console. The writes are `POST /api/public/events`
 from __future__ import annotations
 
 from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import utc_now
@@ -22,10 +23,19 @@ SOURCE_PERIODS = (7, 30, 90)
 
 
 @router.get("", response_model=Usage)
-async def usage(session: Annotated[AsyncSession, Depends(get_session)], days: int = 7) -> Usage:
+async def usage(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    days: int = 7,
+    tz: Annotated[str | None, Query(max_length=64)] = None,
+) -> Usage:
+    """`tz` is the reader's zone, as the browser names it: hours and days are read where the reader is."""
     if days not in report.PERIODS:
         raise HTTPException(status_code=422, detail="bad_period")
-    return Usage.model_validate(await report.usage(session, days=days, now=utc_now()))
+    try:
+        zone = ZoneInfo(tz) if tz else report.DEFAULT_ZONE
+    except (ZoneInfoNotFoundError, ValueError):
+        raise HTTPException(status_code=422, detail="bad_zone") from None
+    return Usage.model_validate(await report.usage(session, days=days, now=utc_now(), zone=zone))
 
 
 @router.get("/sources", response_model=Sources)

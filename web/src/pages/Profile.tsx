@@ -37,7 +37,7 @@ import { api } from '@/lib/api';
 import { allPaused, liveCount } from '@/lib/myServices';
 import { openRequests } from '@/lib/openRequests';
 import { setTracking } from '@/lib/track';
-import { allowCounting, countingAllowed } from '@/lib/usageChoice';
+import { allowCounting, readChoice } from '@/lib/usageChoice';
 
 /**
  * A person's own things first, then the one setting, then the rest.
@@ -400,7 +400,7 @@ function CountingRow() {
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let live = true;
-    void countingAllowed().then((value) => {
+    void readChoice().then((value) => {
       if (live) setAllowed(value);
     });
     return () => {
@@ -414,7 +414,11 @@ function CountingRow() {
     setAllowed(next);
     setTracking(next);
     void allowCounting(next)
-      .catch(() => undefined)
+      .catch(() => {
+        // Not saved: show what the next launch will do rather than what was asked for.
+        setAllowed(!next);
+        setTracking(!next);
+      })
       .finally(() => setBusy(false));
   };
   return (

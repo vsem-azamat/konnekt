@@ -200,8 +200,8 @@ export function ChatRow({
   const preview = chatPreview(chat.link, useLocation(), {
     navigate: useNavigate(),
     openLink: () => {
-      // The section as the catalog names it, when it is a word of ours; `track` drops it otherwise.
-      track('chat_open', { section: chat.group ?? 'none' });
+      // The school's catalog code (`cvut`), a word of ours; the section's title is somebody's text.
+      track('chat_open', { section: chat.institution ?? 'none' });
       return joinFromCatalog(chat, {
         initData: rawInitData,
         claim: api.claimCatalogPass,

@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { HelperCardView } from '@/components/HelperCard';
@@ -35,6 +35,12 @@ import type { HelperCard, SearchSort } from '@/lib/types';
  * "cheaper than the rest, but has never seen your exam", it says so — which is
  * what makes the rows above it worth believing.
  */
+/**
+ * The filters last counted as a search. Outside the screen: opening a helper
+ * unmounts the list, and coming back to the same answer is not a new search.
+ */
+let lastSearch: string | undefined;
+
 export default function ResultsPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -127,14 +133,13 @@ export default function ResultsPage() {
 
   // One search per set of filters, counted when its answer comes: the sort
   // reorders the same answer and is a filter change, not another search.
-  const searched = useRef<string | undefined>(undefined);
   // With only a guess to go by, the guess's list is the search.
   const answer = onlyGuess ? also.data : data;
   useEffect(() => {
     if (!answer || filters === null) return;
     const key = JSON.stringify(filters);
-    if (searched.current === key) return;
-    searched.current = key;
+    if (lastSearch === key) return;
+    lastSearch = key;
     const set = [
       filters.subject_id,
       filters.institution_id,

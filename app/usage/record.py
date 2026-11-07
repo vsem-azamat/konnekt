@@ -21,7 +21,10 @@ FUTURE = datetime.timedelta(minutes=1)
 
 def when(at_ms: int, *, now: datetime.datetime) -> datetime.datetime:
     """The client's time, or the server's when the client's cannot be right."""
-    at = datetime.datetime.fromtimestamp(at_ms / 1000, datetime.UTC).replace(tzinfo=None)
+    try:
+        at = datetime.datetime.fromtimestamp(at_ms / 1000, datetime.UTC).replace(tzinfo=None)
+    except (ValueError, OverflowError, OSError):
+        return now
     return at if now - PAST <= at <= now + FUTURE else now
 
 

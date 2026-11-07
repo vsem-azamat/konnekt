@@ -126,3 +126,16 @@ test('a busy minute goes out in batches the server accepts', () => {
   assert.ok(sent.every((batch) => batch.length <= PER_BATCH));
   assert.equal(sent.flat().length, PER_BATCH * 2 + 1);
 });
+
+test('events from before the choice is read are counted once it allows, and forgotten if it does not', async () => {
+  const track = await import('../src/lib/track.ts');
+  track.track('helper_open', { from: 'link' });
+  const got: string[] = [];
+  track.startTracking({
+    track: (name) => got.push(name),
+    visible: () => undefined,
+    flush: () => undefined,
+    setEnabled: () => undefined,
+  });
+  assert.deepEqual(got, ['helper_open']);
+});

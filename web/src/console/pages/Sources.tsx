@@ -107,12 +107,15 @@ function Tiles({ data }: { data: Sources }) {
   const { i18n } = useLingui();
   const off = <span className={css.tileHint}>—</span>;
   const clicks = i18n.number(data.search.clicks);
+  // Configured is not imported: before the first day arrives a zero would read as «nobody came».
+  const site = data.site.on && data.site.through !== null;
+  const search = data.search.on && data.search.through !== null;
   return (
     <div className={css.tiles} data-three>
       <Tile
         label={<Trans>посетителей сайта</Trans>}
-        value={data.site.on ? data.site.visits : '—'}
-        hint={data.site.on ? <Trans>визитов</Trans> : off}
+        value={site ? data.site.visits : '—'}
+        hint={site ? <Trans>визитов</Trans> : off}
       />
       <Tile
         label={<Trans>запусков с сайта</Trans>}
@@ -121,8 +124,8 @@ function Tiles({ data }: { data: Sources }) {
       />
       <Tile
         label={<Trans>показов в Google</Trans>}
-        value={data.search.on ? data.search.impressions : '—'}
-        hint={data.search.on ? <Trans>кликов: {clicks}</Trans> : off}
+        value={search ? data.search.impressions : '—'}
+        hint={search ? <Trans>кликов: {clicks}</Trans> : off}
       />
     </div>
   );
@@ -150,7 +153,19 @@ function Tile({
   );
 }
 
-function Through({ through }: { through: string | null }) {
+/**
+ * Up to which day there is data, and from which, when the first imported day
+ * falls inside the period: 90 days of which the service has 7 are not 90 days.
+ */
+function Through({
+  since,
+  through,
+  days,
+}: {
+  since: string | null;
+  through: string | null;
+  days: number;
+}) {
   const day = useDay();
   if (!through) {
     return (
@@ -160,6 +175,17 @@ function Through({ through }: { through: string | null }) {
     );
   }
   const last = day(through);
+  const start = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  if (since && since > start) {
+    const first = day(since);
+    return (
+      <span className={css.through}>
+        <Trans>
+          данные с {first} по {last}
+        </Trans>
+      </span>
+    );
+  }
   return (
     <span className={css.through}>
       <Trans>данные по {last}</Trans>
@@ -190,7 +216,9 @@ function Site({ data }: { data: Sources }) {
   return (
     <>
       <div className={audience.card}>
-        <Label aside={<Through through={site.through} />}>
+        <Label
+          aside={<Through since={site.since} through={site.through} days={data.days} />}
+        >
           <Trans>Откуда пришли на сайт</Trans>
         </Label>
         <p className={audience.who}>
@@ -205,7 +233,9 @@ function Site({ data }: { data: Sources }) {
         />
       </div>
       <div className={audience.card}>
-        <Label aside={<Through through={site.through} />}>
+        <Label
+          aside={<Through since={site.since} through={site.through} days={data.days} />}
+        >
           <Trans>Страницы</Trans>
         </Label>
         <p className={audience.who}>
@@ -240,7 +270,9 @@ function Search({ data }: { data: Sources }) {
   }
   return (
     <div className={`${audience.card} ${css.wide}`}>
-      <Label aside={<Through through={search.through} />}>
+      <Label
+        aside={<Through since={search.since} through={search.through} days={data.days} />}
+      >
         <Trans>Что искали в Google</Trans>
       </Label>
       <p className={audience.who}>

@@ -321,6 +321,10 @@ msgstr "zap."
 msgid "предмет"
 msgstr "předmět"
 
+#: src/console/pages/Usage.tsx
+msgid "Что делают в Mini App. Время по вашему часовому поясу, сегодняшний день входит в период."
+msgstr "Co lidé dělají v Mini App. Čas podle vašeho časového pásma, dnešní den se do období počítá."
+
 #: src/console/BrowserShell.tsx
 #: src/console/pages/Summary.tsx
 msgid "Обзор"
@@ -2632,10 +2636,6 @@ msgstr "Co uděláme?"
 msgid "Публичная ссылка"
 msgstr "Veřejný odkaz"
 
-#: src/console/pages/Usage.tsx
-msgid "Что делают в Mini App. Время везде пражское, сегодняшний день входит в период."
-msgstr "Co lidé dělají v Mini App. Čas je všude pražský, dnešek je součástí období."
-
 #: src/pages/Mine.tsx
 #: src/pages/Request.tsx
 msgid "без срока"
@@ -3295,6 +3295,10 @@ msgstr "Zavřít"
 #: src/console/pages/Usage.tsx
 msgid "Сб"
 msgstr "So"
+
+#: src/console/pages/Sources.tsx
+msgid "данные с {first} по {last}"
+msgstr "data od {first} do {last}"
 
 #: src/components/Showcase.tsx
 msgid "Разместить ›"

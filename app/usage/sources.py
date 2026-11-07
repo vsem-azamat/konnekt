@@ -262,10 +262,14 @@ async def report(db: AsyncSession, *, days: int, today: datetime.date) -> dict[s
 
     last_site = await db.scalar(select(func.max(SiteDay.day)))
     last_search = await db.scalar(select(func.max(SearchDay.day)))
+    # The first day each service has: a period reaching before it is not a whole period.
+    first_site = await db.scalar(select(func.min(SiteDay.day)))
+    first_search = await db.scalar(select(func.min(SearchDay.day)))
     return {
         "days": days,
         "site": {
             "on": settings.analytics.cloudflare_on,
+            "since": first_site,
             "through": last_site,
             "visits": int(visits or 0),
             "views": int(views or 0),
@@ -275,6 +279,7 @@ async def report(db: AsyncSession, *, days: int, today: datetime.date) -> dict[s
         },
         "search": {
             "on": settings.analytics.search_console_on,
+            "since": first_search,
             "through": last_search,
             "clicks": int(clicks or 0),
             "impressions": int(impressions or 0),

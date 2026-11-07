@@ -45,7 +45,13 @@ import { followKeyboard } from '@/lib/keyboard';
 import { siteRedirect } from '@/lib/siteEntry';
 import { startRoute } from '@/lib/startParam';
 import { subscribeTheme } from '@/lib/theme';
-import { createTracker, noteScreen, startTracking, track } from '@/lib/track';
+import {
+  createTracker,
+  noteScreen,
+  startTracking,
+  stopWaiting,
+  track,
+} from '@/lib/track';
 import { countingAllowed } from '@/lib/usageChoice';
 import { router } from '@/router';
 
@@ -155,9 +161,15 @@ function followStartLink(): void {
  * unsigned. The console's own screens are not counted: they are ours.
  */
 async function countUsage(): Promise<void> {
-  if (import.meta.env.DEV) return;
+  if (import.meta.env.DEV) {
+    stopWaiting();
+    return;
+  }
   const initData = rawInitData();
-  if (!initData || !(await countingAllowed())) return;
+  if (!initData || !(await countingAllowed())) {
+    stopWaiting();
+    return;
+  }
   const { tgWebAppPlatform } = retrieveLaunchParams();
   const tracker = createTracker({
     send: (events, leaving) =>

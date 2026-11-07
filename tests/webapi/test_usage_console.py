@@ -81,7 +81,46 @@ async def test_usage_counts_sessions_people_and_who_is_in_the_app(db_session_mak
     assert {"source": "site_hero", "launches": 1} in got["entries"]
     assert {"source": None, "launches": 1} in got["entries"]  # session b; c was resumed
     find = next(f for f in got["funnels"] if f["key"] == "find")
-    assert [s["people"] for s in find["steps"]] == [2, 2, 1, 1, 1]
+    # Person 2 searched and found after opening a helper: «found» counts, the helper before it does not.
+    assert [s["people"] for s in find["steps"]] == [2, 2, 2, 1, 1]
+
+
+def test_one_search_that_finds_somebody_is_both_steps() -> None:
+    at = NOW
+    events: list[tuple[int, datetime.datetime, int, str, str | None, dict]] = [
+        (1, at, 0, "session_start", None, {}),
+        (1, at, 1, "search_submit", "/results", {"results": 3}),
+        (1, at, 2, "helper_open", "/helper/:id", {"from": "results"}),
+        (1, at, 3, "contact_tap", "/helper/:id", {"from": "helper"}),
+    ]
+    assert report._funnel(report.FUNNELS["find"], events) == [1, 1, 1, 1, 1]
+
+
+def test_hours_are_the_readers_and_skip_the_hour_that_does_not_exist() -> None:
+    from zoneinfo import ZoneInfo
+
+    prague = ZoneInfo("Europe/Prague")
+    # 29 March 2026, the clocks go from 02:00 to 03:00 in Prague: 00:50 to 01:10 UTC is 01:50 to 03:10.
+    slots = report._hours(datetime.datetime(2026, 3, 29, 0, 50), datetime.datetime(2026, 3, 29, 1, 10), prague)
+    assert slots == {(6, 1), (6, 3)}
+    # The same hour read in New York.
+    assert report._hours(NOW, NOW, ZoneInfo("America/New_York")) == {(1, 6)}
+
+
+async def test_the_route_reads_in_the_readers_zone_and_refuses_a_made_up_one(db_session_maker, written) -> None:
+    from app.webapi.deps import get_session
+
+    async def _session():
+        async with db_session_maker() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = _session
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
+            assert (await client.get("/api/usage?days=7&tz=America/New_York")).status_code == 200
+            assert (await client.get("/api/usage?days=7&tz=Mars/Olympus")).status_code == 422
+    finally:
+        app.dependency_overrides.pop(get_session, None)
 
 
 async def test_the_console_routes_answer_and_refuse_odd_periods(db_session_maker, written) -> None:

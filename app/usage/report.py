@@ -28,7 +28,8 @@ PERIODS = (1, 7, 30)
 HEARTBEAT = datetime.timedelta(seconds=30)
 # «In the app now»: a beat within the last one and a bit, for a beat that is late.
 ONLINE = datetime.timedelta(seconds=75)
-LOCAL = ZoneInfo("Europe/Prague")
+# The zone the console reads in when it names none (docs/invariants.md: times are read where the reader is).
+DEFAULT_ZONE = ZoneInfo("Europe/Prague")
 TOP = 10
 # Session lengths, in seconds: the console's bars, the last one open.
 LENGTH_BINS = (30, 60, 180, 300, 600)
@@ -74,37 +75,50 @@ FUNNELS: dict[str, tuple[Step, ...]] = {
 }
 
 
-def _local(at: datetime.datetime) -> datetime.datetime:
-    return at.replace(tzinfo=datetime.UTC).astimezone(LOCAL)
+def _local(at: datetime.datetime, zone: ZoneInfo) -> datetime.datetime:
+    return at.replace(tzinfo=datetime.UTC).astimezone(zone)
 
 
-def _hours(start: datetime.datetime, end: datetime.datetime) -> set[tuple[int, int]]:
-    """Each (weekday, hour) in Prague that a session from `start` to `end` touched."""
+def _hours(start: datetime.datetime, end: datetime.datetime, zone: ZoneInfo) -> set[tuple[int, int]]:
+    """Each (weekday, hour) in `zone` that a session from `start` to `end` touched.
+
+    Stepped in UTC and each hour converted: stepping the local clock would
+    visit the hour that does not exist on the night the clocks go forward.
+    """
     slots = set()
-    hour = _local(start).replace(minute=0, second=0, microsecond=0)
-    last = _local(end)
-    while hour <= last:
-        slots.add((hour.weekday(), hour.hour))
+    hour = start.replace(minute=0, second=0, microsecond=0)
+    while hour <= end:
+        local = _local(hour, zone)
+        slots.add((local.weekday(), local.hour))
         hour += datetime.timedelta(hours=1)
     return slots
 
 
-def _funnel(steps: tuple[Step, ...], events: list[tuple[int, datetime.datetime, str, str | None, dict]]) -> list[int]:
-    """How many people reached each step, each after the one before."""
+def _funnel(
+    steps: tuple[Step, ...], events: list[tuple[int, datetime.datetime, int, str, str | None, dict]]
+) -> list[int]:
+    """How many people reached each step, each after the one before.
+
+    One event may take several steps: a search that found somebody is both
+    «searched» and «found».
+    """
     reached = [0] * len(steps)
-    by_person: dict[int, list[tuple[datetime.datetime, str, str | None, dict]]] = defaultdict(list)
-    for user_id, at, name, screen, props in events:
-        by_person[user_id].append((at, name, screen, props))
+    by_person: dict[int, list[tuple[datetime.datetime, int, str, str | None, dict]]] = defaultdict(list)
+    for user_id, at, seq, name, screen, props in events:
+        by_person[user_id].append((at, seq, name, screen, props or {}))
     for rows in by_person.values():
         step = 0
-        for _at, name, screen, props in sorted(rows, key=lambda row: row[0]):
-            if step < len(steps) and steps[step].matches(name, screen, props):
+        # By the client's order too: a batch whose clock was off shares the server's arrival time.
+        for _at, _seq, name, screen, props in sorted(rows, key=lambda row: (row[0], row[1])):
+            while step < len(steps) and steps[step].matches(name, screen, props):
                 reached[step] += 1
                 step += 1
     return reached
 
 
-async def usage(db: AsyncSession, *, days: int, now: datetime.datetime) -> dict[str, Any]:
+async def usage(
+    db: AsyncSession, *, days: int, now: datetime.datetime, zone: ZoneInfo = DEFAULT_ZONE
+) -> dict[str, Any]:
     start = now - datetime.timedelta(days=days)
     in_period = ProductEvent.at >= start
 
@@ -125,13 +139,13 @@ async def usage(db: AsyncSession, *, days: int, now: datetime.datetime) -> dict[
     by_day: dict[datetime.date, list[Any]] = {}
     heat: dict[tuple[int, int], set[int]] = defaultdict(set)
     for user_id, first, last in sessions:
-        day = by_day.setdefault(_local(first).date(), [0, set()])
+        day = by_day.setdefault(_local(first, zone).date(), [0, set()])
         day[0] += 1
         day[1].add(user_id)
-        for slot in _hours(first, last):
+        for slot in _hours(first, last, zone):
             heat[slot].add(user_id)
-    first_day = _local(start).date()
-    days_list = [first_day + datetime.timedelta(days=i) for i in range((_local(now).date() - first_day).days + 1)]
+    first_day = _local(start, zone).date()
+    days_list = [first_day + datetime.timedelta(days=i) for i in range((_local(now, zone).date() - first_day).days + 1)]
 
     bins = [0] * (len(LENGTH_BINS) + 1)
     for seconds in lengths:
@@ -150,13 +164,18 @@ async def usage(db: AsyncSession, *, days: int, now: datetime.datetime) -> dict[
     events = (
         await db.execute(
             select(
-                ProductEvent.user_id, ProductEvent.at, ProductEvent.name, ProductEvent.screen, ProductEvent.props
+                ProductEvent.user_id,
+                ProductEvent.at,
+                ProductEvent.seq,
+                ProductEvent.name,
+                ProductEvent.screen,
+                ProductEvent.props,
             ).where(in_period, ProductEvent.name != "heartbeat")
         )
     ).all()
     taps: Counter[tuple[str, str | None]] = Counter()
     entries: Counter[str] = Counter()
-    for _user, _at, name, _screen, props in events:
+    for _user, _at, _seq, name, _screen, props in events:
         props = props or {}
         if name == "session_start":
             if not props.get("resumed"):

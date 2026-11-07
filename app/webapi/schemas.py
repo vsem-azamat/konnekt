@@ -796,7 +796,8 @@ class SourcesSite(BaseModel):
     """konnekt.cz as Cloudflare Web Analytics counted it; `on` False is not configured yet."""
 
     on: bool
-    # The last day imported.
+    # The first and last day imported.
+    since: datetime.date | None
     through: datetime.date | None
     visits: int
     views: int
@@ -816,6 +817,7 @@ class SourcesSearch(BaseModel):
     """Google search from Search Console; `on` False is not configured yet."""
 
     on: bool
+    since: datetime.date | None
     through: datetime.date | None
     clicks: int
     impressions: int

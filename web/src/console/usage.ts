@@ -63,6 +63,8 @@ export interface Sources {
     /** False: Cloudflare Web Analytics is not connected yet. */
     on: boolean;
     /** The last day imported, YYYY-MM-DD. */
+    /** The first and last day imported, YYYY-MM-DD. */
+    since: string | null;
     through: string | null;
     visits: number;
     views: number;
@@ -73,6 +75,8 @@ export interface Sources {
   search: {
     /** False: Search Console is not connected yet. */
     on: boolean;
+    /** The first and last day imported, YYYY-MM-DD. */
+    since: string | null;
     through: string | null;
     clicks: number;
     impressions: number;

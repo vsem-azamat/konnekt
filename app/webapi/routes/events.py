@@ -23,12 +23,11 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.audience.record import SOURCE
 from app.core import metrics
 from app.core.config import settings
 from app.core.time import utc_now
 from app.usage import record
-from app.usage.events import Event
+from app.usage.events import Event, launch_word
 from app.webapi.auth.telegram_webapp import InitDataError, verify_init_data
 from app.webapi.deps import get_session
 from app.webapi.routes.client_errors import MAX_AGE_SECONDS, PLATFORMS
@@ -125,7 +124,7 @@ async def events(request: Request, session: Annotated[AsyncSession, Depends(get_
     if not admitted:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    source = caller.start_param if caller.start_param and SOURCE.fullmatch(caller.start_param) else None
+    source = launch_word(caller.start_param)
     record.write(
         session,
         user_id=caller.user_id,

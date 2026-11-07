@@ -3,13 +3,15 @@
  *
  * Kept in Telegram's cloud storage for the bot, so the choice follows them to
  * every device; where the client has none, in this browser's storage. Read
- * before anything is counted: until the answer comes, nothing is sent.
+ * before anything is counted, and a read that fails or does not answer in time
+ * counts as «off» for this launch: somebody who said no must never be counted
+ * because Telegram was slow.
  */
 
 import { cloudStorage } from '@tma.js/sdk-react';
 import { OPT_OUT_KEY } from './track';
 
-/** A slow answer is taken as «not turned off» rather than holding counting back forever. */
+/** How long a launch waits for the answer before it gives up counting. */
 const READ_TIMEOUT_MS = 3000;
 
 function cloud(): boolean {
@@ -20,23 +22,28 @@ function cloud(): boolean {
   }
 }
 
-export async function countingAllowed(): Promise<boolean> {
+/** The stored choice: true allowed, false turned off, null not known (no answer, or no storage). */
+export async function readChoice(): Promise<boolean | null> {
   if (!cloud()) {
     try {
       return localStorage.getItem(OPT_OUT_KEY) !== '1';
     } catch {
-      return true;
+      return null;
     }
   }
-  const read = cloudStorage.getItem(OPT_OUT_KEY).then((value) => value !== '1');
-  const late = new Promise<boolean>((resolve) =>
-    setTimeout(() => resolve(true), READ_TIMEOUT_MS),
-  );
   try {
-    return await Promise.race([read, late]);
+    return (await cloudStorage.getItem(OPT_OUT_KEY)) !== '1';
   } catch {
-    return true;
+    return null;
   }
+}
+
+/** Whether to count this launch: only on an answer, and only if it is not «off». */
+export async function countingAllowed(): Promise<boolean> {
+  const late = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), READ_TIMEOUT_MS),
+  );
+  return (await Promise.race([readChoice(), late])) === true;
 }
 
 export async function allowCounting(allowed: boolean): Promise<void> {
@@ -45,9 +52,5 @@ export async function allowCounting(allowed: boolean): Promise<void> {
     await cloudStorage.setItem(OPT_OUT_KEY, value);
     return;
   }
-  try {
-    localStorage.setItem(OPT_OUT_KEY, value);
-  } catch {
-    // Nowhere to keep it: the choice lasts this launch.
-  }
+  localStorage.setItem(OPT_OUT_KEY, value);
 }
