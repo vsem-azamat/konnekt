@@ -46,15 +46,15 @@ SEARCH_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly"
 SEARCH_ROWS = 1000
 
 _RUM = """
-query Site($account: string!, $site: string!, $from: Date!, $to: Date!) {
+query Site($account: string!, $site: string!, $host: string!, $from: Date!, $to: Date!) {
   viewer { accounts(filter: {accountTag: $account}) {
-    total: rumPageloadEventsAdaptiveGroups(limit: 100, filter: {siteTag: $site, date_geq: $from, date_leq: $to}) {
+    total: rumPageloadEventsAdaptiveGroups(limit: 100, filter: {siteTag: $site, requestHost: $host, date_geq: $from, date_leq: $to}) {
       count sum { visits } dimensions { date }
     }
-    referrer: rumPageloadEventsAdaptiveGroups(limit: 2000, orderBy: [count_DESC], filter: {siteTag: $site, date_geq: $from, date_leq: $to}) {
+    referrer: rumPageloadEventsAdaptiveGroups(limit: 2000, orderBy: [count_DESC], filter: {siteTag: $site, requestHost: $host, date_geq: $from, date_leq: $to}) {
       count sum { visits } dimensions { date refererHost }
     }
-    page: rumPageloadEventsAdaptiveGroups(limit: 2000, orderBy: [count_DESC], filter: {siteTag: $site, date_geq: $from, date_leq: $to}) {
+    page: rumPageloadEventsAdaptiveGroups(limit: 2000, orderBy: [count_DESC], filter: {siteTag: $site, requestHost: $host, date_geq: $from, date_leq: $to}) {
       count sum { visits } dimensions { date requestPath }
     }
   } }
@@ -82,6 +82,8 @@ async def fetch_site(http: httpx.AsyncClient, *, today: datetime.date) -> list[d
             "variables": {
                 "account": config.cloudflare_account_id,
                 "site": config.cloudflare_site_tag,
+                # The beacon covers the whole zone; the Mini App's host is counted by the app itself.
+                "host": config.cloudflare_host,
                 "from": first.isoformat(),
                 "to": last.isoformat(),
             },

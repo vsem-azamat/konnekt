@@ -22,6 +22,10 @@ msgstr "New card"
 msgid "Она пропадёт из каталога и поиска, и автор не сможет опубликовать её снова. Вернуть её можно здесь же, в «Скрытых». Автору мы не пишем, но в «Моей анкете» будет видно, что её скрыли, и причина."
 msgstr "It disappears from the catalog and search, and the author cannot publish it again. You can bring it back here, under «Hidden». We do not message the author, but «My profile» will show that it was hidden, and why."
 
+#: src/pages/Profile.tsx
+msgid "Приватность"
+msgstr "Privacy"
+
 #: src/console/pages/Chats.tsx
 msgid "+ Внешний чат"
 msgstr "+ External chat"
@@ -594,14 +598,6 @@ msgstr "A card in the app"
 msgid "Ничего не нашли. Попробуй сокращение — ČVUT, VŠE, MUNI."
 msgstr "Nothing found. Try the abbreviation — ČVUT, VŠE, MUNI."
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Пришедшие к нам — по чату, где бот увидел их впервые."
-#~ msgstr "People who came to us, by the chat where the bot first saw them."
-
-#: src/console/pages/Sources.tsx
-msgid "<0>Cloudflare Web Analytics не подключён.</0> Нужно, чтобы Azamat включил его для konnekt.cz и дал ключ для чтения; тогда здесь появятся посетители, откуда они пришли и какие страницы смотрели."
-msgstr "<0>Cloudflare Web Analytics is not connected.</0> Azamat needs to turn it on for konnekt.cz and provide a read key; then visitors will show up here, along with where they came from and which pages they viewed."
-
 #: src/pages/MyHelper.tsx
 msgid "Предмет"
 msgstr "Subject"
@@ -718,11 +714,6 @@ msgstr "Mini App"
 msgid "Отправить отклик"
 msgstr "Send response"
 
-#. placeholder {0}: f.estimate
-#: src/console/pages/Audience.tsx
-#~ msgid "Ещё {0} — догадка: бот видел их до марта 2026 и мог получать от них сообщения в личке, но проверить это нельзя. В цифры выше они не входят."
-#~ msgstr "{0} more are a guess: the bot saw them before March 2026 and may have had private messages from them, but there is no way to check. They are not in the numbers above."
-
 #: src/components/HideReasonText.tsx
 msgid "Реклама или спам"
 msgstr "Advertising or spam"
@@ -739,10 +730,6 @@ msgstr "Advertising or spam"
 #: src/pages/Results.tsx
 msgid "Умеешь то, что нужно другим?"
 msgstr "Good at something others need?"
-
-#: src/console/AudienceCharts.tsx
-#~ msgid "и бот, и Mini App"
-#~ msgstr "both the bot and the Mini App"
 
 #: src/console/pages/Blacklist.tsx
 #: src/console/pages/Chat.tsx
@@ -814,10 +801,6 @@ msgstr "The bot is in the chat but not an admin · since {0}"
 msgid "визитов"
 msgstr "visits"
 
-#: src/console/AudienceCharts.tsx
-#~ msgid "только бот"
-#~ msgstr "bot only"
-
 #: src/console/FailureText.tsx
 msgid "Ссылка должна вести на чат в Telegram: https://t.me/…"
 msgstr "The link must lead to a Telegram chat: https://t.me/…"
@@ -885,11 +868,6 @@ msgstr "left"
 #: src/pages/Results.tsx
 msgid "Оставь заявку — ответят сами"
 msgstr "Post a request — they answer you"
-
-#. placeholder {0}: data.search.clicks
-#: src/console/pages/Sources.tsx
-msgid "кликов: {0}"
-msgstr "clicks: {0}"
 
 #: src/console/pages/Audience.tsx
 msgid "Новые в Mini App"
@@ -1137,10 +1115,6 @@ msgid "отключён"
 msgstr "disabled"
 
 #: src/console/pages/Summary.tsx
-#~ msgid "можно написать: дали боту писать и не заблокировали; ещё {opted} отписались от новостей"
-#~ msgstr "can be written to: let the bot write and did not block it; {opted} more unsubscribed from news"
-
-#: src/console/pages/Summary.tsx
 msgid "Самые живые чаты, сообщения по часам"
 msgstr "Busiest chats, messages by hour"
 
@@ -1310,10 +1284,6 @@ msgstr "This request is already closed"
 #: src/console/pages/Chat.tsx
 msgid "Только наблюдать?"
 msgstr "Only watch?"
-
-#: src/console/pages/Summary.tsx
-#~ msgid "всего {total}"
-#~ msgstr "{total} in all"
 
 #: src/console/pages/Partners.tsx
 #: src/pages/AdsApp.tsx
@@ -1611,6 +1581,10 @@ msgstr "{rest} more chats"
 msgid "Каталог за неделю"
 msgstr "Catalog this week"
 
+#: src/console/pages/Usage.tsx
+msgid "24 часа"
+msgstr "24 hours"
+
 #: src/console/pages/Chats.tsx
 msgid "не в каталоге"
 msgstr "not in the catalog"
@@ -1667,10 +1641,6 @@ msgstr "Your profile is hidden — the services are saved but will not be in the
 #: src/lib/offerHints.ts
 msgid "Чешский B1"
 msgstr "Czech B1"
-
-#: src/console/pages/Sources.tsx
-msgid "<0>Search Console не подключён.</0> Нужно, чтобы Azamat добавил наш служебный аккаунт пользователем в Search Console для konnekt.cz; тогда здесь появятся запросы, клики и показы."
-msgstr "<0>Search Console is not connected.</0> Azamat needs to add our service account as a user in Search Console for konnekt.cz; then queries, clicks and impressions will show up here."
 
 #: src/pages/Request.tsx
 msgid "Отказать"
@@ -1941,7 +1911,6 @@ msgid "Раздел каталога"
 msgstr "Catalogue section"
 
 #: src/console/pages/Chats.tsx
-#: src/console/pages/Usage.tsx
 msgid "Сутки"
 msgstr "24 h"
 
@@ -1987,6 +1956,10 @@ msgstr "Announcements"
 #: src/console/pages/Audience.tsx
 msgid "отписались от новостей"
 msgstr "opted out of news"
+
+#: src/console/pages/Sources.tsx
+msgid "<0>Cloudflare Web Analytics не подключён.</0> Включите Web Analytics для konnekt.cz в Cloudflare и выдайте ключ для чтения; тогда здесь появятся посетители, откуда они пришли и какие страницы смотрели."
+msgstr "<0>Cloudflare Web Analytics is not connected.</0> Turn on Web Analytics for konnekt.cz in Cloudflare and issue a read-only key; then visitors, where they came from and which pages they viewed will appear here."
 
 #: src/pages/Join.tsx
 msgid "Проверка не прошла"
@@ -2063,12 +2036,6 @@ msgstr "off"
 #: src/console/ProfileSheet.tsx
 msgid "Причина"
 msgstr "Reason"
-
-#. placeholder {0}: fresh.started_bot
-#. placeholder {1}: fresh.opened_app
-#: src/console/pages/Audience.tsx
-#~ msgid "За период: +{0} запустили бота, +{1} открыли Mini App."
-#~ msgstr "In this period: +{0} started the bot, +{1} opened the Mini App."
 
 #: src/components/Incoming.tsx
 msgid "До {amount} Kč"
@@ -2179,10 +2146,6 @@ msgstr "estimated from old data"
 msgid "Ещё {0} — догадка переноса: старые записи бота, по которым похоже, что человек писал боту в личку. Проверить нельзя, сами они с тех пор не появлялись. В цифры выше не входят."
 msgstr "{0} more are a backfill guess: old bot records that suggest the person wrote to the bot privately. There is no way to check, and they have not come back since. They are not in the numbers above."
 
-#: src/console/pages/Sources.tsx
-msgid "прямые заходы и без источника"
-msgstr "direct visits and no source"
-
 #: src/console/pages/Chat.tsx
 msgid "Вуз"
 msgstr "University"
@@ -2217,10 +2180,6 @@ msgstr "To review"
 #: src/console/pages/PartnerNew.tsx
 msgid "Монограмма"
 msgstr "Monogram"
-
-#: src/console/UsageLabels.tsx
-msgid "Написать помощнику"
-msgstr "Message the helper"
 
 #: src/console/pages/Partners.tsx
 msgid "Студенты перестанут её видеть. Показы и клики сохранятся."
@@ -2743,10 +2702,6 @@ msgstr "All new profiles have been reviewed."
 #: src/console/pages/AudiencePerson.tsx
 msgid "язык {0}"
 msgstr "language {0}"
-
-#: src/console/pages/Chat.tsx
-#~ msgid "сообщения — последние 7 дней"
-#~ msgstr "messages — the last 7 days"
 
 #: src/pages/AdsChats.tsx
 msgid "Выходит в выбранных чатах один раз. Где он уместен, подскажем."
@@ -3349,6 +3304,10 @@ msgstr "Place it ›"
 msgid "открытых нет"
 msgstr "none open"
 
+#: src/console/pages/Sources.tsx
+msgid "прямые и без источника"
+msgstr "direct and no source"
+
 #: src/console/pages/Usage.tsx
 msgid "никого"
 msgstr "nobody"
@@ -3426,10 +3385,6 @@ msgstr "Opened the app"
 msgid "Админы чата"
 msgstr "Chat admins"
 
-#: src/console/AudienceCharts.tsx
-#~ msgid "только Mini App, без /start"
-#~ msgstr "Mini App only, no /start"
-
 #: src/console/pages/Chat.tsx
 msgid "Отключить чат"
 msgstr "Disable the chat"
@@ -3441,10 +3396,6 @@ msgstr "To fix: add Konnekt to the chat again and make it an administrator."
 #: src/pages/Landing.tsx
 #~ msgid "Нострификация"
 #~ msgstr "Nostrification"
-
-#: src/console/pages/Audience.tsx
-#~ msgid "можно написать: запустили бота и не заблокировали"
-#~ msgstr "can be written to: started the bot and did not block it"
 
 #: src/console/pages/Chat.tsx
 msgid "Бота там нет. Только ссылка в каталоге, с пометкой «не наш»."
@@ -3556,18 +3507,9 @@ msgstr "visited in the period"
 msgid "медиана сессии"
 msgstr "median session"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "{days} дней по вчера против {days} дней до них. Сегодня отдельно: день не закончился."
-#~ msgstr "{days} days to yesterday against the {days} days before. Today is apart: it is not over."
-
 #: src/console/pages/Summary.tsx
 msgid "{held} · {hoursAgo} ч назад"
 msgstr "{held} · {hoursAgo} h ago"
-
-#. placeholder {0}: f.not_from_chats
-#: src/console/pages/Audience.tsx
-#~ msgid "Хоть раз запустили бота или открыли Mini App. Из них {fromChats} бот видел в чатах, {0} пришли по ссылке."
-#~ msgstr "Started the bot or opened the Mini App at least once. The bot had seen {fromChats} of them in chats; {0} came by a link."
 
 #: src/pages/Mine.tsx
 msgid "Закрытых заявок нет"
@@ -3616,10 +3558,6 @@ msgstr "A couple of words about you — what you take on and what you do not"
 msgid "дали писать и не заблокировали"
 msgstr "let it write and did not block it"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Впервые дали основному боту писать им: нажали Start, написали ему или разрешили в Mini App. Каждый считается один раз. Записываем с 20 окт.: кто пользовался ботом раньше, засчитан в день первого визита после этой даты."
-#~ msgstr "First gave the main bot leave to write to them: pressed Start, wrote to it or allowed it in the Mini App. Each person counts once. Recorded since 20 Oct: whoever used the bot before is counted on their first visit after that date."
-
 #: src/components/Incoming.tsx
 msgid "Пока никто ничего не просит"
 msgstr "Nobody is asking for anything yet"
@@ -3659,11 +3597,6 @@ msgstr "More"
 #: src/console/pages/Signals.tsx
 #~ msgid "Предложено через MCP: {reason}. Ждёт нажатия админа, истекает через {left} мин."
 #~ msgstr "Proposed through MCP: {reason}. Waits for an admin to press, expires in {left} min."
-
-#. placeholder {0}: step.fresh
-#: src/console/AudienceCharts.tsx
-#~ msgid "{0, plural, one {+# за период} other {+# за период}}"
-#~ msgstr "{0, plural, one {+# this period} other {+# this period}}"
 
 #: src/lib/workFormat.tsx
 msgid "Хожу вместе"
@@ -3987,10 +3920,6 @@ msgstr "Works only in an approved chat."
 msgid "По твоим услугам · {count}"
 msgstr "For your services · {count}"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "Запустили бота"
-#~ msgstr "Started the bot"
-
 #: src/console/pages/Spam.tsx
 msgid "Не разобрано · {unreviewed}"
 msgstr "To review · {unreviewed}"
@@ -4074,11 +4003,6 @@ msgstr "who is in the Mini App now, screens, taps"
 #: src/pages/Ask.tsx
 msgid "По этому запросу пока никого"
 msgstr "Nobody for this one yet"
-
-#: src/console/pages/Chat.tsx
-#: src/console/pages/Chats.tsx
-#~ msgid "бот вышел"
-#~ msgstr "the bot left"
 
 #: src/pages/Mine.tsx
 msgid "Закрыта"
@@ -4328,10 +4252,6 @@ msgstr "Not in the catalog · no t.me link"
 msgid "заходов в приложение"
 msgstr "app visits"
 
-#: src/console/pages/Audience.tsx
-#~ msgid "были только в Mini App: бот им написать не может"
-#~ msgstr "used only the Mini App: the bot cannot write to them"
-
 #: src/console/pages/PartnerNew.tsx
 msgid "Пояснение над карточкой"
 msgstr "Note above the card"
@@ -4425,6 +4345,10 @@ msgstr "{0, plural, one {# service} other {# services}}"
 msgid "Очистить поиск"
 msgstr "Clear search"
 
+#: src/console/pages/Sources.tsx
+msgid "<0>Search Console не подключён.</0> Добавьте наш служебный аккаунт пользователем в Search Console для konnekt.cz; тогда здесь появятся запросы, клики и показы."
+msgstr "<0>Search Console is not connected.</0> Add our service account as a user in Search Console for konnekt.cz; then queries, clicks and impressions will appear here."
+
 #: src/console/pages/Chat.tsx
 msgid "Записывает историю и считает участников. Ничего не пишет, ни на что не отвечает."
 msgstr "Records the history and counts members. Writes nothing, answers nothing."
@@ -4516,6 +4440,7 @@ msgstr "not counted"
 msgid "вуз, курс или опыт — её видно на карточке"
 msgstr "school, year or experience, shown on your card"
 
+#: src/console/UsageLabels.tsx
 #: src/pages/Helper.tsx
 #: src/pages/Partner.tsx
 #: src/pages/Request.tsx
@@ -4648,6 +4573,10 @@ msgstr "Home"
 msgid "Найди свой чат"
 msgstr "Find your chat"
 
+#: src/console/pages/Sources.tsx
+msgid "кликов: {clicks}"
+msgstr "clicks: {clicks}"
+
 #: src/components/Place.tsx
 msgid "Оломоуц"
 msgstr "Olomouc"
@@ -4721,10 +4650,6 @@ msgstr "Clicks"
 #: src/console/pages/AudiencePerson.tsx
 msgid "Тексты сообщений не хранятся: только то, что сообщает Telegram, и когда человек приходил."
 msgstr "Message texts are not kept: only what Telegram tells us, and when the person came."
-
-#: src/console/pages/Summary.tsx
-#~ msgid "{diff} к неделе раньше"
-#~ msgstr "{diff} on the week before"
 
 #: src/pages/Join.tsx
 msgid "Вступление в чат"
@@ -4878,10 +4803,6 @@ msgstr "Couldn't load the chats"
 #: src/console/pages/Chat.tsx
 msgid "Вопрос приходит только в личку. Многие его не замечают: Telegram пишет им «админ одобрит», и бота они не открывают."
 msgstr "The question only arrives in a private message. Many miss it: Telegram tells them an admin will approve, and they never open the bot."
-
-#: src/console/pages/Audience.tsx
-#~ msgid "Впервые нажали Start в основном боте. Каждый человек считается один раз, в день первого запуска."
-#~ msgstr "Pressed Start in the main bot for the first time. Each person counts once, on the day of their first start."
 
 #: src/components/RouteError.tsx
 #: src/console/ConsoleGate.tsx

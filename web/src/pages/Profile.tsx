@@ -363,7 +363,6 @@ export default function ProfilePage() {
               title={<Trans>Реклама для студентов</Trans>}
               hint={<Trans>для компаний: посты в чатах и карточки</Trans>}
             />
-            <CountingRow />
             {contactUrl ? (
               <Row
                 onClick={() => openTelegramLink(contactUrl)}
@@ -376,6 +375,13 @@ export default function ProfilePage() {
                 hint={<Trans>по любому вопросу</Trans>}
               />
             ) : null}
+          </Rows>
+
+          <Label>
+            <Trans>Приватность</Trans>
+          </Label>
+          <Rows>
+            <CountingRow />
           </Rows>
         </>
       )}

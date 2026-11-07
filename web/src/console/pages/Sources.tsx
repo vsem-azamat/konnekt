@@ -104,7 +104,9 @@ function Report({
 }
 
 function Tiles({ data }: { data: Sources }) {
+  const { i18n } = useLingui();
   const off = <span className={css.tileHint}>—</span>;
+  const clicks = i18n.number(data.search.clicks);
   return (
     <div className={css.tiles} data-three>
       <Tile
@@ -120,7 +122,7 @@ function Tiles({ data }: { data: Sources }) {
       <Tile
         label={<Trans>показов в Google</Trans>}
         value={data.search.on ? data.search.impressions : '—'}
-        hint={data.search.on ? <Trans>кликов: {data.search.clicks}</Trans> : off}
+        hint={data.search.on ? <Trans>кликов: {clicks}</Trans> : off}
       />
     </div>
   );
@@ -135,10 +137,14 @@ function Tile({
   value: ReactNode;
   hint: ReactNode;
 }) {
+  // A count in the language's grouping: «1 930», as the rest of the console writes it.
+  const { i18n } = useLingui();
   return (
     <div className={css.tile}>
       <span>{label}</span>
-      <span className={audience.big}>{value}</span>
+      <span className={audience.big}>
+        {typeof value === 'number' ? i18n.number(value) : value}
+      </span>
       <span className={css.tileHint}>{hint}</span>
     </div>
   );
@@ -172,16 +178,15 @@ function Site({ data }: { data: Sources }) {
         </Label>
         <p className={css.notice}>
           <Trans>
-            <b>Cloudflare Web Analytics не подключён.</b> Нужно, чтобы Azamat включил его
-            для konnekt.cz и дал ключ для чтения; тогда здесь появятся посетители, откуда
-            они пришли и какие страницы смотрели.
+            <b>Cloudflare Web Analytics не подключён.</b> Включите Web Analytics для
+            konnekt.cz в Cloudflare и выдайте ключ для чтения; тогда здесь появятся
+            посетители, откуда они пришли и какие страницы смотрели.
           </Trans>
         </p>
       </div>
     );
   }
-  const referrer = (key: string) =>
-    key === WHOLE ? t`прямые заходы и без источника` : key;
+  const referrer = (key: string) => (key === WHOLE ? t`прямые и без источника` : key);
   return (
     <>
       <div className={audience.card}>
@@ -225,9 +230,9 @@ function Search({ data }: { data: Sources }) {
         </Label>
         <p className={css.notice}>
           <Trans>
-            <b>Search Console не подключён.</b> Нужно, чтобы Azamat добавил наш служебный
-            аккаунт пользователем в Search Console для konnekt.cz; тогда здесь появятся
-            запросы, клики и показы.
+            <b>Search Console не подключён.</b> Добавьте наш служебный аккаунт
+            пользователем в Search Console для konnekt.cz; тогда здесь появятся запросы,
+            клики и показы.
           </Trans>
         </p>
       </div>
@@ -271,8 +276,8 @@ function Search({ data }: { data: Sources }) {
               {search.queries.map((q) => (
                 <tr key={q.query}>
                   <td>{q.query}</td>
-                  <td>{q.clicks}</td>
-                  <td>{q.impressions}</td>
+                  <td>{i18n.number(q.clicks)}</td>
+                  <td>{i18n.number(q.impressions)}</td>
                   <td>{position(q.position, i18n.locale)}</td>
                 </tr>
               ))}

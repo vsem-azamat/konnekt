@@ -59,6 +59,17 @@
   grid-column: 1 / -1;
 }
 
+/* A two-way toggle inside a card: as wide as its words, like the period's. */
+.toggle {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.toggle > [role='tablist'] {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
 /* Hours of the week: a day per row, an hour per column, in Prague. */
 .heat {
   display: grid;

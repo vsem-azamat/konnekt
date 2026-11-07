@@ -59,7 +59,7 @@ export function useUsageLabels() {
   const taps: Record<string, string> = {
     search_submit: t`Найти`,
     helper_open: t`Открыть помощника`,
-    contact_tap: t`Написать помощнику`,
+    contact_tap: t`Написать`,
     offer_start: t`Стать помощником`,
     request_send: t`Отправить заявку`,
     chat_open: t`Вступить в чат`,

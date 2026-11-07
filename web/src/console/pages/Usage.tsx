@@ -98,7 +98,7 @@ function Report({
   const day = useDay();
   const since = data.since ? day(data.since.slice(0, 10)) : null;
   const labels = {
-    1: t`Сутки`,
+    1: t`24 часа`,
     7: t`7 дней`,
     30: t`30 дней`,
   } satisfies Record<UsagePeriod, string>;
@@ -152,6 +152,8 @@ function Report({
               <Heat data={data} />
             </div>
             {data.by_day.length > 2 ? <Days data={data} /> : null}
+            <Funnels data={data} />
+            {/* In pairs, so no card stands alone in a row beside empty space. */}
             <div className={audience.card}>
               <Label aside={<Trans>сессий</Trans>}>
                 <Trans>Сколько длится сессия</Trans>
@@ -164,7 +166,6 @@ function Report({
               </p>
               <Lengths data={data} />
             </div>
-            <Funnels data={data} />
             <Screens data={data} />
             <Taps data={data} />
             <Entries data={data} />
@@ -216,10 +217,14 @@ function Tile({
   value: ReactNode;
   hint: ReactNode;
 }) {
+  // A count in the language's grouping: «1 930», as the rest of the console writes it.
+  const { i18n } = useLingui();
   return (
     <div className={css.tile}>
       <span>{label}</span>
-      <span className={audience.big}>{value}</span>
+      <span className={audience.big}>
+        {typeof value === 'number' ? i18n.number(value) : value}
+      </span>
       <span className={css.tileHint}>{hint}</span>
     </div>
   );
@@ -275,18 +280,20 @@ function Days({ data }: { data: Usage }) {
       <Label>
         <Trans>По дням</Trans>
       </Label>
-      <Segmented
-        value={what}
-        label={t`Что считать`}
-        options={[
-          { value: 'sessions', label: t`Сессии` },
-          { value: 'people', label: t`Люди` },
-        ]}
-        onChange={(value) => {
-          hapticSelection();
-          setWhat(value);
-        }}
-      />
+      <div className={css.toggle}>
+        <Segmented
+          value={what}
+          label={t`Что считать`}
+          options={[
+            { value: 'sessions', label: t`Сессии` },
+            { value: 'people', label: t`Люди` },
+          ]}
+          onChange={(value) => {
+            hapticSelection();
+            setWhat(value);
+          }}
+        />
+      </div>
       <TrendBars
         key={`${data.days}-${what}`}
         now={points}

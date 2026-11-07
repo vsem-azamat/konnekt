@@ -538,6 +538,9 @@ class AnalyticsSettings(Settings):
     )
     cloudflare_account_id: str = Field(default="", description="The Cloudflare account the site is in")
     cloudflare_site_tag: str = Field(default="", description="Web Analytics site tag of konnekt.cz")
+    cloudflare_host: str = Field(
+        default="konnekt.cz", description="The site's host; the zone's other hosts are left out"
+    )
     search_console_credentials: SecretStr = Field(
         default=SecretStr(""),
         description="A Google service account's JSON key, added to the property as a user; empty turns search off",
