@@ -65,6 +65,12 @@ test('a short word stays with the next one, in any of the languages', () => {
   );
   // An abbreviation is a word of its own, not a preposition.
   assert.equal(glue('FIT ČVUT: přijímačky'), 'FIT ČVUT: přijímačky');
+  // Not every three-letter word: the line would not break at all.
+  assert.equal(
+    glue('Как и где жить, что для вас'),
+    'Как\u00a0и\u00a0где\u00a0жить, что\u00a0для\u00a0вас',
+  );
+  assert.equal(glue('В Праге'), 'В\u00a0Праге');
   // Nothing after the last word to keep it with.
   assert.equal(glue('Что делать в'), 'Что\u00a0делать в');
 });
@@ -80,6 +86,30 @@ test('the frame shows the part of the image its focus names', async () => {
   };
   assert.equal(await pixel(0), 'red');
   assert.equal(await pixel(1), 'blue');
+});
+
+test('a photo is framed upright, as its EXIF orientation says', async () => {
+  // Stored on its side (red above blue), shown turned a quarter clockwise:
+  // blue on the left, red on the right.
+  const sideways = await sharp({
+    create: { width: 1024, height: 1536, channels: 3, background: '#d00000' },
+  })
+    .composite([
+      {
+        input: {
+          create: { width: 1024, height: 768, channels: 3, background: '#0000d0' },
+        },
+        left: 0,
+        top: 768,
+      },
+    ])
+    .withMetadata({ orientation: 6 })
+    .jpeg()
+    .toBuffer();
+  const frame = await framed(sideways, 0);
+  const { data, info } = await sharp(frame).raw().toBuffer({ resolveWithObject: true });
+  const at = (x: number) => (Math.floor(info.height / 2) * info.width + x) * 3;
+  assert.ok((data[at(10) + 2] as number) > (data[at(10)] as number), 'blue on the left');
 });
 
 test('every logo in the registry has its file, and a usable shape', async () => {
@@ -116,16 +146,16 @@ test('a card is 1200×630, with an image and logos or with the text alone', asyn
   ];
   for (const card of cards) {
     const { width, height, format } = await sharp(card).metadata();
-    assert.deepEqual([format, width, height], ['png', 1200, 630]);
+    assert.deepEqual([format, width, height], ['jpeg', 1200, 630]);
   }
 });
 
 test('a card lives next to its page, and its tags are absolute', () => {
-  assert.equal(cardPath('/uk/articles/vstup/'), '/uk/articles/vstup/og.png');
-  assert.equal(listCardPath('ru'), '/articles/og.png');
-  assert.equal(listCardPath('cs'), '/cs/articles/og.png');
-  assert.deepEqual(ogImage('/articles/og.png', 'https://konnekt.cz/', 'Статьи Konnekt'), {
-    url: 'https://konnekt.cz/articles/og.png',
+  assert.equal(cardPath('/uk/articles/vstup/'), '/uk/articles/vstup/og.jpg');
+  assert.equal(listCardPath('ru'), '/articles/og.jpg');
+  assert.equal(listCardPath('cs'), '/cs/articles/og.jpg');
+  assert.deepEqual(ogImage('/articles/og.jpg', 'https://konnekt.cz/', 'Статьи Konnekt'), {
+    url: 'https://konnekt.cz/articles/og.jpg',
     alt: 'Статьи Konnekt',
     width: 1200,
     height: 630,

@@ -8,14 +8,14 @@ import { type Lang, localePath } from '../paths.ts';
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
 
-/** An article's card, next to its page: `/articles/<slug>/og.png`. */
+/** An article's card, next to its page: `/articles/<slug>/og.jpg`. */
 export function cardPath(pagePath: string): string {
-  return `${pagePath}og.png`;
+  return `${pagePath}og.jpg`;
 }
 
 /** The card of the articles' list in `lang`, which its rubrics and tags share too. */
 export function listCardPath(lang: Lang): string {
-  return localePath(lang, '/articles/og.png');
+  return localePath(lang, '/articles/og.jpg');
 }
 
 /** An og:image as Base.astro writes its tags. */

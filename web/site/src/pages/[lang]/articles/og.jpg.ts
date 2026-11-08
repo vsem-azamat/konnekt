@@ -1,7 +1,7 @@
 /** The card a link to the articles in another language shows (articles/og.ts). */
 import type { APIRoute, GetStaticPaths } from 'astro';
 
-import { listCard, png } from '../../../articles/cards.ts';
+import { jpeg, listCard } from '../../../articles/cards.ts';
 import { DEFAULT_LANG, LANGS, type Lang } from '../../../paths.ts';
 
 export const getStaticPaths = (() =>
@@ -10,4 +10,4 @@ export const getStaticPaths = (() =>
   }))) satisfies GetStaticPaths;
 
 export const GET: APIRoute = async ({ params }) =>
-  png(await listCard(params.lang as Lang));
+  jpeg(await listCard(params.lang as Lang));

@@ -3,7 +3,7 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
 import type { APIRoute, GetStaticPaths } from 'astro';
 
-import { articleCard, png } from '../../../articles/cards.ts';
+import { articleCard, jpeg } from '../../../articles/cards.ts';
 import { DEFAULT_LANG, langOf, slugOf } from '../../../paths.ts';
 
 export const getStaticPaths = (async () => {
@@ -14,4 +14,4 @@ export const getStaticPaths = (async () => {
 }) satisfies GetStaticPaths;
 
 export const GET: APIRoute = async ({ props }) =>
-  png(await articleCard((props as { article: CollectionEntry<'articles'> }).article));
+  jpeg(await articleCard((props as { article: CollectionEntry<'articles'> }).article));

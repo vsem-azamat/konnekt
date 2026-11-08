@@ -10,7 +10,7 @@
  *
  * Satori lays the card out (a subset of CSS, every box a flexbox) and resvg
  * draws its SVG; sharp crops the image and turns a logo into pixels. Bytes in,
- * PNG out: what to read from disk is cards.ts's business.
+ * JPEG out: what to read from disk is cards.ts's business.
  */
 import { Resvg } from '@resvg/resvg-js';
 import satori, { type Font } from 'satori';
@@ -69,14 +69,22 @@ export const FONT_FAMILIES = {
 } as const;
 const FAMILY = Object.values(FONT_FAMILIES).join(', ');
 
+// Prepositions and conjunctions of three letters; any word of one or two is
+// short enough on its own. Not every three-letter word: «что для вас и как»
+// would set as one piece too long for a line.
+const SHORT = new Set(
+  'без для или над под при про что где как чем або під pro při nad pod bez and the for but'.split(
+    ' ',
+  ),
+);
+
 /**
  * A title as the card sets it: a short word (в, на, или, і, a, v, the) never
  * ends a line, and is kept with the word after it.
  */
 export function glue(title: string): string {
-  return title.replace(
-    /(?<=^|\s)(\p{L}|\p{Lu}?\p{Ll}{1,2}|\p{Ll}{3}) (?=\S)/gu,
-    '$1\u00a0',
+  return title.replace(/(?<=^|\s)(\p{L}+) (?=\S)/gu, (whole, word: string) =>
+    word.length <= 2 || SHORT.has(word.toLowerCase()) ? `${word}\u00a0` : whole,
   );
 }
 
@@ -85,7 +93,9 @@ export function glue(title: string): string {
  * cut around `focus` (0 the left edge, 1 the right) and centred vertically.
  */
 export async function framed(image: Buffer, focus = 0.5): Promise<Buffer> {
-  const { width = 0, height = 0 } = await sharp(image).metadata();
+  // Upright first, as a camera's EXIF says: the page's copy is turned so too.
+  const upright = await sharp(image).rotate().toBuffer();
+  const { width = 0, height = 0 } = await sharp(upright).metadata();
   if (!width || !height) throw new Error('an image with no size');
   const scale = Math.max(PANEL.width / width, PANEL.height / height);
   const w = Math.max(PANEL.width, Math.round(width * scale));
@@ -94,7 +104,7 @@ export async function framed(image: Buffer, focus = 0.5): Promise<Buffer> {
     Math.min(w - PANEL.width, Math.max(0, focus * w - PANEL.width / 2)),
   );
   const top = Math.round((h - PANEL.height) / 2);
-  return sharp(image)
+  return sharp(upright)
     .resize({ width: w, height: h })
     .extract({ left, top, width: PANEL.width, height: PANEL.height })
     .jpeg({ quality: 90, mozjpeg: true })
@@ -161,7 +171,9 @@ function logoOverlay(logos: readonly LogoArt[]): Element | null {
       logo(only, 62),
     );
   }
-  const rows = [logos.slice(0, 3), logos.slice(3)].filter((row) => row.length > 0);
+  const rows = Array.from({ length: Math.ceil(logos.length / 3) }, (_, row) =>
+    logos.slice(row * 3, row * 3 + 3),
+  );
   return box(
     {
       position: 'absolute',
@@ -304,14 +316,18 @@ function layout(card: Card, assets: CardAssets): Element {
   );
 }
 
-/** The card, as a PNG. */
+/**
+ * The card, as a JPEG: a photo's card as a PNG is half a megabyte, more than
+ * some messengers fetch for a preview.
+ */
 export async function ogCard(card: Card, assets: CardAssets): Promise<Buffer> {
   const svg = await satori(layout(card, assets) as Parameters<typeof satori>[0], {
     width: OG_WIDTH,
     height: OG_HEIGHT,
     fonts: assets.fonts,
   });
-  return Buffer.from(
-    new Resvg(svg, { fitTo: { mode: 'width', value: OG_WIDTH } }).render().asPng(),
-  );
+  const png = new Resvg(svg, { fitTo: { mode: 'width', value: OG_WIDTH } })
+    .render()
+    .asPng();
+  return sharp(png).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
 }

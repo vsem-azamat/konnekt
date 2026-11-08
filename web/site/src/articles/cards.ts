@@ -8,6 +8,8 @@ import { root, srcDir } from 'astro:config/server';
 import type { CollectionEntry } from 'astro:content';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { type Lang, langOf, readFrontmatter } from '../paths.ts';
 import { longDate, TEXTS } from '../texts.ts';
@@ -67,9 +69,14 @@ function logo(id: LogoId): Promise<LogoArt> {
 async function coverFile(article: CollectionEntry<'articles'>): Promise<Buffer> {
   const file = article.filePath;
   if (!file) throw new Error(`article ${article.id}: no file`);
-  const at = new URL(file, root);
-  const { cover } = readFrontmatter(await readFile(at, 'utf8'), file);
-  return readFile(new URL(String(cover), at));
+  const project = fileURLToPath(root);
+  const at = resolve(project, file);
+  const cover = String(readFrontmatter(await readFile(at, 'utf8'), file).cover);
+  // As Astro reads it: from the project's root when it starts with a slash,
+  // else from the article; a path, not a URL, so # and % are only characters.
+  return readFile(
+    cover.startsWith('/') ? join(project, cover) : resolve(dirname(at), cover),
+  );
 }
 
 /** An article's card: its rubric and title, and its image if it has one. */
@@ -94,8 +101,8 @@ export async function listCard(lang: Lang): Promise<Buffer> {
   return ogCard({ title: TEXTS[lang].cardTitle }, await cardAssets());
 }
 
-export function png(bytes: Buffer): Response {
+export function jpeg(bytes: Buffer): Response {
   return new Response(new Uint8Array(bytes), {
-    headers: { 'Content-Type': 'image/png' },
+    headers: { 'Content-Type': 'image/jpeg' },
   });
 }

@@ -6,6 +6,8 @@ import { LOGO_IDS } from './articles/logos.ts';
 import { LANGS, RUBRICS, SLUG } from './paths.ts';
 
 const slug = z.string().regex(SLUG, 'lowercase latin words joined by hyphens');
+// A link the page writes into an href: a web page, never javascript: or mailto:.
+const https = z.string().url().startsWith('https://');
 
 /**
  * Articles, one Markdown file per language: `articles/<lang>/<slug>.md`, the
@@ -59,7 +61,11 @@ const articles = defineCollection({
         coverFocus: z.number().min(0).max(1).default(0.5),
         // The schools' own logos laid over it (articles/logos.ts), never drawn
         // into the image itself.
-        coverLogos: z.array(z.enum(LOGO_IDS)).default([]),
+        coverLogos: z
+          .array(z.enum(LOGO_IDS))
+          .max(6)
+          .refine((ids) => new Set(ids).size === ids.length, 'a logo named twice')
+          .default([]),
         // Whose photo it is, for a real one (Wikimedia Commons and the like),
         // as its licence asks; a generated image has none.
         coverCredit: z
@@ -67,8 +73,8 @@ const articles = defineCollection({
             author: z.string().min(1),
             licence: z.string().min(1),
             // The licence's own text, which CC licences ask a credit to link.
-            licenceUrl: z.string().url().optional(),
-            source: z.string().url(),
+            licenceUrl: https.optional(),
+            source: https,
           })
           .optional(),
         draft: z.boolean().default(false),
