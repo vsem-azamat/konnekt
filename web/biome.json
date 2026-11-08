@@ -11,7 +11,8 @@
       "!dist",
       "!src/locales/**/*.ts",
       "!src/lib/generated",
-      "!site/src/landing/av"
+      "!site/src/landing/av",
+      "!site/src/assets/logos"
     ]
   },
   "formatter": {
