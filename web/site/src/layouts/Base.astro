@@ -10,6 +10,7 @@ import latinFont from '@fontsource-variable/inter-tight/files/inter-tight-latin-
 import '../landing/f.css';
 
 import { entries } from '../articles/entries.ts';
+import type { OgImage } from '../articles/ogImage.ts';
 import {
   alternates,
   hiddenPaths,
@@ -40,6 +41,8 @@ interface Props {
   noindex?: boolean;
   /** Open Graph's kind of page: an article's says so, with its dates in the `head` slot. */
   ogType?: 'website' | 'article';
+  /** The picture a link to this page shows, large (articles/cards.ts). */
+  image?: OgImage;
 }
 
 const {
@@ -50,6 +53,7 @@ const {
   description,
   noindex = false,
   ogType = 'website',
+  image,
 } = Astro.props;
 const versions = Astro.props.versions ?? versionsOf(path, langs);
 const site = Astro.site?.href ?? '/';
@@ -102,6 +106,18 @@ const handOff = `(() => {
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={OG_LOCALES[lang]} />
+    {
+      image && (
+        <>
+          <meta property="og:image" content={image.url} />
+          <meta property="og:image:type" content="image/jpeg" />
+          <meta property="og:image:width" content={String(image.width)} />
+          <meta property="og:image:height" content={String(image.height)} />
+          <meta property="og:image:alt" content={image.alt} />
+          <meta name="twitter:card" content="summary_large_image" />
+        </>
+      )
+    }
     <slot name="head" />
     <script is:inline set:html={handOff} />
     <script is:inline>
