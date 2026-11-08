@@ -1,3 +1,6 @@
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+
 // Prints the newest OpenAI image model this key can use, e.g. gpt-image-2.6-sunburst.
 // Run through op-broker so the key is in OPENAI_API_KEY; the key is never printed.
 // Newest = highest version number in the id; dated snapshots (…-2026-05-01) are skipped.
@@ -8,7 +11,8 @@ export async function latestImageModel() {
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
   });
   if (!res.ok) throw new Error(`models: HTTP ${res.status}`);
-  const models = (await res.json()).data.filter((m) => /^gpt-image-/.test(m.id) && !/\d{4}-\d{2}-\d{2}$/.test(m.id));
+  // Only release ids like gpt-image-2, gpt-image-2.6-sunburst: no dated snapshots, previews or betas.
+  const models = (await res.json()).data.filter((m) => /^gpt-image-\d{1,2}(\.\d+)?(-[a-z]+)?$/.test(m.id) && !/-(preview|alpha|beta)$/.test(m.id));
   if (!models.length) throw new Error('no gpt-image model available to this key');
   const version = (id) => (id.match(/^gpt-image-([\d.]+)/)?.[1] ?? '0').split('.').map(Number);
   // Newest first: highest version number, then latest release. A release comes as tiers
@@ -24,7 +28,7 @@ export async function latestImageModel() {
   return { model: all[0], all };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const { model, all } = await latestImageModel();
   console.log(model);
   console.error(`image models for this key: ${all.join(', ')}`);

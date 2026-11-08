@@ -199,7 +199,10 @@ Rules for every image:
 - Logos are the schools' official files from their own sites, unmodified,
   kept in `web/site/src/assets/logos/` with the source of each file. The
   template puts them on white over the image (`coverLogos`). The image model
-  never draws a logo, emblem or coat of arms.
+  never draws a logo, emblem or coat of arms. Each logo's `rule` in
+  `web/site/src/articles/logos.ts` records what the school says about use by
+  others; where it asks for consent that is not on record, the pick page says
+  so.
 - No people's faces, no hands, no readable text, letters or numbers, no
   documents that look real: paper, cards and booklets are blank.
 - Generated images share one look: a calm editorial photo or a soft matte

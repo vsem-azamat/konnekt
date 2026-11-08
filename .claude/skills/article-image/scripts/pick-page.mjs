@@ -44,7 +44,12 @@ const glue = (s) => s.replace(/(^|\s)([А-ЯЁA-Z]?[а-яёa-z]{0,2}|[а-яё]{3
 
 const cand = (a, c) => {
   const src = jpg(c.file, `${a.slug}-${c.id}.jpg`);
-  const pos = `${Math.round((c.focus ?? 0.5) * 100)}% 50%`;
+  // The site's card crop (web/site/src/articles/og.ts, framed): the frame filled, centred on
+  // focus and clamped to the image. CSS object-position needs it as a share of the overflow.
+  const W0 = 1536, H0 = 1024, PW = 540, PH = 590;
+  const w = Math.max(PW, Math.round(W0 * Math.max(PW / W0, PH / H0)));
+  const left = Math.min(w - PW, Math.max(0, (c.focus ?? 0.5) * w - PW / 2));
+  const pos = `${w > PW ? ((left / (w - PW)) * 100).toFixed(1) : 50}% 50%`;
   return `
   <article class="cand">
     <h3>Вариант ${esc(c.id)}</h3>
@@ -61,7 +66,7 @@ const cand = (a, c) => {
     </div>
     <div class="lbl">Обложка на странице статьи</div>
     <figure class="pagecover"><div class="pc"><img src="${src}" alt="">${logos(c.logos)}</div>
-      ${c.credit ? `<figcaption>Фото: ${esc(c.credit.author)}, ${esc(c.credit.licence)}, <a href="${esc(c.credit.source)}">Wikimedia Commons</a></figcaption>` : ''}</figure>
+      ${c.credit ? `<figcaption>Фото: ${esc(c.credit.author)}, ${esc(c.credit.licence)}, <a href="${/^https:\/\//.test(c.credit.source) ? esc(c.credit.source) : '#'}">Wikimedia Commons</a></figcaption>` : ''}</figure>
   </article>`;
 };
 

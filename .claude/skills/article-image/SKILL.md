@@ -27,7 +27,20 @@ rubric and the sections. Decide which case it is:
 - **One university or faculty:** a real photo of that school's or faculty's
   own building, plus its official logo (`coverLogos`, one id).
 
+Before a logo goes on a candidate, read its `rule` in
+`web/site/src/articles/logos.ts`. Where the school asks for consent or a
+contract and none is recorded there, say so next to the candidate on the pick
+page, so whoever picks decides knowingly.
+
 ## 2. Make three candidates
+
+Work in a scratch directory outside the repo (`.claude/skills/` is tracked, so
+files left under it would show up in git):
+
+```bash
+W=<your scratchpad>/article-image/<slug>; mkdir -p $W
+S=.claude/skills/article-image/scripts
+```
 
 Three different options, so the pick is a real choice: for example two
 generated scenes and one real photo, or three real photos of the building
@@ -37,14 +50,15 @@ from different sides.
 building must never stand in for a real one.
 
 ```bash
-S=.claude/skills/article-image/scripts
-node $S/commons.mjs search "ČVUT Dejvice budova"          # OK = usable licence, ≥1536 px wide
+node $S/commons.mjs search "ČVUT Dejvice budova"          # OK = usable licence, no restrictions, ≥1536×1024
 node $S/commons.mjs get "File:…jpg" $W/c.jpg                # also writes c.jpg.credit.json
 ```
 
 Open the photo and check it yourself: it is the right building (compare with
 the school's own site), no recognisable faces in the foreground, no third-party
-logos or advertising. Crop or not, the credit goes with it.
+logos or advertising. `install.mjs` cuts it to 1536×1024 around the focus; the
+credit goes with it. Files Commons marks as restricted (trademarked, identifiable
+people) are refused.
 
 **Generated scene.** Write each prompt in English from these parts:
 
@@ -68,7 +82,8 @@ op-broker run --reason "Konnekt: обложка статьи <slug>" \
 ```
 
 `generate.mjs` asks OpenAI for the newest `gpt-image-*` model available to the
-key at run time and uses it; it prints the model and the cost (about $0.04
+key at run time and uses it (the detailed tier of a release, e.g. `sunburst`
+over the fast `flare`; `IMAGE_MODEL=<id>` overrides); it prints the model and the cost (about $0.04
 per image at 1536×1024, high). Never print the key or put it in a file.
 
 Look at every generated image at full size before it goes further: a face,
@@ -103,7 +118,8 @@ node $S/install.mjs ru <slug> $W/<picked file> --alt "<what is in the picture, i
 It writes `web/site/src/assets/covers/<translationKey>.jpg` (one file for all
 the article's languages) and sets `cover`, `coverAlt`, `coverFocus`,
 `coverLogos`, `coverCredit` in the article. Run it for each language that has
-the article, with that language's `coverAlt`. Build the site
+the article, with that language's `coverAlt` and `-` in place of the image:
+fields you leave out are kept, or copied from a language that already has them. Build the site
 (`pnpm --dir web exec astro build --root site`), look at the article page and its
 link card (the `og:image` URL) at 390 and 1440 in both themes, and open a pull request. A logo id
 must exist in `web/site/src/assets/logos/` with its source in the registry;
