@@ -29,24 +29,24 @@ const split = (text) => {
   if (!m) throw new Error('no frontmatter');
   return { head: m[1], body: text.slice(m[0].length) };
 };
-const field = (head, name) => head.match(new RegExp(`^${name}: (.*)$`, 'm'))?.[1];
+const field = (head, name) => {
+  if (new RegExp(`^${name}:[ \\t]*$`, 'm').test(head)) throw new Error(`${name} is written in block style; put it on one line first`);
+  return head.match(new RegExp(`^${name}: (.*)$`, 'm'))?.[1];
+};
+const keyOf = (h, file) => (field(h, 'translationKey') ?? file.slice(0, -3)).replace(/^["']|["']$/g, '');
 
 const md = join(ARTICLES, lang, `${slug}.md`);
 const { head, body } = split(readFileSync(md, 'utf8'));
 if (!/^author: /m.test(head)) throw new Error(`${md}: no author field to put the cover before`);
-const key = (field(head, 'translationKey') ?? slug).replace(/^["']|["']$/g, '');
+const key = keyOf(head, `${slug}.md`);
 
-// The same cover fields of a sibling language, when this one has none.
-const sibling = (name) => {
-  for (const l of readdirSync(ARTICLES)) {
-    if (l === lang) continue;
-    for (const f of existsSync(join(ARTICLES, l)) ? readdirSync(join(ARTICLES, l)) : []) {
-      if (!f.endsWith('.md')) continue;
-      const h = split(readFileSync(join(ARTICLES, l, f), 'utf8')).head;
-      if ((field(h, 'translationKey') ?? f.slice(0, -3)).replace(/^["']|["']$/g, '') === key && field(h, name)) return field(h, name);
-    }
-  }
-};
+// The article's other languages: same translationKey, one cover file.
+const siblings = readdirSync(ARTICLES).filter((l) => l !== lang && existsSync(join(ARTICLES, l)))
+  .flatMap((l) => readdirSync(join(ARTICLES, l)).filter((f) => f.endsWith('.md')).map((f) => join(ARTICLES, l, f)))
+  .map((file) => ({ file, ...split(readFileSync(file, 'utf8')) }))
+  .filter(({ file, head: h }) => keyOf(h, file.split('/').pop()) === key);
+// The same cover field of a sibling language, when this one has none.
+const sibling = (name) => siblings.map(({ head: h }) => field(h, name)).find(Boolean);
 const keep = (name) => field(head, name) ?? sibling(name);
 
 const fresh = image !== '-';
@@ -67,14 +67,29 @@ if (v.credit) {
   credit = `{ author: ${yaml(c.author)}, licence: ${yaml(c.licence)}${lu ? `, licenceUrl: ${yaml(lu)}` : ''}, source: ${yaml(c.source)} }`;
 }
 const logos = v.logos !== undefined ? (v.logos.trim() === '' ? undefined : `[${v.logos.split(',').map((s) => s.trim()).filter(Boolean).join(', ')}]`) : keep('coverLogos');
-const fields = [
+const fieldsFor = (alt) => [
   `cover: ../../../assets/covers/${key}.jpg`,
-  `coverAlt: ${yaml(v.alt)}`,
+  `coverAlt: ${alt}`,
   `coverFocus: ${focus}`,
   logos && `coverLogos: ${logos}`,
   credit && `coverCredit: ${credit}`,
 ].filter(Boolean);
+const write = (file, h, b, alt) => {
+  const fields = fieldsFor(alt);
+  const nh = `${h}\n`.replace(/^cover(Alt|Focus|Logos|Credit)?:.*\n(?:(?:[ \t]+|- ).*\n)*/gm, '').replace(/\n$/, '')
+    .replace(/^author: /m, `${fields.join('\n')}\nauthor: `);
+  writeFileSync(file, `---\n${nh}\n---\n${b}`);
+  console.log(`${file.replace(REPO, '')}: ${fields.map((f) => f.split(':')[0]).join(', ')}`);
+};
 
-const newHead = `${head}\n`.replace(/^cover(Alt|Focus|Logos|Credit)?:.*\n(?:[ \t]+.*\n)*/gm, '').replace(/\n$/, '').replace(/^author: /m, `${fields.join('\n')}\nauthor: `);
-writeFileSync(md, `---\n${newHead}\n---\n${body}`);
-console.log(`cover → web/site/src/assets/covers/${key}.jpg; ${md.replace(REPO, '')}: ${fields.map((f) => f.split(':')[0]).join(', ')}`);
+if (fresh) console.log(`cover → web/site/src/assets/covers/${key}.jpg`);
+write(md, head, body, yaml(v.alt));
+// A new image changes what every language shows: their focus, logos and credit follow it,
+// each keeping its own alt. A language with no cover yet gets one when run with "-".
+if (fresh) {
+  for (const s of siblings) {
+    const alt = field(s.head, 'coverAlt');
+    if (alt) write(s.file, s.head, s.body, alt);
+    else console.log(`${s.file.replace(REPO, '')}: no coverAlt yet, run install.mjs for it with "-"`);
+  }
+}

@@ -42,7 +42,7 @@ if (cmd === 'search') {
 } else if (cmd === 'get') {
   const r = await api({ action: 'query', titles: arg, prop: 'imageinfo', iiprop: 'url|size|extmetadata' });
   const c = credit(Object.values(r.query.pages)[0]);
-  if (!c.usable) throw new Error(`not usable: ${c.licence}, ${c.width}×${c.height}${c.restrictions ? `, restricted: ${c.restrictions}` : ''}`);
+  if (!c.usable) throw new Error(`not usable: ${c.licence}, ${c.width}×${c.height}${c.restrictions ? `, restricted: ${c.restrictions}` : ''}${c.author ? '' : ', no author'}`);
   const img = await fetch(c.url, { headers: UA });
   if (!img.ok) throw new Error(`download: HTTP ${img.status}`);
   writeFileSync(out, Buffer.from(await img.arrayBuffer()));

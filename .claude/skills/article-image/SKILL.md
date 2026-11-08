@@ -99,7 +99,7 @@ pole, white is on top) — throw it away and generate again.
 
 Write `$W/manifest.json` with the articles and their candidates (`file`,
 `source`, `credit` for a real photo, `logos`, `focus` — the horizontal point
-from 0 to 1 the link card's crop centres on — and a one-line `note`), then:
+from 0 to 1 across the file, the same as `install.mjs --focus`, that the link card centres on — and a one-line `note`), then:
 
 ```bash
 node $S/pick-page.mjs $W/manifest.json $W/page
@@ -127,7 +127,8 @@ the article, with that language's `coverAlt` and `-` in place of the image:
 fields you leave out are kept, or copied from a language that already has them.
 A new image starts clean instead: no credit unless `--credit`, focus 0.5 unless
 `--focus` (the point across the image you pass; the article gets it measured on
-the cut cover), logos kept unless `--logos` (`""` removes them). Build the site
+the cut cover), logos kept unless `--logos` (`""` removes them), and the other
+languages that already have a cover get the same focus, logos and credit. Build the site
 (`pnpm --dir web exec astro build --root site`), look at the article page and its
 link card (the `og:image` URL) at 390 and 1440 in both themes, and open a pull request. A logo id
 must exist in `web/site/src/assets/logos/` with its source in the registry;
