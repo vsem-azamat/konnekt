@@ -6,6 +6,9 @@ rubric: work
 tags: [rabota, viza]
 published: 2026-11-03
 updated: 2026-11-03
+cover: ../../../assets/covers/rabota-vo-vremya-ucheby.jpg
+coverAlt: "Пустая кофейня утром: кофемашина, стойка и маленький флаг Чехии"
+coverFocus: 0.5
 author: konnekt
 reviewedBy: azamat
 translationKey: rabota-vo-vremya-ucheby

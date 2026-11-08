@@ -63,6 +63,13 @@ export const LOGOS = {
     page: 'https://www.vut.cz/vut/media',
     rule: 'The 2015 manual says nothing on third parties, only that the mark sits best on white. Offered as PNG only.',
   },
+  up: {
+    name: 'Univerzita Palackého v Olomouci',
+    file: 'up.svg',
+    source: 'https://jvs.upol.cz/soubory_v2/logotypy/UP_logotypy.zip',
+    page: 'https://jvs.upol.cz/logotypy.html',
+    rule: 'The 2017 manual (https://jvs.upol.cz/soubory_v2/UP_manualJVS.pdf) says nothing on third parties. The pack has no SVG: this is PDF_tisk/UP_logo_horizont_cz.pdf converted to SVG, its empty margin trimmed and its two colours set to the screen RGB of the manual (blue #006FAD, grey #5D5E60, section 2.8), as in the PNG_web files of the pack; the CMYK of the print PDF had come out darker.',
+  },
 } as const;
 
 export type LogoId = keyof typeof LOGOS;

@@ -7,6 +7,11 @@ tags: [vuzy, viza]
 translationKey: kak-postupit-v-cheshskij-vuz
 published: 2026-11-03
 updated: 2026-11-03
+cover: ../../../assets/covers/kak-postupit-v-cheshskij-vuz.jpg
+coverAlt: "Карлов мост и Пражский град над Влтавой в ясный день"
+coverFocus: 0.55
+coverLogos: [uk, cvut, vse, muni, vut, up]
+coverCredit: { author: "R Boed from The Netherlands", licence: "CC BY 2.0", licenceUrl: "https://creativecommons.org/licenses/by/2.0", source: "https://commons.wikimedia.org/wiki/File:Prague_(Explored)_-_Flickr_-_%5Erboed.jpg" }
 author: konnekt
 reviewedBy: azamat
 sources:
