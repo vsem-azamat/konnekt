@@ -62,7 +62,7 @@ node $S/commons.mjs get "File:…jpg" $W/c.jpg                # also writes c.jp
 Open the photo and check it yourself: it is the right building (compare with
 the school's own site), no recognisable faces in the foreground, no third-party
 logos or advertising. `install.mjs` cuts it to 1536×1024 around the focus; the
-credit goes with it. Files Commons marks as restricted (trademarked, identifiable
+credit goes with it only when you pass `--credit`. Files Commons marks as restricted (trademarked, identifiable
 people) are refused.
 
 **Generated scene.** Write each prompt in English from these parts:
@@ -82,7 +82,7 @@ Put the prompts in `$W/jobs.json` (`[{"id":"A","prompt":"…"}]`) and run:
 
 ```bash
 op-broker run --reason "Konnekt: обложка статьи <slug>" \
-  -e OPENAI_API_KEY="<op:// reference of «OpenAI API — openwhispr — omarchy», see ~/Knowledge/shared/apps/1password.md>" \
+  -e OPENAI_API_KEY="<op:// reference of the OpenAI API key, see the 1Password page of the knowledge base>" \
   -- node $S/generate.mjs $W/jobs.json $W
 ```
 
@@ -124,7 +124,10 @@ It writes `web/site/src/assets/covers/<translationKey>.jpg` (one file for all
 the article's languages) and sets `cover`, `coverAlt`, `coverFocus`,
 `coverLogos`, `coverCredit` in the article. Run it for each language that has
 the article, with that language's `coverAlt` and `-` in place of the image:
-fields you leave out are kept, or copied from a language that already has them. Build the site
+fields you leave out are kept, or copied from a language that already has them.
+A new image starts clean instead: no credit unless `--credit`, focus 0.5 unless
+`--focus` (the point across the image you pass; the article gets it measured on
+the cut cover), logos kept unless `--logos` (`""` removes them). Build the site
 (`pnpm --dir web exec astro build --root site`), look at the article page and its
 link card (the `og:image` URL) at 390 and 1440 in both themes, and open a pull request. A logo id
 must exist in `web/site/src/assets/logos/` with its source in the registry;

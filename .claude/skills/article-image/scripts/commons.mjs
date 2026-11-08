@@ -23,13 +23,14 @@ function credit(page) {
     title: page.title,
     width: ii?.width, height: ii?.height,
     licence: text(m.LicenseShortName?.value),
-    licenceUrl: text(m.LicenseUrl?.value),
+    // Commons gives some licence links as http://; the site takes https only.
+    licenceUrl: text(m.LicenseUrl?.value).replace(/^http:\/\//, 'https://'),
     // trademarked, personality (identifiable people) and the like: not for a cover
     restrictions: text(m.Restrictions?.value),
     author: text(m.Artist?.value) || text(m.Credit?.value),
     source: ii?.descriptionurl,
     url: ii?.url,
-    usable: OK.test(text(m.LicenseShortName?.value)) && !text(m.Restrictions?.value) && (ii?.width ?? 0) >= 1536 && (ii?.height ?? 0) >= 1024,
+    usable: OK.test(text(m.LicenseShortName?.value)) && !text(m.Restrictions?.value) && !!(text(m.Artist?.value) || text(m.Credit?.value)) && (ii?.width ?? 0) >= 1536 && (ii?.height ?? 0) >= 1024,
   };
 }
 

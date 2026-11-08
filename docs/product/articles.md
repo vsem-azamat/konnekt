@@ -172,7 +172,7 @@ An article has one cover image, 1536×1024, in
 `web/site/src/assets/covers/<translationKey>.jpg`, shared by its languages.
 It shows on the article page and, cropped around `coverFocus`, in the dark
 link card the site draws for `og:image`. An article without a cover still gets
-a link card, with the title only. The `article-image` skill
+a link card, with the brand, rubric, title and date and no image. The `article-image` skill
 (`.claude/skills/article-image/`) makes the image: three candidates, a page for
 Azamat to pick from, then the chosen one is committed.
 

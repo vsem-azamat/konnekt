@@ -3,11 +3,13 @@
 // Writes web/site/src/assets/covers/<translationKey>.jpg, cut to 1536×1024 around the focus —
 // one file shared by the article's languages — and sets cover, coverAlt, coverFocus,
 // coverLogos, coverCredit in web/site/src/content/articles/<lang>/<slug>.md.
-// Run it once per language with that language's --alt. A flag left out keeps the article's
-// own value, or takes it from a sibling language with the same translationKey, so a credit
-// or the logos are never dropped by accident. --image "-" keeps the cover file as it is.
+// --focus is the point across the image you pass; the article gets it measured on the cut cover.
+// Run it once per language with that language's --alt and "-" as the image, which keeps the
+// cover file: then a flag left out keeps the article's own value, or a sibling language's
+// with the same translationKey. A new image starts clean: no credit unless --credit, focus
+// 0.5 unless --focus; logos are kept unless --logos is given ("" removes them).
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { cut } from './cut.mjs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -47,24 +49,24 @@ const sibling = (name) => {
 };
 const keep = (name) => field(head, name) ?? sibling(name);
 
-const focus = v.focus !== undefined ? Number(v.focus) : Number(keep('coverFocus') ?? 0.5);
+const fresh = image !== '-';
+let focus = v.focus !== undefined ? Number(v.focus) : fresh ? 0.5 : Number(keep('coverFocus') ?? 0.5);
 if (!(focus >= 0 && focus <= 1)) throw new Error('--focus is from 0 to 1');
 
-if (image !== '-') {
-  // Fill 1536×1024 and cut around the focus, so a portrait or wide photo still fits.
-  const out = join(REPO, 'web/site/src/assets/covers', `${key}.jpg`);
+if (fresh) {
   mkdirSync(join(REPO, 'web/site/src/assets/covers'), { recursive: true });
-  const crop = `scale=1536:1024:force_original_aspect_ratio=increase,crop=1536:1024:'min(iw-1536,max(0,${focus}*iw-768))':(ih-1024)/2`;
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', image, '-vf', crop, '-q:v', '3', out]);
+  focus = cut(image, join(REPO, 'web/site/src/assets/covers', `${key}.jpg`), focus, ['-q:v', '3']);
 }
 
 const yaml = (s) => JSON.stringify(s); // a JSON string is a valid YAML scalar
-let credit = keep('coverCredit');
+let credit = fresh ? undefined : keep('coverCredit');
 if (v.credit) {
   const c = JSON.parse(readFileSync(v.credit, 'utf8'));
-  credit = `{ author: ${yaml(c.author)}, licence: ${yaml(c.licence)}${c.licenceUrl ? `, licenceUrl: ${yaml(c.licenceUrl)}` : ''}, source: ${yaml(c.source)} }`;
+  if (!c.author || !/^https:\/\//.test(c.source ?? '')) throw new Error(`${v.credit}: the credit needs an author and an https source`);
+  const lu = /^https:\/\//.test(c.licenceUrl ?? '') ? c.licenceUrl : undefined;
+  credit = `{ author: ${yaml(c.author)}, licence: ${yaml(c.licence)}${lu ? `, licenceUrl: ${yaml(lu)}` : ''}, source: ${yaml(c.source)} }`;
 }
-const logos = v.logos ? `[${v.logos.split(',').map((s) => s.trim()).filter(Boolean).join(', ')}]` : keep('coverLogos');
+const logos = v.logos !== undefined ? (v.logos.trim() === '' ? undefined : `[${v.logos.split(',').map((s) => s.trim()).filter(Boolean).join(', ')}]`) : keep('coverLogos');
 const fields = [
   `cover: ../../../assets/covers/${key}.jpg`,
   `coverAlt: ${yaml(v.alt)}`,
@@ -73,6 +75,6 @@ const fields = [
   credit && `coverCredit: ${credit}`,
 ].filter(Boolean);
 
-const newHead = head.replace(/^cover(Alt|Focus|Logos|Credit)?: .*\n/gm, '').replace(/^author: /m, `${fields.join('\n')}\nauthor: `);
+const newHead = `${head}\n`.replace(/^cover(Alt|Focus|Logos|Credit)?:.*\n(?:[ \t]+.*\n)*/gm, '').replace(/\n$/, '').replace(/^author: /m, `${fields.join('\n')}\nauthor: `);
 writeFileSync(md, `---\n${newHead}\n---\n${body}`);
 console.log(`cover → web/site/src/assets/covers/${key}.jpg; ${md.replace(REPO, '')}: ${fields.map((f) => f.split(':')[0]).join(', ')}`);

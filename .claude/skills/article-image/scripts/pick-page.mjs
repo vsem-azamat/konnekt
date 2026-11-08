@@ -5,12 +5,13 @@
 //   "candidates": [{ "id": "A", "file": "/abs/a.png", "source": "generated"|"commons",
 //   "credit"?: {author, licence, source}, "logos"?: ["cvut"], "focus"?: 0.5, "note": "…" }] }] }
 // Then publish <out-dir>/index.html with the Artifact tool, with img/* as files.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { cut } from './cut.mjs';
 import { join } from 'node:path';
 
 const REPO = new URL('../../../../', import.meta.url).pathname;
-// LOGOS_DIR points elsewhere while the site has no logo registry yet.
+// LOGOS_DIR, for logos not yet in the site's registry.
 const LOGOS = process.env.LOGOS_DIR ?? join(REPO, 'web/site/src/assets/logos');
 const RUBRICS = { admission: 'Поступление', visa: 'Виза и ВНЖ', housing: 'Жильё', study: 'Учёба', work: 'Работа и деньги' };
 
@@ -21,10 +22,15 @@ mkdirSync(join(out, 'img'), { recursive: true });
 const esc = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
 const files = [];
-const jpg = (src, name) => {
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', src, '-vf', 'scale=1200:-2', '-q:v', '3', join(out, 'img', name)]);
+// Cut as install.mjs will cut it, so a portrait or panorama photo previews as the site shows it.
+// Returns the path and the focus measured on the cut image.
+const jpg = (src, name, focus) => {
+  const tmp = join(out, 'img', `cut-${name}`);
+  const f = cut(src, tmp, focus);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', tmp, '-vf', 'scale=1200:-2', '-q:v', '3', join(out, 'img', name)]);
+  rmSync(tmp);
   files.push(`img/${name}`);
-  return `img/${name}`;
+  return [`img/${name}`, f];
 };
 const logo = (id) => {
   for (const ext of ['svg', 'png']) {
@@ -43,12 +49,12 @@ const logos = (ids = []) => !ids.length ? '' : ids.length === 1
 const glue = (s) => s.replace(/(^|\s)([А-ЯЁA-Z]?[а-яёa-z]{0,2}|[а-яё]{3})\s/g, (m, a, w) => (w ? `${a}${w} ` : m));
 
 const cand = (a, c) => {
-  const src = jpg(c.file, `${a.slug}-${c.id}.jpg`);
+  const [src, focus] = jpg(c.file, `${a.slug}-${c.id}.jpg`, c.focus ?? 0.5);
   // The site's card crop (web/site/src/articles/og.ts, framed): the frame filled, centred on
   // focus and clamped to the image. CSS object-position needs it as a share of the overflow.
   const W0 = 1536, H0 = 1024, PW = 540, PH = 590;
   const w = Math.max(PW, Math.round(W0 * Math.max(PW / W0, PH / H0)));
-  const left = Math.min(w - PW, Math.max(0, (c.focus ?? 0.5) * w - PW / 2));
+  const left = Math.min(w - PW, Math.max(0, focus * w - PW / 2));
   const pos = `${w > PW ? ((left / (w - PW)) * 100).toFixed(1) : 50}% 50%`;
   return `
   <article class="cand">
