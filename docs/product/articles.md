@@ -201,8 +201,10 @@ Rules for every image:
   template puts them on white over the image (`coverLogos`). The image model
   never draws a logo, emblem or coat of arms. Each logo's `rule` in
   `web/site/src/articles/logos.ts` records what the school says about use by
-  others; where it asks for consent that is not on record, the pick page says
-  so.
+  others; where it asks for consent or a contract that is not on record, the
+  cover goes without that logo until Azamat decides whether to ask the school.
+- ČZU is never shown: no logo and no photo of its buildings, whatever the
+  article names.
 - No people's faces, no hands, no readable text, letters or numbers, no
   documents that look real: paper, cards and booklets are blank.
 - Generated images share one look: a calm editorial photo or a soft matte

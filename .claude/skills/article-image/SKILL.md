@@ -29,8 +29,13 @@ rubric and the sections. Decide which case it is:
 
 Before a logo goes on a candidate, read its `rule` in
 `web/site/src/articles/logos.ts`. Where the school asks for consent or a
-contract and none is recorded there, say so next to the candidate on the pick
-page, so whoever picks decides knowingly.
+contract and none is recorded there (today UK, ČVUT and its faculties, VŠE
+outside editorial articles about it), make every candidate without that logo
+too, and say on the pick page why it is missing: such a cover is not picked
+until Azamat decides whether to ask the school.
+
+ČZU (Česká zemědělská univerzita) is never used: no logo, no photo of its
+buildings, whatever the article names.
 
 ## 2. Make three candidates
 
