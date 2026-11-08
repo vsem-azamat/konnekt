@@ -31,6 +31,8 @@ export interface Texts {
   cardTitle: string;
   /** Before a photo's author, under it: «Фото». */
   photo: string;
+  /** After a photo's licence: we always crop it, and CC BY asks that a change be said. */
+  cropped: string;
 }
 
 export const TEXTS: Record<Lang, Texts> = {
@@ -70,6 +72,7 @@ export const TEXTS: Record<Lang, Texts> = {
     contents: 'Содержание',
     cardTitle: 'Статьи Konnekt',
     photo: 'Фото',
+    cropped: 'кадрировано',
   },
   uk: {
     articles: 'Статті',
@@ -107,6 +110,7 @@ export const TEXTS: Record<Lang, Texts> = {
     contents: 'Зміст',
     cardTitle: 'Статті Konnekt',
     photo: 'Фото',
+    cropped: 'кадровано',
   },
   cs: {
     articles: 'Články',
@@ -144,6 +148,7 @@ export const TEXTS: Record<Lang, Texts> = {
     contents: 'Obsah',
     cardTitle: 'Články Konnekt',
     photo: 'Foto',
+    cropped: 'oříznuto',
   },
   en: {
     articles: 'Articles',
@@ -182,6 +187,7 @@ export const TEXTS: Record<Lang, Texts> = {
     contents: 'Contents',
     cardTitle: 'Konnekt articles',
     photo: 'Photo',
+    cropped: 'cropped',
   },
 };
 
