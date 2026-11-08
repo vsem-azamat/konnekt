@@ -194,7 +194,7 @@ Rules for every image:
   as a window onto Prague Castle that does not exist.
 - Real photos come from Wikimedia Commons or another source whose licence
   allows reuse with credit (CC0, public domain, CC BY, CC BY-SA). The credit
-  goes into `coverCredit` (author, licence, source) and is shown under the
+  goes into `coverCredit` (author, licence, the licence's URL, source) and is shown under the
   cover.
 - Logos are the schools' official files from their own sites, unmodified,
   kept in `web/site/src/assets/logos/` with the source of each file. The

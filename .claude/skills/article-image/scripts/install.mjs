@@ -62,7 +62,7 @@ const yaml = (s) => JSON.stringify(s); // a JSON string is a valid YAML scalar
 let credit = keep('coverCredit');
 if (v.credit) {
   const c = JSON.parse(readFileSync(v.credit, 'utf8'));
-  credit = `{ author: ${yaml(c.author)}, licence: ${yaml(c.licence)}, source: ${yaml(c.source)} }`;
+  credit = `{ author: ${yaml(c.author)}, licence: ${yaml(c.licence)}${c.licenceUrl ? `, licenceUrl: ${yaml(c.licenceUrl)}` : ''}, source: ${yaml(c.source)} }`;
 }
 const logos = v.logos ? `[${v.logos.split(',').map((s) => s.trim()).filter(Boolean).join(', ')}]` : keep('coverLogos');
 const fields = [
