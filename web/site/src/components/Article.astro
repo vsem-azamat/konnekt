@@ -212,7 +212,8 @@ const graph = articleGraph(
             {
               credit && (
                 <figcaption>
-                  {t.photo}: {credit.author}, {credit.licence},{' '}
+                  {t.photo}: {credit.author},{' '}
+                  {credit.licenceUrl ? <a href={credit.licenceUrl}>{credit.licence}</a> : credit.licence},{' '}
                   <a href={credit.source}>{credit.site}</a>
                 </figcaption>
               )

@@ -66,6 +66,8 @@ const articles = defineCollection({
           .object({
             author: z.string().min(1),
             licence: z.string().min(1),
+            // The licence's own text, which CC licences ask a credit to link.
+            licenceUrl: z.string().url().optional(),
             source: z.string().url(),
           })
           .optional(),
