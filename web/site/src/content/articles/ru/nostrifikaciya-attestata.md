@@ -6,6 +6,9 @@ rubric: admission
 tags: [nostrifikace, vuzy]
 published: 2026-11-03
 updated: 2026-11-03
+cover: ../../../assets/covers/nostrifikaciya-attestata.jpg
+coverAlt: "Свёрнутый аттестат с синей лентой, печать и маленький флаг Чехии"
+coverFocus: 0.5
 author: konnekt
 reviewedBy: azamat
 translationKey: nostrifikaciya-attestata
