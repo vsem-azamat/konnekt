@@ -166,6 +166,47 @@ was written still counts: the fact check is against the newest notes.
   article's language. An article is text first; it does not need figures. A
   `cover` needs `coverAlt`.
 
+## Cover image
+
+An article has one cover image, 1536×1024, in
+`web/site/src/assets/covers/<translationKey>.jpg`, shared by its languages.
+It shows on the article page and, cropped around `coverFocus`, in the dark
+link card the site draws for `og:image`. An article without a cover still gets
+a link card, with the title only. The `article-image` skill
+(`.claude/skills/article-image/`) makes the image: three candidates, a page for
+Azamat to pick from, then the chosen one is committed.
+
+What the image shows depends on the topic:
+
+- **Country topics** (admission in general, nostrification, visa and
+  residence, insurance, money, work, housing): a Czech attribute — the Czech
+  flag, a view of Prague such as Charles Bridge or Prague Castle, a Czech street
+  without readable signs.
+- **Czech universities in general:** a Czech attribute, with the official
+  logos of the schools the article names in a strip along the bottom.
+- **One university or faculty:** a real photo of its own building, with its
+  official logo in a corner badge. Prague views and flags are not used here.
+
+Rules for every image:
+
+- A real place is shown only by a real photo, never a generated one. A
+  generated scene must not pass for a specific building or invent a view, such
+  as a window onto Prague Castle that does not exist.
+- Real photos come from Wikimedia Commons or another source whose licence
+  allows reuse with credit (CC0, public domain, CC BY, CC BY-SA). The credit
+  goes into `coverCredit` (author, licence, source) and is shown under the
+  cover.
+- Logos are the schools' official files from their own sites, unmodified,
+  kept in `web/site/src/assets/logos/` with the source of each file. The
+  template puts them on white over the image (`coverLogos`). The image model
+  never draws a logo, emblem or coat of arms.
+- No people's faces, no hands, no readable text, letters or numbers, no
+  documents that look real: paper, cards and booklets are blank.
+- Generated images share one look: a calm editorial photo or a soft matte
+  3D still life, warm neutrals with the muted blue and red of the Konnekt icon.
+- Azamat picks the image. `coverAlt` says what is in the picture, in the
+  article's language.
+
 ## Search
 
 - `title` is at most 50 characters, so the page title with « — Konnekt» stays
