@@ -3,6 +3,7 @@
 import { getCollection, getEntry } from 'astro:content';
 
 import '../site.css';
+import { listCardPath, ogImage } from '../articles/ogImage.ts';
 import Base from '../layouts/Base.astro';
 import { type Lang, type Listing, langOf, localePath, type Rubric } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
@@ -18,6 +19,7 @@ interface Props {
 const { listing, langs } = Astro.props;
 const { kind, key, lang } = listing;
 const t = TEXTS[lang];
+const image = ogImage(listCardPath(lang), Astro.site?.href ?? '/', t.cardTitle);
 const tag = kind === 'tags' ? await getEntry('tags', key) : undefined;
 const name =
   kind === 'topics' ? t.rubrics[key as Rubric] : (tag?.data.names[lang] ?? key);
@@ -36,6 +38,7 @@ const path = `/articles/${kind}/${key}/`;
 
 <Base
   lang={lang}
+  image={image}
   path={path}
   langs={langs}
   title={`${heading} — Konnekt`}

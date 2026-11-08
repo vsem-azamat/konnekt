@@ -4,6 +4,7 @@ import { getCollection } from 'astro:content';
 
 import { entry } from '../articles/entries.ts';
 import '../site.css';
+import { listCardPath, ogImage } from '../articles/ogImage.ts';
 import Base from '../layouts/Base.astro';
 import { hiddenPaths, type Lang, langOf, localePath, RUBRICS } from '../paths.ts';
 import { TEXTS } from '../texts.ts';
@@ -17,6 +18,7 @@ interface Props {
 
 const { lang } = Astro.props;
 const t = TEXTS[lang];
+const image = ogImage(listCardPath(lang), Astro.site?.href ?? '/', t.cardTitle);
 const all = await getCollection('articles');
 const articles = all
   .filter((article) => langOf(article.id) === lang)
@@ -32,6 +34,7 @@ const hidden = hiddenPaths(
 
 <Base
   lang={lang}
+  image={image}
   path="/articles/"
   title={`${t.articles} — Konnekt`}
   description={t.articles}

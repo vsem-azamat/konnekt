@@ -2,6 +2,7 @@ import { defineCollection, reference } from 'astro:content';
 import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
+import { LOGO_IDS } from './articles/logos.ts';
 import { LANGS, RUBRICS, SLUG } from './paths.ts';
 
 const slug = z.string().regex(SLUG, 'lowercase latin words joined by hyphens');
@@ -48,8 +49,26 @@ const articles = defineCollection({
             }),
           )
           .default([]),
+        // The article's image, one for all its languages:
+        // assets/covers/<translationKey>.jpg. The page shows it above the text,
+        // and the card a link shows (articles/og.ts) shows part of it.
         cover: image().optional(),
         coverAlt: z.string().min(1).optional(),
+        // Where across the image (0 the left edge, 1 the right) the card's
+        // narrower frame is centred: on what the image is of.
+        coverFocus: z.number().min(0).max(1).default(0.5),
+        // The schools' own logos laid over it (articles/logos.ts), never drawn
+        // into the image itself.
+        coverLogos: z.array(z.enum(LOGO_IDS)).default([]),
+        // Whose photo it is, for a real one (Wikimedia Commons and the like),
+        // as its licence asks; a generated image has none.
+        coverCredit: z
+          .object({
+            author: z.string().min(1),
+            licence: z.string().min(1),
+            source: z.string().url(),
+          })
+          .optional(),
         draft: z.boolean().default(false),
       })
       .superRefine((article, ctx) => {
@@ -65,6 +84,13 @@ const articles = defineCollection({
             code: 'custom',
             path: ['coverAlt'],
             message: 'a cover needs its alt text',
+          });
+        }
+        if (!article.cover && (article.coverLogos.length > 0 || article.coverCredit)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['cover'],
+            message: 'logos and a credit go on a cover, and there is none',
           });
         }
         if (article.draft) return;

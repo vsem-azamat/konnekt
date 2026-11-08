@@ -157,11 +157,75 @@
 }
 
 .cover {
+  margin: 0 0 28px;
+}
+
+/* The logos scale with the image (cqw), as the card a link shows draws them. */
+.cover-frame {
+  position: relative;
+  container-type: inline-size;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.cover-frame > img {
   display: block;
   width: 100%;
   height: auto;
-  margin: 0 0 28px;
-  border-radius: 14px;
+}
+
+/* Each school's logo on white, as its manual asks: one in a corner badge… */
+.cover-logos {
+  position: absolute;
+  left: 2cqw;
+  bottom: 2cqw;
+  display: flex;
+  padding: 1.5cqw 2cqw;
+  border-radius: 1.6cqw;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(20 19 18 / 18%);
+}
+
+.cover-logos img {
+  display: block;
+  width: auto;
+  height: 6.4cqw;
+}
+
+/* …and several in a strip along the bottom, three to a row. */
+.cover-logos.several {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  row-gap: 1.6cqw;
+  padding: 1.8cqw 2.2cqw;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cover-logos.several .cover-logo {
+  display: flex;
+  flex: 0 0 30%;
+  justify-content: center;
+}
+
+.cover-logos.several img {
+  max-width: 100%;
+  height: 4.4cqw;
+  object-fit: contain;
+}
+
+.cover figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.cover figcaption a {
+  color: inherit;
 }
 
 .sources {

@@ -27,6 +27,10 @@ export interface Texts {
   /** A footnote's way back to where it is cited, for a screen reader. */
   backToText: string;
   contents: string;
+  /** The title of the card a link to the articles shows: «Статьи Konnekt». */
+  cardTitle: string;
+  /** Before a photo's author, under it: «Фото». */
+  photo: string;
 }
 
 export const TEXTS: Record<Lang, Texts> = {
@@ -64,6 +68,8 @@ export const TEXTS: Record<Lang, Texts> = {
     tagged: 'Статьи с тегом',
     backToText: 'Назад к тексту',
     contents: 'Содержание',
+    cardTitle: 'Статьи Konnekt',
+    photo: 'Фото',
   },
   uk: {
     articles: 'Статті',
@@ -99,6 +105,8 @@ export const TEXTS: Record<Lang, Texts> = {
     tagged: 'Статті з тегом',
     backToText: 'Назад до тексту',
     contents: 'Зміст',
+    cardTitle: 'Статті Konnekt',
+    photo: 'Фото',
   },
   cs: {
     articles: 'Články',
@@ -134,6 +142,8 @@ export const TEXTS: Record<Lang, Texts> = {
     tagged: 'Články se štítkem',
     backToText: 'Zpět do textu',
     contents: 'Obsah',
+    cardTitle: 'Články Konnekt',
+    photo: 'Foto',
   },
   en: {
     articles: 'Articles',
@@ -170,6 +180,8 @@ export const TEXTS: Record<Lang, Texts> = {
     tagged: 'Articles tagged',
     backToText: 'Back to the text',
     contents: 'Contents',
+    cardTitle: 'Konnekt articles',
+    photo: 'Photo',
   },
 };
 
