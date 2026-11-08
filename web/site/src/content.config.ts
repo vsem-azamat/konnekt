@@ -75,6 +75,10 @@ const articles = defineCollection({
             // The licence's own text, which CC licences ask a credit to link.
             licenceUrl: https.optional(),
             source: https,
+            // Whether part of the photo was cut away, which CC BY asks a credit
+            // to say. A 3:2 photo only shrinks to the 3:2 cover; the image
+            // skill sets false then.
+            cropped: z.boolean().default(true),
           })
           .optional(),
         draft: z.boolean().default(false),

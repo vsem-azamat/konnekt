@@ -31,7 +31,7 @@ export interface Texts {
   cardTitle: string;
   /** Before a photo's author, under it: «Фото». */
   photo: string;
-  /** After a photo's licence: we always crop it, and CC BY asks that a change be said. */
+  /** After a photo's licence when part of it was cut away: CC BY asks that a change be said. */
   cropped: string;
 }
 

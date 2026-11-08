@@ -214,7 +214,7 @@ const graph = articleGraph(
                 <figcaption>
                   {t.photo}: {credit.author},{' '}
                   {credit.licenceUrl ? <a href={credit.licenceUrl}>{credit.licence}</a> : credit.licence},{' '}
-                  {t.cropped},{' '}
+                  {credit.cropped && <>{t.cropped},{' '}</>}
                   <a href={credit.source}>{credit.site}</a>
                 </figcaption>
               )
