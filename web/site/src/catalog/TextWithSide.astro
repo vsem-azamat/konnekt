@@ -1,0 +1,20 @@
+---
+/**
+ * A directory text with what rides beside it (DirectoryText's `side`) put in
+ * the HTML where a phone shows it: before the text's rest part, at its
+ * {.chats} mark (blocks.ts). In that order a keyboard or a screen reader
+ * reaches it where the eye does; on a wide screen the grid moves it beside
+ * the text (catalog.css, `.story`).
+ *
+ * The text is cut in two article boxes around it, so the article's styles
+ * of headings, paragraphs and links stay off the chats.
+ */
+const html = await Astro.slots.render('default');
+const side = await Astro.slots.render('side');
+// blocks.ts writes the rest part always, exactly once.
+const at = html.indexOf('<div class="part part-rest">');
+if (at < 0) throw new Error('a directory text without its rest part (blocks.ts)');
+const article = (inner: string) => `<div class="article">${inner}</div>`;
+---
+
+<Fragment set:html={article(html.slice(0, at)) + side + article(html.slice(at))} />

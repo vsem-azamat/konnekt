@@ -20,6 +20,20 @@ const sources = z
   )
   .default([]);
 
+// Whose photo it is, for a real one (Wikimedia Commons and the like), as its
+// licence asks (articles/credit.ts); a generated image has none.
+const credit = z.object({
+  author: z.string().min(1),
+  licence: z.string().min(1),
+  // The licence's own text, which CC licences ask a credit to link.
+  licenceUrl: https.optional(),
+  source: https,
+  // Whether part of the photo was cut away, which CC BY asks a credit
+  // to say. A 3:2 photo only shrinks to the 3:2 cover; the image
+  // skill sets false then.
+  cropped: z.boolean().default(true),
+});
+
 /**
  * Articles, one Markdown file per language: `articles/<lang>/<slug>.md`, the
  * slug in that language. Translations of one article share `translationKey`,
@@ -68,21 +82,7 @@ const articles = defineCollection({
           .max(6)
           .refine((ids) => new Set(ids).size === ids.length, 'a logo named twice')
           .default([]),
-        // Whose photo it is, for a real one (Wikimedia Commons and the like),
-        // as its licence asks; a generated image has none.
-        coverCredit: z
-          .object({
-            author: z.string().min(1),
-            licence: z.string().min(1),
-            // The licence's own text, which CC licences ask a credit to link.
-            licenceUrl: https.optional(),
-            source: https,
-            // Whether part of the photo was cut away, which CC BY asks a credit
-            // to say. A 3:2 photo only shrinks to the 3:2 cover; the image
-            // skill sets false then.
-            cropped: z.boolean().default(true),
-          })
-          .optional(),
+        coverCredit: credit.optional(),
         // The universities and faculties it is about, by their pages'
         // addresses (`cvut`, `cvut/fit`): each lists it, and it lists them.
         // The config checks each has a text in the article's language.
@@ -172,45 +172,74 @@ const tags = defineCollection({
  */
 const universities = defineCollection({
   loader: glob({ pattern: '*/**/*.md', base: './src/content/universities' }),
-  schema: z
-    .object({
-      // The page's heading: «ЧВУТ — Чешский технический университет в Праге».
-      name: z.string().min(3).max(120),
-      // Its abbreviation as it writes it, on its tile and in breadcrumbs:
-      // «ČVUT», «FSv». Its address in capitals when left out.
-      short: z.string().min(1).max(8).optional(),
-      // What a search result shows as its title; the site's name is not added.
-      title: z.string().min(10).max(70),
-      description: z.string().min(50).max(170),
-      // Its own official site.
-      website: https,
-      // Moved only by a change of substance, as an article's.
-      updated: z.coerce.date(),
-      author: reference('authors'),
-      reviewedBy: reference('authors').optional(),
-      sources,
-      // A faculty's chats, by their public links: the catalogue's chats name
-      // their university and not their faculty.
-      chats: z.array(https).default([]),
-      draft: z.boolean().default(false),
-    })
-    .superRefine((text, ctx) => {
-      if (text.draft) return;
-      if (!text.reviewedBy) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['reviewedBy'],
-          message: 'a published text is checked by someone',
-        });
-      }
-      if (text.sources.length === 0) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['sources'],
-          message: 'a published text names its sources',
-        });
-      }
-    }),
+  schema: ({ image }) =>
+    z
+      .object({
+        // The page's heading: «ЧВУТ — Чешский технический университет в Праге».
+        name: z.string().min(3).max(120),
+        // Its abbreviation as it writes it, on its tile and in breadcrumbs:
+        // «ČVUT», «FSv». Its address in capitals when left out.
+        short: z.string().min(1).max(8).optional(),
+        // One line under the heading: what the place is, in a sentence.
+        // A faculty's page shows it, and its cover below; a university's
+        // page shows neither yet, nor lays out {.chats} and {.end}.
+        lead: z.string().min(20).max(200).optional(),
+        // The page's photo, across its first screen with the heading on it:
+        // assets/places/<university>/. Where across it (0 the left edge, 1
+        // the right) a narrower frame is centred.
+        cover: image().optional(),
+        coverAlt: z.string().min(1).optional(),
+        coverFocus: z.number().min(0).max(1).default(0.5),
+        coverCredit: credit.optional(),
+        // The photos in the text, each by its path as the Markdown writes it
+        // (catalog/blocks.ts): their credits, which the page puts under them.
+        photos: z.array(credit.extend({ src: z.string().min(1) })).default([]),
+        // What a search result shows as its title; the site's name is not added.
+        title: z.string().min(10).max(70),
+        description: z.string().min(50).max(170),
+        // Its own official site.
+        website: https,
+        // Moved only by a change of substance, as an article's.
+        updated: z.coerce.date(),
+        author: reference('authors'),
+        reviewedBy: reference('authors').optional(),
+        sources,
+        // A faculty's chats, by their public links: the catalogue's chats name
+        // their university and not their faculty.
+        chats: z.array(https).default([]),
+        draft: z.boolean().default(false),
+      })
+      .superRefine((text, ctx) => {
+        if (text.cover && !text.coverAlt) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['coverAlt'],
+            message: 'a cover needs its alt text',
+          });
+        }
+        if (!text.cover && text.coverCredit) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['cover'],
+            message: 'a credit goes on a cover, and there is none',
+          });
+        }
+        if (text.draft) return;
+        if (!text.reviewedBy) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['reviewedBy'],
+            message: 'a published text is checked by someone',
+          });
+        }
+        if (text.sources.length === 0) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['sources'],
+            message: 'a published text names its sources',
+          });
+        }
+      }),
 });
 
 export const collections = { articles, authors, tags, universities };

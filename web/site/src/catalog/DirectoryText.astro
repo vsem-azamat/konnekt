@@ -4,6 +4,9 @@
  * then a grey line of its sources and the day they were last read. A text
  * with notes lists its sources in them, each with its day
  * (articles/reading.ts), and has no line (uiux 13417).
+ *
+ * What a page puts in the `side` slot goes into the text before its rest
+ * part (TextWithSide.astro).
  */
 import { render } from 'astro:content';
 
@@ -12,15 +15,19 @@ import type { Lang } from '../paths.ts';
 import { longDate, TEXTS } from '../texts.ts';
 import { DIRECTORY_TEXTS } from './directoryTexts.ts';
 import type { PlaceText } from './places.ts';
+import TextWithSide from './TextWithSide.astro';
 
 interface Props {
   lang: Lang;
   text: PlaceText;
   heading: string;
+  /** Under a photo with the name on it (PhotoHero): its heading is for screen readers alone. */
+  bare?: boolean;
 }
 
-const { lang, text, heading } = Astro.props;
+const { lang, text, heading, bare = false } = Astro.props;
 const d = DIRECTORY_TEXTS[lang];
+const withSide = Astro.slots.has('side');
 const { Content, remarkPluginFrontmatter } = await render(text);
 const notes = remarkPluginFrontmatter.notes === true;
 const { sources, draft } = text.data;
@@ -32,12 +39,21 @@ const checked = sources.reduce<Date | null>(
 ---
 
 <section class="sec dir-text" aria-labelledby="s-about">
-  <header>
+  <header class:list={{ 'sr-only': bare }}>
     <h2 id="s-about">{heading}{draft && <span class="badge">{TEXTS[lang].example}</span>}</h2>
   </header>
-  <div class="article">
-    <Content />
-  </div>
+  {
+    withSide ? (
+      <TextWithSide>
+        <Content />
+        <Fragment slot="side"><slot name="side" /></Fragment>
+      </TextWithSide>
+    ) : (
+      <div class="article">
+        <Content />
+      </div>
+    )
+  }
   {
     !notes && sources.length > 0 && (
       <p class="dir-sources">

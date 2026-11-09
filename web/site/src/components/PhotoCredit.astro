@@ -1,0 +1,14 @@
+---
+/** A photo's credit under it (articles/credit.ts), the contents of its <figcaption>. */
+import { type Credit, creditLine } from '../articles/credit.ts';
+import type { Lang } from '../paths.ts';
+
+interface Props {
+  lang: Lang;
+  credit: Credit;
+}
+
+const { lang, credit } = Astro.props;
+---
+
+{creditLine(lang, credit).map((part) => (part.href ? <a href={part.href}>{part.text}</a> : part.text))}

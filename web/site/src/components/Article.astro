@@ -31,6 +31,7 @@ import { longDate, TEXTS } from '../texts.ts';
 import ArticleCards from './ArticleCards.astro';
 import Footer from './Footer.astro';
 import Header from './Header.astro';
+import PhotoCredit from './PhotoCredit.astro';
 
 interface Props {
   article: CollectionEntry<'articles'>;
@@ -97,15 +98,6 @@ const logos = data.coverLogos.map((id) => {
   if (!src) throw new Error(`article ${article.id}: no file for the ${id} logo`);
   return { id, name: LOGOS[id].name, src };
 });
-const credit = data.coverCredit && {
-  ...data.coverCredit,
-  // «Wikimedia Commons» rather than its host name.
-  site:
-    new URL(data.coverCredit.source).hostname === 'commons.wikimedia.org'
-      ? 'Wikimedia Commons'
-      : new URL(data.coverCredit.source).hostname.replace(/^www\./, ''),
-};
-
 // The universities and faculties it is about, each its page (catalog/directory.ts):
 // the config made sure each has a text in this language.
 const places = (
@@ -230,12 +222,9 @@ const graph = articleGraph(
               }
             </div>
             {
-              credit && (
+              data.coverCredit && (
                 <figcaption>
-                  {t.photo}: {credit.author},{' '}
-                  {credit.licenceUrl ? <a href={credit.licenceUrl}>{credit.licence}</a> : credit.licence},{' '}
-                  {credit.cropped && <>{t.cropped},{' '}</>}
-                  <a href={credit.source}>{credit.site}</a>
+                  <PhotoCredit lang={lang} credit={data.coverCredit} />
                 </figcaption>
               )
             }

@@ -1,9 +1,12 @@
 ---
 /**
  * A faculty's page (directory.ts), the directory's own: there is one only
- * where we wrote its text. Under it the articles about the faculty, its
- * chats as its text names them, its university's main chat, and the
- * university's other faculties.
+ * where we wrote its text. Its photo across the first screen when the text
+ * has one (PhotoHero), then the text with its chats beside it: its chats as
+ * its text names them, its university's main chat and the way to the
+ * tutors, riding along on a wide screen and set into the text where it marks
+ * them on a phone (blocks.ts). Under it the articles about the faculty and
+ * the university's other faculties.
  */
 import ArticleCards from '../components/ArticleCards.astro';
 import Footer from '../components/Footer.astro';
@@ -18,8 +21,10 @@ import DirectoryText from './DirectoryText.astro';
 import { placePath, universityAddress } from './directory.ts';
 import type { FacultyProps } from './directoryPages.ts';
 import { DIRECTORY_TEXTS } from './directoryTexts.ts';
+import PhotoHero from './PhotoHero.astro';
 import { toneOf } from './page.ts';
 import { CATALOG_TEXTS, count } from './texts.ts';
+import { TUTOR_TEXTS } from './tutorTexts.ts';
 
 type Props = FacultyProps;
 
@@ -36,6 +41,7 @@ const {
 } = Astro.props;
 const t = CATALOG_TEXTS[lang];
 const d = DIRECTORY_TEXTS[lang];
+const tt = TUTOR_TEXTS[lang];
 const short = u.short_name ?? u.name;
 const address = universityAddress(u.code);
 const facultyShort = text.data.short ?? faculty.toUpperCase();
@@ -101,18 +107,64 @@ const schema = {
       <li aria-current="page">{facultyShort}</li>
     </ol>
 
-    <div class={`card cat-hero with-side wash${toneOf(facultyShort) % 4}`}>
-      <div class="cat-hero">
-        <h1 class:list={{ long: text.data.name.length > 24 }}>{text.data.name}</h1>
-        <p class="facts"><a href={universityHref}>{u.name}</a>&nbsp;· <span><a href={website} rel="nofollow">{handle(website)}</a></span></p>
-      </div>
-      <div class="actions">
-        <a class="btn" href={open}><span>{t.open}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
-        <div class="later">{t.freeFaculty}</div>
-      </div>
-    </div>
+    {
+      text.data.cover ? (
+        <PhotoHero lang={lang} text={text} open={open} openLabel={t.open} later={t.freeFaculty}>
+          <a href={universityHref}>{u.name}</a>&nbsp;· <span><a href={website} rel="nofollow">{handle(website)}</a></span>
+        </PhotoHero>
+      ) : (
+        <div class={`card cat-hero with-side wash${toneOf(facultyShort) % 4}`}>
+          <div class="cat-hero">
+            <h1 class:list={{ long: text.data.name.length > 24 }}>{text.data.name}</h1>
+            {text.data.lead && <p class="lead">{text.data.lead}</p>}
+            <p class="facts"><a href={universityHref}>{u.name}</a>&nbsp;· <span><a href={website} rel="nofollow">{handle(website)}</a></span></p>
+          </div>
+          <div class="actions">
+            <a class="btn" href={open}><span>{t.open}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
+            <div class="later">{t.freeFaculty}</div>
+          </div>
+        </div>
+      )
+    }
 
-    <DirectoryText lang={lang} text={text} heading={d.aboutFaculty} />
+    <div class="story">
+      {/* Under a photo with the name on it, the text needs no heading of its own. */}
+      <DirectoryText lang={lang} text={text} heading={d.aboutFaculty} bare={text.data.cover !== undefined}>
+      <aside class="side" slot="side">
+        <div class="side-in">
+          {
+            (chats.length > 0 || universityChat) && (
+              <section class="sec" aria-labelledby="s-chats">
+                <header>
+                  <h2 id="s-chats">{d.facultyChats}</h2>
+                  {chats.length > 0 && <span class="count">{count(lang, chats.length, t.chats)}</span>}
+                </header>
+                <div class="rows">
+                  {chats.map((one) =>
+                    'chat' in one ? (
+                      <ChatRow lang={lang} chat={one.chat} />
+                    ) : (
+                      <a class="row" href={one.link} rel="nofollow">
+                        <span class={`letters tone${toneOf(one.link)}`} aria-hidden="true">{facultyShort.slice(0, 2)}</span>
+                        <span class="rt"><b>{handle(one.link)}</b></span>
+                        <svg class="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+                      </a>
+                    ),
+                  )}
+                  {universityChat && <ChatRow lang={lang} chat={universityChat} note={d.universityChat(short)} />}
+                </div>
+              </section>
+            )
+          }
+          <a class="card tcard" href={localePath(lang, '/tutors/')}>
+            <span class="mono small tone2" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/></svg></span>
+            <span class="rt"><b>{tt.section}</b><small>{tt.lead}</small></span>
+            <svg class="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </aside>
+      </DirectoryText>
+    </div>
 
     {
       articles.length > 0 && (
@@ -122,31 +174,6 @@ const schema = {
           </header>
           <div class="dir-articles">
             <ArticleCards lang={lang} articles={articles} />
-          </div>
-        </section>
-      )
-    }
-
-    {
-      (chats.length > 0 || universityChat) && (
-        <section class="sec" aria-labelledby="s-chats">
-          <header>
-            <h2 id="s-chats">{d.facultyChats}</h2>
-            {chats.length > 0 && <span class="count">{count(lang, chats.length, t.chats)}</span>}
-          </header>
-          <div class="rows">
-            {chats.map((one) =>
-              'chat' in one ? (
-                <ChatRow lang={lang} chat={one.chat} />
-              ) : (
-                <a class="row" href={one.link} rel="nofollow">
-                  <span class={`letters tone${toneOf(one.link)}`} aria-hidden="true">{facultyShort.slice(0, 2)}</span>
-                  <span class="rt"><b>{handle(one.link)}</b></span>
-                  <svg class="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
-                </a>
-              ),
-            )}
-            {universityChat && <ChatRow lang={lang} chat={universityChat} note={d.universityChat(short)} />}
           </div>
         </section>
       )
