@@ -14,7 +14,7 @@
 
 import type { PublicChat } from '../../../src/lib/chats.ts';
 import { LANGS, type Lang, localePath } from '../paths.ts';
-import { type CatalogFaculty, MIN_INDEXED_CHATS } from './catalog.ts';
+import { type CatalogFaculty, MIN_INDEXED_CHATS, mainChat } from './catalog.ts';
 
 /** A university's address where it is not its catalog code. */
 // A Map, not an object: `constructor` in a URL must not find Object.prototype's.
@@ -227,15 +227,24 @@ export type FacultyChat = { chat: PublicChat } | { link: string };
 /**
  * A faculty's chats, by the links its text names: the catalogue's chats carry
  * their university and not their faculty. In the text's order; a link the
- * catalogue does not list stays a link.
+ * catalogue does not list stays a link. Each chat once: a link named twice,
+ * however written, is one row, and the university's main chat, which the
+ * page shows as its own row with a note, is not repeated among them.
  */
 export function facultyChats(
   links: readonly string[],
   chats: readonly PublicChat[] | null,
-): FacultyChat[] {
+): { chats: FacultyChat[]; universityChat: PublicChat | null } {
   const byLink = new Map((chats ?? []).map((chat) => [sameLink(chat.link), chat]));
-  return links.map((link) => {
-    const chat = byLink.get(sameLink(link));
-    return chat ? { chat } : { link };
-  });
+  const universityChat = chats ? mainChat(chats) : null;
+  const seen = new Set(universityChat ? [sameLink(universityChat.link)] : []);
+  const own: FacultyChat[] = [];
+  for (const link of links) {
+    const key = sameLink(link);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const chat = byLink.get(key);
+    own.push(chat ? { chat } : { link });
+  }
+  return { chats: own, universityChat };
 }

@@ -10,7 +10,6 @@ import type { PublicChat } from '../../../src/lib/chats.ts';
 import { type Lang, localePath } from '../paths.ts';
 import {
   type CatalogUniversity,
-  mainChat,
   type UniversityChats,
   universitiesWithChats,
 } from './catalog.ts';
@@ -187,8 +186,7 @@ export async function facultyPage(
     university,
     faculty,
     text,
-    chats: facultyChats(text.data.chats, theirs),
-    universityChat: theirs ? mainChat(theirs) : null,
+    ...facultyChats(text.data.chats, theirs),
     siblings: (await facultyCards(lang, address, known)).filter(
       (card) => card.faculty !== faculty,
     ),
