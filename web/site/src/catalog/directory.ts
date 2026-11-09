@@ -228,23 +228,31 @@ export type FacultyChat = { chat: PublicChat } | { link: string };
  * A faculty's chats, by the links its text names: the catalogue's chats carry
  * their university and not their faculty. In the text's order; a link the
  * catalogue does not list stays a link. Each chat once: a link named twice,
- * however written, is one row, and the university's main chat, which the
- * page shows as its own row with a note, is not repeated among them.
+ * however written, is one row.
+ *
+ * The university's main chat comes as its own row with a note, and so not
+ * among them, when it is the university's own room. Where the university has
+ * none, its main chat is its largest common one, which may be this very
+ * faculty's: named by the text, it stays the faculty's and has no row of its own.
  */
 export function facultyChats(
   links: readonly string[],
   chats: readonly PublicChat[] | null,
 ): { chats: FacultyChat[]; universityChat: PublicChat | null } {
   const byLink = new Map((chats ?? []).map((chat) => [sameLink(chat.link), chat]));
-  const universityChat = chats ? mainChat(chats) : null;
-  const seen = new Set(universityChat ? [sameLink(universityChat.link)] : []);
+  // Each link once, as the text first writes it.
+  const unique = new Map<string, string>();
+  for (const link of links)
+    if (!unique.has(sameLink(link))) unique.set(sameLink(link), link);
+  const main = chats ? mainChat(chats) : null;
+  const mainKey = main ? sameLink(main.link) : null;
+  const ownRoom = main !== null && main.group !== null && main.title === main.group;
+  const named = mainKey !== null && unique.has(mainKey);
   const own: FacultyChat[] = [];
-  for (const link of links) {
-    const key = sameLink(link);
-    if (seen.has(key)) continue;
-    seen.add(key);
+  for (const [key, link] of unique) {
+    if (ownRoom && key === mainKey) continue;
     const chat = byLink.get(key);
     own.push(chat ? { chat } : { link });
   }
-  return { chats: own, universityChat };
+  return { chats: own, universityChat: named && !ownRoom ? null : main };
 }

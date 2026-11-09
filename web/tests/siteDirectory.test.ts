@@ -218,3 +218,18 @@ test('a faculty’s chats show each chat once, the university’s main chat as i
   );
   assert.deepEqual(found, { chats: [{ chat: fit }], universityChat: main });
 });
+
+test('where the university has no room of its own, a faculty keeps its chat that stands as the main one', () => {
+  const fit = chat('ČVUT FIT', 'https://t.me/cvut_fit');
+  const fel = chat('ČVUT FEL', 'https://t.me/cvut_fel');
+  // Neither is titled as the group: the main chat falls back to the first of the largest.
+  assert.deepEqual(facultyChats(['https://t.me/cvut_fit'], [fit, fel]), {
+    chats: [{ chat: fit }],
+    universityChat: null,
+  });
+  // Another faculty's page still shows it as the university's.
+  assert.deepEqual(facultyChats(['https://t.me/cvut_fel'], [fit, fel]), {
+    chats: [{ chat: fel }],
+    universityChat: fit,
+  });
+});

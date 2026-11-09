@@ -85,7 +85,7 @@ async function facultyCards(
     // технологий», the tile says what follows the dash.
     name: text.data.name.split(' — ').at(-1) as string,
     short: text.data.short ?? (place.faculty as string).toUpperCase(),
-    chats: text.data.chats.length,
+    chats: facultyChats(text.data.chats, null).chats.length,
   }));
   return facultyList(known?.code ?? '', known ? known.faculties : null, texts);
 }
