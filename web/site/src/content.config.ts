@@ -12,7 +12,7 @@ const https = z.string().url().startsWith('https://');
 const sources = z
   .array(
     z.object({
-      url: z.string().url(),
+      url: https,
       title: z.string().min(1),
       // When the page was last read to confirm what the text takes from it.
       checked_at: z.coerce.date(),
