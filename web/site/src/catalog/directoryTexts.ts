@@ -12,6 +12,8 @@ export interface DirectoryTexts {
   sources: string;
   /** «· проверено 9 ноября 2026», the latest any source was read. */
   checked: string;
+  /** The same alone on its line, under the notes that list the sources. */
+  checkedAll: string;
   faculties: string;
   articlesAbout: (short: string) => string;
   /** Without the catalogue: the card that stands for the chats. */
@@ -30,6 +32,7 @@ export const DIRECTORY_TEXTS: Record<Lang, DirectoryTexts> = {
     aboutFaculty: 'О факультете',
     sources: 'Источники',
     checked: 'проверено',
+    checkedAll: 'Источники проверены',
     faculties: 'Факультеты',
     articlesAbout: (short) => `Статьи о ${short}`,
     appTitle: (short) => `Чаты ${short} в приложении`,
@@ -44,6 +47,7 @@ export const DIRECTORY_TEXTS: Record<Lang, DirectoryTexts> = {
     aboutFaculty: 'Про факультет',
     sources: 'Джерела',
     checked: 'перевірено',
+    checkedAll: 'Джерела перевірено',
     faculties: 'Факультети',
     articlesAbout: (short) => `Статті про ${short}`,
     appTitle: (short) => `Чати ${short} у застосунку`,
@@ -58,6 +62,7 @@ export const DIRECTORY_TEXTS: Record<Lang, DirectoryTexts> = {
     aboutFaculty: 'O fakultě',
     sources: 'Zdroje',
     checked: 'ověřeno',
+    checkedAll: 'Zdroje ověřeny',
     faculties: 'Fakulty',
     articlesAbout: (short) => `Články o ${short}`,
     appTitle: (short) => `Chaty ${short} v aplikaci`,
@@ -72,6 +77,7 @@ export const DIRECTORY_TEXTS: Record<Lang, DirectoryTexts> = {
     aboutFaculty: 'About the faculty',
     sources: 'Sources',
     checked: 'checked',
+    checkedAll: 'Sources checked',
     faculties: 'Faculties',
     articlesAbout: (short) => `Articles about ${short}`,
     appTitle: (short) => `${short} chats in the app`,

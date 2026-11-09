@@ -1,7 +1,9 @@
 ---
 /**
  * A university's or a faculty's text (directory.ts): set as an article's,
- * then a grey line of its sources and the day they were last read.
+ * then a grey line of its sources and the day they were last read. A text
+ * with notes has its sources listed in them (articles/reading.ts), and the
+ * line keeps only the day.
  */
 import { render } from 'astro:content';
 
@@ -19,7 +21,8 @@ interface Props {
 
 const { lang, text, heading } = Astro.props;
 const d = DIRECTORY_TEXTS[lang];
-const { Content } = await render(text);
+const { Content, remarkPluginFrontmatter } = await render(text);
+const notes = remarkPluginFrontmatter.notes === true;
 const { sources, draft } = text.data;
 const checked = sources.reduce<Date | null>(
   (latest, { checked_at }) =>
@@ -38,16 +41,21 @@ const checked = sources.reduce<Date | null>(
   {
     sources.length > 0 && (
       <p class="dir-sources">
-        {d.sources}:{' '}
-        {sources.map((source, i) => (
+        {!notes && (
           <Fragment>
-            {i > 0 && ', '}
-            <a href={source.url} rel="nofollow">{source.title}</a>
+            {d.sources}:{' '}
+            {sources.map((source, i) => (
+              <Fragment>
+                {i > 0 && ', '}
+                <a href={source.url} rel="nofollow">{source.title}</a>
+              </Fragment>
+            ))}
+            {checked && ' · '}
           </Fragment>
-        ))}
+        )}
         {checked && (
           <Fragment>
-            {' '}· {d.checked}{' '}<time datetime={day(checked)}>{longDate(lang, checked)}</time>
+            {notes ? d.checkedAll : d.checked}{' '}<time datetime={day(checked)}>{longDate(lang, checked)}</time>
           </Fragment>
         )}
       </p>

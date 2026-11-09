@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { type El, reading } from '../site/src/articles/reading.ts';
+import { type El, reading, readingPlugin } from '../site/src/articles/reading.ts';
 
 const el = (
   tagName: string,
@@ -125,4 +125,14 @@ test('a source is found whether or not its address is percent-encoded', () => {
     notes('https://cs.wikipedia.org/wiki/Nostrifikace_(%C5%A1kolstv%C3%AD)'),
   ]);
   assert.doesNotThrow(() => reading(root, { lang: 'ru', sources: [raw] }));
+});
+
+test('a university’s or faculty’s text is read as an article is; other Markdown is not', () => {
+  const plugin = (path: string) =>
+    readingPlugin({ fileURL: new URL(`file:///site/src/content/${path}`), data: {} });
+  assert.notEqual(plugin('articles/ru/vize.md'), null);
+  assert.notEqual(plugin('universities/ru/cvut.md'), null);
+  assert.notEqual(plugin('universities/uk/cvut/fit.md'), null);
+  assert.equal(plugin('universities/de/cvut.md'), null);
+  assert.equal(plugin('authors/team.md'), null);
 });
