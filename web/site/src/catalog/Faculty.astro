@@ -129,9 +129,8 @@ const schema = {
 
     <div class="story">
       {/* Under a photo with the name on it, the text needs no heading of its own. */}
-      <DirectoryText lang={lang} text={text} heading={d.aboutFaculty} bare={text.data.cover !== undefined} />
-
-      <aside class="side" aria-label={d.facultyChats}>
+      <DirectoryText lang={lang} text={text} heading={d.aboutFaculty} bare={text.data.cover !== undefined}>
+      <aside class="side" slot="side">
         <div class="side-in">
           {
             (chats.length > 0 || universityChat) && (
@@ -164,6 +163,7 @@ const schema = {
           </a>
         </div>
       </aside>
+      </DirectoryText>
     </div>
 
     {

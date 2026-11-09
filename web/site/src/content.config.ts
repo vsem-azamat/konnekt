@@ -181,6 +181,8 @@ const universities = defineCollection({
         // «ČVUT», «FSv». Its address in capitals when left out.
         short: z.string().min(1).max(8).optional(),
         // One line under the heading: what the place is, in a sentence.
+        // A faculty's page shows it, and its cover below; a university's
+        // page shows neither yet, nor lays out {.chats} and {.end}.
         lead: z.string().min(20).max(200).optional(),
         // The page's photo, across its first screen with the heading on it:
         // assets/places/<university>/. Where across it (0 the left edge, 1

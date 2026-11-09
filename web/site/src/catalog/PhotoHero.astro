@@ -4,6 +4,9 @@
  * the photo across the page with the name and the lead on it, the way into
  * the app under it, and the photo's credit (articles/credit.ts). What the
  * page says beside the name (its university, its site) comes as the slot.
+ *
+ * Not a <figure>: one would take the credit as its name and announce it
+ * before the page's heading.
  */
 import { Image } from 'astro:assets';
 
@@ -29,7 +32,7 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
 
 {
   cover && (
-    <figure class="fhero">
+    <div class="fhero">
       <div class="fhero-frame">
         <Image
           src={cover}
@@ -41,7 +44,7 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
           style={`object-position:${Math.round(coverFocus * 100)}% 50%`}
         />
         <div class="fhero-text">
-          <h1>{name}{draft && <span class="badge">{TEXTS[lang].example}</span>}</h1>
+          <h1>{name}{draft && <Fragment>{' '}<span class="badge">{TEXTS[lang].example}</span></Fragment>}</h1>
           {lead && <p class="fhero-lead">{lead}</p>}
           <p class="facts"><slot /></p>
         </div>
@@ -52,11 +55,11 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
       </div>
       {
         coverCredit && (
-          <figcaption>
+          <p class="fhero-credit">
             <PhotoCredit lang={lang} credit={coverCredit} />
-          </figcaption>
+          </p>
         )
       }
-    </figure>
+    </div>
   )
 }
