@@ -414,28 +414,30 @@ a.row:target {
 /* A page's photo across its first screen, the name on it (PhotoHero.astro). */
 .fhero {
   margin: 0;
+  container-type: inline-size;
 }
 .fhero-frame {
   position: relative;
   display: grid;
   align-content: end;
   border-radius: 22px;
-  aspect-ratio: 4 / 5;
-  max-height: 72vh;
-  /* Never shorter than its text: on a phone held sideways 72vh is less than
-     the name and the lead need, and the frame grows rather than cut them. */
-  min-height: min-content;
+  /* The photo's shape, but no taller than the screen leaves above the
+     button (the header, the crumbs and the button itself: 210px on a wide
+     screen), so the button shows on a low laptop's first screen; and never
+     shorter than its text: on a phone held sideways the frame grows rather
+     than cut the name. */
+  min-height: min(125cqi, 72svh);
   width: 100%;
   background: var(--surface);
 }
 @media (min-width: 720px) {
   .fhero-frame {
-    aspect-ratio: 16 / 9;
+    min-height: min(56.25cqi, 100svh - 210px);
   }
 }
 @media (min-width: 1040px) {
   .fhero-frame {
-    aspect-ratio: 21 / 9;
+    min-height: min(42.86cqi, 100svh - 210px);
   }
 }
 .fhero-frame > img {
