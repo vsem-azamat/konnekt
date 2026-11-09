@@ -143,7 +143,7 @@ export interface FacultyProps {
   chats: FacultyChat[];
   /** The university's main chat, below the faculty's own; null without the catalogue. */
   universityChat: PublicChat | null;
-  /** The university's other faculties with a text. */
+  /** The university's other faculties: the catalog's, those with a text linking to theirs. */
   siblings: FacultyCard[];
   articles: CollectionEntry<'articles'>[];
   /** The languages it has a text in, and so a page. */

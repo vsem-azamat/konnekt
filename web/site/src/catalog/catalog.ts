@@ -16,7 +16,7 @@ import {
   type Topic,
 } from '../../../src/lib/chats.ts';
 
-/** A university as `/api/v1/universities` names it in the page's language. */
+/** One of a university's faculties, as `/api/v1/universities` lists it. */
 export interface CatalogFaculty {
   /** `cvut_fit`: its university's code, then its own. */
   code: string;
@@ -24,6 +24,7 @@ export interface CatalogFaculty {
   short_name: string | null;
 }
 
+/** A university as `/api/v1/universities` names it in the page's language. */
 export interface CatalogUniversity {
   code: string;
   name: string;

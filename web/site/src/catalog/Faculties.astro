@@ -46,7 +46,7 @@ const plain = faculties.filter((f) => !f.page);
   }
   {
     plain.length > 0 && (
-      <div class="rows dir-plain">
+      <div class="rows">
         {plain.map((f) => (
           <div class="row">
             <span class={`mono small tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
