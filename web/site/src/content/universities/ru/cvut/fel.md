@@ -1,5 +1,5 @@
 ---
-name: "Электротехнический факультет ЧВУТ (FEL)"
+name: "FEL ЧВУТ — Электротехнический факультет"
 short: "FEL"
 title: "Электротехнический факультет ЧВУТ (FEL ČVUT): программы, чаты"
 description: "Электротехнический факультет ЧВУТ в Праге: семь программ бакалавриата на чешском и одна на английском, плата, чешский B2 и экзамен по чешскому на факультете."
@@ -59,6 +59,6 @@ draft: true
 [^en]: Bachelor study, FEE CTU — [fel.cvut.cz](https://fel.cvut.cz/en/admissions/study-options/bachelor-study)
 [^cond]: Podmínky přijetí, FEL ČVUT — [fel.cvut.cz](https://fel.cvut.cz/cs/uchazeci/prijimaci-rizeni/podminky-prijeti)
 [^lang]: Zkouška z českého jazyka, katedra jazyků FEL — [jazyky.fel.cvut.cz](https://jazyky.fel.cvut.cz/index.php?m=j&o=zi_prezcz)
-[^fee]: Tuition fees, FEE CTU — [fel.cvut.cz](https://intranet.fel.cvut.cz/en/admissions/tuition-fees.html)
+[^fee]: Tuition fees, FEE CTU — [intranet.fel.cvut.cz](https://intranet.fel.cvut.cz/en/admissions/tuition-fees.html)
 [^crit]: Seznam kritických studijních programů ČVUT — [PDF](https://www.cvut.cz/sites/default/files/content/a00980d0-597c-4305-9436-1b1ccfd6043f/cs/20260410-critical-study-programs.pdf)
 [^rus]: Informace pro studenty z Ruska a Běloruska — [cvut.cz](https://www.cvut.cz/informace-pro-studenty-z-rus-a-blr)
