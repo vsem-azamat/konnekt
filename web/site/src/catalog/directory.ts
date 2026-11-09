@@ -14,7 +14,12 @@
 
 import type { PublicChat } from '../../../src/lib/chats.ts';
 import { LANGS, type Lang, localePath } from '../paths.ts';
-import { type CatalogFaculty, MIN_INDEXED_CHATS } from './catalog.ts';
+import {
+  type CatalogFaculty,
+  isOwnRoom,
+  MIN_INDEXED_CHATS,
+  mainChat,
+} from './catalog.ts';
 
 /** A university's address where it is not its catalog code. */
 // A Map, not an object: `constructor` in a URL must not find Object.prototype's.
@@ -227,15 +232,32 @@ export type FacultyChat = { chat: PublicChat } | { link: string };
 /**
  * A faculty's chats, by the links its text names: the catalogue's chats carry
  * their university and not their faculty. In the text's order; a link the
- * catalogue does not list stays a link.
+ * catalogue does not list stays a link. Each chat once: a link named twice,
+ * however written, is one row.
+ *
+ * The university's main chat comes as its own row with a note, and so not
+ * among them, when it is the university's own room. Where the university has
+ * none, its main chat is its largest common one, which may be this very
+ * faculty's: named by the text, it stays the faculty's and has no row of its own.
  */
 export function facultyChats(
   links: readonly string[],
   chats: readonly PublicChat[] | null,
-): FacultyChat[] {
+): { chats: FacultyChat[]; universityChat: PublicChat | null } {
   const byLink = new Map((chats ?? []).map((chat) => [sameLink(chat.link), chat]));
-  return links.map((link) => {
-    const chat = byLink.get(sameLink(link));
-    return chat ? { chat } : { link };
-  });
+  // Each link once, as the text first writes it.
+  const unique = new Map<string, string>();
+  for (const link of links)
+    if (!unique.has(sameLink(link))) unique.set(sameLink(link), link);
+  const main = chats ? mainChat(chats) : null;
+  const mainKey = main ? sameLink(main.link) : null;
+  const ownRoom = main !== null && isOwnRoom(main);
+  const named = mainKey !== null && unique.has(mainKey);
+  const own: FacultyChat[] = [];
+  for (const [key, link] of unique) {
+    if (ownRoom && key === mainKey) continue;
+    const chat = byLink.get(key);
+    own.push(chat ? { chat } : { link });
+  }
+  return { chats: own, universityChat: named && !ownRoom ? null : main };
 }

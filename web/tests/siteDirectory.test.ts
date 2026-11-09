@@ -194,11 +194,42 @@ test('a faculty’s chats are found by link, however the link is written', () =>
   const fit = chat('ČVUT FIT', 'https://t.me/cvut_fit');
   const found = facultyChats(
     ['https://telegram.me/CVUT_FIT/', 'https://t.me/gone'],
-    [fit, chat('ČVUT FEL', 'https://t.me/cvut_fel')],
+    [
+      chat('ČVUT', 'https://t.me/cvut_chat'),
+      fit,
+      chat('ČVUT FEL', 'https://t.me/cvut_fel'),
+    ],
   );
-  assert.deepEqual(found, [{ chat: fit }, { link: 'https://t.me/gone' }]);
-  // Without the catalogue, every chat is its link.
-  assert.deepEqual(facultyChats(['https://t.me/cvut_fit'], null), [
-    { link: 'https://t.me/cvut_fit' },
-  ]);
+  assert.deepEqual(found.chats, [{ chat: fit }, { link: 'https://t.me/gone' }]);
+  // Without the catalogue, every chat is its link, and there is no main chat.
+  assert.deepEqual(facultyChats(['https://t.me/cvut_fit'], null), {
+    chats: [{ link: 'https://t.me/cvut_fit' }],
+    universityChat: null,
+  });
+});
+
+test('a faculty’s chats show each chat once, the university’s main chat as its own row', () => {
+  // The university's own room: titled as its group.
+  const main = chat('ČVUT', 'https://t.me/cvut_chat');
+  const fit = chat('ČVUT FIT', 'https://t.me/cvut_fit');
+  const found = facultyChats(
+    ['https://t.me/cvut_fit', 'https://t.me/CVUT_CHAT/', 'https://telegram.me/cvut_fit'],
+    [main, fit],
+  );
+  assert.deepEqual(found, { chats: [{ chat: fit }], universityChat: main });
+});
+
+test('where the university has no room of its own, a faculty keeps its chat that stands as the main one', () => {
+  const fit = chat('ČVUT FIT', 'https://t.me/cvut_fit');
+  const fel = chat('ČVUT FEL', 'https://t.me/cvut_fel');
+  // Neither is titled as the group: the main chat falls back to the first of the largest.
+  assert.deepEqual(facultyChats(['https://t.me/cvut_fit'], [fit, fel]), {
+    chats: [{ chat: fit }],
+    universityChat: null,
+  });
+  // Another faculty's page still shows it as the university's.
+  assert.deepEqual(facultyChats(['https://t.me/cvut_fel'], [fit, fel]), {
+    chats: [{ chat: fel }],
+    universityChat: fit,
+  });
 });
