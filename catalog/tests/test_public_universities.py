@@ -83,6 +83,21 @@ async def test_a_retired_faculty_is_not_listed(
     assert "cvut_fit" not in {f["code"] for f in cvut["faculties"]}
 
 
+async def test_only_a_faculty_under_a_university_is_one_of_its_faculties(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    await session.execute(
+        update(Institution)
+        .where(Institution.code == "cvut_fit")
+        .values(kind=InstitutionKind.SCHOOL)
+    )
+
+    response = await client.get("/api/v1/universities")
+
+    cvut = next(row for row in response.json() if row["code"] == "cvut")
+    assert "cvut_fit" not in {f["code"] for f in cvut["faculties"]}
+
+
 async def test_names_follow_the_asked_language(client: AsyncClient) -> None:
     english = await client.get("/api/v1/universities", params={"lang": "en"})
     russian = await client.get("/api/v1/universities")
