@@ -14,7 +14,7 @@
 
 import type { PublicChat } from '../../../src/lib/chats.ts';
 import { LANGS, type Lang, localePath } from '../paths.ts';
-import { MIN_INDEXED_CHATS } from './catalog.ts';
+import { type CatalogFaculty, MIN_INDEXED_CHATS } from './catalog.ts';
 
 /** A university's address where it is not its catalog code. */
 // A Map, not an object: `constructor` in a URL must not find Object.prototype's.
@@ -49,6 +49,57 @@ export function movedFrom(address: string): string | null {
 
 export function universityPath(lang: Lang, code: string): string {
   return localePath(lang, `/universities/${universityAddress(code)}/`);
+}
+
+/**
+ * A faculty's address under its university's, from its catalog code:
+ * `cvut_fit` is `fit`. Null for a code that is not the university's, or
+ * leaves no address.
+ */
+export function facultyAddress(university: string, code: string): string | null {
+  if (!code.startsWith(`${university}_`)) return null;
+  const address = code.slice(university.length + 1).replace(/_/g, '-');
+  return ADDRESS.test(address) ? address : null;
+}
+
+/** A faculty on its university's page: a card, which links to its page when it has one. */
+export interface FacultyCard {
+  /** Its page's address under its university's (`fit`). */
+  faculty: string;
+  name: string;
+  short: string;
+  /** How many chats its text names. */
+  chats: number;
+  /** Whether it has a page: a text of ours. */
+  page: boolean;
+}
+
+/**
+ * A university's faculties: every one the catalog lists, in its order and by
+ * its names, those with a text of ours linking to their pages; then any text
+ * for a faculty the catalog does not list. Without the catalog, the texts.
+ */
+export function facultyList(
+  university: string,
+  catalog: readonly CatalogFaculty[] | null,
+  texts: readonly Omit<FacultyCard, 'page'>[],
+): FacultyCard[] {
+  const byAddress = new Map(texts.map((text) => [text.faculty, text]));
+  const listed: FacultyCard[] = [];
+  for (const faculty of catalog ?? []) {
+    const address = facultyAddress(university, faculty.code);
+    if (!address) continue;
+    const text = byAddress.get(address);
+    byAddress.delete(address);
+    listed.push({
+      faculty: address,
+      name: faculty.name,
+      short: faculty.short_name ?? text?.short ?? address.toUpperCase(),
+      chats: text?.chats ?? 0,
+      page: text !== undefined,
+    });
+  }
+  return [...listed, ...[...byAddress.values()].map((text) => ({ ...text, page: true }))];
 }
 
 /** A university's page, or one of its faculties', from its text's address (`cvut`, `cvut/fit`). */

@@ -70,11 +70,13 @@ const organization = {
         },
       }
     : {}),
-  ...(faculties.length > 0
+  ...(faculties.some((f) => f.page)
     ? {
-        subOrganization: faculties.map((f) => ({
-          '@id': `${new URL(placePath(lang, `${address}/${f.faculty}`), site).href}#faculty`,
-        })),
+        subOrganization: faculties
+          .filter((f) => f.page)
+          .map((f) => ({
+            '@id': `${new URL(placePath(lang, `${address}/${f.faculty}`), site).href}#faculty`,
+          })),
       }
     : {}),
 };
@@ -164,15 +166,23 @@ const schema = {
             <span class="count">{faculties.length}</span>
           </header>
           <div class="cat-grid dir-grid">
-            {faculties.map((f) => (
-              <a class="card uni" href={placePath(lang, `${address}/${f.faculty}`)}>
-                <span class={`mono tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
-                <span class="ut">
-                  <b>{f.name}</b>
-                  {f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}
-                </span>
-              </a>
-            ))}
+            {faculties.map((f) => {
+              const inner = (
+                <Fragment>
+                  <span class={`mono tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
+                  <span class="ut">
+                    <b>{f.name}</b>
+                    {f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}
+                  </span>
+                </Fragment>
+              );
+              // Only a faculty with a text of ours has a page to go to.
+              return f.page ? (
+                <a class="card uni" href={placePath(lang, `${address}/${f.faculty}`)}>{inner}</a>
+              ) : (
+                <div class="card uni plain">{inner}</div>
+              );
+            })}
           </div>
         </section>
       )

@@ -40,6 +40,7 @@ const university = (code: string, short: string, city: string): CatalogUniversit
   short_name: short,
   city,
   site_url: `https://www.${code}.cz`,
+  faculties: [],
 });
 
 const CVUT = university('cvut', 'ČVUT', 'Praha');
@@ -261,6 +262,14 @@ test('the universities are checked as they arrive, not trusted', () => {
       short_name: 'ČVUT',
       city: 'Praha',
       site_url: 'https://www.cvut.cz',
+      faculties: [
+        { code: 'cvut_fit', name: 'Fakulta informačních technologií', short_name: 'FIT' },
+        // Another university's, a code no address can carry, a nameless one.
+        { code: 'vse_fis', name: 'FIS', short_name: null },
+        { code: 'cvut_Bad', name: 'x', short_name: null },
+        { code: 'cvut_fa', name: '', short_name: null },
+        null,
+      ],
     },
     {
       code: 'vse',
@@ -281,9 +290,19 @@ test('the universities are checked as they arrive, not trusted', () => {
       short_name: 'ČVUT',
       city: 'Praha',
       site_url: 'https://www.cvut.cz',
+      faculties: [
+        { code: 'cvut_fit', name: 'Fakulta informačních technologií', short_name: 'FIT' },
+      ],
     },
-    // A link the page prints: https only.
-    { code: 'vse', name: 'VŠE', short_name: null, city: null, site_url: null },
+    // A link the page prints: https only. An API from before faculties: none.
+    {
+      code: 'vse',
+      name: 'VŠE',
+      short_name: null,
+      city: null,
+      site_url: null,
+      faculties: [],
+    },
   ]);
   assert.throws(() => sanitizeUniversities({ detail: 'down' }));
 });

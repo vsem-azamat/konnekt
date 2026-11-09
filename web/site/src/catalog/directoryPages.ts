@@ -16,8 +16,10 @@ import {
 } from './catalog.ts';
 import {
   ADDRESS,
+  type FacultyCard,
   type FacultyChat,
   facultyChats,
+  facultyList,
   movedFrom,
   placeIndexable,
   universityCode,
@@ -32,15 +34,6 @@ import {
   placeText,
   textLangs,
 } from './places.ts';
-
-export interface FacultyCard {
-  /** Its page's address under its university's (`fit`). */
-  faculty: string;
-  name: string;
-  short: string;
-  /** How many chats its text names. */
-  chats: number;
-}
 
 export interface UniversityProps {
   lang: Lang;
@@ -65,6 +58,7 @@ function fromText(code: string, text: PlaceText): CatalogUniversity {
     short_name: text.data.short ?? null,
     city: null,
     site_url: text.data.website,
+    faculties: [],
   };
 }
 
@@ -76,15 +70,25 @@ function moved(location: string): Response {
   });
 }
 
-/** The faculty cards of a university's page: its faculties with a text, in their files' order. */
-async function facultyCards(lang: Lang, address: string): Promise<FacultyCard[]> {
-  return (await facultyTexts(lang, address)).map(({ place, text }) => ({
+/**
+ * The faculty cards of a university's page (directory.ts): the catalog's
+ * faculties, by their catalog names, those with a text linking to it.
+ * `known` is the university as the catalog lists it, if it could be read.
+ */
+async function facultyCards(
+  lang: Lang,
+  address: string,
+  known: CatalogUniversity | undefined,
+): Promise<FacultyCard[]> {
+  const texts = (await facultyTexts(lang, address)).map(({ place, text }) => ({
     faculty: place.faculty as string,
-    // «ФИТ ЧВУТ — Факультет информационных технологий»: the tile says what follows the dash.
+    // Without the catalog's name: «FIT ЧВУТ — Факультет информационных
+    // технологий», the tile says what follows the dash.
     name: text.data.name.split(' — ').at(-1) as string,
     short: text.data.short ?? (place.faculty as string).toUpperCase(),
     chats: text.data.chats.length,
   }));
+  return facultyList(known?.code ?? '', known ? known.faculties : null, texts);
 }
 
 /**
@@ -122,7 +126,7 @@ export async function universityPage(
       (u) => u !== entry && city !== null && u.university.city === city,
     ),
     text,
-    faculties: await facultyCards(lang, address),
+    faculties: await facultyCards(lang, address, known),
     articles: await placeArticles(lang, place),
     indexable: placeIndexable(text !== null, chats?.length ?? null),
     langs: universityLangs(lang, await textLangs(address), chats?.length ?? null),
@@ -175,6 +179,7 @@ export async function facultyPage(
           short_name: null,
           city: null,
           site_url: null,
+          faculties: [],
         });
   const theirs = data ? data.chats.filter((chat) => chat.institution === code) : null;
   return {
@@ -184,7 +189,7 @@ export async function facultyPage(
     text,
     chats: facultyChats(text.data.chats, theirs),
     universityChat: theirs ? mainChat(theirs) : null,
-    siblings: (await facultyCards(lang, address)).filter(
+    siblings: (await facultyCards(lang, address, known)).filter(
       (card) => card.faculty !== faculty,
     ),
     articles: await placeArticles(lang, { address: `${address}/${faculty}`, faculty }),

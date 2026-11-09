@@ -12,7 +12,8 @@
 
 import { INSTITUTION_CODE, type PublicChat, sanitize } from '../../../src/lib/chats.ts';
 import type { Lang } from '../paths.ts';
-import type { CatalogUniversity } from './catalog.ts';
+import type { CatalogFaculty, CatalogUniversity } from './catalog.ts';
+import { facultyAddress } from './directory.ts';
 import { remembered } from './remembered.ts';
 import {
   sanitizeTutor,
@@ -56,6 +57,21 @@ export const publicChats: () => Promise<PublicChat[]> = remembered(
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() ? value : null;
 
+/** A university's faculties as they arrived: only its own, each with a name and a code an address can carry. */
+function sanitizeFaculties(university: string, payload: unknown): CatalogFaculty[] {
+  if (!Array.isArray(payload)) return [];
+  const faculties: CatalogFaculty[] = [];
+  for (const item of payload) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const code = text(row.code);
+    const name = text(row.name);
+    if (!code || !name || !facultyAddress(university, code)) continue;
+    faculties.push({ code, name, short_name: text(row.short_name) });
+  }
+  return faculties;
+}
+
 /** The universities as they arrived, checked: a row the page cannot name or address is dropped. */
 export function sanitizeUniversities(payload: unknown): CatalogUniversity[] {
   if (!Array.isArray(payload)) throw new Error('the universities are not a list');
@@ -74,6 +90,7 @@ export function sanitizeUniversities(payload: unknown): CatalogUniversity[] {
       city: text(row.city),
       // A link the page prints: the university's own site, over https only.
       site_url: site?.startsWith('https://') ? site : null,
+      faculties: sanitizeFaculties(code, row.faculties),
     });
   }
   return universities;

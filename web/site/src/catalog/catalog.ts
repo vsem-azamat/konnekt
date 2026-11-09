@@ -17,12 +17,21 @@ import {
 } from '../../../src/lib/chats.ts';
 
 /** A university as `/api/v1/universities` names it in the page's language. */
+export interface CatalogFaculty {
+  /** `cvut_fit`: its university's code, then its own. */
+  code: string;
+  name: string;
+  short_name: string | null;
+}
+
 export interface CatalogUniversity {
   code: string;
   name: string;
   short_name: string | null;
   city: string | null;
   site_url: string | null;
+  /** Its active faculties, in the catalog's order. */
+  faculties: CatalogFaculty[];
 }
 
 /** A university's page goes to search only with this many chats; below it, noindex. */
