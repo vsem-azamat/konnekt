@@ -642,6 +642,9 @@ a.row:target {
 }
 .dir-text .table td:first-child {
   color: var(--soft);
+}
+/* Its labels a steady column; any other table sizes its columns to what they hold. */
+.dir-text .table:has(thead th:empty:first-child + th:empty:last-child) td:first-child {
   width: 40%;
 }
 
