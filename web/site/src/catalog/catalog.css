@@ -172,7 +172,8 @@
   align-items: flex-start;
   transition: border-color 0.15s;
 }
-.uni:hover {
+/* Only a link answers the pointer: a faculty without a page is a plain card. */
+a.uni:hover {
   border-color: var(--hair-strong);
 }
 .uni .ut {
@@ -355,7 +356,11 @@ a.row:target {
   max-width: 42rem;
   margin-top: 8px;
 }
-.dir-text .article > :first-child {
+/* Its subheadings, which .cat h2 would set flush against what is above (uiux 13395). */
+.cat .dir-text .article :is(h2, h3) {
+  margin: 28px 0 8px;
+}
+.cat .dir-text .article > :first-child {
   margin-top: 0;
 }
 .dir-text h2 .badge {
