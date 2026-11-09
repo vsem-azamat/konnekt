@@ -775,6 +775,11 @@ a.row:target {
   .story .side {
     margin-bottom: 0;
   }
+  /* Beside the chats a table keeps to the text's column and scrolls in it;
+     below them (the end part) it may still grow wider. */
+  .story :is(.part-top, .part-rest) .table {
+    max-width: 100%;
+  }
   /* In the column the chats come one under another. */
   .story .side .rows {
     grid-template-columns: 1fr;
