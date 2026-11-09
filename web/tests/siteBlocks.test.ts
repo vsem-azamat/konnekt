@@ -156,9 +156,26 @@ test('a photo becomes a figure with its caption and credit', () => {
   );
 });
 
-test('an image inside a paragraph of text is not a photo', () => {
-  const { top } = parts(root(para(text('See '), image('../x.jpg'))));
-  assert.equal(top?.[0]?.type, 'paragraph');
+test('an image anywhere but alone in a top-level paragraph stops the build', () => {
+  assert.throws(
+    () => blocks(root(para(text('See '), image('../x.jpg'))), [PHOTO]),
+    /not alone in a paragraph/,
+  );
+  const item: MdNode = { type: 'listItem', children: [para(image('../x.jpg'))] };
+  assert.throws(
+    () => blocks(root({ type: 'list', children: [item] }), [PHOTO]),
+    /not alone in a paragraph/,
+  );
+});
+
+test('a mark below the top level stops the build', () => {
+  const quote: MdNode = { type: 'blockquote', children: [heading('X', 'brief')] };
+  assert.throws(() => blocks(root(quote)), /below the top level/);
+});
+
+test('the mark is gone from the heading it marked', () => {
+  const { rest } = parts(root(heading('Поступление', 'chats')));
+  assert.equal(rest?.[0]?.data?.hProperties, undefined);
 });
 
 test('a photo without its credit, or a credit without its photo, stops the build', () => {
@@ -172,6 +189,10 @@ test('a photo without its credit, or a credit without its photo, stops the build
 test('an article with a marked heading stops the build', () => {
   assert.throws(
     () => checkUnmarked(root(heading('A', 'brief'))),
+    /only a directory text/,
+  );
+  assert.throws(
+    () => checkUnmarked(root({ type: 'blockquote', children: [heading('A', 'brief')] })),
     /only a directory text/,
   );
   checkUnmarked(root(heading('A')));

@@ -18,10 +18,14 @@
  * A photo, an image alone in its paragraph, becomes a figure with its
  * caption (the image's title) and its credit (articles/credit.ts) from the
  * text's `photos`. A photo without a credit, a credit without its photo, an
- * unknown mark or one twice stops the build: the page would silently lose
- * the block, or the credit its photo.
+ * image anywhere else (in a list, in a line of text), an unknown mark, one
+ * twice or one below the top level (in a quote) stops the build: the page
+ * would silently lose the block, or the credit its photo.
  *
- * An article takes no marks: one there stops the build too.
+ * The mark itself is gone from the HTML: it says where a block is, and as a
+ * class on the heading it could meet a style of the same name.
+ *
+ * An article takes no marks: one anywhere in it stops the build too.
  *
  * Written against the shape of the tree alone, as articles/reading.ts is,
  * so the tests build that shape by hand.
@@ -70,6 +74,24 @@ function markOf(node: MdNode): Mark | null {
 
 function headingText(node: MdNode): string {
   return (node.children ?? []).map((child) => child.value ?? headingText(child)).join('');
+}
+
+/** Every node under these, depth first. */
+function* descendants(nodes: readonly MdNode[]): Generator<MdNode> {
+  for (const node of nodes) {
+    yield node;
+    yield* descendants(node.children ?? []);
+  }
+}
+
+function isMarked(node: MdNode): boolean {
+  return node.type === 'heading' && Object.keys(node.data?.hProperties ?? {}).length > 0;
+}
+
+/** The heading without its mark. */
+function unmarked(node: MdNode): MdNode {
+  const { hProperties: _, ...data } = node.data ?? {};
+  return { ...node, data };
 }
 
 function withClass(node: MdNode, name: string): MdNode {
@@ -145,6 +167,19 @@ export function placeBlocks(
   let part: keyof typeof parts = 'top';
   let questions = false;
   const children = root.children ?? [];
+  // What only the top level may hold: below it, the walk here would miss it.
+  for (const top of children) {
+    const below = [...descendants(top.children ?? [])];
+    const image = isPhoto(top) ? undefined : below.find((node) => node.type === 'image');
+    if (image) {
+      throw new Error(
+        `the image ${image.url} is not alone in a paragraph of its own: a photo stands so, to take its credit`,
+      );
+    }
+    const heading = below.find(isMarked);
+    if (heading)
+      throw new Error(`«${headingText(heading)}» is marked below the top level`);
+  }
   for (let i = 0; i < children.length; i++) {
     let node = children[i] as MdNode;
     if (node.type === 'footnoteDefinition' || node.type === 'definition') {
@@ -155,6 +190,7 @@ export function placeBlocks(
       const mark = markOf(node);
       if (node.depth === 2) questions = false;
       if (mark) {
+        node = unmarked(node);
         if (seen.has(mark)) throw new Error(`{.${mark}} marks two headings`);
         seen.add(mark);
         if (mark === 'chats') {
@@ -199,12 +235,11 @@ export function placeBlocks(
 
 /** An article's tree: a mark there would be lost, so it stops the build. */
 export function checkUnmarked(root: MdNode): void {
-  for (const node of root.children ?? []) {
-    if (node.type === 'heading' && node.data?.hProperties) {
-      throw new Error(
-        `the heading «${headingText(node)}» is marked; only a directory text takes marks`,
-      );
-    }
+  const heading = [...descendants(root.children ?? [])].find(isMarked);
+  if (heading) {
+    throw new Error(
+      `the heading «${headingText(heading)}» is marked; only a directory text takes marks`,
+    );
   }
 }
 
