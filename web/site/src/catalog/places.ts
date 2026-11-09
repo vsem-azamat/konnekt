@@ -3,7 +3,7 @@
  * are in a language, and the published articles that name them.
  */
 
-import { type CollectionEntry, getCollection, getEntry } from 'astro:content';
+import { type CollectionEntry, getCollection } from 'astro:content';
 
 import { LANGS, type Lang } from '../paths.ts';
 import { articlesAbout, placeOf, type TextPlace } from './directory.ts';
@@ -13,10 +13,24 @@ export type PlaceText = CollectionEntry<'universities'>;
 /** A draft is the dev server's only: the public page stays as it was until the text is checked. */
 const shown = (text: PlaceText) => !text.data.draft || import.meta.env.DEV;
 
+let read: Promise<PlaceText[]> | undefined;
+
+/**
+ * Every text to show, read once per server: the built collection never
+ * changes, and Astro warns on each empty read or missing entry, which would
+ * be every request while there are few texts. The dev server reads anew, as
+ * its texts are being edited.
+ */
+function texts(): Promise<PlaceText[]> {
+  if (import.meta.env.DEV) return getCollection('universities', shown);
+  read ??= getCollection('universities', shown);
+  return read;
+}
+
 /** The text at `address` (`cvut`, `cvut/fit`) in `lang`, if there is one to show. */
 export async function placeText(lang: Lang, address: string): Promise<PlaceText | null> {
-  const text = await getEntry('universities', `${lang}/${address}`);
-  return text && shown(text) ? text : null;
+  const id = `${lang}/${address}`;
+  return (await texts()).find((text) => text.id === id) ?? null;
 }
 
 /** The faculties of the university at `address` that have a text in `lang`, in their files' order. */
@@ -24,7 +38,7 @@ export async function facultyTexts(
   lang: Lang,
   address: string,
 ): Promise<{ place: TextPlace; text: PlaceText }[]> {
-  return (await getCollection('universities', shown))
+  return (await texts())
     .map((text) => ({ place: placeOf(text.id), text }))
     .filter(
       ({ place }) =>
@@ -47,7 +61,7 @@ export async function placeArticles(
 
 /** Every text there is to show, with its place: the sitemap's. */
 export async function allPlaceTexts(): Promise<{ place: TextPlace; text: PlaceText }[]> {
-  return (await getCollection('universities', shown)).map((text) => ({
+  return (await texts()).map((text) => ({
     place: placeOf(text.id),
     text,
   }));
