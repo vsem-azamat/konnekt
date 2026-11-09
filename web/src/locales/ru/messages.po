@@ -407,10 +407,6 @@ msgstr "Вступление"
 msgid "Как исправить: Telegram → чат → Администраторы → Konnekt → включите право."
 msgstr "Как исправить: Telegram → чат → Администраторы → Konnekt → включите право."
 
-#: src/console/UsageLabels.tsx
-msgid "общие"
-msgstr "общие"
-
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "математический анализ ČVUT"
@@ -1745,6 +1741,10 @@ msgstr "подвал"
 #: src/console/Pings.tsx
 msgid "Уже в чёрном списке."
 msgstr "Уже в чёрном списке."
+
+#: src/console/UsageLabels.tsx
+msgid "Помощник"
+msgstr "Помощник"
 
 #. placeholder {0}: counts.signals
 #: src/console/BrowserShell.tsx
@@ -3603,6 +3603,10 @@ msgstr "Сначала показывать"
 msgid "Договоримся"
 msgstr "Договоримся"
 
+#: src/console/UsageLabels.tsx
+msgid "общие чаты"
+msgstr "общие чаты"
+
 #: src/console/ConsoleGate.tsx
 msgid "Нет доступа к чатам"
 msgstr "Нет доступа к чатам"
@@ -4691,10 +4695,6 @@ msgstr "Решают админы"
 #: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
-
-#: src/console/UsageLabels.tsx
-msgid "Открыть помощника"
-msgstr "Открыть помощника"
 
 #: src/pages/Request.tsx
 msgid "Отклики"

@@ -66,7 +66,7 @@ export function useUsageLabels() {
   };
   const taps: Record<string, string> = {
     search_submit: t`Найти`,
-    helper_open: t`Открыть помощника`,
+    helper_open: t`Помощник`,
     contact_tap: t`Написать`,
     offer_start: t`Стать помощником`,
     request_send: t`Отправить заявку`,
@@ -133,7 +133,7 @@ export function useUsageLabels() {
         case 'school':
           return `${base} · ${school(about.code)}`;
         case 'general':
-          return `${base} · ${t`общие`}`;
+          return `${base} · ${t`общие чаты`}`;
         case 'from':
           return `${base} · ${froms[about.key] ?? about.key}`;
       }
