@@ -28,12 +28,18 @@ async def test_a_university_carries_what_its_page_shows(client: AsyncClient) -> 
     response = await client.get("/api/v1/universities", params={"lang": "cs"})
 
     cvut = next(row for row in response.json() if row["code"] == "cvut")
+    faculties = cvut.pop("faculties")
     assert cvut == {
         "code": "cvut",
         "name": "České vysoké učení technické v Praze",
         "short_name": "ČVUT",
         "city": "Praha",
         "site_url": "https://www.cvut.cz",
+    }
+    assert faculties[0] == {
+        "code": "cvut_fsv",
+        "name": "Fakulta stavební",
+        "short_name": "FSv",
     }
 
 
@@ -44,6 +50,37 @@ async def test_faculties_are_not_universities(client: AsyncClient) -> None:
     codes = {row["code"] for row in response.json()}
     assert "cvut" in codes
     assert "cvut_fit" not in codes
+
+
+async def test_a_university_lists_its_faculties_in_order(client: AsyncClient) -> None:
+    """Its page lists every faculty, the ones without a text of the site's too."""
+    response = await client.get("/api/v1/universities")
+
+    cvut = next(row for row in response.json() if row["code"] == "cvut")
+    assert [f["code"] for f in cvut["faculties"]] == [
+        "cvut_fsv",
+        "cvut_fs",
+        "cvut_fel",
+        "cvut_fjfi",
+        "cvut_fa",
+        "cvut_fd",
+        "cvut_fbmi",
+        "cvut_fit",
+    ]
+    assert cvut["faculties"][-1]["name"] == "Факультет информационных технологий"
+
+
+async def test_a_retired_faculty_is_not_listed(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    await session.execute(
+        update(Institution).where(Institution.code == "cvut_fit").values(is_active=False)
+    )
+
+    response = await client.get("/api/v1/universities")
+
+    cvut = next(row for row in response.json() if row["code"] == "cvut")
+    assert "cvut_fit" not in {f["code"] for f in cvut["faculties"]}
 
 
 async def test_names_follow_the_asked_language(client: AsyncClient) -> None:

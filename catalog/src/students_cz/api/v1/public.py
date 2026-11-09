@@ -18,6 +18,7 @@ from students_cz.db.models import Institution
 from students_cz.db.models.enums import InstitutionKind, UiLang
 from students_cz.schemas import (
     AdsInfo,
+    PublicFaculty,
     PublicHelperCard,
     PublicHelperPage,
     PublicUniversity,
@@ -151,6 +152,24 @@ async def universities(
     rows = (
         await session.scalars(_universities().order_by(Institution.sort, Institution.id))
     ).all()
+    # Every university's faculties in one query, not one per university.
+    faculties: dict[int | None, list[PublicFaculty]] = {row.id: [] for row in rows}
+    for faculty in await session.scalars(
+        select(Institution)
+        .where(
+            Institution.is_active.is_(True),
+            Institution.kind == InstitutionKind.FACULTY,
+            Institution.parent_id.in_(faculties),
+        )
+        .order_by(Institution.sort, Institution.id)
+    ):
+        faculties[faculty.parent_id].append(
+            PublicFaculty(
+                code=faculty.code,
+                name=translated(faculty, lang) or faculty.code,
+                short_name=translated(faculty, lang, "short_name"),
+            )
+        )
     return [
         PublicUniversity(
             code=row.code,
@@ -158,6 +177,7 @@ async def universities(
             short_name=translated(row, lang, "short_name"),
             city=row.city,
             site_url=row.site_url,
+            faculties=faculties[row.id],
         )
         for row in rows
     ]

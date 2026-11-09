@@ -652,11 +652,20 @@ class AdsInfo(BaseModel):
     contact_url: str | None
 
 
+class PublicFaculty(BaseModel):
+    """A faculty as its university's page on the public site lists it."""
+
+    code: str
+    name: str
+    short_name: str | None
+
+
 class PublicUniversity(BaseModel):
     """A university as the public site names it on its catalog pages.
 
-    Reference data and nothing else: no id, no faculties, nothing about who
-    studies there. `site_url` is the university's own site, which its page links.
+    Reference data and nothing else: no id, nothing about who studies there.
+    `site_url` is the university's own site, which its page links; `faculties`
+    its active ones, in the catalog's order, which its page lists.
     """
 
     code: str
@@ -664,6 +673,7 @@ class PublicUniversity(BaseModel):
     short_name: str | None
     city: str | None
     site_url: str | None
+    faculties: list[PublicFaculty]
 
 
 class PublicHelperCard(BaseModel):
