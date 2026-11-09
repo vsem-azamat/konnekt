@@ -6,6 +6,7 @@ import { defineConfig } from 'astro/config';
 import { parse } from 'yaml';
 
 import { readingPlugin } from './src/articles/reading.ts';
+import { placeBlocksPlugin } from './src/catalog/blocks.ts';
 import { checkPlaces, placeOf } from './src/catalog/directory.ts';
 
 import {
@@ -97,12 +98,21 @@ export default defineConfig({
   // node_modules. The dev server resolves them as usual, and could not load
   // the CommonJS among them bundled.
   vite: { ssr: { noExternal: building || undefined } },
-  // An article's notes are its sources, and a table scrolls in its own box (articles/reading.ts).
+  // An article's notes are its sources, and a table scrolls in its own box (articles/reading.ts);
+  // a directory text's headings may carry a mark, `## Коротко {.brief}`, for its blocks
+  // (catalog/blocks.ts).
   // Astro keeps rendered Markdown by the file's content in site/node_modules/.astro, and
-  // a plugin's code is not part of that key: after changing reading.ts or texts.ts,
+  // a plugin's code is not part of that key: after changing reading.ts, blocks.ts or texts.ts,
   // delete that directory (and site/.astro) before a local build. CI builds clean.
-  // biome-ignore lint/suspicious/noExplicitAny: Sätteri's node types are its own; the plugin reads the shape it needs.
-  markdown: { processor: satteri({ hastPlugins: [readingPlugin as any] }) },
+  markdown: {
+    processor: satteri({
+      features: { headingAttributes: true },
+      // biome-ignore lint/suspicious/noExplicitAny: Sätteri's node types are its own; the plugins read the shape they need.
+      mdastPlugins: [placeBlocksPlugin as any],
+      // biome-ignore lint/suspicious/noExplicitAny: as above.
+      hastPlugins: [readingPlugin as any],
+    }),
+  },
   integrations: [
     sitemap({
       // The catalog pages are rendered on request and listed by their own
