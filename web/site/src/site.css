@@ -526,3 +526,35 @@ h1 + .lede {
 .article sup a[data-footnote-ref]:is(:hover, :focus-visible) {
   text-decoration: underline;
 }
+
+/* «Вузы в статье»: each university or faculty the article is about, a row to its page
+   (catalog/directory.ts), with the catalog's lettered tile (uiux 13361). */
+.places {
+  margin-top: 40px;
+}
+.place-rows {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.place-rows .row {
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.place-rows .row:hover {
+  background: color-mix(in srgb, var(--surface) 70%, var(--hair));
+}
+.places .mono {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+}
+.places .mono[data-long] {
+  font-size: 9.5px;
+}
