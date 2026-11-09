@@ -39,6 +39,37 @@
   text-decoration: none;
 }
 
+/* The cover as a square at the right; the 3:2 image is cropped around
+   coverFocus, so the square is 144px of image wide (108px on a phone). */
+.articles-list a.has-cover {
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: start;
+  gap: 16px;
+}
+
+.ac-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ac-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+@media (max-width: 559px) {
+  .articles-list a.has-cover {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    gap: 12px;
+  }
+}
+
 .articles-list p {
   margin: 0;
   color: var(--soft);
@@ -293,6 +324,16 @@ h1 + .lede {
 
 .next {
   margin-top: 48px;
+}
+
+/* A screenshot of an official site in the text: the column's width, framed so
+   a white page does not melt into the light theme. */
+.article p > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
 }
 
 /* A table scrolls in its own box; on a wide screen it may be wider than the text. */

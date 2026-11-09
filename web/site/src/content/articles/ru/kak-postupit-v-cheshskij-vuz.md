@@ -107,6 +107,10 @@ draft: false
 
 Для плана «бесплатно» ищите программу, где язык обучения чешский. Если вы хотите учиться на английском, читайте плату на странице программы.
 
+![Каталог Study in Czechia: выбраны фильтры Czech, public и Bachelor study programme, на карте видно, сколько таких программ в каждом городе](../../../assets/screenshots/studyin-ceske-bakalarske-programy.webp)
+
+*Так выглядит [каталог Study in Czechia](https://studyin.gov.cz/study-programmes) с фильтрами по языку, типу вуза и бакалавриату. Снимок 8 ноября 2026.*
+
 ## 3. Проверьте требование к чешскому языку
 
 Общего для страны уровня нет. По данным [Study in Czechia](https://studyin.gov.cz/plan-your-studies/how-to-apply), точный уровень и принимаемые документы определяет вуз и программа.

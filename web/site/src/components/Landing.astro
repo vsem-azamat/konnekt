@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+
 import { published } from '../articles/published.ts';
 /**
  * Landing F in one language, rendered at build time: every word is in the
@@ -61,8 +63,20 @@ const avatar = (name: string) => {
       <section class="card ax" aria-label={t("nav.guides")}>
         <div class="ax-head"><span class="eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg><span>{t("nav.guides")}</span></span><a class="ax-all" href={localePath(lang, "/articles/")}><span>{t("guides.all")}</span><Fragment set:html={arrow} /></a></div>
         <div class="ax-list">
-          {articles.map((article) => (
+          {articles.map((article, i) => (
             <a class="ax-i" href={articlePath(article.id)}>
+              {i === 0 && article.data.cover && (
+                <Image
+                  class="ax-img"
+                  src={article.data.cover}
+                  alt=""
+                  widths={[400, 800, 1200]}
+                  sizes="(min-width: 1040px) min(30vw, 352px), (min-width: 720px) 45vw, 100vw"
+                  loading="eager"
+                  decoding="async"
+                  style={`object-position: ${Math.round((article.data.coverFocus ?? 0.5) * 100)}% 50%`}
+                />
+              )}
               <small class="ax-meta"><span class="ax-tag">{TEXTS[lang].rubrics[article.data.rubric]}</span><span>{longDate(lang, article.data.published)}</span></small>
               <h3 class="ax-t">{article.data.title}</h3>
               <p class="ax-d">{article.data.description}</p>
