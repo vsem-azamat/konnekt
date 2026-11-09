@@ -137,7 +137,7 @@ const schema = {
               <section class="sec" aria-labelledby="s-chats">
                 <header>
                   <h2 id="s-chats">{d.facultyChats}</h2>
-                  {chats.length > 0 && <span class="count">{count(lang, chats.length, t.chats)}</span>}
+                  <span class="count">{count(lang, chats.length + (universityChat ? 1 : 0), t.chats)}</span>
                 </header>
                 <div class="rows">
                   {chats.map((one) =>

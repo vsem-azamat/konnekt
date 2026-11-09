@@ -642,6 +642,9 @@ a.row:target {
 }
 .dir-text .table td:first-child {
   color: var(--soft);
+}
+/* Its labels a steady column; any other table sizes its columns to what they hold. */
+.dir-text .table:has(thead th:empty:first-child + th:empty:last-child) td:first-child {
   width: 40%;
 }
 
@@ -774,6 +777,11 @@ a.row:target {
   }
   .story .side {
     margin-bottom: 0;
+  }
+  /* Beside the chats a table keeps to the text's column and scrolls in it;
+     below them (the end part) it may still grow wider. */
+  .story :is(.part-top, .part-rest) .table {
+    max-width: 100%;
   }
   /* In the column the chats come one under another. */
   .story .side .rows {
