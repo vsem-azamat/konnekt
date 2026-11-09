@@ -2,8 +2,8 @@
 /**
  * A university's or a faculty's text (directory.ts): set as an article's,
  * then a grey line of its sources and the day they were last read. A text
- * with notes has its sources listed in them (articles/reading.ts), and the
- * line keeps only the day.
+ * with notes lists its sources in them, each with its day
+ * (articles/reading.ts), and has no line (uiux 13417).
  */
 import { render } from 'astro:content';
 
@@ -39,23 +39,18 @@ const checked = sources.reduce<Date | null>(
     <Content />
   </div>
   {
-    sources.length > 0 && (
+    !notes && sources.length > 0 && (
       <p class="dir-sources">
-        {!notes && (
+        {d.sources}:{' '}
+        {sources.map((source, i) => (
           <Fragment>
-            {d.sources}:{' '}
-            {sources.map((source, i) => (
-              <Fragment>
-                {i > 0 && ', '}
-                <a href={source.url} rel="nofollow">{source.title}</a>
-              </Fragment>
-            ))}
-            {checked && ' · '}
+            {i > 0 && ', '}
+            <a href={source.url} rel="nofollow">{source.title}</a>
           </Fragment>
-        )}
+        ))}
         {checked && (
           <Fragment>
-            {notes ? d.checkedAll : d.checked}{' '}<time datetime={day(checked)}>{longDate(lang, checked)}</time>
+            {' '}· {d.checked}{' '}<time datetime={day(checked)}>{longDate(lang, checked)}</time>
           </Fragment>
         )}
       </p>
