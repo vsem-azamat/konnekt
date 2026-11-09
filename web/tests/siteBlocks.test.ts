@@ -168,6 +168,11 @@ test('an image anywhere but alone in a top-level paragraph stops the build', () 
   );
 });
 
+test('an image by reference stops the build', () => {
+  const ref: MdNode = { type: 'imageReference' };
+  assert.throws(() => blocks(root(para(ref))), /by reference/);
+});
+
 test('a mark below the top level stops the build', () => {
   const quote: MdNode = { type: 'blockquote', children: [heading('X', 'brief')] };
   assert.throws(() => blocks(root(quote)), /below the top level/);

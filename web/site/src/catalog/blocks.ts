@@ -169,6 +169,12 @@ export function placeBlocks(
   const children = root.children ?? [];
   // What only the top level may hold: below it, the walk here would miss it.
   for (const top of children) {
+    // A reference-style image (`![a][ref]`) skips Astro's image step and the credit.
+    const reference = [...descendants([top])].find(
+      (node) => node.type === 'imageReference',
+    );
+    if (reference)
+      throw new Error('an image by reference: a photo goes by its path, ![…](…)');
     const below = [...descendants(top.children ?? [])];
     const image = isPhoto(top) ? undefined : below.find((node) => node.type === 'image');
     if (image) {

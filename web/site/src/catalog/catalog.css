@@ -426,9 +426,15 @@ a.row:target {
      screen), so the button shows on a low laptop's first screen; and never
      shorter than its text: on a phone held sideways the frame grows rather
      than cut the name. */
-  min-height: min(125cqi, 72svh);
+  min-height: 420px;
   width: 100%;
   background: var(--surface);
+}
+/* Where cqi or svh are unknown, the 420px above stays. */
+@supports (height: 1cqi) and (height: 1svh) {
+  .fhero-frame {
+    min-height: min(125cqi, 72svh);
+  }
 }
 @media (min-width: 720px) {
   .fhero-frame {
