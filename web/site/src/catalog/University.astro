@@ -1,75 +1,109 @@
 ---
 /**
- * A university's page: its chats by heading, each an anchor rather than a page
- * of its own, the way into the app on this university's chats, and its
- * neighbours in the same city. Tutors join it with (c): real ones, with
- * consent, filtered by university.
+ * A university's page (directory.ts): our text about it when there is one,
+ * its faculties that have theirs, the articles about it, then its chats by
+ * heading, each an anchor rather than a page of its own, the way into the
+ * app on this university's chats, and its neighbours in the same city.
+ * Without the catalogue, the text and the way into the app stay.
  */
+import ArticleCards from '../components/ArticleCards.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { num, openLink } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import { localePath } from '../paths.ts';
+import '../site.css';
 import ChatRow from './ChatRow.astro';
-import { anchors, indexable, jsonLd, mainChat, sections } from './catalog.ts';
+import { anchors, jsonLd, mainChat, sections } from './catalog.ts';
 import './catalog.css';
-import type { UniversityProps } from './load.ts';
+import DirectoryText from './DirectoryText.astro';
+import { placePath, universityAddress, universityPath } from './directory.ts';
+import type { UniversityProps } from './directoryPages.ts';
+import { DIRECTORY_TEXTS } from './directoryTexts.ts';
 import { toneOf } from './page.ts';
 import { CATALOG_TEXTS, count, noun } from './texts.ts';
 
 type Props = UniversityProps;
 
-const { lang, entry, neighbours } = Astro.props;
+const {
+  lang,
+  university: u,
+  chats,
+  neighbours,
+  text,
+  faculties,
+  articles,
+  indexable,
+} = Astro.props;
 const t = CATALOG_TEXTS[lang];
-const { university: u, chats } = entry;
+const d = DIRECTORY_TEXTS[lang];
 const short = u.short_name ?? u.name;
-const path = `/universities/${u.code}/`;
-const thin = !indexable(entry);
-const main = mainChat(chats);
-const ids = anchors(chats);
+const address = universityAddress(u.code);
+const path = `/universities/${address}/`;
+const main = chats && mainChat(chats);
+const ids = anchors(chats ?? []);
 const site = Astro.site?.href ?? '/';
 const page = new URL(localePath(lang, path), site).href;
 const home = new URL(localePath(lang, '/'), site).href;
 const list = new URL(localePath(lang, '/universities/'), site).href;
 const open = `/api/v1/open?start=uni-${u.code}`;
+const website = text?.data.website ?? u.site_url;
+// Few chats and nothing of ours: the page asks for more rather than pretend.
+const thin = chats !== null && !text && !indexable;
+const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
 
-// What search engines read of the page: a collection about the university,
-// its chats as a list, and the way here.
+// What search engines read of the page: the university itself, its
+// faculties with pages of their own, its chats as a list, and the way here.
+const organization = {
+  '@type': 'CollegeOrUniversity',
+  '@id': `${page}#university`,
+  name: u.name,
+  ...(u.short_name ? { alternateName: u.short_name } : {}),
+  ...(website ? { url: website } : {}),
+  ...(u.city
+    ? {
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: u.city,
+          addressCountry: 'CZ',
+        },
+      }
+    : {}),
+  ...(faculties.length > 0
+    ? {
+        subOrganization: faculties.map((f) => ({
+          '@id': `${new URL(placePath(lang, `${address}/${f.faculty}`), site).href}#faculty`,
+        })),
+      }
+    : {}),
+};
 const schema = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'CollectionPage',
+      '@type': text ? 'WebPage' : 'CollectionPage',
       '@id': page,
       url: page,
-      name: t.universityH1(short),
+      name: text?.data.name ?? t.universityH1(short),
       inLanguage: lang,
-      about: {
-        '@type': 'CollegeOrUniversity',
-        name: u.name,
-        ...(u.short_name ? { alternateName: u.short_name } : {}),
-        ...(u.site_url ? { url: u.site_url } : {}),
-        ...(u.city
-          ? {
-              address: {
-                '@type': 'PostalAddress',
-                addressLocality: u.city,
-                addressCountry: 'CZ',
-              },
-            }
-          : {}),
-      },
-      mainEntity: {
-        '@type': 'ItemList',
-        numberOfItems: chats.length,
-        itemListElement: chats.map((chat, i) => ({
-          '@type': 'ListItem',
-          position: i + 1,
-          name: chat.title,
-          url: `${page}#${ids.get(chat)}`,
-        })),
-      },
+      ...(text ? { dateModified: text.data.updated.toISOString().slice(0, 10) } : {}),
+      about: { '@id': organization['@id'] },
+      ...(chats && chats.length > 0
+        ? {
+            mainEntity: {
+              '@type': 'ItemList',
+              numberOfItems: chats.length,
+              itemListElement: chats.map((chat, i) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                name: chat.title,
+                url: `${page}#${ids.get(chat)}`,
+              })),
+            },
+          }
+        : {}),
     },
+    organization,
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -85,9 +119,10 @@ const schema = {
 <Base
   lang={lang}
   path={path}
-  title={t.universityTitle(short)}
-  description={t.universityDescription(count(lang, chats.length, t.chats), short, u.name)}
-  noindex={thin}
+  title={text?.data.title ?? t.universityTitle(short)}
+  description={text?.data.description ??
+    t.universityDescription(count(lang, chats?.length ?? 0, t.chats), short, u.name)}
+  noindex={!indexable}
 >
   <script is:inline type="application/ld+json" set:html={jsonLd(schema)} />
   <Header lang={lang} path={path} />
@@ -100,21 +135,72 @@ const schema = {
 
     <div class={`card cat-hero with-side wash${toneOf(u.code) % 4}`}>
       <div class="cat-hero">
-        <h1>{t.universityH1(short)}</h1>
-        <p class="facts">{u.name}{u.city && <Fragment>&nbsp;· <span>{u.city}{u.site_url && <Fragment>&nbsp;·</Fragment>}</span></Fragment>}{u.site_url && <Fragment> <span><a href={u.site_url} rel="nofollow">{u.site_url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></span></Fragment>}</p>
-        <div class="nums">
-          <div><b>{num(lang, chats.length)}</b><span>{noun(lang, chats.length, t.chats)} {t.inCatalog}</span></div>
-          {main?.member_count != null && <div><b>{num(lang, main.member_count)}</b><span>{noun(lang, main.member_count, t.members)} {t.inMain}</span></div>}
-        </div>
+        <h1 class:list={{ long: (text?.data.name.length ?? 0) > 24 }}>{text?.data.name ?? t.universityH1(short)}</h1>
+        <p class="facts">{!text && u.name}{u.city && <Fragment>{!text && <Fragment>&nbsp;· </Fragment>}<span>{u.city}{website && <Fragment>&nbsp;·</Fragment>}</span></Fragment>}{website && <Fragment> <span><a href={website} rel="nofollow">{website.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></span></Fragment>}</p>
+        {
+          chats && chats.length > 0 && (
+            <div class="nums">
+              <div><b>{num(lang, chats.length)}</b><span>{noun(lang, chats.length, t.chats)} {t.inCatalog}</span></div>
+              {main?.member_count != null && <div><b>{num(lang, main.member_count)}</b><span>{noun(lang, main.member_count, t.members)} {t.inMain}</span></div>}
+            </div>
+          )
+        }
       </div>
       <div class="actions">
-        <a class="btn" href={open}><span>{t.open}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href={open}><span>{t.open}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
         <div class="later">{thin ? t.free : t.freeFaculty}</div>
       </div>
     </div>
 
+    {text && <DirectoryText lang={lang} text={text} heading={d.aboutUniversity} />}
+
     {
-      sections(chats).map(({ topic, chats: here }) => (
+      faculties.length > 0 && (
+        <section class="sec" aria-labelledby="s-faculties">
+          <header>
+            <h2 id="s-faculties">{d.faculties}</h2>
+            <span class="count">{faculties.length}</span>
+          </header>
+          <div class="cat-grid dir-grid">
+            {faculties.map((f) => (
+              <a class="card uni" href={placePath(lang, `${address}/${f.faculty}`)}>
+                <span class={`mono tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
+                <span class="ut">
+                  <b>{f.name}</b>
+                  {f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      articles.length > 0 && (
+        <section class="sec" aria-labelledby="s-articles">
+          <header>
+            <h2 id="s-articles">{d.articlesAbout(short)}</h2>
+          </header>
+          <div class="dir-articles">
+            <ArticleCards lang={lang} articles={articles} />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      chats === null && (
+        <div class="card thin sec">
+          <h2>{d.appTitle(short)}</h2>
+          <p>{d.appText}</p>
+          <a class="all" href={open}><span>{t.open}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
+        </div>
+      )
+    }
+
+    {
+      sections(chats ?? []).map(({ topic, chats: here }) => (
         <section class="sec" aria-labelledby={`s-${topic}`}>
           <header>
             <h2 id={`s-${topic}`}>{t.pageTopics[topic]}</h2>
@@ -132,7 +218,7 @@ const schema = {
         <div class="card thin sec">
           <h3>{t.thinTitle}</h3>
           <p>{t.thinText(short)}</p>
-          <a class="all" href={openLink("site_university")}><span>{t.suggest}</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="all" href={openLink("site_university")}><span>{t.suggest}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
         </div>
       )
     }
@@ -147,7 +233,7 @@ const schema = {
             {neighbours.map(({ university: n, chats: theirs }) => {
               const name = n.short_name ?? n.name;
               return (
-                <a class="row" href={localePath(lang, `/universities/${n.code}/`)}>
+                <a class="row" href={universityPath(lang, n.code)}>
                   <span class={`mono small tone${toneOf(n.code)}`} data-long={name.length > 4 || undefined} aria-hidden="true">{name}</span>
                   <span class="rt"><b>{n.name}</b><small>{count(lang, theirs.length, t.chats)}</small></span>
                 </a>
@@ -158,7 +244,7 @@ const schema = {
       )
     }
 
-    <p class="note">{t.note}</p>
+    {chats && chats.length > 0 && <p class="note">{t.note}</p>}
   </main>
   <Footer lang={lang} path={path} />
 </Base>

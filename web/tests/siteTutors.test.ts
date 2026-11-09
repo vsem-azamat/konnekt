@@ -175,7 +175,9 @@ const json =
 
 const { tutor } = await import('../site/src/catalog/source.ts');
 const { tutorPage } = await import('../site/src/catalog/load.ts');
-const { GET: catalogSitemap } = await import('../site/src/pages/sitemap-catalog.xml.ts');
+const { catalogSitemap: sitemapOf } = await import('../site/src/catalog/sitemap.ts');
+// No texts: the content layer is Astro's, and the test is about the tutors.
+const catalogSitemap = sitemapOf(async () => []);
 
 test('an id that is not on the list is no page, and never a request to the catalog', async () => {
   answers.set('http://catalog.test/api/v1/public/helpers?lang=uk', json([card()]));
@@ -221,4 +223,31 @@ test('the catalog sitemap lists the universities when the tutors cannot be read'
   const xml = await response.text();
   assert.match(xml, /konnekt\.cz\/universities\//);
   assert.doesNotMatch(xml, /tutors/);
+});
+
+test('the catalog sitemap lists a university and its faculties in the languages they have our text in', async () => {
+  answers.set('http://webapi.test/api/public/catalog', json([]));
+  answers.set('http://catalog.test/api/v1/universities', json([]));
+  const place = (lang: 'ru' | 'uk', university: string, faculty: string | null) => ({
+    place: {
+      lang,
+      university,
+      faculty,
+      address: faculty ? `${university}/${faculty}` : university,
+    },
+  });
+  const withTexts = sitemapOf(async () => [
+    place('ru', 'cvut', null),
+    place('ru', 'cvut', 'fit'),
+    place('uk', 'cvut', 'fit'),
+  ]);
+  // biome-ignore lint/suspicious/noExplicitAny: only `site` is read.
+  const xml = await (
+    await withTexts({ site: new URL('https://konnekt.cz/') } as any)
+  ).text();
+  assert.match(xml, /<loc>https:\/\/konnekt\.cz\/universities\/cvut\/<\/loc>/);
+  // No chats and no Ukrainian text: the Ukrainian page of the university is not listed.
+  assert.doesNotMatch(xml, /<loc>https:\/\/konnekt\.cz\/uk\/universities\/cvut\/<\/loc>/);
+  assert.match(xml, /<loc>https:\/\/konnekt\.cz\/uk\/universities\/cvut\/fit\/<\/loc>/);
+  assert.doesNotMatch(xml, /\/en\/universities\/cvut\/fit\//);
 });

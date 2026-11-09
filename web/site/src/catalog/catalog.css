@@ -12,7 +12,7 @@
   }
 }
 
-.crumbs {
+.cat .crumbs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -22,11 +22,11 @@
   color: var(--muted);
   font-size: 14px;
 }
-.crumbs li + li::before {
+.cat .crumbs li + li::before {
   content: '›';
   margin-right: 6px;
 }
-.crumbs a {
+.cat .crumbs a {
   color: var(--soft);
   text-decoration: underline;
   text-decoration-color: var(--hair-strong);
@@ -348,4 +348,49 @@ a.row:target {
 /* A filtered-out row or card: the rows' own display: flex would show it. */
 .cat [hidden] {
   display: none;
+}
+
+/* The directory's text (DirectoryText.astro): an article's type, a line of about 65 characters. */
+.dir-text .article {
+  max-width: 42rem;
+  margin-top: 8px;
+}
+.dir-text .article > :first-child {
+  margin-top: 0;
+}
+.dir-text h2 .badge {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.dir-sources {
+  max-width: 42rem;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.cat .dir-sources a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}
+
+/* A university's faculties: one column on a phone, two from 720, three from 1040 (uiux 13361). */
+@media (min-width: 720px) {
+  .dir-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1040px) {
+  .dir-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.dir-articles {
+  margin-top: 12px;
+}
+/* A directory page's heading is a name in full, «ЧВУТ — Чешский технический университет в Праге»: smaller, and across the card. */
+.cat-hero h1.long {
+  font-size: clamp(28px, 6.4vw, 44px);
+  max-width: 22ch;
 }

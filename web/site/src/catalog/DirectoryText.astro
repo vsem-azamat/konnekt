@@ -1,0 +1,56 @@
+---
+/**
+ * A university's or a faculty's text (directory.ts): set as an article's,
+ * then a grey line of its sources and the day they were last read.
+ */
+import { render } from 'astro:content';
+
+import { day } from '../articles/structured.ts';
+import type { Lang } from '../paths.ts';
+import { longDate, TEXTS } from '../texts.ts';
+import { DIRECTORY_TEXTS } from './directoryTexts.ts';
+import type { PlaceText } from './places.ts';
+
+interface Props {
+  lang: Lang;
+  text: PlaceText;
+  heading: string;
+}
+
+const { lang, text, heading } = Astro.props;
+const d = DIRECTORY_TEXTS[lang];
+const { Content } = await render(text);
+const { sources, draft } = text.data;
+const checked = sources.reduce<Date | null>(
+  (latest, { checked_at }) =>
+    latest === null || checked_at > latest ? checked_at : latest,
+  null,
+);
+---
+
+<section class="sec dir-text" aria-labelledby="s-about">
+  <header>
+    <h2 id="s-about">{heading}{draft && <span class="badge">{TEXTS[lang].example}</span>}</h2>
+  </header>
+  <div class="article">
+    <Content />
+  </div>
+  {
+    sources.length > 0 && (
+      <p class="dir-sources">
+        {d.sources}:{' '}
+        {sources.map((source, i) => (
+          <Fragment>
+            {i > 0 && ', '}
+            <a href={source.url} rel="nofollow">{source.title}</a>
+          </Fragment>
+        ))}
+        {checked && (
+          <Fragment>
+            {' '}· {d.checked}{' '}<time datetime={day(checked)}>{longDate(lang, checked)}</time>
+          </Fragment>
+        )}
+      </p>
+    )
+  }
+</section>

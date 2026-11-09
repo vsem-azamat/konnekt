@@ -1,0 +1,18 @@
+---
+import { facultyPage } from '../../../../catalog/directoryPages.ts';
+/** Rendered on request (catalog/directoryPages.ts): see the component for what it shows. */
+import Faculty from '../../../../catalog/Faculty.astro';
+import { CACHED } from '../../../../catalog/page.ts';
+
+export const prerender = false;
+
+const page = await facultyPage(
+  Astro.params.lang,
+  Astro.params.code,
+  Astro.params.faculty,
+);
+if (page instanceof Response) return page;
+Astro.response.headers.set('Cache-Control', CACHED);
+---
+
+<Faculty {...page} />

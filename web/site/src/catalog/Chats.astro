@@ -18,6 +18,7 @@ import { localePath } from '../paths.ts';
 import ChatRow from './ChatRow.astro';
 import { citySlug } from './catalog.ts';
 import './catalog.css';
+import { universityPath } from './directory.ts';
 import type { ChatsProps } from './load.ts';
 import { CATALOG_TEXTS, count } from './texts.ts';
 
@@ -66,14 +67,14 @@ const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
             {universities.map((line) => (
               <div class="one" data-group>
                 <header>
-                  <h3>{line.code ? <a href={localePath(lang, `/universities/${line.code}/`)}>{line.name}</a> : line.name}</h3>
+                  <h3>{line.code ? <a href={universityPath(lang, line.code)}>{line.name}</a> : line.name}</h3>
                   {line.city && <span class="count">{line.city}</span>}
                 </header>
                 <div class="rows">
                   {(line.code ? line.chats : line.chats.slice(0, 1)).map((chat) => <ChatRow lang={lang} chat={chat} note={chat === line.main ? t.main : null} />)}
                 </div>
                 {line.code && line.chats.length > 1 && (
-                  <a class="more-link" href={localePath(lang, `/universities/${line.code}/`)} data-more>{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true" set:html={arrow} /></a>
+                  <a class="more-link" href={universityPath(lang, line.code)} data-more>{t.more(count(lang, line.chats.length - 1, t.chats), line.name)}<svg viewBox="0 0 24 24" aria-hidden="true" set:html={arrow} /></a>
                 )}
                 {!line.code && line.chats.length > 1 && (
                   <details class="rest">

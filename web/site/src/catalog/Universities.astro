@@ -9,6 +9,7 @@ import Base from '../layouts/Base.astro';
 import { localePath } from '../paths.ts';
 import { citySlug, mainChat } from './catalog.ts';
 import './catalog.css';
+import { universityPath } from './directory.ts';
 import type { UniversitiesProps } from './load.ts';
 import { toneOf } from './page.ts';
 import { CATALOG_TEXTS, count } from './texts.ts';
@@ -51,7 +52,7 @@ const here = localePath(lang, path);
           // student many times, and another chat's might be a dorm's.
           const main = mainChat(chats);
           return (
-            <a class="card uni" href={localePath(lang, `/universities/${u.code}/`)}>
+            <a class="card uni" href={universityPath(lang, u.code)}>
               <span class={`mono tone${toneOf(u.code)}`} data-long={short.length > 4 || undefined} aria-hidden="true">{short}</span>
               <span class="ut">
                 <b>{short}</b>
