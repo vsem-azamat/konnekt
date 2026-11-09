@@ -12,6 +12,9 @@ import { entries, entry } from '../articles/entries.ts';
 import { LOGOS } from '../articles/logos.ts';
 import { cardPath, ogImage } from '../articles/ogImage.ts';
 import { articleGraph, day, jsonLd, type Party } from '../articles/structured.ts';
+import { placePath } from '../catalog/directory.ts';
+import { DIRECTORY_TEXTS } from '../catalog/directoryTexts.ts';
+import { toneOf } from '../catalog/page.ts';
 import { articleSource } from '../landing/copy.ts';
 import Base from '../layouts/Base.astro';
 import {
@@ -102,6 +105,23 @@ const credit = data.coverCredit && {
       ? 'Wikimedia Commons'
       : new URL(data.coverCredit.source).hostname.replace(/^www\./, ''),
 };
+
+// The universities and faculties it is about, each its page (catalog/directory.ts):
+// the config made sure each has a text in this language.
+const places = (
+  await Promise.all(
+    data.universities.map(async (address) => {
+      const text = await getEntry('universities', `${lang}/${address}`);
+      if (!text || (text.data.draft && !import.meta.env.DEV)) return null;
+      const own = address.split('/').at(-1) as string;
+      return {
+        path: placePath(lang, address),
+        name: text.data.name,
+        short: text.data.short ?? own.toUpperCase(),
+      };
+    }),
+  )
+).filter((place) => place !== null);
 
 const author = await party(data.author);
 const reviewer = data.reviewedBy && (await party(data.reviewedBy));
@@ -252,6 +272,21 @@ const graph = articleGraph(
                 </li>
               ))}
             </ol>
+          </section>
+        )
+      }
+      {
+        places.length > 0 && (
+          <section class="places" aria-labelledby="places">
+            <h2 id="places">{DIRECTORY_TEXTS[lang].inArticle}</h2>
+            <div class="place-rows">
+              {places.map((place) => (
+                <a class="row" href={place.path}>
+                  <span class={`mono small tone${toneOf(place.short)}`} data-long={place.short.length > 4 || undefined} aria-hidden="true">{place.short}</span>
+                  <span class="rt"><b>{place.name}</b></span>
+                </a>
+              ))}
+            </div>
           </section>
         )
       }

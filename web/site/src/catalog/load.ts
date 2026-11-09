@@ -19,7 +19,8 @@ import { langOf, notFound, unavailable } from './page.ts';
 import { publicChats, tutor, tutors, universities } from './source.ts';
 import { idFromSlug, type TutorCard, type TutorPage, tutorPath } from './tutors.ts';
 
-async function both(
+/** The catalogue's chats and universities in `lang`, or null when either could not be read. */
+export async function both(
   lang: Lang,
 ): Promise<{ chats: PublicChat[]; universities: CatalogUniversity[] } | null> {
   try {
@@ -64,35 +65,6 @@ export async function universitiesPage(
     loose: catalogue(data.chats, data.universities).topics.reduce(
       (sum, { chats }) => sum + chats.length,
       0,
-    ),
-  };
-}
-
-export interface UniversityProps {
-  lang: Lang;
-  entry: UniversityChats;
-  /** The other universities with chats in its city. */
-  neighbours: UniversityChats[];
-}
-
-export async function universityPage(
-  prefix: string | undefined,
-  code: string | undefined,
-): Promise<UniversityProps | Response> {
-  const lang = langOf(prefix);
-  if (!lang) return notFound();
-  const data = await both(lang);
-  if (!data) return unavailable(lang);
-  const all = universitiesWithChats(data.universities, data.chats);
-  // A university with no chat has no page: nothing would be on it.
-  const entry = all.find((u) => u.university.code === code);
-  if (!entry) return notFound();
-  const { city } = entry.university;
-  return {
-    lang,
-    entry,
-    neighbours: all.filter(
-      (u) => u !== entry && city !== null && u.university.city === city,
     ),
   };
 }

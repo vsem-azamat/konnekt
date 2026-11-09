@@ -123,6 +123,8 @@ export interface ArticleEntry {
   people?: readonly string[];
   rubric?: string;
   tags?: readonly string[];
+  /** The universities' and faculties' pages it is about (`cvut`, `cvut/fit`). */
+  universities?: readonly string[];
 }
 
 /** The sections an article belongs to, one each; their names are in texts.ts. */

@@ -6,6 +6,7 @@ import { defineConfig } from 'astro/config';
 import { parse } from 'yaml';
 
 import { readingPlugin } from './src/articles/reading.ts';
+import { checkPlaces, placeOf } from './src/catalog/directory.ts';
 
 import {
   type ArticleEntry,
@@ -49,6 +50,9 @@ function articles(): ArticleEntry[] {
       people: [frontmatter.author, frontmatter.reviewedBy].filter(Boolean).map(String),
       rubric: String(frontmatter.rubric),
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+      universities: Array.isArray(frontmatter.universities)
+        ? frontmatter.universities.map(String)
+        : [],
     };
   });
   const tags = (parse(readFileSync(`${root}src/content/tags.yaml`, 'utf8')) ?? []) as {
@@ -58,6 +62,17 @@ function articles(): ArticleEntry[] {
     entries,
     tags.map((tag) => tag.id),
   );
+  // The universities' and faculties' texts, by content id: a misplaced file
+  // stops the build, and so does an article naming a page with no text.
+  const texts = new Map(
+    globSync('src/content/universities/*/**/*.md', { cwd: root }).map((file) => {
+      const id = file.replace(/^src\/content\/universities\//, '').replace(/\.md$/, '');
+      placeOf(id);
+      const frontmatter = readFrontmatter(readFileSync(`${root}${file}`, 'utf8'), file);
+      return [id, frontmatter.draft === true] as const;
+    }),
+  );
+  for (const entry of entries) checkPlaces(entry, texts);
   return entries;
 }
 
