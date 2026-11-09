@@ -1742,6 +1742,10 @@ msgstr "подвал"
 msgid "Уже в чёрном списке."
 msgstr "Уже в чёрном списке."
 
+#: src/console/UsageLabels.tsx
+msgid "Помощник"
+msgstr "Помощник"
+
 #. placeholder {0}: counts.signals
 #: src/console/BrowserShell.tsx
 msgid "Сигналы, ждут решения: {0}"
@@ -3599,6 +3603,10 @@ msgstr "Сначала показывать"
 msgid "Договоримся"
 msgstr "Договоримся"
 
+#: src/console/UsageLabels.tsx
+msgid "общие чаты"
+msgstr "общие чаты"
+
 #: src/console/ConsoleGate.tsx
 msgid "Нет доступа к чатам"
 msgstr "Нет доступа к чатам"
@@ -4687,10 +4695,6 @@ msgstr "Решают админы"
 #: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
-
-#: src/console/UsageLabels.tsx
-msgid "Открыть помощника"
-msgstr "Открыть помощника"
 
 #: src/pages/Request.tsx
 msgid "Отклики"

@@ -1743,6 +1743,10 @@ msgstr "zápatí"
 msgid "Уже в чёрном списке."
 msgstr "Už je na černé listině."
 
+#: src/console/UsageLabels.tsx
+msgid "Помощник"
+msgstr "Pomocník"
+
 #. placeholder {0}: counts.signals
 #: src/console/BrowserShell.tsx
 msgid "Сигналы, ждут решения: {0}"
@@ -3600,6 +3604,10 @@ msgstr "Nejdřív ukázat"
 msgid "Договоримся"
 msgstr "Domluvíme se"
 
+#: src/console/UsageLabels.tsx
+msgid "общие чаты"
+msgstr "obecné chaty"
+
 #: src/console/ConsoleGate.tsx
 msgid "Нет доступа к чатам"
 msgstr "Bez přístupu k chatům"
@@ -4688,10 +4696,6 @@ msgstr "Rozhodují admini"
 #: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "Co učíš, kde studuješ, jak hodiny probíhají. Vlastními slovy."
-
-#: src/console/UsageLabels.tsx
-msgid "Открыть помощника"
-msgstr "Otevřít pomocníka"
 
 #: src/pages/Request.tsx
 msgid "Отклики"

@@ -147,6 +147,22 @@ export function sourceKind(source: string | null): SourceKind {
   return { kind: 'link', key: source };
 }
 
+/** What a tap's detail says: the school a chat belongs to, or where the tap came from. */
+export type TapDetail =
+  | { kind: 'none' }
+  | { kind: 'school'; code: string }
+  | { kind: 'general' }
+  | { kind: 'from'; key: string };
+
+/** A chat tap carries its school's code, or `none` for a chat tied to no school (components/ChatRow.tsx). */
+export function tapDetail(name: string, detail: string | null): TapDetail {
+  if (!detail) return { kind: 'none' };
+  if (name === 'chat_open') {
+    return detail === 'none' ? { kind: 'general' } : { kind: 'school', code: detail };
+  }
+  return { kind: 'from', key: detail };
+}
+
 /** «В среднем 5,5 место»: one decimal, the reader's way. */
 export function position(value: number, locale: string): string {
   return value.toLocaleString(locale, { maximumFractionDigits: 1 });

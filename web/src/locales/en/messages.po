@@ -1743,6 +1743,10 @@ msgstr "footer"
 msgid "Уже в чёрном списке."
 msgstr "Already on the blacklist."
 
+#: src/console/UsageLabels.tsx
+msgid "Помощник"
+msgstr "Helper"
+
 #. placeholder {0}: counts.signals
 #: src/console/BrowserShell.tsx
 msgid "Сигналы, ждут решения: {0}"
@@ -3600,6 +3604,10 @@ msgstr "Show first"
 msgid "Договоримся"
 msgstr "We will agree"
 
+#: src/console/UsageLabels.tsx
+msgid "общие чаты"
+msgstr "general chats"
+
 #: src/console/ConsoleGate.tsx
 msgid "Нет доступа к чатам"
 msgstr "No access to the chats"
@@ -4688,10 +4696,6 @@ msgstr "Admins decide"
 #: src/pages/MyHelperAbout.tsx
 msgid "Что преподаёшь, где учишься, как проходят занятия. Своими словами."
 msgstr "What you teach, where you study, how lessons go. In your own words."
-
-#: src/console/UsageLabels.tsx
-msgid "Открыть помощника"
-msgstr "Open the helper"
 
 #: src/pages/Request.tsx
 msgid "Отклики"

@@ -7,6 +7,7 @@ import {
   position,
   shareOf,
   sourceKind,
+  tapDetail,
 } from '../src/console/usage.ts';
 
 test('a session reads as minutes and seconds, an hour and more with hours', () => {
@@ -57,4 +58,13 @@ test('a position keeps one decimal in the reader’s way, a share needs a whole'
   assert.equal(position(3, 'en'), '3');
   assert.equal(shareOf(1, 4), 25);
   assert.equal(shareOf(1, 0), null);
+});
+
+test('a chat tap names the school, a tap elsewhere where it came from', () => {
+  assert.deepEqual(tapDetail('chat_open', 'cvut'), { kind: 'school', code: 'cvut' });
+  // A chat tied to no school: the city and general ones.
+  assert.deepEqual(tapDetail('chat_open', 'none'), { kind: 'general' });
+  assert.deepEqual(tapDetail('chat_open', null), { kind: 'none' });
+  assert.deepEqual(tapDetail('helper_open', 'results'), { kind: 'from', key: 'results' });
+  assert.deepEqual(tapDetail('search_submit', null), { kind: 'none' });
 });
