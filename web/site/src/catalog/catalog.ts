@@ -78,10 +78,15 @@ const topicOf = (chat: PublicChat): Topic => chat.topic ?? 'general';
  * university with one chat has none: the mark means something only beside
  * others.
  */
+/** A university's own room: the chat its group is named after. */
+export function isOwnRoom(chat: PublicChat): boolean {
+  return chat.group !== null && chat.title === chat.group;
+}
+
 export function mainChat(chats: readonly PublicChat[]): PublicChat | null {
   if (chats.length < 2) return null;
   const rooms = chats.filter((c) => c.kind === 'group');
-  const own = rooms.find((c) => c.group !== null && c.title === c.group);
+  const own = rooms.find(isOwnRoom);
   if (own) return own;
   const common = rooms.filter((c) => topicOf(c) === 'university');
   return common.reduce<PublicChat | null>(

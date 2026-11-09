@@ -14,7 +14,12 @@
 
 import type { PublicChat } from '../../../src/lib/chats.ts';
 import { LANGS, type Lang, localePath } from '../paths.ts';
-import { type CatalogFaculty, MIN_INDEXED_CHATS, mainChat } from './catalog.ts';
+import {
+  type CatalogFaculty,
+  isOwnRoom,
+  MIN_INDEXED_CHATS,
+  mainChat,
+} from './catalog.ts';
 
 /** A university's address where it is not its catalog code. */
 // A Map, not an object: `constructor` in a URL must not find Object.prototype's.
@@ -246,7 +251,7 @@ export function facultyChats(
     if (!unique.has(sameLink(link))) unique.set(sameLink(link), link);
   const main = chats ? mainChat(chats) : null;
   const mainKey = main ? sameLink(main.link) : null;
-  const ownRoom = main !== null && main.group !== null && main.title === main.group;
+  const ownRoom = main !== null && isOwnRoom(main);
   const named = mainKey !== null && unique.has(mainKey);
   const own: FacultyChat[] = [];
   for (const [key, link] of unique) {
