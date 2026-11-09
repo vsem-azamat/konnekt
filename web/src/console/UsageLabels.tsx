@@ -1,7 +1,7 @@
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 
-import { type FunnelKey, sourceKind } from '@/console/usage';
+import { type FunnelKey, sourceKind, tapDetail } from '@/console/usage';
 import { institutionsQuery } from '@/lib/api';
 
 /**
@@ -126,8 +126,17 @@ export function useUsageLabels() {
         return t`Фильтр: ${filter}`;
       }
       const base = taps[name] ?? name;
-      if (!detail || name === 'chat_open') return base;
-      return `${base} · ${froms[detail] ?? detail}`;
+      const about = tapDetail(name, detail);
+      switch (about.kind) {
+        case 'none':
+          return base;
+        case 'school':
+          return `${base} · ${school(about.code)}`;
+        case 'general':
+          return `${base} · ${t`общие`}`;
+        case 'from':
+          return `${base} · ${froms[about.key] ?? about.key}`;
+      }
     },
     source(source: string | null): string {
       const kind = sourceKind(source);

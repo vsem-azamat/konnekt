@@ -408,6 +408,10 @@ msgstr "Вступ"
 msgid "Как исправить: Telegram → чат → Администраторы → Konnekt → включите право."
 msgstr "Як виправити: Telegram → чат → Адміністратори → Konnekt → увімкніть право."
 
+#: src/console/UsageLabels.tsx
+msgid "общие"
+msgstr "загальні"
+
 #: src/pages/Ask.tsx
 msgid "математический анализ ČVUT"
 msgstr "математичний аналіз ČVUT"
