@@ -1,5 +1,12 @@
 ---
-/** Articles as a list of cards, examples marked as such. */
+/**
+ * Articles as a list of cards, examples marked as such. An article with a
+ * cover shows it as a small square at the right of its text; one without
+ * stays text only. Its alt is empty: the picture repeats the link, and the
+ * cover's description is on the article page. The schools' logos are left to
+ * the article page and its link card: at this size they would not read.
+ */
+import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 import { articlePath, type Lang } from '../paths.ts';
@@ -17,10 +24,24 @@ const { lang, articles } = Astro.props;
   {
     articles.map((article) => (
       <li>
-        <a href={articlePath(article.id)}>
-          {article.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
-          <strong>{article.data.title}</strong>
-          <p>{article.data.description}</p>
+        <a href={articlePath(article.id)} class:list={{ 'has-cover': article.data.cover }}>
+          <span class="ac-text">
+            {article.data.draft && <span class="badge">{TEXTS[lang].example}</span>}
+            <strong>{article.data.title}</strong>
+            <p>{article.data.description}</p>
+          </span>
+          {article.data.cover && (
+            <Image
+              class="ac-img"
+              src={article.data.cover}
+              alt=""
+              widths={[144, 288, 432]}
+              sizes="(max-width: 559px) 108px, 144px"
+              loading="lazy"
+              decoding="async"
+              style={`object-position: ${Math.round((article.data.coverFocus ?? 0.5) * 100)}% 50%`}
+            />
+          )}
         </a>
       </li>
     ))

@@ -863,6 +863,28 @@ h2 {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+/* The newest guide's cover, as a strip along the top of its tile. Only that
+   tile has one, so rows size to their content (below) and the hero still
+   fits one screen at 1440. */
+.ax-img {
+  display: block;
+  /* The tile's width plus its padding: the strip runs edge to edge. */
+  width: calc(100% + 32px);
+  max-width: none;
+  flex: none;
+  height: 72px;
+  margin: -14px -16px 4px;
+  object-fit: cover;
+  border-radius: 15px 15px 0 0;
+  background: var(--surface);
+}
+@media (min-width: 1040px) {
+  .ax-img {
+    width: calc(100% + 40px);
+    height: 104px;
+    margin: -18px -20px 2px;
+  }
+}
 /* A phone: titles only, and no «all» cell, which the head's link already is. */
 @media (max-width: 719px) {
   .ax .ax-d,
@@ -874,7 +896,9 @@ h2 {
 @media (min-width: 720px) {
   .ax-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 1fr;
+    /* Not 1fr: equal rows would give the second row the height of the
+       first, cover strip and all. */
+    grid-auto-rows: auto;
   }
   /* After two articles it would sit alone with a hole beside it. */
   .ax-more.wide {
