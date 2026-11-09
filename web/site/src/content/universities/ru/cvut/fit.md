@@ -1,0 +1,44 @@
+---
+name: "Факультет информационных технологий ЧВУТ (FIT)"
+short: "FIT"
+title: "ФИТ ЧВУТ (FIT ČVUT): программа, поступление, чаты"
+description: "Факультет информационных технологий ЧВУТ в Праге: бакалавриат «Информатика» на чешском и английском, плата за английскую программу, чешский B2 для иностранцев."
+website: https://fit.cvut.cz
+updated: 2026-11-09
+author: konnekt
+sources:
+  - { url: "https://www.cvut.cz/historie", title: "Historie ČVUT (ČVUT)", checked_at: 2026-11-09 }
+  - { url: "https://www.cvut.cz/fakulta-informacnich-technologii", title: "Fakulta informačních technologií (ČVUT)", checked_at: 2026-11-09 }
+  - { url: "https://fit.cvut.cz/prijimacky", title: "Přijímací řízení do bakalářského studia (FIT ČVUT)", checked_at: 2026-11-09 }
+  - { url: "https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program", title: "Bachelor's study programme: admissions procedure (FIT CTU)", checked_at: 2026-11-09 }
+  - { url: "https://www.fbmi.cvut.cz/sites/default/files/2026-09/statut%20p%C5%99%C3%ADloha%205.pdf", title: "Statut ČVUT, příloha č. 5: poplatky spojené se studiem", checked_at: 2026-11-09 }
+chats: [https://t.me/cvut_fit]
+draft: true
+---
+
+Факультет информационных технологий (Fakulta informačních technologií, FIT) — самый молодой из восьми факультетов ЧВУТ: он открылся 1 июля 2009 года.[^hist] Адрес факультета: Thákurova 9, Прага 6.[^addr]
+
+## Программы бакалавриата
+
+На бакалавриате одна программа — «Информатика» (Informatika).[^cz] Её можно изучать на чешском или на английском (Informatics).[^en] Чешская версия идёт очно и заочно (kombinovaná forma).[^cz]
+
+| Программа | Язык | Степень |
+| --- | --- | --- |
+| Informatika | чешский | Bc. |
+| Informatics | английский | Bc. |
+
+## Поступление
+
+Факультет каждый год публикует условия приёма; на 2027/28 год они уже вышли.[^cz] Обычно сдают письменный тест по математике, но от него освобождают, например, по результату экзамена «Matematika rozšiřující» на матуре или по результату теста SCIO.[^cz] Сроки и подробности — на странице приёма FIT.
+
+Для чешской программы иностранец подтверждает чешский на уровне не ниже B2, если он не окончил школу или вуз на чешском или словацком.[^cz] Для английской — английский на уровне B2; сертификат Duolingo факультет не принимает.[^en]
+
+## Плата
+
+На чешском учиться бесплатно. Английская программа на FIT дороже, чем на других факультетах ЧВУТ: 64 000 Kč за семестр.[^fees] За первый семестр платят до начала учёбы.[^en]
+
+[^hist]: Historie ČVUT — [cvut.cz](https://www.cvut.cz/historie)
+[^addr]: Fakulta informačních technologií — [cvut.cz](https://www.cvut.cz/fakulta-informacnich-technologii)
+[^cz]: Přijímací řízení, FIT ČVUT — [fit.cvut.cz](https://fit.cvut.cz/prijimacky)
+[^en]: Bachelor's study programme, FIT CTU — [fit.cvut.cz](https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program)
+[^fees]: Statut ČVUT, příloha č. 5 — [PDF](https://www.fbmi.cvut.cz/sites/default/files/2026-09/statut%20p%C5%99%C3%ADloha%205.pdf)
