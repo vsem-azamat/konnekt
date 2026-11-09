@@ -20,6 +20,7 @@ import DirectoryText from './DirectoryText.astro';
 import { placePath, universityAddress, universityPath } from './directory.ts';
 import type { UniversityProps } from './directoryPages.ts';
 import { DIRECTORY_TEXTS } from './directoryTexts.ts';
+import Faculties from './Faculties.astro';
 import { toneOf } from './page.ts';
 import { CATALOG_TEXTS, count, noun } from './texts.ts';
 
@@ -51,6 +52,8 @@ const open = `/api/v1/open?start=uni-${u.code}`;
 const website = text?.data.website ?? u.site_url;
 // Few chats and nothing of ours: the page asks for more rather than pretend.
 const thin = chats !== null && !text && !indexable;
+// Whether any of it is ours: its own text, or a faculty's.
+const ownText = text !== null || faculties.some((f) => f.page);
 const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
 
 // What search engines read of the page: the university itself, its
@@ -70,11 +73,13 @@ const organization = {
         },
       }
     : {}),
-  ...(faculties.length > 0
+  ...(faculties.some((f) => f.page)
     ? {
-        subOrganization: faculties.map((f) => ({
-          '@id': `${new URL(placePath(lang, `${address}/${f.faculty}`), site).href}#faculty`,
-        })),
+        subOrganization: faculties
+          .filter((f) => f.page)
+          .map((f) => ({
+            '@id': `${new URL(placePath(lang, `${address}/${f.faculty}`), site).href}#faculty`,
+          })),
       }
     : {}),
 };
@@ -156,25 +161,10 @@ const schema = {
 
     {text && <DirectoryText lang={lang} text={text} heading={d.aboutUniversity} />}
 
+    {/* Where there is a text, the faculties follow it; otherwise the chats come first (uiux 13417). */}
     {
-      faculties.length > 0 && (
-        <section class="sec" aria-labelledby="s-faculties">
-          <header>
-            <h2 id="s-faculties">{d.faculties}</h2>
-            <span class="count">{faculties.length}</span>
-          </header>
-          <div class="cat-grid dir-grid">
-            {faculties.map((f) => (
-              <a class="card uni" href={placePath(lang, `${address}/${f.faculty}`)}>
-                <span class={`mono tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
-                <span class="ut">
-                  <b>{f.name}</b>
-                  {f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
+      ownText && faculties.length > 0 && (
+        <Faculties lang={lang} address={address} faculties={faculties} />
       )
     }
 
@@ -222,6 +212,12 @@ const schema = {
           <p>{t.thinText(short)}</p>
           <a class="all" href={openLink("site_university")}><span>{t.suggest}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
         </div>
+      )
+    }
+
+    {
+      !ownText && faculties.length > 0 && (
+        <Faculties lang={lang} address={address} faculties={faculties} />
       )
     }
 

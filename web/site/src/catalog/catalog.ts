@@ -16,6 +16,14 @@ import {
   type Topic,
 } from '../../../src/lib/chats.ts';
 
+/** One of a university's faculties, as `/api/v1/universities` lists it. */
+export interface CatalogFaculty {
+  /** `cvut_fit`: its university's code, then its own. */
+  code: string;
+  name: string;
+  short_name: string | null;
+}
+
 /** A university as `/api/v1/universities` names it in the page's language. */
 export interface CatalogUniversity {
   code: string;
@@ -23,6 +31,8 @@ export interface CatalogUniversity {
   short_name: string | null;
   city: string | null;
   site_url: string | null;
+  /** Its active faculties, in the catalog's order. */
+  faculties: CatalogFaculty[];
 }
 
 /** A university's page goes to search only with this many chats; below it, noindex. */

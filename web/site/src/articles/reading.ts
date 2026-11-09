@@ -154,13 +154,17 @@ interface Visit {
 
 /**
  * `reading` as a hast plugin of Sätteri, Astro's Markdown processor: for an
- * article (`content/articles/<lang>/`), its language from its path, its
- * sources from its frontmatter. Whether it has notes goes back into the
- * frontmatter Astro hands the page. Other Markdown is left alone.
+ * article (`content/articles/<lang>/`) or a university's or faculty's text
+ * (`content/universities/<lang>/`), which rest on their sources the same
+ * way: its language from its path, its sources from its frontmatter. Whether
+ * it has notes goes back into the frontmatter Astro hands the page. Other
+ * Markdown is left alone.
  */
 export function readingPlugin(document: Document) {
   const path = document.fileURL?.pathname ?? '';
-  const lang = path.match(/content\/articles\/([a-z]{2})\//)?.[1] as Lang | undefined;
+  const lang = path.match(/content\/(?:articles|universities)\/([a-z]{2})\//)?.[1] as
+    | Lang
+    | undefined;
   if (!lang || !LANGS.includes(lang)) return null;
   const sources = (
     (document.data.astro?.frontmatter?.sources ?? []) as {

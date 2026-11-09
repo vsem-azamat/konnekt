@@ -159,12 +159,19 @@ const schema = {
             <h2 id="s-siblings">{d.otherFaculties(short)}</h2>
           </header>
           <div class="rows">
-            {siblings.map((f) => (
-              <a class="row" href={placePath(lang, `${address}/${f.faculty}`)}>
-                <span class={`mono small tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
-                <span class="rt"><b>{f.name}</b>{f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}</span>
-              </a>
-            ))}
+            {siblings.map((f) => {
+              const inner = (
+                <Fragment>
+                  <span class={`mono small tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
+                  <span class="rt"><b>{f.name}</b>{f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}</span>
+                </Fragment>
+              );
+              return f.page ? (
+                <a class="row" href={placePath(lang, `${address}/${f.faculty}`)}>{inner}</a>
+              ) : (
+                <div class="row">{inner}</div>
+              );
+            })}
           </div>
         </section>
       )

@@ -5781,6 +5781,37 @@
         ],
         "title": "PriceUnit"
       },
+      "PublicFaculty": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "short_name"
+        ],
+        "title": "PublicFaculty",
+        "description": "A faculty as its university's page on the public site lists it."
+      },
       "PublicHelperCard": {
         "properties": {
           "user_id": {
@@ -6068,6 +6099,13 @@
               }
             ],
             "title": "Site Url"
+          },
+          "faculties": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFaculty"
+            },
+            "type": "array",
+            "title": "Faculties"
           }
         },
         "type": "object",
@@ -6076,10 +6114,11 @@
           "name",
           "short_name",
           "city",
-          "site_url"
+          "site_url",
+          "faculties"
         ],
         "title": "PublicUniversity",
-        "description": "A university as the public site names it on its catalog pages.\n\nReference data and nothing else: no id, no faculties, nothing about who\nstudies there. `site_url` is the university's own site, which its page links."
+        "description": "A university as the public site names it on its catalog pages.\n\nReference data and nothing else: no id, nothing about who studies there.\n`site_url` is the university's own site, which its page links; `faculties`\nits active ones, in the catalog's order, which its page lists."
       },
       "PublishStatus": {
         "type": "string",

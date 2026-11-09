@@ -1,7 +1,9 @@
 ---
 /**
  * A university's or a faculty's text (directory.ts): set as an article's,
- * then a grey line of its sources and the day they were last read.
+ * then a grey line of its sources and the day they were last read. A text
+ * with notes lists its sources in them, each with its day
+ * (articles/reading.ts), and has no line (uiux 13417).
  */
 import { render } from 'astro:content';
 
@@ -19,7 +21,8 @@ interface Props {
 
 const { lang, text, heading } = Astro.props;
 const d = DIRECTORY_TEXTS[lang];
-const { Content } = await render(text);
+const { Content, remarkPluginFrontmatter } = await render(text);
+const notes = remarkPluginFrontmatter.notes === true;
 const { sources, draft } = text.data;
 const checked = sources.reduce<Date | null>(
   (latest, { checked_at }) =>
@@ -36,7 +39,7 @@ const checked = sources.reduce<Date | null>(
     <Content />
   </div>
   {
-    sources.length > 0 && (
+    !notes && sources.length > 0 && (
       <p class="dir-sources">
         {d.sources}:{' '}
         {sources.map((source, i) => (

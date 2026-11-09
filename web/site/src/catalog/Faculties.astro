@@ -1,0 +1,59 @@
+---
+/**
+ * A university's faculties (directory.ts): the ones with a page as cards
+ * that link to it, the rest as flat rows that do not look like links
+ * (uiux 13417), in one or two columns.
+ */
+import type { Lang } from '../paths.ts';
+import { type FacultyCard, placePath } from './directory.ts';
+import { DIRECTORY_TEXTS } from './directoryTexts.ts';
+import { toneOf } from './page.ts';
+import { CATALOG_TEXTS, count } from './texts.ts';
+
+interface Props {
+  lang: Lang;
+  /** The university's address (`cvut`). */
+  address: string;
+  faculties: FacultyCard[];
+}
+
+const { lang, address, faculties } = Astro.props;
+const t = CATALOG_TEXTS[lang];
+const d = DIRECTORY_TEXTS[lang];
+const linked = faculties.filter((f) => f.page);
+const plain = faculties.filter((f) => !f.page);
+---
+
+<section class="sec" aria-labelledby="s-faculties">
+  <header>
+    <h2 id="s-faculties">{d.faculties}</h2>
+    <span class="count">{faculties.length}</span>
+  </header>
+  {
+    linked.length > 0 && (
+      <div class="cat-grid dir-grid">
+        {linked.map((f) => (
+          <a class="card uni" href={placePath(lang, `${address}/${f.faculty}`)}>
+            <span class={`mono tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
+            <span class="ut">
+              <b>{f.name}</b>
+              {f.chats > 0 && <small>{count(lang, f.chats, t.chats)}</small>}
+            </span>
+          </a>
+        ))}
+      </div>
+    )
+  }
+  {
+    plain.length > 0 && (
+      <div class="rows">
+        {plain.map((f) => (
+          <div class="row">
+            <span class={`mono small tone${toneOf(f.short)}`} data-long={f.short.length > 4 || undefined} aria-hidden="true">{f.short}</span>
+            <span class="rt"><b>{f.name}</b></span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+</section>

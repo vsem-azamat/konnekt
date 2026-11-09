@@ -4,7 +4,9 @@ import { test } from 'node:test';
 import {
   articlesAbout,
   checkPlaces,
+  facultyAddress,
   facultyChats,
+  facultyList,
   movedFrom,
   placeIndexable,
   placeOf,
@@ -63,6 +65,59 @@ test('a university’s page names as its versions only the ones search keeps', (
   assert.deepEqual(universityLangs('uk', ['ru', 'uk'], null), ['ru', 'uk']);
   // A page search does not keep names them all, as before the directory.
   assert.deepEqual(universityLangs('en', ['ru'], 1), ['ru', 'uk', 'cs', 'en']);
+});
+
+test('a faculty’s address is its code without its university’s', () => {
+  assert.equal(facultyAddress('cvut', 'cvut_fit'), 'fit');
+  assert.equal(facultyAddress('uk', 'uk_1lf'), '1lf');
+  assert.equal(facultyAddress('mendelu', 'mendelu_zahr_fak'), 'zahr-fak');
+  assert.equal(facultyAddress('cvut', 'vse_fis'), null);
+  assert.equal(facultyAddress('cvut', 'cvut_'), null);
+});
+
+test('a university lists every faculty the catalog has, with a page where there is a text', () => {
+  const texts = [
+    { faculty: 'fit', name: 'ФИТ ЧВУТ (FIT)', short: 'FIT', chats: 2 },
+    // A text for a faculty the catalog does not list (yet): still its page.
+    { faculty: 'masaryk', name: 'Институт Масарика', short: 'MÚVS', chats: 0 },
+  ];
+  const catalog = [
+    { code: 'cvut_fsv', name: 'Строительный факультет', short_name: 'FSv' },
+    { code: 'cvut_fit', name: 'Факультет информационных технологий', short_name: 'FIT' },
+    { code: 'cvut_fd', name: 'Транспортный факультет', short_name: null },
+  ];
+  assert.deepEqual(facultyList('cvut', catalog, texts), [
+    {
+      faculty: 'fsv',
+      name: 'Строительный факультет',
+      short: 'FSv',
+      chats: 0,
+      page: false,
+    },
+    {
+      faculty: 'fit',
+      name: 'Факультет информационных технологий',
+      short: 'FIT',
+      chats: 2,
+      page: true,
+    },
+    { faculty: 'fd', name: 'Транспортный факультет', short: 'FD', chats: 0, page: false },
+    {
+      faculty: 'masaryk',
+      name: 'Институт Масарика',
+      short: 'MÚVS',
+      chats: 0,
+      page: true,
+    },
+  ]);
+  // Without the catalog (down, or a university it does not list): the texts alone.
+  assert.deepEqual(
+    facultyList('cvut', null, texts).map((card) => [card.faculty, card.page]),
+    [
+      ['fit', true],
+      ['masaryk', true],
+    ],
+  );
 });
 
 test('a text’s place is its file’s path', () => {

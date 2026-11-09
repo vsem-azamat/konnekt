@@ -1337,6 +1337,26 @@ export type Price = {
 export type PriceUnit = 'hour' | 'lesson' | 'work' | 'day' | 'week' | 'month' | 'semester' | 'item' | 'negotiable';
 
 /**
+ * PublicFaculty
+ *
+ * A faculty as its university's page on the public site lists it.
+ */
+export type PublicFaculty = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Short Name
+     */
+    short_name: string | null;
+};
+
+/**
  * PublicHelperCard
  *
  * A helper as the public site lists them, with their own consent.
@@ -1469,8 +1489,9 @@ export type PublicHelperPage = {
  *
  * A university as the public site names it on its catalog pages.
  *
- * Reference data and nothing else: no id, no faculties, nothing about who
- * studies there. `site_url` is the university's own site, which its page links.
+ * Reference data and nothing else: no id, nothing about who studies there.
+ * `site_url` is the university's own site, which its page links; `faculties`
+ * its active ones, in the catalog's order, which its page lists.
  */
 export type PublicUniversity = {
     /**
@@ -1493,6 +1514,10 @@ export type PublicUniversity = {
      * Site Url
      */
     site_url: string | null;
+    /**
+     * Faculties
+     */
+    faculties: Array<PublicFaculty>;
 };
 
 /**
