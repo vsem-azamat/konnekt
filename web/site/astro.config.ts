@@ -64,11 +64,12 @@ function articles(): ArticleEntry[] {
   );
   // The universities' and faculties' texts, by content id: a misplaced file
   // stops the build, and so does an article naming a page with no text.
-  const texts = new Set(
+  const texts = new Map(
     globSync('src/content/universities/*/**/*.md', { cwd: root }).map((file) => {
       const id = file.replace(/^src\/content\/universities\//, '').replace(/\.md$/, '');
       placeOf(id);
-      return id;
+      const frontmatter = readFrontmatter(readFileSync(`${root}${file}`, 'utf8'), file);
+      return [id, frontmatter.draft === true] as const;
     }),
   );
   for (const entry of entries) checkPlaces(entry, texts);

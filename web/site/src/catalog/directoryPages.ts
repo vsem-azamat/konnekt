@@ -21,6 +21,7 @@ import {
   movedFrom,
   placeIndexable,
   universityCode,
+  universityLangs,
 } from './directory.ts';
 import { both } from './load.ts';
 import { langOf, notFound, unavailable } from './page.ts';
@@ -52,6 +53,8 @@ export interface UniversityProps {
   faculties: FacultyCard[];
   articles: CollectionEntry<'articles'>[];
   indexable: boolean;
+  /** The languages its page names as its versions: those search may keep. */
+  langs: readonly Lang[];
 }
 
 /** A university the catalogue could not name, from its text. */
@@ -77,7 +80,7 @@ function moved(location: string): Response {
 async function facultyCards(lang: Lang, address: string): Promise<FacultyCard[]> {
   return (await facultyTexts(lang, address)).map(({ place, text }) => ({
     faculty: place.faculty as string,
-    // «ФИТ ЧВУТ — Факультет информационных технологий»: the tile says the first part.
+    // «ФИТ ЧВУТ — Факультет информационных технологий»: the tile says what follows the dash.
     name: text.data.name.split(' — ').at(-1) as string,
     short: text.data.short ?? (place.faculty as string).toUpperCase(),
     chats: text.data.chats.length,
@@ -122,6 +125,7 @@ export async function universityPage(
     faculties: await facultyCards(lang, address),
     articles: await placeArticles(lang, place),
     indexable: placeIndexable(text !== null, chats?.length ?? null),
+    langs: universityLangs(lang, await textLangs(address), chats?.length ?? null),
   };
 }
 

@@ -5,12 +5,12 @@ import {
   articlesAbout,
   checkPlaces,
   facultyChats,
-  facultyCode,
   movedFrom,
   placeIndexable,
   placeOf,
   universityAddress,
   universityCode,
+  universityLangs,
   universityPath,
 } from '../site/src/catalog/directory.ts';
 import type { PublicChat } from '../src/lib/chats.ts';
@@ -45,9 +45,24 @@ test('Charles University lives at cuni, and its old address points there', () =>
   assert.equal(universityCode('../x'), null);
 });
 
-test('a faculty’s code is its university’s and its own address', () => {
-  assert.equal(facultyCode('cvut', 'fit'), 'cvut_fit');
-  assert.equal(facultyCode('uk', '1lf'), 'uk_1lf');
+test('an address named like an object’s own property is no university and no redirect', () => {
+  for (const address of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+    assert.equal(movedFrom(address), null, address);
+    assert.equal(universityAddress(address), address, address);
+  }
+  assert.equal(universityCode('constructor'), 'constructor');
+  assert.equal(universityCode('__proto__'), null);
+});
+
+test('a university’s page names as its versions only the ones search keeps', () => {
+  // Enough chats: a page in every language.
+  assert.deepEqual(universityLangs('ru', ['ru'], 2), ['ru', 'uk', 'cs', 'en']);
+  // Fewer: the languages of its text alone.
+  assert.deepEqual(universityLangs('ru', ['ru'], 1), ['ru']);
+  assert.deepEqual(universityLangs('ru', ['ru', 'uk'], 0), ['ru', 'uk']);
+  assert.deepEqual(universityLangs('uk', ['ru', 'uk'], null), ['ru', 'uk']);
+  // A page search does not keep names them all, as before the directory.
+  assert.deepEqual(universityLangs('en', ['ru'], 1), ['ru', 'uk', 'cs', 'en']);
 });
 
 test('a text’s place is its file’s path', () => {
@@ -78,7 +93,12 @@ test('a page with our text is indexed whatever its chats; one without, by its ch
 });
 
 test('an article names only pages that have a text in its language', () => {
-  const texts = new Set(['ru/cvut', 'ru/cvut/fit', 'uk/cvut']);
+  const texts = new Map([
+    ['ru/cvut', false],
+    ['ru/cvut/fit', false],
+    ['uk/cvut', false],
+    ['ru/cvut/fel', true],
+  ]);
   checkPlaces({ id: 'ru/postuplenie', universities: ['cvut', 'cvut/fit'] }, texts);
   checkPlaces({ id: 'ru/vize' }, texts);
   assert.throws(
@@ -88,6 +108,12 @@ test('an article names only pages that have a text in its language', () => {
   assert.throws(
     () => checkPlaces({ id: 'ru/x', universities: ['cvut_fit'] }, texts),
     /names cvut_fit/,
+  );
+  // A draft text: a draft article may name it, a published one not yet.
+  checkPlaces({ id: 'ru/x', draft: true, universities: ['cvut/fel'] }, texts);
+  assert.throws(
+    () => checkPlaces({ id: 'ru/x', universities: ['cvut/fel'] }, texts),
+    /still a draft/,
   );
 });
 

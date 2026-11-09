@@ -17,9 +17,10 @@ import { LANGS, type Lang, localePath } from '../paths.ts';
 import { MIN_INDEXED_CHATS } from './catalog.ts';
 
 /** A university's address where it is not its catalog code. */
-const ADDRESSES: Readonly<Record<string, string>> = { uk: 'cuni' };
-const CODES: Readonly<Record<string, string>> = Object.fromEntries(
-  Object.entries(ADDRESSES).map(([code, address]) => [address, code]),
+// A Map, not an object: `constructor` in a URL must not find Object.prototype's.
+const ADDRESSES: ReadonlyMap<string, string> = new Map([['uk', 'cuni']]);
+const CODES: ReadonlyMap<string, string> = new Map(
+  [...ADDRESSES].map(([code, address]) => [address, code]),
 );
 
 /** A university's (or a faculty's) part of an address: lowercase latin and digits. */
@@ -27,7 +28,7 @@ export const ADDRESS = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Where the catalog's university `code` lives on the site. */
 export function universityAddress(code: string): string {
-  return ADDRESSES[code] ?? code;
+  return ADDRESSES.get(code) ?? code;
 }
 
 /**
@@ -36,22 +37,18 @@ export function universityAddress(code: string): string {
  */
 export function universityCode(address: string): string | null {
   if (!ADDRESS.test(address)) return null;
-  if (CODES[address]) return CODES[address];
-  return ADDRESSES[address] ? null : address;
+  const code = CODES.get(address);
+  if (code) return code;
+  return ADDRESSES.has(address) ? null : address;
 }
 
 /** The address a university had before it got its own, for its permanent redirect. */
 export function movedFrom(address: string): string | null {
-  return ADDRESSES[address] ?? null;
+  return ADDRESSES.get(address) ?? null;
 }
 
 export function universityPath(lang: Lang, code: string): string {
   return localePath(lang, `/universities/${universityAddress(code)}/`);
-}
-
-/** A faculty's code: its university's, then its own address (`cvut_fit`). */
-export function facultyCode(universityCode: string, faculty: string): string {
-  return `${universityCode}_${faculty.replace(/-/g, '_')}`;
 }
 
 /** A university's page, or one of its faculties', from its text's address (`cvut`, `cvut/fit`). */
@@ -105,19 +102,42 @@ export function placeIndexable(hasText: boolean, chats: number | null): boolean 
 }
 
 /**
+ * The languages a university's page in `lang` names as its versions
+ * (hreflang, the language switcher): only those search may keep. With
+ * enough chats it is in every language; otherwise in its text's languages.
+ * A page that is itself not kept names every language, as before.
+ */
+export function universityLangs(
+  lang: Lang,
+  textLangs: readonly Lang[],
+  chats: number | null,
+): readonly Lang[] {
+  if ((chats ?? 0) >= MIN_INDEXED_CHATS) return LANGS;
+  return textLangs.includes(lang) ? textLangs : LANGS;
+}
+
+/**
  * What an article names a page by, checked against the texts there are: an
  * article in a language may only name a page with a text in it, so its link
- * never leads to a page that does not exist. `texts` are the content ids.
+ * never leads to a page that does not exist. A published article names only
+ * published texts; a draft may name a draft. `texts` maps the content ids to
+ * whether each is a draft.
  */
 export function checkPlaces(
-  article: { id: string; universities?: readonly string[] },
-  texts: ReadonlySet<string>,
+  article: { id: string; draft?: boolean; universities?: readonly string[] },
+  texts: ReadonlyMap<string, boolean>,
 ): void {
   const lang = article.id.split('/')[0];
   for (const address of article.universities ?? []) {
-    if (!texts.has(`${lang}/${address}`)) {
+    const draft = texts.get(`${lang}/${address}`);
+    if (draft === undefined) {
       throw new Error(
         `article ${article.id}: universities names ${address}, and there is no content/universities/${lang}/${address}.md`,
+      );
+    }
+    if (draft && !article.draft) {
+      throw new Error(
+        `article ${article.id}: universities names ${address}, whose text is still a draft`,
       );
     }
   }

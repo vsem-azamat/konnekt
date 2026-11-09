@@ -34,6 +34,7 @@ const {
   faculties,
   articles,
   indexable,
+  langs,
 } = Astro.props;
 const t = CATALOG_TEXTS[lang];
 const d = DIRECTORY_TEXTS[lang];
@@ -119,13 +120,14 @@ const schema = {
 <Base
   lang={lang}
   path={path}
+  langs={langs}
   title={text?.data.title ?? t.universityTitle(short)}
   description={text?.data.description ??
     t.universityDescription(count(lang, chats?.length ?? 0, t.chats), short, u.name)}
   noindex={!indexable}
 >
   <script is:inline type="application/ld+json" set:html={jsonLd(schema)} />
-  <Header lang={lang} path={path} />
+  <Header lang={lang} path={path} langs={langs} />
   <main class="wrap cat">
     <ol class="crumbs" aria-label={t.nav}>
       <li><a href={localePath(lang, '/')}>{t.home}</a></li>
