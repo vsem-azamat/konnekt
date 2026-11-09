@@ -12,6 +12,7 @@ sources:
   - { url: "https://fit.cvut.cz/prijimacky", title: "Přijímací řízení do bakalářského studia (FIT ČVUT)", checked_at: 2026-11-09 }
   - { url: "https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program", title: "Bachelor's study programme: admissions procedure (FIT CTU)", checked_at: 2026-11-09 }
   - { url: "https://www.cvut.cz/sites/default/files/content/74c76d2e-7f4d-4cb1-ac28-b0765c7f88f2/cs/20261014-statut-cvut-v-praze-xv-uplne-zneni-ucinnost-od-01102026.pdf", title: "Statut ČVUT XV, úplné znění s účinností od 1. 10. 2026, příloha č. 5 (PDF)", checked_at: 2026-11-09 }
+  - { url: "https://fit.cvut.cz/uchazeci/podminky-pririz/bi-podminky-prijimaci-rizeni-2027.pdf", title: "Podmínky přijímacího řízení do bakalářského studia 2027/2028 (FIT ČVUT, PDF)", checked_at: 2026-11-09 }
 chats: [https://t.me/cvut_fit]
 draft: true
 ---
@@ -31,7 +32,7 @@ draft: true
 
 Факультет каждый год публикует условия приёма; на 2027/28 год они уже вышли.[^cz] Сдают письменный тест по математике, но от него освобождают, например, по результату теста SCIO, олимпиад или экзамена «Matematika rozšiřující» на чешской матуре.[^cz] Сроки и подробности — на странице приёма FIT.
 
-Для чешской программы иностранец подтверждает чешский на уровне не ниже B2, если он не окончил школу или вуз на чешском или словацком и не сдал успешно тест SCIO OSP.[^cz] Для английской — английский на уровне B2; сертификат Duolingo факультет не принимает.[^en]
+Для чешской программы иностранец подтверждает чешский на уровне не ниже B2, если он не окончил школу или вуз на чешском или словацком и не набрал на тесте SCIO OSP в чешской или словацкой версии не ниже 90-го перцентиля.[^pod] Для английской — английский на уровне B2; сертификат Duolingo факультет не принимает.[^en]
 
 ## Плата
 
@@ -42,3 +43,4 @@ draft: true
 [^cz]: Přijímací řízení, FIT ČVUT — [fit.cvut.cz](https://fit.cvut.cz/prijimacky)
 [^en]: Bachelor's study programme, FIT CTU — [fit.cvut.cz](https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program)
 [^fees]: Statut ČVUT XV, příloha č. 5 — [PDF](https://www.cvut.cz/sites/default/files/content/74c76d2e-7f4d-4cb1-ac28-b0765c7f88f2/cs/20261014-statut-cvut-v-praze-xv-uplne-zneni-ucinnost-od-01102026.pdf)
+[^pod]: Podmínky přijímacího řízení 2027/2028, FIT ČVUT — [PDF](https://fit.cvut.cz/uchazeci/podminky-pririz/bi-podminky-prijimaci-rizeni-2027.pdf)
