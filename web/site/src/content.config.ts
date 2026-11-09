@@ -20,6 +20,20 @@ const sources = z
   )
   .default([]);
 
+// Whose photo it is, for a real one (Wikimedia Commons and the like), as its
+// licence asks (articles/credit.ts); a generated image has none.
+const credit = z.object({
+  author: z.string().min(1),
+  licence: z.string().min(1),
+  // The licence's own text, which CC licences ask a credit to link.
+  licenceUrl: https.optional(),
+  source: https,
+  // Whether part of the photo was cut away, which CC BY asks a credit
+  // to say. A 3:2 photo only shrinks to the 3:2 cover; the image
+  // skill sets false then.
+  cropped: z.boolean().default(true),
+});
+
 /**
  * Articles, one Markdown file per language: `articles/<lang>/<slug>.md`, the
  * slug in that language. Translations of one article share `translationKey`,
@@ -68,21 +82,7 @@ const articles = defineCollection({
           .max(6)
           .refine((ids) => new Set(ids).size === ids.length, 'a logo named twice')
           .default([]),
-        // Whose photo it is, for a real one (Wikimedia Commons and the like),
-        // as its licence asks; a generated image has none.
-        coverCredit: z
-          .object({
-            author: z.string().min(1),
-            licence: z.string().min(1),
-            // The licence's own text, which CC licences ask a credit to link.
-            licenceUrl: https.optional(),
-            source: https,
-            // Whether part of the photo was cut away, which CC BY asks a credit
-            // to say. A 3:2 photo only shrinks to the 3:2 cover; the image
-            // skill sets false then.
-            cropped: z.boolean().default(true),
-          })
-          .optional(),
+        coverCredit: credit.optional(),
         // The universities and faculties it is about, by their pages'
         // addresses (`cvut`, `cvut/fit`): each lists it, and it lists them.
         // The config checks each has a text in the article's language.
