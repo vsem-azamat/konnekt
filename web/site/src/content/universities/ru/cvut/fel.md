@@ -16,11 +16,12 @@ sources:
   - { url: "https://jazyky.fel.cvut.cz/index.php?m=j&o=zi_prezcz", title: "Zkouška z českého jazyka pro uchazeče (katedra jazyků FEL ČVUT)", checked_at: 2026-11-09 }
   - { url: "https://intranet.fel.cvut.cz/en/admissions/tuition-fees.html", title: "Tuition fees (FEE CTU)", checked_at: 2026-11-09 }
   - { url: "https://www.cvut.cz/sites/default/files/content/a00980d0-597c-4305-9436-1b1ccfd6043f/cs/20260410-critical-study-programs.pdf", title: "Seznam kritických studijních programů ČVUT, 10. 4. 2026 (PDF)", checked_at: 2026-11-09 }
+  - { url: "https://www.cvut.cz/informace-pro-studenty-z-rus-a-blr", title: "Informace pro studenty z Ruska a Běloruska (ČVUT)", checked_at: 2026-11-09 }
 chats: [https://t.me/cvut_fel, https://t.me/FEL_OI, https://t.me/felexams]
 draft: true
 ---
 
-Электротехнический факультет (Fakulta elektrotechnická, FEL) отделился от машиностроительного с 1950/51 учебного года.[^hist] Главный адрес: Technická 2, Прага 6;[^fac] часть занятий проходит в кампусе на Карловой площади (Karlovo náměstí 13, Прага 2).[^contacts]
+Электротехнический факультет (Fakulta elektrotechnická, FEL) отделился от машиностроительного с 1950/51 учебного года.[^hist] Главный адрес: Technická 2, Прага 6.[^fac] У факультета есть ещё кампусы на Jugoslávských partyzánů 3 (Прага 6) и на Karlovo náměstí 13 (Прага 2).[^contacts]
 
 ## Программы бакалавриата
 
@@ -41,11 +42,11 @@ draft: true
 
 ## Поступление
 
-Обычно сдают тест по математике. Декан освобождает от него тех, кто выполнил одно из условий: например, высокий результат матуры по математике или теста SCIO.[^cond] Условия на 2027/28 год факультет пока не публиковал.
+По условиям 2026/27 года сдавали тест по математике; декан освобождал от него тех, кто выполнил одно из условий, например высокий результат матуры по математике или теста SCIO.[^cond] Условия на 2027/28 год факультет пока не публиковал.
 
-Для чешских программ иностранец подтверждает чешский на уровне B2. Экзамен проводит кафедра языков факультета, он стоит 3 000 Kč; сертификат CCE уровня B2 с результатом от 80 % от него освобождает.[^lang]
+Для чешских программ иностранец подтверждает чешский на уровне B2. Экзамен проводит кафедра языков факультета, он стоит 3 000 Kč; сертификат CCE уровня B2 с результатом от 80 %, не старше пяти лет, от него освобождает.[^lang]
 
-Программы «Kybernetika a robotika» и «Otevřené elektronické systémy» есть в списке программ, куда ЧВУТ ограничивает приём граждан России и Беларуси.[^crit]
+В списке «критических» программ ЧВУТ (редакция от 10 апреля 2026 года), который университет составил из-за санкций ЕС, есть программы «Kybernetika a robotika» и «Otevřené elektronické systémy».[^crit] Что это значит для граждан России и Беларуси, сообщает учебный отдел факультета.[^rus]
 
 ## Плата
 
@@ -60,3 +61,4 @@ draft: true
 [^lang]: Zkouška z českého jazyka, katedra jazyků FEL — [jazyky.fel.cvut.cz](https://jazyky.fel.cvut.cz/index.php?m=j&o=zi_prezcz)
 [^fee]: Tuition fees, FEE CTU — [fel.cvut.cz](https://intranet.fel.cvut.cz/en/admissions/tuition-fees.html)
 [^crit]: Seznam kritických studijních programů ČVUT — [PDF](https://www.cvut.cz/sites/default/files/content/a00980d0-597c-4305-9436-1b1ccfd6043f/cs/20260410-critical-study-programs.pdf)
+[^rus]: Informace pro studenty z Ruska a Běloruska — [cvut.cz](https://www.cvut.cz/informace-pro-studenty-z-rus-a-blr)

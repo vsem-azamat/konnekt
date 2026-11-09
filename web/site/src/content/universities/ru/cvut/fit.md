@@ -11,7 +11,7 @@ sources:
   - { url: "https://www.cvut.cz/fakulta-informacnich-technologii", title: "Fakulta informačních technologií (ČVUT)", checked_at: 2026-11-09 }
   - { url: "https://fit.cvut.cz/prijimacky", title: "Přijímací řízení do bakalářského studia (FIT ČVUT)", checked_at: 2026-11-09 }
   - { url: "https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program", title: "Bachelor's study programme: admissions procedure (FIT CTU)", checked_at: 2026-11-09 }
-  - { url: "https://www.fbmi.cvut.cz/sites/default/files/2026-09/statut%20p%C5%99%C3%ADloha%205.pdf", title: "Statut ČVUT, příloha č. 5: poplatky spojené se studiem", checked_at: 2026-11-09 }
+  - { url: "https://www.cvut.cz/sites/default/files/content/74c76d2e-7f4d-4cb1-ac28-b0765c7f88f2/cs/20261014-statut-cvut-v-praze-xv-uplne-zneni-ucinnost-od-01102026.pdf", title: "Statut ČVUT XV, úplné znění s účinností od 1. 10. 2026, příloha č. 5 (PDF)", checked_at: 2026-11-09 }
 chats: [https://t.me/cvut_fit]
 draft: true
 ---
@@ -29,9 +29,9 @@ draft: true
 
 ## Поступление
 
-Факультет каждый год публикует условия приёма; на 2027/28 год они уже вышли.[^cz] Обычно сдают письменный тест по математике, но от него освобождают, например, по результату экзамена «Matematika rozšiřující» на матуре или по результату теста SCIO.[^cz] Сроки и подробности — на странице приёма FIT.
+Факультет каждый год публикует условия приёма; на 2027/28 год они уже вышли.[^cz] Сдают письменный тест по математике, но от него освобождают, например, по результату теста SCIO, олимпиад или экзамена «Matematika rozšiřující» на чешской матуре.[^cz] Сроки и подробности — на странице приёма FIT.
 
-Для чешской программы иностранец подтверждает чешский на уровне не ниже B2, если он не окончил школу или вуз на чешском или словацком.[^cz] Для английской — английский на уровне B2; сертификат Duolingo факультет не принимает.[^en]
+Для чешской программы иностранец подтверждает чешский на уровне не ниже B2, если он не окончил школу или вуз на чешском или словацком и не сдал успешно тест SCIO OSP.[^cz] Для английской — английский на уровне B2; сертификат Duolingo факультет не принимает.[^en]
 
 ## Плата
 
@@ -41,4 +41,4 @@ draft: true
 [^addr]: Fakulta informačních technologií — [cvut.cz](https://www.cvut.cz/fakulta-informacnich-technologii)
 [^cz]: Přijímací řízení, FIT ČVUT — [fit.cvut.cz](https://fit.cvut.cz/prijimacky)
 [^en]: Bachelor's study programme, FIT CTU — [fit.cvut.cz](https://fit.cvut.cz/en/applicants/admissions-procedure/bachelor-study-program)
-[^fees]: Statut ČVUT, příloha č. 5 — [PDF](https://www.fbmi.cvut.cz/sites/default/files/2026-09/statut%20p%C5%99%C3%ADloha%205.pdf)
+[^fees]: Statut ČVUT XV, příloha č. 5 — [PDF](https://www.cvut.cz/sites/default/files/content/74c76d2e-7f4d-4cb1-ac28-b0765c7f88f2/cs/20261014-statut-cvut-v-praze-xv-uplne-zneni-ucinnost-od-01102026.pdf)
