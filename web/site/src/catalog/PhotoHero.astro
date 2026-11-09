@@ -1,0 +1,62 @@
+---
+/**
+ * A directory page's first screen when its text has a photo (content.config.ts):
+ * the photo across the page with the name and the lead on it, the way into
+ * the app under it, and the photo's credit (articles/credit.ts). What the
+ * page says beside the name (its university, its site) comes as the slot.
+ */
+import { Image } from 'astro:assets';
+
+import PhotoCredit from '../components/PhotoCredit.astro';
+import type { Lang } from '../paths.ts';
+import { TEXTS } from '../texts.ts';
+import type { PlaceText } from './places.ts';
+
+interface Props {
+  lang: Lang;
+  text: PlaceText;
+  /** The app, opened on this place's chats. */
+  open: string;
+  openLabel: string;
+  /** Under the button: that it is free. */
+  later: string;
+}
+
+const { lang, text, open, openLabel, later } = Astro.props;
+const { name, lead, cover, coverAlt, coverFocus, coverCredit, draft } = text.data;
+const arrow = '<path d="M5 12h14M13 6l6 6-6 6"/>';
+---
+
+{
+  cover && (
+    <figure class="fhero">
+      <div class="fhero-frame">
+        <Image
+          src={cover}
+          alt={coverAlt ?? ''}
+          widths={[720, 1200, 1800]}
+          sizes="(min-width: 1180px) 1136px, calc(100vw - 32px)"
+          loading="eager"
+          fetchpriority="high"
+          style={`object-position:${Math.round(coverFocus * 100)}% 50%`}
+        />
+        <div class="fhero-text">
+          <h1>{name}{draft && <span class="badge">{TEXTS[lang].example}</span>}</h1>
+          {lead && <p class="fhero-lead">{lead}</p>}
+          <p class="facts"><slot /></p>
+        </div>
+      </div>
+      <div class="fhero-bar">
+        <a class="btn" href={open}><span>{openLabel}</span><svg viewBox="0 0 24 24" set:html={arrow} /></a>
+        <div class="later">{later}</div>
+      </div>
+      {
+        coverCredit && (
+          <figcaption>
+            <PhotoCredit lang={lang} credit={coverCredit} />
+          </figcaption>
+        )
+      }
+    </figure>
+  )
+}

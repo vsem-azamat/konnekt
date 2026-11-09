@@ -17,9 +17,11 @@ interface Props {
   lang: Lang;
   text: PlaceText;
   heading: string;
+  /** Under a photo with the name on it (PhotoHero): its heading is for screen readers alone. */
+  bare?: boolean;
 }
 
-const { lang, text, heading } = Astro.props;
+const { lang, text, heading, bare = false } = Astro.props;
 const d = DIRECTORY_TEXTS[lang];
 const { Content, remarkPluginFrontmatter } = await render(text);
 const notes = remarkPluginFrontmatter.notes === true;
@@ -32,7 +34,7 @@ const checked = sources.reduce<Date | null>(
 ---
 
 <section class="sec dir-text" aria-labelledby="s-about">
-  <header>
+  <header class:list={{ 'sr-only': bare }}>
     <h2 id="s-about">{heading}{draft && <span class="badge">{TEXTS[lang].example}</span>}</h2>
   </header>
   <div class="article">
