@@ -17,6 +17,10 @@ log is console text, so those lines carry no `level`. That access log holds
 every request header, the Mini App's `X-Telegram-Init-Data` login among them;
 Alloy replaces it (and the credential headers, which Caddy already hides) with
 `<redacted>` before shipping.
+It also ships the `stalwart` project (the mail server in `~/deploy/stalwart`,
+`project="mail"`), which belongs to no application here: its lines are text,
+and Alloy reads the level from their second word. They name senders,
+recipients and client addresses.
 Alloy runs as root and a read-only mount of the Docker socket does not limit
 the API, so it never sees the socket: a `docker-socket-proxy` on an internal
 network does, and answers only GETs for containers and networks. Loki keeps
