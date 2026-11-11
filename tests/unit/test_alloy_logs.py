@@ -20,10 +20,10 @@ IMAGE = COMPOSE["services"]["alloy"]["image"]
 
 
 def test_only_the_listed_projects_containers_are_kept() -> None:
-    """The host runs other stacks (khromberry, urf, ...); only these two leave it."""
+    """The host runs other stacks (khromberry, urf, ...); only these three leave it."""
     keeps = re.findall(r'regex\s*=\s*"([^"]*)"\s*action\s*=\s*"keep"', CONFIG)
 
-    assert keeps == ["supervisor-telegram|gov-cz-bot"]
+    assert keeps == ["supervisor-telegram|gov-cz-bot|stalwart"]
     assert "com_docker_compose_project" in CONFIG.split("action", 1)[0]
 
 
@@ -36,7 +36,7 @@ def test_each_project_gets_the_project_label_of_its_metrics_after_discovery() ->
         r'selector = "\{compose_project=\\"([^"\\]+)\\"\}"\s*stage\.static_labels \{\s*values = \{ project = "([^"]+)" \}',
         process,
     )
-    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz")]
+    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz"), ("stalwart", "mail")]
 
 
 def test_the_mini_app_init_data_never_leaves_the_host() -> None:
