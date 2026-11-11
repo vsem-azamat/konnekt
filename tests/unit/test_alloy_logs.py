@@ -20,10 +20,10 @@ IMAGE = COMPOSE["services"]["alloy"]["image"]
 
 
 def test_only_the_listed_projects_containers_are_kept() -> None:
-    """The host runs other stacks (khromberry, urf, ...); only these three leave it."""
+    """The host runs other stacks (khromberry, urf, ...); only these four leave it."""
     keeps = re.findall(r'regex\s*=\s*"([^"]*)"\s*action\s*=\s*"keep"', CONFIG)
 
-    assert keeps == ["supervisor-telegram|gov-cz-bot|stalwart"]
+    assert keeps == ["supervisor-telegram|gov-cz-bot|stalwart|unboundmodels"]
     assert "com_docker_compose_project" in CONFIG.split("action", 1)[0]
 
 
@@ -36,7 +36,12 @@ def test_each_project_gets_the_project_label_of_its_metrics_after_discovery() ->
         r'selector = "\{compose_project=\\"([^"\\]+)\\"\}"\s*stage\.static_labels \{\s*values = \{ project = "([^"]+)" \}',
         process,
     )
-    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz"), ("stalwart", "mail")]
+    assert pairs == [
+        ("supervisor-telegram", "konnekt"),
+        ("gov-cz-bot", "gov-cz"),
+        ("stalwart", "mail"),
+        ("unboundmodels", "unboundmodels"),
+    ]
 
 
 def test_the_mini_app_init_data_never_leaves_the_host() -> None:
@@ -141,3 +146,15 @@ def test_stalwart_lines_that_can_hold_message_content_stay_on_the_host() -> None
     assert not dropped.search(
         '2026-11-11T11:26:29Z INFO SMTP MAIL FROM command (smtp.mail-from) from = "a@example.com"'
     )
+
+
+def test_of_unboundmodels_only_the_gateway_is_shipped() -> None:
+    """Its site router and frontend log sign-in links; the API gateway logs method, path and status."""
+    literal = re.search(r'regex\s*=\s*"(unboundmodels;[^"]*)"\s*action\s*=\s*"drop"', CONFIG)
+    assert literal
+    dropped = re.compile(f"^(?:{literal.group(1)})$")
+
+    assert dropped.match("unboundmodels;frontend")
+    assert dropped.match("unboundmodels;caddy")
+    assert not dropped.match("unboundmodels;gateway")
+    assert not dropped.match("supervisor-telegram;frontend")

@@ -21,6 +21,9 @@ It also ships the `stalwart` project (the mail server in `~/deploy/stalwart`,
 `project="mail"`), which belongs to no application here: its lines are text,
 and Alloy reads the level from their second word. They name senders,
 recipients and client addresses.
+From the `unboundmodels` project only the `gateway` service is shipped
+(`project="unboundmodels"`): method, path and status of API calls. Its router
+and frontend, which see sign-in links, stay on the host.
 Alloy runs as root and a read-only mount of the Docker socket does not limit
 the API, so it never sees the socket: a `docker-socket-proxy` on an internal
 network does, and answers only GETs for containers and networks. Loki keeps

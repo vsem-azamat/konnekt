@@ -1,7 +1,8 @@
 // Ships container logs of this host to Loki on the monitoring server.
 //
 // Only the Compose projects listed in the keep rule leave this machine
-// (supervisor-telegram, gov-cz-bot and the stalwart mail server); the other
+// (supervisor-telegram, gov-cz-bot, the stalwart mail server and the
+// unboundmodels gateway); the other
 // stacks on this host (khromberry, urf, ...) are not shipped. Each gets a
 // `project` label, the one its metrics carry, so a dashboard filters logs and
 // metrics alike. The applications write JSON, so `level` becomes a label and
@@ -23,8 +24,16 @@ discovery.relabel "shipped" {
 
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    regex         = "supervisor-telegram|gov-cz-bot|stalwart"
+    regex         = "supervisor-telegram|gov-cz-bot|stalwart|unboundmodels"
     action        = "keep"
+  }
+
+  // Of unboundmodels only the API gateway: its log is method, path and
+  // status. The site's router and frontend see sign-in links and cookies.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project", "__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "unboundmodels;(?:[^g]|g[^a]).*"
+    action        = "drop"
   }
 
   rule {
@@ -138,6 +147,14 @@ loki.process "json" {
 
     stage.static_labels {
       values = { project = "mail" }
+    }
+  }
+
+  stage.match {
+    selector = "{compose_project=\"unboundmodels\"}"
+
+    stage.static_labels {
+      values = { project = "unboundmodels" }
     }
   }
 
