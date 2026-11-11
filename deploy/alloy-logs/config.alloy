@@ -1,11 +1,12 @@
 // Ships container logs of this host to Loki on the monitoring server.
 //
 // Only the Compose projects listed in the keep rule leave this machine
-// (supervisor-telegram and gov-cz-bot); the other stacks on this host
-// (khromberry, urf, ...) are not shipped. Each gets a `project` label, the one
-// its metrics carry, so a dashboard filters logs and metrics alike. The
-// applications write JSON, so `level` becomes a label and the request, update
-// and chat ids stay inside the line, where a query reads them.
+// (supervisor-telegram, gov-cz-bot and the stalwart mail server); the other
+// stacks on this host (khromberry, urf, ...) are not shipped. Each gets a
+// `project` label, the one its metrics carry, so a dashboard filters logs and
+// metrics alike. The applications write JSON, so `level` becomes a label and
+// the request, update and chat ids stay inside the line, where a query reads
+// them.
 
 logging {
   level  = "info"
@@ -22,7 +23,7 @@ discovery.relabel "shipped" {
 
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    regex         = "supervisor-telegram|gov-cz-bot"
+    regex         = "supervisor-telegram|gov-cz-bot|stalwart"
     action        = "keep"
   }
 
@@ -75,6 +76,24 @@ loki.process "json" {
     replace    = "\"<redacted>\""
   }
 
+  // Stalwart writes text, "<time> INFO <message> (<event>) key = value": its
+  // level is read here and lower-cased with the others below.
+  stage.match {
+    selector = "{compose_project=\"stalwart\"}"
+
+    // Message content appears only in trace and debug lines and in the
+    // raw-input/raw-output events; they stay on the host even if someone
+    // raises the server's log level.
+    stage.drop {
+      expression          = "^\\S+ (TRACE|DEBUG) |\\.raw-(input|output)\\)"
+      drop_counter_reason = "stalwart_content"
+    }
+
+    stage.regex {
+      expression = "^\\S+ (?P<level>[A-Z]+) "
+    }
+  }
+
   // Lines that are not JSON (a startup banner, a library's last words) pass
   // through without a level.
   stage.json {
@@ -111,6 +130,14 @@ loki.process "json" {
 
     stage.static_labels {
       values = { project = "gov-cz" }
+    }
+  }
+
+  stage.match {
+    selector = "{compose_project=\"stalwart\"}"
+
+    stage.static_labels {
+      values = { project = "mail" }
     }
   }
 

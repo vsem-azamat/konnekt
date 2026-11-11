@@ -20,10 +20,10 @@ IMAGE = COMPOSE["services"]["alloy"]["image"]
 
 
 def test_only_the_listed_projects_containers_are_kept() -> None:
-    """The host runs other stacks (khromberry, urf, ...); only these two leave it."""
+    """The host runs other stacks (khromberry, urf, ...); only these three leave it."""
     keeps = re.findall(r'regex\s*=\s*"([^"]*)"\s*action\s*=\s*"keep"', CONFIG)
 
-    assert keeps == ["supervisor-telegram|gov-cz-bot"]
+    assert keeps == ["supervisor-telegram|gov-cz-bot|stalwart"]
     assert "com_docker_compose_project" in CONFIG.split("action", 1)[0]
 
 
@@ -36,7 +36,7 @@ def test_each_project_gets_the_project_label_of_its_metrics_after_discovery() ->
         r'selector = "\{compose_project=\\"([^"\\]+)\\"\}"\s*stage\.static_labels \{\s*values = \{ project = "([^"]+)" \}',
         process,
     )
-    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz")]
+    assert pairs == [("supervisor-telegram", "konnekt"), ("gov-cz-bot", "gov-cz"), ("stalwart", "mail")]
 
 
 def test_the_mini_app_init_data_never_leaves_the_host() -> None:
@@ -123,3 +123,21 @@ def test_alloy_accepts_the_config() -> None:
     )  # fmt: skip
 
     assert result.returncode == 0, result.stderr
+
+
+def test_stalwart_lines_that_can_hold_message_content_stay_on_the_host() -> None:
+    """Trace and debug lines and the raw-input/raw-output events carry what was sent over the wire."""
+    literal = re.search(
+        r'stage\.drop \{\s*expression\s*= ("(?:[^"\\]|\\.)*")\s*drop_counter_reason = "stalwart_content"', CONFIG
+    )
+    assert literal
+    dropped = re.compile(json.loads(literal.group(1)))
+
+    assert dropped.search(
+        '2026-11-11T11:26:29Z TRACE Raw SMTP input received (smtp.raw-input) contents = "Subject: hi"'
+    )
+    assert dropped.search("2026-11-11T11:26:29Z DEBUG Something verbose (store.data-iterate)")
+    assert dropped.search('2026-11-11T11:26:29Z INFO Raw IMAP output sent (imap.raw-output) contents = "x"')
+    assert not dropped.search(
+        '2026-11-11T11:26:29Z INFO SMTP MAIL FROM command (smtp.mail-from) from = "a@example.com"'
+    )
