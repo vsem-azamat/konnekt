@@ -22,18 +22,13 @@ discovery.docker "containers" {
 discovery.relabel "shipped" {
   targets = discovery.docker.containers.targets
 
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    regex         = "supervisor-telegram|gov-cz-bot|stalwart|unboundmodels"
-    action        = "keep"
-  }
-
-  // Of unboundmodels only the API gateway: its log is method, path and
-  // status. The site's router and frontend see sign-in links and cookies.
+  // One keep rule over project and service. Of unboundmodels only the API
+  // gateway leaves the host: the site's router and frontend see sign-in links
+  // and cookies, and a service added there later is not shipped either.
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_project", "__meta_docker_container_label_com_docker_compose_service"]
-    regex         = "unboundmodels;(?:[^g]|g[^a]).*"
-    action        = "drop"
+    regex         = "(?:supervisor-telegram|gov-cz-bot|stalwart);.*|unboundmodels;gateway"
+    action        = "keep"
   }
 
   rule {
@@ -83,6 +78,18 @@ loki.process "json" {
   stage.replace {
     expression = "(?i)\"(?:X-Telegram-Init-Data|Authorization|Proxy-Authorization|Cookie|Set-Cookie)\":\\s*\\[([^\\]]*)\\]"
     replace    = "\"<redacted>\""
+  }
+
+  // The gateway logs "<-- GET /path?query" and "--> GET /path?query 200 5ms".
+  // It reads no query parameters, but a client may put a key in one; the
+  // query never leaves this host.
+  stage.match {
+    selector = "{compose_project=\"unboundmodels\"}"
+
+    stage.replace {
+      expression = "^(?:<--|-->) \\S+ [^\\s?]*(\\?\\S*)"
+      replace    = ""
+    }
   }
 
   // Stalwart writes text, "<time> INFO <message> (<event>) key = value": its

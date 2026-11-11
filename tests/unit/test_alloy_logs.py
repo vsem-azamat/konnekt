@@ -20,11 +20,26 @@ IMAGE = COMPOSE["services"]["alloy"]["image"]
 
 
 def test_only_the_listed_projects_containers_are_kept() -> None:
-    """The host runs other stacks (khromberry, urf, ...); only these four leave it."""
+    """The host runs other stacks (khromberry, urf, ...); one keep rule names what leaves it."""
     keeps = re.findall(r'regex\s*=\s*"([^"]*)"\s*action\s*=\s*"keep"', CONFIG)
 
-    assert keeps == ["supervisor-telegram|gov-cz-bot|stalwart|unboundmodels"]
-    assert "com_docker_compose_project" in CONFIG.split("action", 1)[0]
+    assert keeps == ["(?:supervisor-telegram|gov-cz-bot|stalwart);.*|unboundmodels;gateway"]
+    assert 'action        = "drop"' not in CONFIG
+    head = CONFIG.split("action", 1)[0]
+    assert "com_docker_compose_project" in head
+    assert "com_docker_compose_service" in head
+    kept = re.compile(f"^(?:{keeps[0]})$")
+    for shipped in ("supervisor-telegram;bot", "gov-cz-bot;caddy", "stalwart;stalwart", "unboundmodels;gateway"):
+        assert kept.match(shipped)
+    # Of unboundmodels only the gateway; a service added there later stays on the host.
+    for held in (
+        "unboundmodels;frontend",
+        "unboundmodels;caddy",
+        "unboundmodels;gatus",
+        "unboundmodels;gateway-worker",
+    ):
+        assert not kept.match(held)
+    assert not kept.match("khromberry;web")
 
 
 def test_each_project_gets_the_project_label_of_its_metrics_after_discovery() -> None:
@@ -148,13 +163,17 @@ def test_stalwart_lines_that_can_hold_message_content_stay_on_the_host() -> None
     )
 
 
-def test_of_unboundmodels_only_the_gateway_is_shipped() -> None:
-    """Its site router and frontend log sign-in links; the API gateway logs method, path and status."""
-    literal = re.search(r'regex\s*=\s*"(unboundmodels;[^"]*)"\s*action\s*=\s*"drop"', CONFIG)
+def test_the_gateway_query_string_stays_on_the_host() -> None:
+    """hono's logger prints the path with its query; a client may have put a key there."""
+    block = CONFIG.split('selector = "{compose_project=\\"unboundmodels\\"}"', 1)[1]
+    literal = re.search(r'stage\.replace \{\s*expression = ("(?:[^"\\]|\\.)*")\s*replace    = ""', block)
     assert literal
-    dropped = re.compile(f"^(?:{literal.group(1)})$")
+    expression = json.loads(literal.group(1))
 
-    assert dropped.match("unboundmodels;frontend")
-    assert dropped.match("unboundmodels;caddy")
-    assert not dropped.match("unboundmodels;gateway")
-    assert not dropped.match("supervisor-telegram;frontend")
+    def strip(line: str) -> str:
+        match = re.search(expression, line)
+        return line if not match else line[: match.start(1)] + line[match.end(1) :]
+
+    assert strip("<-- GET /v1/models?api_key=sk-1&x=2") == "<-- GET /v1/models"
+    assert strip("--> POST /v1/chat/completions?key=abc 200 15ms") == "--> POST /v1/chat/completions 200 15ms"
+    assert strip("--> GET /healthz 200 0ms") == "--> GET /healthz 200 0ms"
