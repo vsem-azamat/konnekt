@@ -81,6 +81,14 @@ loki.process "json" {
   stage.match {
     selector = "{compose_project=\"stalwart\"}"
 
+    // Message content appears only in trace and debug lines and in the
+    // raw-input/raw-output events; they stay on the host even if someone
+    // raises the server's log level.
+    stage.drop {
+      expression          = "^\\S+ (TRACE|DEBUG) |\\.raw-(input|output)\\)"
+      drop_counter_reason = "stalwart_content"
+    }
+
     stage.regex {
       expression = "^\\S+ (?P<level>[A-Z]+) "
     }

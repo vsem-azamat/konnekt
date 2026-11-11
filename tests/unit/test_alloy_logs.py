@@ -123,3 +123,21 @@ def test_alloy_accepts_the_config() -> None:
     )  # fmt: skip
 
     assert result.returncode == 0, result.stderr
+
+
+def test_stalwart_lines_that_can_hold_message_content_stay_on_the_host() -> None:
+    """Trace and debug lines and the raw-input/raw-output events carry what was sent over the wire."""
+    literal = re.search(
+        r'stage\.drop \{\s*expression\s*= ("(?:[^"\\]|\\.)*")\s*drop_counter_reason = "stalwart_content"', CONFIG
+    )
+    assert literal
+    dropped = re.compile(json.loads(literal.group(1)))
+
+    assert dropped.search(
+        '2026-11-11T11:26:29Z TRACE Raw SMTP input received (smtp.raw-input) contents = "Subject: hi"'
+    )
+    assert dropped.search("2026-11-11T11:26:29Z DEBUG Something verbose (store.data-iterate)")
+    assert dropped.search('2026-11-11T11:26:29Z INFO Raw IMAP output sent (imap.raw-output) contents = "x"')
+    assert not dropped.search(
+        '2026-11-11T11:26:29Z INFO SMTP MAIL FROM command (smtp.mail-from) from = "a@example.com"'
+    )
